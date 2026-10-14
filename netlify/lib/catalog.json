@@ -1,0 +1,39 @@
+{
+  "subscriptionDiscount": 0.1,
+  "shipping": {
+    "fee": 600,
+    "freeFrom": 5000
+  },
+  "products": {
+    "casablanca": {
+      "name": "Casablanca Blend",
+      "jp": "カサブランカ ブレンド",
+      "price": 3000,
+      "weight": "250 g"
+    },
+    "pinkwhiskey": {
+      "name": "Colombia Pink Whiskey",
+      "jp": "コロンビア ピンクウイスキー",
+      "price": 5500,
+      "weight": "250 g"
+    },
+    "rumbarrel": {
+      "name": "Colombia Rum Barrel",
+      "jp": "コロンビア ラムバレル",
+      "price": 5500,
+      "weight": "250 g"
+    },
+    "yirgacheffe": {
+      "name": "Ethiopia Yirgacheffe",
+      "jp": "エチオピア イルガチェフェ",
+      "price": 3500,
+      "weight": "250 g"
+    },
+    "strawberry": {
+      "name": "Sumatra Strawberry",
+      "jp": "スマトラ ストロベリー",
+      "price": 4500,
+      "weight": "250 g"
+    }
+  }
+}

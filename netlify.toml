@@ -1,0 +1,8 @@
+# Beju on Netlify: the site is in beju-site/, the payment functions in netlify/functions/.
+# Deploy with Git (recommended) or the Netlify CLI. Drag-and-drop deploys don't include functions.
+[build]
+  publish = "beju-site"
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"

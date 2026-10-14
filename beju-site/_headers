@@ -1,0 +1,15 @@
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+/images/*
+  Cache-Control: public, max-age=604800
+/og-image.png
+  Cache-Control: public, max-age=604800
+/config.js
+  Cache-Control: public, max-age=300
+/thanks/*
+  X-Robots-Tag: noindex
+/ja/thanks/*
+  X-Robots-Tag: noindex
