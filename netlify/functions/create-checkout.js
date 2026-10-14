@@ -5,7 +5,8 @@ const { checkCart, sessionParams } = require("../lib/order");
 
 const json = (status, body) => ({ statusCode: status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" }, body: JSON.stringify(body) });
 
-exports.handler = async (event, context, deps) => {
+exports.handler = async (event) => {
+  const deps = exports.__deps;
   if (event.httpMethod !== "POST") return json(405, { error: "method_not_allowed" });
   let body;
   try { body = JSON.parse(event.isBase64Encoded ? Buffer.from(event.body || "", "base64").toString("utf8") : event.body || "{}"); }

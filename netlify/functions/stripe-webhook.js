@@ -2,7 +2,8 @@
    emails the order with each coffee's grind to ORDER_NOTIFY_URL (for example a Formspree form). */
 const { stripe, verifySignature } = require("../lib/stripe");
 
-exports.handler = async (event, context, deps) => {
+exports.handler = async (event) => {
+  const deps = exports.__deps;
   const raw = event.isBase64Encoded ? Buffer.from(event.body || "", "base64").toString("utf8") : event.body || "";
   const sig = event.headers && (event.headers["stripe-signature"] || event.headers["Stripe-Signature"]);
   if (!verifySignature(raw, sig, process.env.STRIPE_WEBHOOK_SECRET)) return { statusCode: 400, body: "bad signature" };

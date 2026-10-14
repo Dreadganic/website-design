@@ -4,7 +4,8 @@ const { stripe } = require("../lib/stripe");
 
 const json = (status, body) => ({ statusCode: status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" }, body: JSON.stringify(body) });
 
-exports.handler = async (event, context, deps) => {
+exports.handler = async (event) => {
+  const deps = exports.__deps;
   const id = (event.queryStringParameters || {}).session_id || "";
   if (!/^cs_(test|live)_[A-Za-z0-9]{10,}$/.test(id)) return json(400, { error: "bad_session" });
   try {
