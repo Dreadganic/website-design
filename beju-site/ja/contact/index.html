@@ -1461,7 +1461,7 @@ footer { padding-block: clamp(3rem, 7vw, 5.5rem) 3rem; }
     var hp = $("#homeProducts"), sp = $("#shopProducts");
     var blends = PRODUCTS.filter(function (p) { return Object.keys(p.blend).length > 1; }), singles = PRODUCTS.filter(function (p) { return Object.keys(p.blend).length === 1; });
     var soHead = '<h2 class="shop-h">Single origins</h2><p class="sub">Every single origin is roasted to a medium that keeps the fruit and sweetness of the farm.</p>';
-    if (hp) { hp.innerHTML = blends.map(function (p) { return productHtml(p, false, true); }).join("") + '<div class="tiles">' + singles.map(tileHtml).join("") + "</div>"; walk(hp); }
+    if (hp) { hp.innerHTML = '<div class="pgrid">' + blends.concat(singles).map(cardHtml).join("") + '</div><p class="linkrow" style="margin-top:1.5rem"><a href="#shop">' + T("Shop all coffee", "すべてのコーヒーを見る") + " →</a></p>"; walk(hp); }
     if (sp) { sp.innerHTML = '<div class="pgrid">' + blends.concat(singles).map(cardHtml).join("") + "</div>"; walk(sp); }
   }
   document.addEventListener("click", function (e) {
