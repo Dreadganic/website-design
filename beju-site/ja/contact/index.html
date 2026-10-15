@@ -703,9 +703,12 @@ footer small { color: var(--muted); }
 footer { border-top: 0; }
 .legend .ldots { display: inline-flex; gap: 3px; margin-right: 0.45rem; vertical-align: middle; }
 .legend .ldots i { width: 0.45rem; height: 0.45rem; margin: 0; border-radius: 50%; }
-.jdots { position: absolute; top: 1.2rem; right: 1.2rem; display: flex; gap: 5px; }
-.jdots i { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--oc); opacity: 0.28; }
-.jdots i.on { opacity: 1; }
+.jdots { position: absolute; top: 1.2rem; right: 1.2rem; display: flex; gap: 8px; }
+.jdots button { width: 0.6rem; height: 0.6rem; padding: 0; border: 0; border-radius: 50%; background: var(--oc); opacity: 0.3; cursor: pointer; position: relative; transition: opacity 0.2s, transform 0.2s; }
+.jdots button::after { content: ""; position: absolute; inset: -9px -4px; }
+.jdots button:hover { opacity: 0.7; transform: scale(1.2); }
+.jdots button.on { opacity: 1; cursor: default; transform: none; }
+.jdots button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* type set larger: one very large size, one text size */
 .hero h1 { font-size: clamp(2.6rem, 7vw, 6.2rem); line-height: 0.98; letter-spacing: -0.02em; max-width: 11em; margin-bottom: 0.9rem; }
 :lang(ja) .hero h1 { max-width: 8.6em; letter-spacing: 0; line-height: 1.08; }
@@ -919,7 +922,7 @@ footer { padding-block: clamp(3rem, 7vw, 5.5rem) 3rem; }
     "Specialty coffee, roasted in small batches in Osaka. Pick a blend, choose your grind, and see exactly where every bean grew.": "大阪で小ロット焙煎するスペシャルティコーヒー。ブレンドと挽き方を選べば、すべての豆がどこで育ったかがわかります。",
     "Shop the beans": "豆を買う", "Explore the origins": "産地を見る",
     "Scroll to follow the beans from farm to roaster": "スクロールして、農園からロースターまで豆をたどる",
-    "Back in Osaka · 大阪": "大阪に到着", "Ready to taste it?": "味わってみませんか？",
+    "Back in Osaka · 大阪": "大阪に到着", "Ready to taste it?": "味わってみませんか？", "That was one of five routes our coffee travels to Osaka. Tap another pin to follow it, or choose your grind and we will send it.": "これは、コーヒーが大阪へ届く5つのルートのひとつです。ほかのピンをタップして別のルートをたどるか、挽き方を選んでご注文ください。",
     "Every region you passed ends up in a bag from this roastery. Choose your grind and we will send it.": "通ったすべての産地の豆が、このロースターの袋に入ります。挽き方を選んでください。お届けします。",
     "Open the full map": "産地マップを開く", "Growing region": "産地", "Roastery": "ロースタリー",
     "Now roasting": "いま焙煎中",
@@ -1469,6 +1472,8 @@ footer { padding-block: clamp(3rem, 7vw, 5.5rem) 3rem; }
       var id = a.getAttribute("data-add"), fr = $('input[name="' + id + '-freq"]:checked');
       addToCart(id, $("#" + id + "-grind").value, fr ? fr.value : "once", +$("#" + id + "-qty").textContent); return;
     }
+    var rt = e.target.closest("[data-route]");
+    if (rt) { var rid = rt.getAttribute("data-route"); switchRoute(rid); requestAnimationFrame(function () { jumpToStep(rid); }); return; }
     var qk = e.target.closest("[data-quick]");
     if (qk) { openQuick(qk.getAttribute("data-quick")); return; }
     var qa = e.target.closest("[data-add-quick]");
@@ -1954,15 +1959,28 @@ footer { padding-block: clamp(3rem, 7vw, 5.5rem) 3rem; }
   on("#resetMap", "click", function () { if (bigMap) bigMap.reset(); });
 
   /* ---------- Home: map follows the scroll ---------- */
-  var JOURNEY = ["costarica", "colombia", "brazil", "ethiopia", "indonesia"];
+  /* The home page follows one route per visit, picked at random (never the same twice in a row).
+     Tapping another pin, or another dot on the card, switches to that route. */
+  var ROUTES = ["costarica", "colombia", "brazil", "ethiopia", "indonesia"];
+  var JOURNEY = [(function () {
+    var last = null; try { last = localStorage.getItem("beju-route"); } catch (e) {}
+    var pool = ROUTES.filter(function (id) { return id !== last; }), pick = pool[Math.floor(Math.random() * pool.length)];
+    try { localStorage.setItem("beju-route", pick); } catch (e) {}
+    return pick;
+  })()];
   var stepIds = [null].concat(JOURNEY, [null]), jSteps = [], jActive = -2;
+  function switchRoute(id) {
+    if (ROUTES.indexOf(id) < 0 || JOURNEY[0] === id) return;
+    JOURNEY = [id]; stepIds = [null].concat(JOURNEY, [null]);
+    try { localStorage.setItem("beju-route", id); } catch (e) {}
+    renderJourney(); jActive = -2; lastVoy = ""; computeStep(); kickCam();
+  }
   function journeyCard(o) {
     var used = PRODUCTS.filter(function (p) { return p.blend[o.id]; }).map(function (p) {
       return usedRow(p, o.id, true);
     }).join("") || '<p style="font-size:var(--t-sm);color:var(--muted)">Not in a current roast yet.</p>';
-    var n = JOURNEY.indexOf(o.id) + 1;
-    var dots = JOURNEY.map(function (id, k) { return '<i' + (k === n - 1 ? ' class="on"' : "") + ' style="--oc:var(--c-' + id + ')"></i>'; }).join("");
-    return '<div class="jstep" data-id="' + o.id + '"><div class="jcard"><span class="jdots" aria-hidden="true">' + dots + "</span><h3>" + o.country + '</h3>' +
+    var dots = ROUTES.map(function (id) { return '<button type="button" data-route="' + id + '"' + (id === o.id ? ' class="on" aria-current="true"' : "") + ' style="--oc:var(--c-' + id + ')" aria-label="' + T("Follow the route from " + ORIGINS[id].country, tr(ORIGINS[id].country) + "からのルートを見る") + '"></button>'; }).join("");
+    return '<div class="jstep" data-id="' + o.id + '"><div class="jcard"><span class="jdots" role="group" aria-label="' + T("Other routes", "ほかのルート") + '">' + dots + "</span><h3>" + o.country + '</h3>' +
       '<p class="meta">' + (lang === "ja" ? esc(tr(o.region)) : o.jp + " · " + esc(o.region)) + " · " + distLine(o) + "</p>" +
       '<div class="voyage" style="--oc:var(--c-' + o.id + ')"><ol aria-label="' + T("Journey to Osaka", "大阪までの道のり") + '">' + STAGES.map(function (x, q) { return '<li' + (q === 0 ? ' class="now"' : "") + "><i></i><span>" + L(x) + "</span></li>"; }).join("") + '</ol><p class="vline" aria-live="polite">' + esc(voyageStage(o.id, 0).txt) + "</p></div>" + originViz(o) +
       '<p class="jstory">' + esc(o.story) + "</p>" +
@@ -1974,7 +1992,7 @@ footer { padding-block: clamp(3rem, 7vw, 5.5rem) 3rem; }
   function renderJourney() {
     if (!$("#jsteps")) return;
     var intro = '<div class="jstep jhero"><div class="herotxt"><h1>Coffee you can trace on a map.</h1><p class="lede">Specialty coffee, roasted in small batches in Osaka. Pick a blend, choose your grind, and see exactly where every bean grew.</p><div class="cta"><a class="btn primary" href="#shop">Shop the beans</a><a class="btn" href="#origins">Explore the origins</a></div></div><p class="vtag" lang="ja">産地をたどる、一杯。</p></div>';
-    var outro = '<div class="jstep"><div class="jcard"><h2>Ready to taste it?</h2><p>Every region you passed ends up in a bag from this roastery. Choose your grind and we will send it.</p><div class="cta"><a class="btn primary" href="#shop">Shop the beans</a><a class="btn" href="#origins">Open the full map</a></div></div></div>';
+    var outro = '<div class="jstep"><div class="jcard"><h2>Ready to taste it?</h2><p>That was one of five routes our coffee travels to Osaka. Tap another pin to follow it, or choose your grind and we will send it.</p><div class="cta"><a class="btn primary" href="#shop">Shop the beans</a><a class="btn" href="#origins">Open the full map</a></div></div></div>';
     $("#jsteps").innerHTML = intro + JOURNEY.map(function (id) { return journeyCard(ORIGINS[id]); }).join("") + outro;
     walk($("#jsteps"));
     jSteps = $$(".jstep"); measureSteps();
@@ -2180,6 +2198,7 @@ footer { padding-block: clamp(3rem, 7vw, 5.5rem) 3rem; }
   })();
 
   function jumpToStep(id) {
+    if (stepIds.indexOf(id) < 0) switchRoute(id);
     var k = stepIds.indexOf(id); if (k < 0) return;
     var r = jSteps[k].getBoundingClientRect();
     var calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
