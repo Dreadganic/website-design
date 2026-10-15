@@ -240,6 +240,40 @@ section.view { padding-block: 1.75rem 4rem; }
 .step h3 { font-size: var(--t-lg); margin: 0.2rem 0 0.4rem; }
 .step p { color: var(--muted); font-size: var(--t-sm); }
 
+/* shop grid */
+.pgrid { display: grid; gap: 1.1rem 0.75rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 720px) { .pgrid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.75rem 1.25rem; } }
+@media (min-width: 1140px) { .pgrid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1.25rem; } }
+.pcard { position: relative; display: flex; flex-direction: column; min-width: 0; }
+.pc-media { position: relative; aspect-ratio: 4 / 5; border-radius: var(--radius); background: color-mix(in srgb, var(--tone) 16%, var(--surface)); display: flex; align-items: center; justify-content: center; padding: 9% 0 7%; overflow: hidden; }
+.pc-media img { height: 100%; width: auto; max-width: 78%; object-fit: contain; display: block; filter: drop-shadow(0 10px 14px rgba(30, 20, 10, 0.18)); transition: transform 0.35s ease; }
+.pcard:hover .pc-media img { transform: translateY(-4px) rotate(-1.5deg); }
+.pc-badge { position: absolute; top: 0.55rem; left: 0.55rem; font-size: 0.7rem; letter-spacing: 0.02em; background: var(--bg); color: var(--ink); border-radius: 999px; padding: 0.15rem 0.55rem; }
+.pc-body { display: flex; flex-direction: column; flex: 1; padding: 0.7rem 0.1rem 0; }
+.pcard h3 { font-size: 1.05rem; line-height: 1.25; }
+.pcard h3 a { color: inherit; text-decoration: none; }
+.pcard h3 a::after { content: ""; position: absolute; inset: 0; border-radius: var(--radius); }
+.pcard h3 a:focus-visible { outline: none; }
+.pcard h3 a:focus-visible::after { outline: 2px solid var(--accent); outline-offset: 3px; }
+.pc-from { margin: 0.3rem 0 0; font-size: var(--t-xs); color: var(--muted); line-height: 1.4; }
+.pc-from .kd { width: 0.5rem; height: 0.5rem; margin-right: 0.15rem; vertical-align: 0.05em; }
+.pc-from span { margin-left: 0.2rem; }
+.pc-notes { margin: 0.3rem 0 0; font-size: var(--t-xs); line-height: 1.45; color: var(--ink); }
+.pc-foot { margin-top: auto; padding-top: 0.55rem; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.pc-price { margin: 0; font-size: 1rem; }
+.pc-price small { color: var(--muted); font-size: var(--t-xs); }
+.pc-add { position: relative; z-index: 1; flex: none; width: 2.6rem; height: 2.6rem; border-radius: 50%; border: 0; background: var(--ink); color: var(--bg); font-size: 1.45rem; line-height: 1; cursor: pointer; display: grid; place-items: center; transition: transform 0.15s ease, background 0.15s ease; }
+.pc-add:hover { background: var(--accent); transform: scale(1.06); }
+.pc-add:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (min-width: 720px) { .pcard h3 { font-size: 1.2rem; } .pc-body { padding-top: 0.9rem; } }
+/* quick-add sheet (in the drawer) */
+.qhead { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 0.9rem; align-items: start; }
+.qbag { background: color-mix(in srgb, var(--tone) 16%, transparent); border-radius: var(--radius); padding: 0.45rem 0.35rem; }
+.qbag img { width: 100%; height: auto; display: block; }
+.qhead b { font-family: var(--font-display); font-size: 1.25rem; display: block; line-height: 1.25; }
+.qhead small { display: block; color: var(--muted); font-size: var(--t-xs); margin: 0.2rem 0 0.5rem; }
+#drawer .opts { margin-top: 0; }
+
 /* product cards */
 .products { display: grid; gap: 1.5rem; grid-template-columns: 1fr; }
 @media (min-width: 900px) { .products { grid-template-columns: 1fr 1fr; } }
@@ -709,7 +743,7 @@ footer { padding-block: clamp(3rem, 7vw, 5.5rem) 3rem; }
 /* motion: parts of each section rise into place (from a visible state) */
 .motion .rise { transform: translateY(22px); transition: transform 0.8s cubic-bezier(0.16, 0.84, 0.3, 1) var(--d, 0ms); }
 .motion .rise.in { transform: none; }
-.motion .product.in:hover, .motion .jcardlink.in:hover, .motion .crosslink.in:hover, .motion .course.in:hover { transform: translateY(-3px); transition-duration: 0.25s; transition-delay: 0ms; }
+.motion .product.in:hover, .motion .pcard.in:hover, .motion .jcardlink.in:hover, .motion .crosslink.in:hover, .motion .course.in:hover { transform: translateY(-3px); transition-duration: 0.25s; transition-delay: 0ms; }
 </style>
 
 
@@ -737,7 +771,7 @@ footer { padding-block: clamp(3rem, 7vw, 5.5rem) 3rem; }
 <section class="view" id="view-shop">
   <div class="wrap">
     <div class="view-head"><h1>焙煎したてのコーヒー</h1><p>挽き方を選び、1回のみまたは定期便でご注文ください。コーヒーは大阪で焙煎します。価格は250g袋あたりです。</p></div>
-    <div id="shopProducts"><h2 class="shop-h">ハウスブレンド</h2><article class="product wide" style="--tone:var(--accent)" id="p-casablanca-full"><div class="bag"><img class="bagimg zoomable" role="button" tabindex="0" data-zoom="casablanca" data-zside="front" title="クリックで拡大" src="/images/bags/casablanca-front.jpg" width="150" height="248" alt="カサブランカ ブレンド bag" loading="lazy" decoding="async"></div><div style="min-width:0"><h3><a class="plink" href="/ja/shop/casablanca/">カサブランカ ブレンド</a></h3><p class="pjp">Casablanca Blend</p><p class="price">¥3,000 <small>/ 250 g · 中煎り</small></p><p class="desc">ベージュのハウスブレンド。ブラジルのコクと甘み、コロンビアの柑橘、コスタリカのナッツとココアの余韻。</p><div class="chips"><span class="chip">ココア</span><span class="chip">ヘーゼルナッツ</span><span class="chip">柑橘</span></div><div class="blendbar" aria-hidden="true"><span style="width:50%;background:var(--c-brazil)"></span><span style="width:30%;background:var(--c-colombia)"></span><span style="width:20%;background:var(--c-costarica)"></span></div><div class="blendkey"><span><i class="kd" style="background:var(--c-brazil)"></i>50% <a href="/ja/origins/?o=brazil&amp;p=casablanca" data-origin="brazil" data-prod="casablanca">ブラジル</a></span><span><i class="kd" style="background:var(--c-colombia)"></i>30% <a href="/ja/origins/?o=colombia&amp;p=casablanca" data-origin="colombia" data-prod="casablanca">コロンビア</a></span><span><i class="kd" style="background:var(--c-costarica)"></i>20% <a href="/ja/origins/?o=costarica&amp;p=casablanca" data-origin="costarica" data-prod="casablanca">コスタリカ</a></span></div><div class="opts"><div class="field"><label for="casablanca-grind">挽き方</label><select id="casablanca-grind"><option value="Whole bean">豆のまま</option><option value="Espresso">エスプレッソ</option><option value="Moka pot">モカポット</option><option value="Filter (V60, drip)">フィルター(V60・ドリップ)</option><option value="French press">フレンチプレス</option></select></div><fieldset class="field"><legend class="lbl">お届け</legend><div class="seg"><label><input type="radio" name="casablanca-freq" value="once" checked=""><span>1回のみ</span></label><label><input type="radio" name="casablanca-freq" value="2w"><span>2週間ごと</span></label><label><input type="radio" name="casablanca-freq" value="1m"><span>毎月</span></label></div></fieldset><div class="buyrow"><div class="qty"><button type="button" data-q="-1" aria-label="減らす">−</button><output id="casablanca-qty">1</output><button type="button" data-q="1" aria-label="増やす">+</button></div><button class="btn primary" type="button" data-add="casablanca">カートに入れる</button></div></div><p class="linkrow"><a href="/ja/shop/casablanca/">詳細と淹れ方</a></p></div></article><h2 class="shop-h">シングルオリジン</h2><p class="sub">シングルオリジンはすべて、農園の果実味と甘さが残る中煎りで焙煎しています。</p><div class="products"><article class="product" style="--tone:var(--c-colombia)" id="p-pinkwhiskey-full"><div class="bag"><img class="bagimg zoomable" role="button" tabindex="0" data-zoom="pinkwhiskey" data-zside="front" title="クリックで拡大" src="/images/bags/pinkwhiskey-front.jpg" width="150" height="248" alt="コロンビア ピンクウイスキー bag" loading="lazy" decoding="async"></div><div style="min-width:0"><h3><a class="plink" href="/ja/shop/pinkwhiskey/">コロンビア ピンクウイスキー</a></h3><p class="pjp">Colombia Pink Whiskey</p><p class="price">¥5,500 <small>/ 250 g · 中煎り</small></p><p class="desc">ウイラ県モンテブランコ農園のピンクブルボンとカトゥーラ。ウイスキー樽で仕上げたナチュラルで、甘くワインのような味わい。</p><div class="chips"><span class="chip">赤りんご</span><span class="chip">バラ</span><span class="chip">樽のような甘み</span></div><div class="blendbar" aria-hidden="true"><span style="width:100%;background:var(--c-colombia)"></span></div><div class="blendkey"><span><i class="kd" style="background:var(--c-colombia)"></i>100% <a href="/ja/origins/?o=colombia&amp;p=pinkwhiskey" data-origin="colombia" data-prod="pinkwhiskey">コロンビア</a> <span aria-hidden="true">·</span> <span>ウイラ県ピタリート</span></span></div><div class="opts"><div class="field"><label for="pinkwhiskey-grind">挽き方</label><select id="pinkwhiskey-grind"><option value="Whole bean">豆のまま</option><option value="Espresso">エスプレッソ</option><option value="Moka pot">モカポット</option><option value="Filter (V60, drip)">フィルター(V60・ドリップ)</option><option value="French press">フレンチプレス</option></select></div><fieldset class="field"><legend class="lbl">お届け</legend><div class="seg"><label><input type="radio" name="pinkwhiskey-freq" value="once" checked=""><span>1回のみ</span></label><label><input type="radio" name="pinkwhiskey-freq" value="2w"><span>2週間ごと</span></label><label><input type="radio" name="pinkwhiskey-freq" value="1m"><span>毎月</span></label></div></fieldset><div class="buyrow"><div class="qty"><button type="button" data-q="-1" aria-label="減らす">−</button><output id="pinkwhiskey-qty">1</output><button type="button" data-q="1" aria-label="増やす">+</button></div><button class="btn primary" type="button" data-add="pinkwhiskey">カートに入れる</button></div></div><p class="linkrow"><a href="/ja/shop/pinkwhiskey/">詳細と淹れ方</a></p></div></article><article class="product" style="--tone:var(--c-rum)" id="p-rumbarrel-full"><div class="bag"><img class="bagimg zoomable" role="button" tabindex="0" data-zoom="rumbarrel" data-zside="front" title="クリックで拡大" src="/images/bags/rumbarrel-front.jpg" width="150" height="248" alt="コロンビア ラムバレル bag" loading="lazy" decoding="async"></div><div style="min-width:0"><h3><a class="plink" href="/ja/shop/rumbarrel/">コロンビア ラムバレル</a></h3><p class="pjp">Colombia Rum Barrel</p><p class="price">¥5,500 <small>/ 250 g · 中煎り</small></p><p class="desc">カルダス県ラ・ロマ農園のウォッシュド・カスティージョ。ラム樽で熟成させた、黒蜜のように甘くあたたかな味わい。</p><div class="chips"><span class="chip">ダークラム</span><span class="chip">黒糖</span><span class="chip">カカオ</span></div><div class="blendbar" aria-hidden="true"><span style="width:100%;background:var(--c-colombia)"></span></div><div class="blendkey"><span><i class="kd" style="background:var(--c-colombia)"></i>100% <a href="/ja/origins/?o=colombia&amp;p=rumbarrel" data-origin="colombia" data-prod="rumbarrel">コロンビア</a> <span aria-hidden="true">·</span> <span>カルダス県</span></span></div><div class="opts"><div class="field"><label for="rumbarrel-grind">挽き方</label><select id="rumbarrel-grind"><option value="Whole bean">豆のまま</option><option value="Espresso">エスプレッソ</option><option value="Moka pot">モカポット</option><option value="Filter (V60, drip)">フィルター(V60・ドリップ)</option><option value="French press">フレンチプレス</option></select></div><fieldset class="field"><legend class="lbl">お届け</legend><div class="seg"><label><input type="radio" name="rumbarrel-freq" value="once" checked=""><span>1回のみ</span></label><label><input type="radio" name="rumbarrel-freq" value="2w"><span>2週間ごと</span></label><label><input type="radio" name="rumbarrel-freq" value="1m"><span>毎月</span></label></div></fieldset><div class="buyrow"><div class="qty"><button type="button" data-q="-1" aria-label="減らす">−</button><output id="rumbarrel-qty">1</output><button type="button" data-q="1" aria-label="増やす">+</button></div><button class="btn primary" type="button" data-add="rumbarrel">カートに入れる</button></div></div><p class="linkrow"><a href="/ja/shop/rumbarrel/">詳細と淹れ方</a></p></div></article><article class="product" style="--tone:var(--c-ethiopia)" id="p-yirgacheffe-full"><div class="bag"><img class="bagimg zoomable" role="button" tabindex="0" data-zoom="yirgacheffe" data-zside="front" title="クリックで拡大" src="/images/bags/yirgacheffe-front.jpg" width="150" height="248" alt="エチオピア イルガチェフェ bag" loading="lazy" decoding="async"></div><div style="min-width:0"><h3><a class="plink" href="/ja/shop/yirgacheffe/">エチオピア イルガチェフェ</a></h3><p class="pjp">Ethiopia Yirgacheffe</p><p class="price">¥3,500 <small>/ 250 g · 中煎り</small></p><p class="desc">標高2,100 m以上のワルカ村で育ったウォッシュドG1。クリーンで華やか、明るい味わい。</p><div class="chips"><span class="chip">ジャスミン</span><span class="chip">ベルガモット</span><span class="chip">レモン</span></div><div class="blendbar" aria-hidden="true"><span style="width:100%;background:var(--c-ethiopia)"></span></div><div class="blendkey"><span><i class="kd" style="background:var(--c-ethiopia)"></i>100% <a href="/ja/origins/?o=ethiopia&amp;p=yirgacheffe" data-origin="ethiopia" data-prod="yirgacheffe">エチオピア</a> <span aria-hidden="true">·</span> <span>イルガチェフェ(ゲデオ地区)</span></span></div><div class="opts"><div class="field"><label for="yirgacheffe-grind">挽き方</label><select id="yirgacheffe-grind"><option value="Whole bean">豆のまま</option><option value="Espresso">エスプレッソ</option><option value="Moka pot">モカポット</option><option value="Filter (V60, drip)">フィルター(V60・ドリップ)</option><option value="French press">フレンチプレス</option></select></div><fieldset class="field"><legend class="lbl">お届け</legend><div class="seg"><label><input type="radio" name="yirgacheffe-freq" value="once" checked=""><span>1回のみ</span></label><label><input type="radio" name="yirgacheffe-freq" value="2w"><span>2週間ごと</span></label><label><input type="radio" name="yirgacheffe-freq" value="1m"><span>毎月</span></label></div></fieldset><div class="buyrow"><div class="qty"><button type="button" data-q="-1" aria-label="減らす">−</button><output id="yirgacheffe-qty">1</output><button type="button" data-q="1" aria-label="増やす">+</button></div><button class="btn primary" type="button" data-add="yirgacheffe">カートに入れる</button></div></div><p class="linkrow"><a href="/ja/shop/yirgacheffe/">詳細と淹れ方</a></p></div></article><article class="product" style="--tone:var(--c-indonesia)" id="p-strawberry-full"><div class="bag"><img class="bagimg zoomable" role="button" tabindex="0" data-zoom="strawberry" data-zside="front" title="クリックで拡大" src="/images/bags/strawberry-front.jpg" width="150" height="248" alt="スマトラ ストロベリー bag" loading="lazy" decoding="async"></div><div style="min-width:0"><h3><a class="plink" href="/ja/shop/strawberry/">スマトラ ストロベリー</a></h3><p class="pjp">Sumatra Strawberry</p><p class="price">¥4,500 <small>/ 250 g · 中煎り</small></p><p class="desc">トバ湖畔シマレン農園のカティモール。いちごと発酵させた、みずみずしくジャムのような甘さ。</p><div class="chips"><span class="chip">いちご</span><span class="chip">赤いベリー</span><span class="chip">甘い余韻</span></div><div class="blendbar" aria-hidden="true"><span style="width:100%;background:var(--c-indonesia)"></span></div><div class="blendkey"><span><i class="kd" style="background:var(--c-indonesia)"></i>100% <a href="/ja/origins/?o=indonesia&amp;p=strawberry" data-origin="indonesia" data-prod="strawberry">インドネシア</a> <span aria-hidden="true">·</span> <span>北スマトラ州カロ県</span></span></div><div class="opts"><div class="field"><label for="strawberry-grind">挽き方</label><select id="strawberry-grind"><option value="Whole bean">豆のまま</option><option value="Espresso">エスプレッソ</option><option value="Moka pot">モカポット</option><option value="Filter (V60, drip)">フィルター(V60・ドリップ)</option><option value="French press">フレンチプレス</option></select></div><fieldset class="field"><legend class="lbl">お届け</legend><div class="seg"><label><input type="radio" name="strawberry-freq" value="once" checked=""><span>1回のみ</span></label><label><input type="radio" name="strawberry-freq" value="2w"><span>2週間ごと</span></label><label><input type="radio" name="strawberry-freq" value="1m"><span>毎月</span></label></div></fieldset><div class="buyrow"><div class="qty"><button type="button" data-q="-1" aria-label="減らす">−</button><output id="strawberry-qty">1</output><button type="button" data-q="1" aria-label="増やす">+</button></div><button class="btn primary" type="button" data-add="strawberry">カートに入れる</button></div></div><p class="linkrow"><a href="/ja/shop/strawberry/">詳細と淹れ方</a></p></div></article></div></div>
+    <div id="shopProducts"><div class="pgrid"><article class="pcard" style="--tone:var(--accent)"><div class="pc-media"><img class="bagimg" src="/images/bags/casablanca-front.jpg" width="300" height="496" alt="カサブランカ ブレンド bag" loading="lazy" decoding="async"><span class="pc-badge">ハウスブレンド</span></div><div class="pc-body"><h3><a class="plink" href="/ja/shop/casablanca/">Casablanca Blend</a></h3><p class="pc-from"><i class="kd" style="background:var(--c-brazil)"></i><i class="kd" style="background:var(--c-colombia)"></i><i class="kd" style="background:var(--c-costarica)"></i><span>ブラジル · コロンビア · コスタリカ</span></p><p class="pc-notes">ココア<span aria-hidden="true"> · </span>ヘーゼルナッツ<span aria-hidden="true"> · </span>柑橘</p><div class="pc-foot"><p class="pc-price"><span class="mono">¥3,000</span> <small>/ 250 g</small></p><button class="pc-add" type="button" data-quick="casablanca" aria-label="カサブランカ ブレンド をカートに入れる"><span aria-hidden="true">+</span></button></div></div></article><article class="pcard" style="--tone:var(--c-colombia)"><div class="pc-media"><img class="bagimg" src="/images/bags/pinkwhiskey-front.jpg" width="300" height="496" alt="コロンビア ピンクウイスキー bag" loading="lazy" decoding="async"><span class="pc-badge">シングルオリジン</span></div><div class="pc-body"><h3><a class="plink" href="/ja/shop/pinkwhiskey/">Colombia Pink Whiskey</a></h3><p class="pc-from"><i class="kd" style="background:var(--c-colombia)"></i><span>コロンビア · ナチュラル</span></p><p class="pc-notes">赤りんご<span aria-hidden="true"> · </span>バラ<span aria-hidden="true"> · </span>樽のような甘み</p><div class="pc-foot"><p class="pc-price"><span class="mono">¥5,500</span> <small>/ 250 g</small></p><button class="pc-add" type="button" data-quick="pinkwhiskey" aria-label="コロンビア ピンクウイスキー をカートに入れる"><span aria-hidden="true">+</span></button></div></div></article><article class="pcard" style="--tone:var(--c-rum)"><div class="pc-media"><img class="bagimg" src="/images/bags/rumbarrel-front.jpg" width="300" height="496" alt="コロンビア ラムバレル bag" loading="lazy" decoding="async"><span class="pc-badge">シングルオリジン</span></div><div class="pc-body"><h3><a class="plink" href="/ja/shop/rumbarrel/">Colombia Rum Barrel</a></h3><p class="pc-from"><i class="kd" style="background:var(--c-colombia)"></i><span>コロンビア · ウォッシュド</span></p><p class="pc-notes">ダークラム<span aria-hidden="true"> · </span>黒糖<span aria-hidden="true"> · </span>カカオ</p><div class="pc-foot"><p class="pc-price"><span class="mono">¥5,500</span> <small>/ 250 g</small></p><button class="pc-add" type="button" data-quick="rumbarrel" aria-label="コロンビア ラムバレル をカートに入れる"><span aria-hidden="true">+</span></button></div></div></article><article class="pcard" style="--tone:var(--c-ethiopia)"><div class="pc-media"><img class="bagimg" src="/images/bags/yirgacheffe-front.jpg" width="300" height="496" alt="エチオピア イルガチェフェ bag" loading="lazy" decoding="async"><span class="pc-badge">シングルオリジン</span></div><div class="pc-body"><h3><a class="plink" href="/ja/shop/yirgacheffe/">Ethiopia Yirgacheffe</a></h3><p class="pc-from"><i class="kd" style="background:var(--c-ethiopia)"></i><span>エチオピア · ウォッシュド</span></p><p class="pc-notes">ジャスミン<span aria-hidden="true"> · </span>ベルガモット<span aria-hidden="true"> · </span>レモン</p><div class="pc-foot"><p class="pc-price"><span class="mono">¥3,500</span> <small>/ 250 g</small></p><button class="pc-add" type="button" data-quick="yirgacheffe" aria-label="エチオピア イルガチェフェ をカートに入れる"><span aria-hidden="true">+</span></button></div></div></article><article class="pcard" style="--tone:var(--c-indonesia)"><div class="pc-media"><img class="bagimg" src="/images/bags/strawberry-front.jpg" width="300" height="496" alt="スマトラ ストロベリー bag" loading="lazy" decoding="async"><span class="pc-badge">シングルオリジン</span></div><div class="pc-body"><h3><a class="plink" href="/ja/shop/strawberry/">Sumatra Strawberry</a></h3><p class="pc-from"><i class="kd" style="background:var(--c-indonesia)"></i><span>インドネシア · セミウォッシュド</span></p><p class="pc-notes">いちご<span aria-hidden="true"> · </span>赤いベリー<span aria-hidden="true"> · </span>甘い余韻</p><div class="pc-foot"><p class="pc-price"><span class="mono">¥4,500</span> <small>/ 250 g</small></p><button class="pc-add" type="button" data-quick="strawberry" aria-label="スマトラ ストロベリー をカートに入れる"><span aria-hidden="true">+</span></button></div></div></article></div></div>
     <p class="note" style="margin-top:2rem;max-width:44rem">送料とお届け日数は、住所を入力するとチェックアウトで計算されます。</p>
     <div class="crosslinks"><a class="crosslink" href="/ja/origins/"><b>育った場所を見る</b><span>すべての産地を、標高・品種・精製方法とともにマップで</span></a><a class="crosslink" href="/ja/wholesale/"><b>カフェを運営していますか？</b><span>オリジナルブレンドとバリスタトレーニング</span></a></div>
   </div>
@@ -1201,11 +1235,11 @@ footer { padding-block: clamp(3rem, 7vw, 5.5rem) 3rem; }
   function linePrice(l) { return unitPrice(l.pid, l.freq) * l.qty; }
   function cartTotal() { return cart.reduce(function (n, l) { return n + linePrice(l); }, 0); }
   function freqLabel(id) { return FREQS.filter(function (f) { return f.id === id; })[0].label; }
-  function addToCart(pid, grind, freq, qty) {
+  function addToCart(pid, grind, freq, qty, quiet) {
     var found = cart.filter(function (l) { return l.pid === pid && l.grind === grind && l.freq === freq; })[0];
     if (found) found.qty += qty; else cart.push({ pid: pid, grind: grind, freq: freq, qty: qty });
     saveCart(); renderCartCount();
-    toast(lang === "ja" ? tr(prod(pid).name) + " を " + qty + " 点カートに追加 · " + tr(grind) : "Added " + qty + " × " + prod(pid).name + " · " + grind, true);
+    if (!quiet) toast(lang === "ja" ? tr(prod(pid).name) + " を " + qty + " 点カートに追加 · " + tr(grind) : "Added " + qty + " × " + prod(pid).name + " · " + grind, true);
   }
   function renderCartCount() { $("#cartCount").textContent = cartCount(); }
   var toastTimer;
@@ -1250,7 +1284,9 @@ footer { padding-block: clamp(3rem, 7vw, 5.5rem) 3rem; }
   function renderDrawer() {
     var d = $("#drawer"), html = "";
     var head = function (t) { return '<div class="dhead"><h2>' + t + '</h2><button class="xbtn" type="button" data-act="close" aria-label="Close">×</button></div>'; };
-    if (dmode === "cart") {
+    if (dmode === "quick") {
+      html = head(T("Add to cart", "カートに入れる")) + quickHtml();
+    } else if (dmode === "cart") {
       html = head("Your order");
       if (!cart.length) {
         html += '<div class="dbody"><div class="empty"><p>Your cart is empty.</p><button class="btn primary" type="button" data-act="shop">Shop the beans</button></div></div>';
@@ -1282,6 +1318,8 @@ footer { padding-block: clamp(3rem, 7vw, 5.5rem) 3rem; }
         '<div class="sumrow total"><span>Total</span><span class="mono">' + yen(cartTotal()) + '</span></div><button class="btn block" type="button" data-act="close">Close</button></div>';
     }
     d.innerHTML = html; walk(d);
+    d.setAttribute("aria-label", dmode === "quick" ? T("Add to cart", "カートに入れる") : T("Your cart", "カート"));
+    if (dmode === "quick") updateQuick();
   }
   function shipNote() {
     return T("Delivery anywhere in Japan " + yen(SHIPPING.fee) + ", free from " + yen(SHIPPING.freeFrom) + ".", "全国送料 " + yen(SHIPPING.fee) + "(" + yen(SHIPPING.freeFrom) + "以上で無料)。");
@@ -1315,6 +1353,11 @@ footer { padding-block: clamp(3rem, 7vw, 5.5rem) 3rem; }
     else if (act === "back") { dmode = "cart"; }
     else if (act === "mksub") { cart[i].freq = "1m"; }
     else if (act === "pay") { startCheckout(b); return; }
+    else if (act === "qadd") {
+      var qf = ($('input[name="q-freq"]:checked') || {}).value || "once";
+      addToCart(qpid, $("#q-grind").value, qf, +$("#q-qty").textContent, true);
+      dmode = "cart"; renderDrawer(); var xb = $("#drawer .xbtn"); if (xb) xb.focus(); return;
+    }
     else if (act === "copy") {
       var ta = $("#ordertext"), done = function () { b.textContent = tr("Copied"); }, pick = function () { ta.focus(); ta.select(); };
       try { navigator.clipboard.writeText(ta.value).then(done, pick); } catch (err) { pick(); }
@@ -1322,6 +1365,8 @@ footer { padding-block: clamp(3rem, 7vw, 5.5rem) 3rem; }
     }
     if (["inc", "dec", "rm", "checkout", "back", "mksub"].indexOf(act) > -1) { saveCart(); renderCartCount(); renderDrawer(); }
   });
+  $("#drawer").addEventListener("change", function () { if (dmode === "quick") updateQuick(); });
+  $("#drawer").addEventListener("click", function (e) { if (dmode === "quick" && e.target.closest("[data-q]")) setTimeout(updateQuick, 0); });
   $("#drawer").addEventListener("submit", function (e) {
     if (e.target.id !== "coForm") return;
     e.preventDefault();
@@ -1358,13 +1403,46 @@ footer { padding-block: clamp(3rem, 7vw, 5.5rem) 3rem; }
     }
     return h + detailLink(p) + "</div></article>";
   }
+  /* Shop grid card: the whole card opens the coffee page; "+" opens the quick-add sheet. */
+  function cardHtml(p) {
+    var ids = Object.keys(p.blend), blend = ids.length > 1, lt = lotFor(p, ids[0]);
+    var from = ids.map(function (id) { return '<i class="kd" style="background:var(--c-' + id + ')"></i>'; }).join("") + "<span>" +
+      (blend ? ids.map(function (id) { return esc(tr(ORIGINS[id].country)); }).join(" · ") : esc(tr(ORIGINS[ids[0]].country)) + " · " + esc(tr(lt.process).split(/[,、]/)[0])) + "</span>";
+    return '<article class="pcard" style="--tone:' + p.tone + '"><div class="pc-media">' + bagSvg(p, 300, "front") +
+      '<span class="pc-badge">' + (blend ? T("House blend", "ハウスブレンド") : T("Single origin", "シングルオリジン")) + "</span></div>" +
+      '<div class="pc-body"><h3><a class="plink" href="#shop.' + p.id + '">' + esc(tr(p.name)) + "</a></h3>" +
+      '<p class="pc-from">' + from + "</p>" +
+      '<p class="pc-notes">' + p.notes.map(function (n) { return esc(tr(n)); }).join('<span aria-hidden="true"> · </span>') + "</p>" +
+      '<div class="pc-foot"><p class="pc-price"><span class="mono">' + yen(p.price) + "</span> <small>/ " + esc(p.weight) + "</small></p>" +
+      '<button class="pc-add" type="button" data-quick="' + p.id + '" aria-label="' + T("Add " + p.name + " to cart", tr(p.name) + " をカートに入れる") + '"><span aria-hidden="true">+</span></button></div></div></article>';
+  }
+  var qpid = null;
+  function quickHtml() {
+    var p = prod(qpid);
+    return '<div class="dbody"><div class="qhead" style="--tone:' + p.tone + '"><div class="qbag">' + bagSvg(p, 72, "front") + '</div><div><b>' + esc(tr(p.name)) + "</b><small>" + esc(lang === "ja" ? p.name : p.jp) + " · " + esc(p.weight) + "</small>" +
+      '<div class="chips">' + p.notes.map(function (n) { return '<span class="chip">' + esc(tr(n)) + "</span>"; }).join("") + "</div></div></div>" +
+      '<div class="opts"><div class="field"><label for="q-grind">' + T("Grind", "挽き方") + '</label><select id="q-grind">' + GRINDS.map(function (g) { return '<option value="' + g + '">' + esc(tr(g)) + "</option>"; }).join("") + "</select></div>" +
+      '<fieldset class="field"><legend class="lbl">' + T("Delivery", "お届け") + '</legend><div class="seg">' + FREQS.map(function (f, i) { return '<label><input type="radio" name="q-freq" value="' + f.id + '"' + (i === 0 ? " checked" : "") + "><span>" + esc(tr(f.label)) + "</span></label>"; }).join("") + "</div></fieldset>" +
+      '<p class="subnote" id="q-note"></p>' +
+      '<div class="field"><span class="lbl">' + T("Quantity", "数量") + '</span><div class="qty"><button type="button" data-q="-1" aria-label="' + T("Fewer", "減らす") + '">−</button><output id="q-qty">1</output><button type="button" data-q="1" aria-label="' + T("More", "増やす") + '">+</button></div></div></div>' +
+      '<p class="linkrow"><a href="#shop.' + p.id + '" data-act="close">' + T("Full details &amp; brew guide", "詳細と淹れ方") + "</a></p></div>" +
+      '<div class="dfoot"><button class="btn primary block" type="button" data-act="qadd" id="q-add"></button></div>';
+  }
+  function updateQuick() {
+    var b = $("#q-add"); if (!b || !qpid) return;
+    var f = ($('input[name="q-freq"]:checked') || {}).value || "once", q = +$("#q-qty").textContent, total = unitPrice(qpid, f) * q;
+    b.textContent = T("Add to cart · " + yen(total), "カートに入れる · " + yen(total));
+    $("#q-note").innerHTML = f === "once" ? T("Choose a delivery rhythm to save " + Math.round(SUB_OFF * 100) + "%.", "定期便を選ぶと " + Math.round(SUB_OFF * 100) + "% オフになります。")
+      : "<b>" + Math.round(SUB_OFF * 100) + "% " + T("off", "オフ") + "</b> · " + T("pause, skip or cancel any time", "一時停止・スキップ・解約はいつでも");
+  }
+  function openQuick(pid) { qpid = pid; openDrawer("quick"); }
   function detailLink(p) { return '<p class="linkrow"><a href="#shop.' + p.id + '">Details &amp; brew guide</a></p>'; }
   function renderProducts() {
     var hp = $("#homeProducts"), sp = $("#shopProducts");
     var blends = PRODUCTS.filter(function (p) { return Object.keys(p.blend).length > 1; }), singles = PRODUCTS.filter(function (p) { return Object.keys(p.blend).length === 1; });
     var soHead = '<h2 class="shop-h">Single origins</h2><p class="sub">Every single origin is roasted to a medium that keeps the fruit and sweetness of the farm.</p>';
     if (hp) { hp.innerHTML = blends.map(function (p) { return productHtml(p, false, true); }).join("") + '<div class="tiles">' + singles.map(tileHtml).join("") + "</div>"; walk(hp); }
-    if (sp) { sp.innerHTML = '<h2 class="shop-h">House blend</h2>' + blends.map(function (p) { return productHtml(p, true, true); }).join("") + soHead + '<div class="products">' + singles.map(function (p) { return productHtml(p, true); }).join("") + "</div>"; walk(sp); }
+    if (sp) { sp.innerHTML = '<div class="pgrid">' + blends.concat(singles).map(cardHtml).join("") + "</div>"; walk(sp); }
   }
   document.addEventListener("click", function (e) {
     var q = e.target.closest("[data-q]");
@@ -1374,6 +1452,8 @@ footer { padding-block: clamp(3rem, 7vw, 5.5rem) 3rem; }
       var id = a.getAttribute("data-add"), fr = $('input[name="' + id + '-freq"]:checked');
       addToCart(id, $("#" + id + "-grind").value, fr ? fr.value : "once", +$("#" + id + "-qty").textContent); return;
     }
+    var qk = e.target.closest("[data-quick]");
+    if (qk) { openQuick(qk.getAttribute("data-quick")); return; }
     var qa = e.target.closest("[data-add-quick]");
     if (qa) { addToCart(qa.getAttribute("data-add-quick"), "Whole bean", "once", 1); return; }
     var oa = e.target.closest("[data-origin]");
@@ -2524,7 +2604,7 @@ footer { padding-block: clamp(3rem, 7vw, 5.5rem) 3rem; }
   });
 
   /* ---------- Motion: parts of every section rise into place as it enters (transform only) ---------- */
-  var RISE_SEL = ".band h2, .band .sub, .view-head > *, .product, .step, .service, .course, .jcardlink, .perks li, .pp-sec > *, .faq details, .plan-left > *, .plan-sum, .crosslink, .pp-info > *, .article > *, .contactside, .formgrid > *, .footname, .footcols > *";
+  var RISE_SEL = ".band h2, .band .sub, .view-head > *, .product, .pcard, .step, .service, .course, .jcardlink, .perks li, .pp-sec > *, .faq details, .plan-left > *, .plan-sum, .crosslink, .pp-info > *, .article > *, .contactside, .formgrid > *, .footname, .footcols > *";
   var riseIO = window.IntersectionObserver ? new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add("in"); riseIO.unobserve(e.target); } }); }, { rootMargin: "0px 0px -6% 0px" }) : null;
   function riseScan() {
     if (!riseIO || REDUCED.matches) return;
