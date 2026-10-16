@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://www.bejucoffee.com/sitemap.xml
+Sitemap: https://bejucoffee.com/sitemap.xml

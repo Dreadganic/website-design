@@ -1,0 +1,15 @@
+# Old Squarespace addresses -> new pages
+/store/p/casablanca-blend-250g  /shop/casablanca/   301
+/store/p/columbia-pink-whiskey  /shop/pinkwhiskey/  301
+/store/p/*                      /shop/              301
+/store                          /shop/              301
+/store/*                        /shop/              301
+/shop/p/*                       /shop/              301
+/cart                           /shop/              301
+/about                          /                   301
+/about-us                       /                   301
+/contact-us                     /contact/           301
+/blog                           /journal/           301
+/blog/*                         /journal/           301
+/wholesale-1                    /wholesale/         301
+/training                       /wholesale/         301

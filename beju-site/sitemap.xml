@@ -1,241 +1,251 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url>
-    <loc>https://www.bejucoffee.com/</loc>
-    <lastmod>2026-10-14</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.bejucoffee.com/"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://www.bejucoffee.com/ja/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.bejucoffee.com/"/>
+    <loc>https://bejucoffee.com/</loc>
+    <lastmod>2026-10-16</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bejucoffee.com/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://bejucoffee.com/ja/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bejucoffee.com/"/>
   </url>
   <url>
-    <loc>https://www.bejucoffee.com/shop/</loc>
-    <lastmod>2026-10-14</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.bejucoffee.com/shop/"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://www.bejucoffee.com/ja/shop/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.bejucoffee.com/shop/"/>
+    <loc>https://bejucoffee.com/shop/</loc>
+    <lastmod>2026-10-16</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bejucoffee.com/shop/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://bejucoffee.com/ja/shop/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bejucoffee.com/shop/"/>
   </url>
   <url>
-    <loc>https://www.bejucoffee.com/shop/casablanca/</loc>
-    <lastmod>2026-10-14</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.bejucoffee.com/shop/casablanca/"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://www.bejucoffee.com/ja/shop/casablanca/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.bejucoffee.com/shop/casablanca/"/>
+    <loc>https://bejucoffee.com/shop/casablanca/</loc>
+    <lastmod>2026-10-16</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bejucoffee.com/shop/casablanca/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://bejucoffee.com/ja/shop/casablanca/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bejucoffee.com/shop/casablanca/"/>
+    <image:image><image:loc>https://bejucoffee.com/images/casablanca.png</image:loc></image:image>
   </url>
   <url>
-    <loc>https://www.bejucoffee.com/shop/pinkwhiskey/</loc>
-    <lastmod>2026-10-14</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.bejucoffee.com/shop/pinkwhiskey/"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://www.bejucoffee.com/ja/shop/pinkwhiskey/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.bejucoffee.com/shop/pinkwhiskey/"/>
+    <loc>https://bejucoffee.com/shop/pinkwhiskey/</loc>
+    <lastmod>2026-10-16</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bejucoffee.com/shop/pinkwhiskey/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://bejucoffee.com/ja/shop/pinkwhiskey/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bejucoffee.com/shop/pinkwhiskey/"/>
+    <image:image><image:loc>https://bejucoffee.com/images/pinkwhiskey.png</image:loc></image:image>
   </url>
   <url>
-    <loc>https://www.bejucoffee.com/shop/rumbarrel/</loc>
-    <lastmod>2026-10-14</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.bejucoffee.com/shop/rumbarrel/"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://www.bejucoffee.com/ja/shop/rumbarrel/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.bejucoffee.com/shop/rumbarrel/"/>
+    <loc>https://bejucoffee.com/shop/rumbarrel/</loc>
+    <lastmod>2026-10-16</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bejucoffee.com/shop/rumbarrel/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://bejucoffee.com/ja/shop/rumbarrel/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bejucoffee.com/shop/rumbarrel/"/>
+    <image:image><image:loc>https://bejucoffee.com/images/rumbarrel.png</image:loc></image:image>
   </url>
   <url>
-    <loc>https://www.bejucoffee.com/shop/yirgacheffe/</loc>
-    <lastmod>2026-10-14</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.bejucoffee.com/shop/yirgacheffe/"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://www.bejucoffee.com/ja/shop/yirgacheffe/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.bejucoffee.com/shop/yirgacheffe/"/>
+    <loc>https://bejucoffee.com/shop/yirgacheffe/</loc>
+    <lastmod>2026-10-16</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bejucoffee.com/shop/yirgacheffe/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://bejucoffee.com/ja/shop/yirgacheffe/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bejucoffee.com/shop/yirgacheffe/"/>
+    <image:image><image:loc>https://bejucoffee.com/images/yirgacheffe.png</image:loc></image:image>
   </url>
   <url>
-    <loc>https://www.bejucoffee.com/shop/strawberry/</loc>
-    <lastmod>2026-10-14</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.bejucoffee.com/shop/strawberry/"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://www.bejucoffee.com/ja/shop/strawberry/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.bejucoffee.com/shop/strawberry/"/>
+    <loc>https://bejucoffee.com/shop/strawberry/</loc>
+    <lastmod>2026-10-16</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bejucoffee.com/shop/strawberry/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://bejucoffee.com/ja/shop/strawberry/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bejucoffee.com/shop/strawberry/"/>
+    <image:image><image:loc>https://bejucoffee.com/images/strawberry.png</image:loc></image:image>
   </url>
   <url>
-    <loc>https://www.bejucoffee.com/subscribe/</loc>
-    <lastmod>2026-10-14</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.bejucoffee.com/subscribe/"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://www.bejucoffee.com/ja/subscribe/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.bejucoffee.com/subscribe/"/>
+    <loc>https://bejucoffee.com/subscribe/</loc>
+    <lastmod>2026-10-16</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bejucoffee.com/subscribe/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://bejucoffee.com/ja/subscribe/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bejucoffee.com/subscribe/"/>
   </url>
   <url>
-    <loc>https://www.bejucoffee.com/origins/</loc>
-    <lastmod>2026-10-14</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.bejucoffee.com/origins/"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://www.bejucoffee.com/ja/origins/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.bejucoffee.com/origins/"/>
+    <loc>https://bejucoffee.com/origins/</loc>
+    <lastmod>2026-10-16</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bejucoffee.com/origins/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://bejucoffee.com/ja/origins/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bejucoffee.com/origins/"/>
   </url>
   <url>
-    <loc>https://www.bejucoffee.com/journal/</loc>
-    <lastmod>2026-10-14</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.bejucoffee.com/journal/"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://www.bejucoffee.com/ja/journal/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.bejucoffee.com/journal/"/>
+    <loc>https://bejucoffee.com/journal/</loc>
+    <lastmod>2026-10-16</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bejucoffee.com/journal/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://bejucoffee.com/ja/journal/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bejucoffee.com/journal/"/>
   </url>
   <url>
-    <loc>https://www.bejucoffee.com/journal/v60-recipe/</loc>
-    <lastmod>2026-10-14</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.bejucoffee.com/journal/v60-recipe/"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://www.bejucoffee.com/ja/journal/v60-recipe/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.bejucoffee.com/journal/v60-recipe/"/>
+    <loc>https://bejucoffee.com/journal/v60-recipe/</loc>
+    <lastmod>2026-10-16</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bejucoffee.com/journal/v60-recipe/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://bejucoffee.com/ja/journal/v60-recipe/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bejucoffee.com/journal/v60-recipe/"/>
   </url>
   <url>
-    <loc>https://www.bejucoffee.com/journal/grind-size/</loc>
-    <lastmod>2026-10-14</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.bejucoffee.com/journal/grind-size/"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://www.bejucoffee.com/ja/journal/grind-size/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.bejucoffee.com/journal/grind-size/"/>
+    <loc>https://bejucoffee.com/journal/grind-size/</loc>
+    <lastmod>2026-10-16</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bejucoffee.com/journal/grind-size/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://bejucoffee.com/ja/journal/grind-size/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bejucoffee.com/journal/grind-size/"/>
   </url>
   <url>
-    <loc>https://www.bejucoffee.com/journal/storing-beans/</loc>
-    <lastmod>2026-10-14</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.bejucoffee.com/journal/storing-beans/"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://www.bejucoffee.com/ja/journal/storing-beans/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.bejucoffee.com/journal/storing-beans/"/>
+    <loc>https://bejucoffee.com/journal/storing-beans/</loc>
+    <lastmod>2026-10-16</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bejucoffee.com/journal/storing-beans/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://bejucoffee.com/ja/journal/storing-beans/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bejucoffee.com/journal/storing-beans/"/>
   </url>
   <url>
-    <loc>https://www.bejucoffee.com/journal/coffee-processing/</loc>
-    <lastmod>2026-10-14</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.bejucoffee.com/journal/coffee-processing/"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://www.bejucoffee.com/ja/journal/coffee-processing/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.bejucoffee.com/journal/coffee-processing/"/>
+    <loc>https://bejucoffee.com/journal/coffee-processing/</loc>
+    <lastmod>2026-10-16</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bejucoffee.com/journal/coffee-processing/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://bejucoffee.com/ja/journal/coffee-processing/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bejucoffee.com/journal/coffee-processing/"/>
   </url>
   <url>
-    <loc>https://www.bejucoffee.com/wholesale/</loc>
-    <lastmod>2026-10-14</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.bejucoffee.com/wholesale/"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://www.bejucoffee.com/ja/wholesale/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.bejucoffee.com/wholesale/"/>
+    <loc>https://bejucoffee.com/wholesale/</loc>
+    <lastmod>2026-10-16</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bejucoffee.com/wholesale/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://bejucoffee.com/ja/wholesale/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bejucoffee.com/wholesale/"/>
   </url>
   <url>
-    <loc>https://www.bejucoffee.com/contact/</loc>
-    <lastmod>2026-10-14</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.bejucoffee.com/contact/"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://www.bejucoffee.com/ja/contact/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.bejucoffee.com/contact/"/>
+    <loc>https://bejucoffee.com/contact/</loc>
+    <lastmod>2026-10-16</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bejucoffee.com/contact/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://bejucoffee.com/ja/contact/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bejucoffee.com/contact/"/>
   </url>
   <url>
-    <loc>https://www.bejucoffee.com/legal/</loc>
-    <lastmod>2026-10-14</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.bejucoffee.com/legal/"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://www.bejucoffee.com/ja/legal/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.bejucoffee.com/legal/"/>
+    <loc>https://bejucoffee.com/legal/</loc>
+    <lastmod>2026-10-16</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bejucoffee.com/legal/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://bejucoffee.com/ja/legal/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bejucoffee.com/legal/"/>
   </url>
   <url>
-    <loc>https://www.bejucoffee.com/ja/</loc>
-    <lastmod>2026-10-14</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.bejucoffee.com/"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://www.bejucoffee.com/ja/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.bejucoffee.com/"/>
+    <loc>https://bejucoffee.com/ja/</loc>
+    <lastmod>2026-10-16</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bejucoffee.com/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://bejucoffee.com/ja/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bejucoffee.com/"/>
   </url>
   <url>
-    <loc>https://www.bejucoffee.com/ja/shop/</loc>
-    <lastmod>2026-10-14</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.bejucoffee.com/shop/"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://www.bejucoffee.com/ja/shop/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.bejucoffee.com/shop/"/>
+    <loc>https://bejucoffee.com/ja/shop/</loc>
+    <lastmod>2026-10-16</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bejucoffee.com/shop/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://bejucoffee.com/ja/shop/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bejucoffee.com/shop/"/>
   </url>
   <url>
-    <loc>https://www.bejucoffee.com/ja/shop/casablanca/</loc>
-    <lastmod>2026-10-14</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.bejucoffee.com/shop/casablanca/"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://www.bejucoffee.com/ja/shop/casablanca/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.bejucoffee.com/shop/casablanca/"/>
+    <loc>https://bejucoffee.com/ja/shop/casablanca/</loc>
+    <lastmod>2026-10-16</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bejucoffee.com/shop/casablanca/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://bejucoffee.com/ja/shop/casablanca/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bejucoffee.com/shop/casablanca/"/>
+    <image:image><image:loc>https://bejucoffee.com/images/casablanca.png</image:loc></image:image>
   </url>
   <url>
-    <loc>https://www.bejucoffee.com/ja/shop/pinkwhiskey/</loc>
-    <lastmod>2026-10-14</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.bejucoffee.com/shop/pinkwhiskey/"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://www.bejucoffee.com/ja/shop/pinkwhiskey/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.bejucoffee.com/shop/pinkwhiskey/"/>
+    <loc>https://bejucoffee.com/ja/shop/pinkwhiskey/</loc>
+    <lastmod>2026-10-16</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bejucoffee.com/shop/pinkwhiskey/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://bejucoffee.com/ja/shop/pinkwhiskey/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bejucoffee.com/shop/pinkwhiskey/"/>
+    <image:image><image:loc>https://bejucoffee.com/images/pinkwhiskey.png</image:loc></image:image>
   </url>
   <url>
-    <loc>https://www.bejucoffee.com/ja/shop/rumbarrel/</loc>
-    <lastmod>2026-10-14</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.bejucoffee.com/shop/rumbarrel/"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://www.bejucoffee.com/ja/shop/rumbarrel/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.bejucoffee.com/shop/rumbarrel/"/>
+    <loc>https://bejucoffee.com/ja/shop/rumbarrel/</loc>
+    <lastmod>2026-10-16</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bejucoffee.com/shop/rumbarrel/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://bejucoffee.com/ja/shop/rumbarrel/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bejucoffee.com/shop/rumbarrel/"/>
+    <image:image><image:loc>https://bejucoffee.com/images/rumbarrel.png</image:loc></image:image>
   </url>
   <url>
-    <loc>https://www.bejucoffee.com/ja/shop/yirgacheffe/</loc>
-    <lastmod>2026-10-14</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.bejucoffee.com/shop/yirgacheffe/"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://www.bejucoffee.com/ja/shop/yirgacheffe/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.bejucoffee.com/shop/yirgacheffe/"/>
+    <loc>https://bejucoffee.com/ja/shop/yirgacheffe/</loc>
+    <lastmod>2026-10-16</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bejucoffee.com/shop/yirgacheffe/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://bejucoffee.com/ja/shop/yirgacheffe/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bejucoffee.com/shop/yirgacheffe/"/>
+    <image:image><image:loc>https://bejucoffee.com/images/yirgacheffe.png</image:loc></image:image>
   </url>
   <url>
-    <loc>https://www.bejucoffee.com/ja/shop/strawberry/</loc>
-    <lastmod>2026-10-14</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.bejucoffee.com/shop/strawberry/"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://www.bejucoffee.com/ja/shop/strawberry/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.bejucoffee.com/shop/strawberry/"/>
+    <loc>https://bejucoffee.com/ja/shop/strawberry/</loc>
+    <lastmod>2026-10-16</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bejucoffee.com/shop/strawberry/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://bejucoffee.com/ja/shop/strawberry/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bejucoffee.com/shop/strawberry/"/>
+    <image:image><image:loc>https://bejucoffee.com/images/strawberry.png</image:loc></image:image>
   </url>
   <url>
-    <loc>https://www.bejucoffee.com/ja/subscribe/</loc>
-    <lastmod>2026-10-14</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.bejucoffee.com/subscribe/"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://www.bejucoffee.com/ja/subscribe/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.bejucoffee.com/subscribe/"/>
+    <loc>https://bejucoffee.com/ja/subscribe/</loc>
+    <lastmod>2026-10-16</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bejucoffee.com/subscribe/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://bejucoffee.com/ja/subscribe/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bejucoffee.com/subscribe/"/>
   </url>
   <url>
-    <loc>https://www.bejucoffee.com/ja/origins/</loc>
-    <lastmod>2026-10-14</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.bejucoffee.com/origins/"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://www.bejucoffee.com/ja/origins/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.bejucoffee.com/origins/"/>
+    <loc>https://bejucoffee.com/ja/origins/</loc>
+    <lastmod>2026-10-16</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bejucoffee.com/origins/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://bejucoffee.com/ja/origins/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bejucoffee.com/origins/"/>
   </url>
   <url>
-    <loc>https://www.bejucoffee.com/ja/journal/</loc>
-    <lastmod>2026-10-14</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.bejucoffee.com/journal/"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://www.bejucoffee.com/ja/journal/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.bejucoffee.com/journal/"/>
+    <loc>https://bejucoffee.com/ja/journal/</loc>
+    <lastmod>2026-10-16</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bejucoffee.com/journal/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://bejucoffee.com/ja/journal/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bejucoffee.com/journal/"/>
   </url>
   <url>
-    <loc>https://www.bejucoffee.com/ja/journal/v60-recipe/</loc>
-    <lastmod>2026-10-14</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.bejucoffee.com/journal/v60-recipe/"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://www.bejucoffee.com/ja/journal/v60-recipe/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.bejucoffee.com/journal/v60-recipe/"/>
+    <loc>https://bejucoffee.com/ja/journal/v60-recipe/</loc>
+    <lastmod>2026-10-16</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bejucoffee.com/journal/v60-recipe/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://bejucoffee.com/ja/journal/v60-recipe/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bejucoffee.com/journal/v60-recipe/"/>
   </url>
   <url>
-    <loc>https://www.bejucoffee.com/ja/journal/grind-size/</loc>
-    <lastmod>2026-10-14</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.bejucoffee.com/journal/grind-size/"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://www.bejucoffee.com/ja/journal/grind-size/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.bejucoffee.com/journal/grind-size/"/>
+    <loc>https://bejucoffee.com/ja/journal/grind-size/</loc>
+    <lastmod>2026-10-16</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bejucoffee.com/journal/grind-size/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://bejucoffee.com/ja/journal/grind-size/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bejucoffee.com/journal/grind-size/"/>
   </url>
   <url>
-    <loc>https://www.bejucoffee.com/ja/journal/storing-beans/</loc>
-    <lastmod>2026-10-14</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.bejucoffee.com/journal/storing-beans/"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://www.bejucoffee.com/ja/journal/storing-beans/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.bejucoffee.com/journal/storing-beans/"/>
+    <loc>https://bejucoffee.com/ja/journal/storing-beans/</loc>
+    <lastmod>2026-10-16</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bejucoffee.com/journal/storing-beans/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://bejucoffee.com/ja/journal/storing-beans/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bejucoffee.com/journal/storing-beans/"/>
   </url>
   <url>
-    <loc>https://www.bejucoffee.com/ja/journal/coffee-processing/</loc>
-    <lastmod>2026-10-14</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.bejucoffee.com/journal/coffee-processing/"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://www.bejucoffee.com/ja/journal/coffee-processing/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.bejucoffee.com/journal/coffee-processing/"/>
+    <loc>https://bejucoffee.com/ja/journal/coffee-processing/</loc>
+    <lastmod>2026-10-16</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bejucoffee.com/journal/coffee-processing/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://bejucoffee.com/ja/journal/coffee-processing/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bejucoffee.com/journal/coffee-processing/"/>
   </url>
   <url>
-    <loc>https://www.bejucoffee.com/ja/wholesale/</loc>
-    <lastmod>2026-10-14</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.bejucoffee.com/wholesale/"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://www.bejucoffee.com/ja/wholesale/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.bejucoffee.com/wholesale/"/>
+    <loc>https://bejucoffee.com/ja/wholesale/</loc>
+    <lastmod>2026-10-16</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bejucoffee.com/wholesale/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://bejucoffee.com/ja/wholesale/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bejucoffee.com/wholesale/"/>
   </url>
   <url>
-    <loc>https://www.bejucoffee.com/ja/contact/</loc>
-    <lastmod>2026-10-14</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.bejucoffee.com/contact/"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://www.bejucoffee.com/ja/contact/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.bejucoffee.com/contact/"/>
+    <loc>https://bejucoffee.com/ja/contact/</loc>
+    <lastmod>2026-10-16</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bejucoffee.com/contact/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://bejucoffee.com/ja/contact/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bejucoffee.com/contact/"/>
   </url>
   <url>
-    <loc>https://www.bejucoffee.com/ja/legal/</loc>
-    <lastmod>2026-10-14</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.bejucoffee.com/legal/"/>
-    <xhtml:link rel="alternate" hreflang="ja" href="https://www.bejucoffee.com/ja/legal/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.bejucoffee.com/legal/"/>
+    <loc>https://bejucoffee.com/ja/legal/</loc>
+    <lastmod>2026-10-16</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://bejucoffee.com/legal/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://bejucoffee.com/ja/legal/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://bejucoffee.com/legal/"/>
   </url>
 </urlset>
