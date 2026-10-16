@@ -1016,10 +1016,9 @@
     ids.forEach(function (id) { (PHOTOS[id] || []).forEach(function (x) { list.push(x); }); });
     if (max && ids.length > 1) list = ids.map(function (id) { return (PHOTOS[id] || [])[0]; }).filter(Boolean).slice(0, max);
     if (!list.length) return "";
-    var ref = "?utm_source=beju_coffee&utm_medium=referral";
     return '<div class="ophotos' + (list.length === 1 ? " one" : "") + '" tabindex="0" role="region" aria-label="' + T("Photos from the region", "産地の写真") + '">' + list.map(function (x) {
       return '<figure><img src="' + phUrl(x, 800) + '" srcset="' + [480, 800, 1200].map(function (w) { return phUrl(x, w) + " " + w + "w"; }).join(", ") + '" sizes="(max-width: 700px) 86vw, 460px" width="800" height="600" loading="lazy" decoding="async" alt="' + esc(L(x.cap)) + '" style="object-position:' + x.pos + '">' +
-        "<figcaption>" + esc(L(x.cap)) + ' <span class="credit">' + T("Photo", "写真") + ': <a href="https://unsplash.com/@' + x.user + ref + '" target="_blank" rel="noopener">' + esc(x.name) + '</a> / <a href="https://unsplash.com/' + ref + '" target="_blank" rel="noopener">Unsplash</a></span></figcaption></figure>';
+        "<figcaption>" + esc(L(x.cap)) + "</figcaption></figure>";
     }).join("") + '</div><p class="phnote">' + T("Photos show the region or the process, not our partner farms.", "写真は産地や工程のイメージで、取引先の農園そのものではありません。") + "</p>";
   }
   function originViz(o) {

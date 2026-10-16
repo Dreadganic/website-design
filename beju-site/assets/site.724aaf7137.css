@@ -396,8 +396,6 @@ svg.near .lotdot text { opacity: 1; }
 .ophotos.one figure { flex-basis: 100%; }
 .ophotos img { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; border-radius: var(--radius); background: var(--bg2); }
 .ophotos figcaption { font-size: var(--t-xs); color: var(--muted); line-height: 1.45; }
-.ophotos .credit { display: block; }
-.ophotos .credit a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
 .phnote, .panel .phnote { font-size: var(--t-xs); color: var(--muted); margin: -0.4rem 0 0; line-height: 1.45; }
 .pp-sec .ophotos { margin-top: 1.5rem; }
 .pp-sec .phnote { margin-top: 0.4rem; }
