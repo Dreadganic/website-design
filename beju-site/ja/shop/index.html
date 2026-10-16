@@ -215,6 +215,12 @@ section.view { padding-block: 1.75rem 4rem; }
 }
 .brand-jp { white-space: nowrap; }
 .jcard { position: relative; }
+/* swiping the route card to another origin */
+.jstep[data-id] .jcard { touch-action: pan-y; }
+.jcard.swiping { transition: none !important; user-select: none; -webkit-user-select: none; cursor: grabbing; }
+.jswipe { display: flex; align-items: center; justify-content: center; gap: 0.6rem; margin: 0; font-size: var(--t-xs); color: var(--muted); }
+.jswipe span { font-size: 1.1rem; line-height: 1; }
+@media (hover: hover) and (pointer: fine) { .jswipe { display: none; } }
 .jprog { position: absolute; top: 1.05rem; right: 1.15rem; font-size: var(--t-xs); color: var(--muted); }
 .jstep:last-child { min-height: calc(var(--jh) * 0.62); }
 @media (min-width: 900px) {
@@ -935,7 +941,7 @@ footer { padding-block: clamp(3rem, 7vw, 5.5rem) 3rem; }
     "In harvest now": "いまが収穫期", "Harvest months": "収穫期",
     "Show": "表示", "All origins": "すべての産地", "Show world": "全体を見る", "Choose an origin": "産地を選ぶ", "Show origins for": "表示する産地",
     "Altitude": "標高", "Variety": "品種", "Process": "精製", "Harvest": "収穫期", "Position": "位置", "Find it in": "取り扱い商品",
-    "Single origin": "シングルオリジン", "Add": "追加", "Not in a current roast yet.": "現在の焙煎ラインナップにはまだありません。", "Open on the full map": "マップで詳しく見る",
+    "Single origin": "シングルオリジン", "Swipe for another origin": "スワイプでほかの産地へ", "Add": "追加", "Not in a current roast yet.": "現在の焙煎ラインナップにはまだありません。", "Open on the full map": "マップで詳しく見る",
     "Wholesale & training · 法人・研修": "法人向け・トレーニング", "Work with the roastery": "ロースタリーと働く",
     "Two ways to work with Beju beyond the shop. Tell us what you need and we will be in touch shortly.": "ショップ以外にも、Bejuと取り組む方法が2つあります。ご要望をお聞かせください。すぐにご連絡します。",
     "Your own blend, start to finish": "オリジナルブレンドをゼロから",
@@ -1952,6 +1958,54 @@ footer { padding-block: clamp(3rem, 7vw, 5.5rem) 3rem; }
     return pick;
   })()];
   var stepIds = [null].concat(JOURNEY, [null]), jSteps = [], jActive = -2;
+  /* Swipe the route card left or right to follow the next or previous origin (touch, pen or mouse drag). */
+  var sw = null, swipedAt = 0;
+  function stepRoute(dir, card) {
+    var i = ROUTES.indexOf(JOURNEY[0]), next = ROUTES[(i + dir + ROUTES.length) % ROUTES.length];
+    var calm = REDUCED.matches;
+    card.classList.remove("swiping");
+    card.style.transition = calm ? "none" : "transform 0.18s ease-in, opacity 0.18s ease-in";
+    card.style.transform = "translateX(" + (dir > 0 ? -1 : 1) * 140 + "px)"; card.style.opacity = "0";
+    setTimeout(function () {
+      switchRoute(next);
+      var nc = $(".jstep[data-id] .jcard"); if (!nc || calm) return;
+      nc.style.transition = "none"; nc.style.transform = "translateX(" + (dir > 0 ? 1 : -1) * 70 + "px)"; nc.style.opacity = "0";
+      void nc.offsetWidth;
+      nc.style.transition = "transform 0.28s ease-out, opacity 0.28s ease-out"; nc.style.transform = ""; nc.style.opacity = "";
+      setTimeout(function () { nc.style.transition = ""; }, 320);
+    }, calm ? 0 : 180);
+  }
+  document.addEventListener("pointerdown", function (e) {
+    var c = e.target.closest && e.target.closest(".jstep[data-id] .jcard");
+    if (!c || e.button > 0 || e.target.closest("input, select, textarea")) return;
+    sw = { c: c, x: e.clientX, y: e.clientY, id: e.pointerId, on: false, dx: 0, t: performance.now() };
+  });
+  document.addEventListener("pointermove", function (e) {
+    if (!sw || e.pointerId !== sw.id) return;
+    var dx = e.clientX - sw.x, dy = e.clientY - sw.y;
+    if (!sw.on) {
+      if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+      if (Math.abs(dx) < Math.abs(dy) * 1.2) { sw = null; return; }   /* a vertical gesture: leave it to the page scroll */
+      sw.on = true; sw.t = performance.now(); sw.x0 = dx;
+      try { sw.c.setPointerCapture(e.pointerId); } catch (err) {}
+      sw.c.classList.add("swiping");
+    }
+    sw.dx = dx;
+    sw.c.style.transform = "translateX(" + dx + "px) rotate(" + dx / 60 + "deg)";
+    sw.c.style.opacity = String(1 - Math.min(0.55, Math.abs(dx) / 450));
+  });
+  function swipeEnd(e) {
+    if (!sw || e.pointerId !== sw.id) return;
+    var s = sw; sw = null; if (!s.on) return;
+    swipedAt = performance.now();
+    var v = (s.dx - s.x0) / Math.max(1, performance.now() - s.t);
+    if (e.type !== "pointercancel" && (Math.abs(s.dx) > 70 || (Math.abs(v) > 0.45 && Math.abs(s.dx) > 28))) stepRoute(s.dx < 0 ? 1 : -1, s.c);
+    else { s.c.classList.remove("swiping"); s.c.style.transform = ""; s.c.style.opacity = ""; }
+  }
+  document.addEventListener("pointerup", swipeEnd);
+  document.addEventListener("pointercancel", swipeEnd);
+  /* a swipe that ends over a link or button should not also click it */
+  document.addEventListener("click", function (e) { if (performance.now() - swipedAt < 400 && e.target.closest(".jcard")) { e.preventDefault(); e.stopPropagation(); } }, true);
   function switchRoute(id) {
     if (ROUTES.indexOf(id) < 0 || JOURNEY[0] === id) return;
     JOURNEY = [id]; stepIds = [null].concat(JOURNEY, [null]);
@@ -1970,7 +2024,8 @@ footer { padding-block: clamp(3rem, 7vw, 5.5rem) 3rem; }
       '<dl class="facts jfacts"><dt>Variety</dt><dd>' + o.variety + "</dd><dt>Process</dt><dd>" + o.process + "</dd></dl>" +
       '<div class="chips">' + o.notes.map(function (n) { return '<span class="chip">' + esc(n) + "</span>"; }).join("") + "</div>" +
       '<div class="used"><p class="eyebrow">Find it in</p>' + used + "</div>" +
-      '<p style="font-size:var(--t-sm)"><a href="#origins" data-origin="' + o.id + '" data-prod="all" style="color:var(--accent);font-weight:700">Open on the full map</a></p></div></div>';
+      '<p style="font-size:var(--t-sm)"><a href="#origins" data-origin="' + o.id + '" data-prod="all" style="color:var(--accent);font-weight:700">Open on the full map</a></p>' +
+      '<p class="jswipe" aria-hidden="true"><span>‹</span>' + T("Swipe for another origin", "スワイプでほかの産地へ") + '<span>›</span></p></div></div>';
   }
   function renderJourney() {
     if (!$("#jsteps")) return;
