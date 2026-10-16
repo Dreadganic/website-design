@@ -14,26 +14,26 @@
     "pinkwhiskey": {
       "name": "Colombia Pink Whiskey",
       "jp": "コロンビア ピンクウイスキー",
-      "price": 5500,
-      "weight": "250 g"
+      "price": 4500,
+      "weight": "200 g"
     },
     "rumbarrel": {
       "name": "Colombia Rum Barrel",
       "jp": "コロンビア ラムバレル",
-      "price": 5500,
-      "weight": "250 g"
+      "price": 4500,
+      "weight": "200 g"
     },
     "yirgacheffe": {
       "name": "Ethiopia Yirgacheffe",
       "jp": "エチオピア イルガチェフェ",
-      "price": 3500,
-      "weight": "250 g"
+      "price": 2800,
+      "weight": "200 g"
     },
     "strawberry": {
       "name": "Sumatra Strawberry",
       "jp": "スマトラ ストロベリー",
-      "price": 4500,
-      "weight": "250 g"
+      "price": 3800,
+      "weight": "200 g"
     }
   }
 }
