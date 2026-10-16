@@ -280,6 +280,17 @@
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
   /* The bag artwork: renders of the print-ready pouch files (130 × 215 mm), front and back. */
   var BAGIMG = {"casablanca":{"front":"/images/bags/casablanca-front.jpg?v=d92e8cfb","back":"/images/bags/casablanca-back.jpg?v=c2137a91","frontLg":"/images/bags/casablanca-front-lg.jpg?v=3fbe3218","backLg":"/images/bags/casablanca-back-lg.jpg?v=95266da4"},"pinkwhiskey":{"front":"/images/bags/pinkwhiskey-front.jpg?v=35b7f112","back":"/images/bags/pinkwhiskey-back.jpg?v=741bf8b5","frontLg":"/images/bags/pinkwhiskey-front-lg.jpg?v=3d405079","backLg":"/images/bags/pinkwhiskey-back-lg.jpg?v=3e29f69a"},"rumbarrel":{"front":"/images/bags/rumbarrel-front.jpg?v=64df9a49","back":"/images/bags/rumbarrel-back.jpg?v=13d7fff7","frontLg":"/images/bags/rumbarrel-front-lg.jpg?v=ee42ffcf","backLg":"/images/bags/rumbarrel-back-lg.jpg?v=3c0de5ee"},"yirgacheffe":{"front":"/images/bags/yirgacheffe-front.jpg?v=be896bd2","back":"/images/bags/yirgacheffe-back.jpg?v=e5fb746f","frontLg":"/images/bags/yirgacheffe-front-lg.jpg?v=df33957c","backLg":"/images/bags/yirgacheffe-back-lg.jpg?v=a72d6db4"},"strawberry":{"front":"/images/bags/strawberry-front.jpg?v=70fcd63c","back":"/images/bags/strawberry-back.jpg?v=6fe8f044","frontLg":"/images/bags/strawberry-front-lg.jpg?v=bd1ac60f","backLg":"/images/bags/strawberry-back-lg.jpg?v=e7769208"}};
+  /* Styled photos made from our real bag artwork (AI-generated scenes, so each one is marked as an illustrative image). */
+  var PHOTOIMG = {"casablanca":{"lg":"/images/photos/casablanca-lg.webp?v=c93d02ac","sm":"/images/photos/casablanca-sm.webp?v=4effc384","w":896,"h":1200,"sw":600},"delivery":{"lg":"/images/photos/delivery-lg.webp?v=f54f9b89","sm":"/images/photos/delivery-sm.webp?v=e55b0651","w":1376,"h":768,"sw":800},"pinkwhiskey":{"lg":"/images/photos/pinkwhiskey-lg.webp?v=f4f59314","sm":"/images/photos/pinkwhiskey-sm.webp?v=81a39107","w":896,"h":1200,"sw":600},"range":{"lg":"/images/photos/range-lg.webp?v=44290ed9","sm":"/images/photos/range-sm.webp?v=6d418b1b","w":1376,"h":768,"sw":800},"rumbarrel":{"lg":"/images/photos/rumbarrel-lg.webp?v=a1dbfabd","sm":"/images/photos/rumbarrel-sm.webp?v=05e584c3","w":896,"h":1200,"sw":600},"strawberry":{"lg":"/images/photos/strawberry-lg.webp?v=76373696","sm":"/images/photos/strawberry-sm.webp?v=ea992a66","w":896,"h":1200,"sw":600},"v60":{"lg":"/images/photos/v60-lg.webp?v=ad832065","sm":"/images/photos/v60-sm.webp?v=8c8249c1","w":1376,"h":768,"sw":800},"yirgacheffe":{"lg":"/images/photos/yirgacheffe-lg.webp?v=60a03ac5","sm":"/images/photos/yirgacheffe-sm.webp?v=811ab5fa","w":896,"h":1200,"sw":600}};
+  var STYLED = ["Styled image. Actual packaging may differ.", "※画像はイメージです。実際のパッケージとは異なる場合があります。"];
+  function photoImg(key, sizes, alt, eager) {
+    var x = PHOTOIMG[key]; if (!x) return "";
+    return '<img src="' + x.sm + '" srcset="' + x.sm + " " + x.sw + "w, " + x.lg + " " + x.w + 'w" sizes="' + sizes + '" width="' + x.w + '" height="' + x.h + '" alt="' + esc(alt) + '"' + (eager ? "" : ' loading="lazy"') + ' decoding="async">';
+  }
+  function photoFig(key, sizes, alt, cls) {
+    if (!PHOTOIMG[key]) return "";
+    return '<figure class="sphoto' + (cls ? " " + cls : "") + '">' + photoImg(key, sizes, alt) + "<figcaption>" + esc(L(key === "v60" ? ["Illustrative image.", "※画像はイメージです。"] : STYLED)) + "</figcaption></figure>";
+  }
   function bagSvg(p, w, side, zoom) {
     var src = (BAGIMG[p.id] || {})[side || "front"]; w = w || 150;
     var alt = esc(tr(p.name)) + (side === "back" ? " bag, back" : " bag");
@@ -589,7 +600,7 @@
     var ids = Object.keys(p.blend), blend = ids.length > 1, lt = lotFor(p, ids[0]);
     var from = ids.map(function (id) { return '<i class="kd" style="background:var(--c-' + id + ')"></i>'; }).join("") + "<span>" +
       (blend ? ids.map(function (id) { return esc(tr(ORIGINS[id].country)); }).join(" · ") : esc(tr(ORIGINS[ids[0]].country)) + " · " + esc(tr(lt.process).split(/[,、]/)[0])) + "</span>";
-    return '<article class="pcard" style="--tone:' + p.tone + '"><div class="pc-media">' + bagSvg(p, 300, "front") +
+    return '<article class="pcard" style="--tone:' + p.tone + '"><div class="pc-media">' + bagSvg(p, 300, "front") + (PHOTOIMG[p.id] ? '<span class="pc-photo" aria-hidden="true">' + photoImg(p.id, "(max-width: 700px) 50vw, 300px", "") + "</span>" : "") +
       '<span class="pc-badge">' + (blend ? T("House blend", "ハウスブレンド") : T("Single origin", "シングルオリジン")) + "</span></div>" +
       '<div class="pc-body"><h3><a class="plink" href="#shop.' + p.id + '">' + esc(tr(p.name)) + "</a></h3>" +
       '<p class="pc-from">' + from + "</p>" +
@@ -623,7 +634,7 @@
     var blends = PRODUCTS.filter(function (p) { return Object.keys(p.blend).length > 1; }), singles = PRODUCTS.filter(function (p) { return Object.keys(p.blend).length === 1; });
     var soHead = '<h2 class="shop-h">Single origins</h2><p class="sub">Every single origin is roasted to a medium that keeps the fruit and sweetness of the farm.</p>';
     if (hp) { hp.innerHTML = '<div class="pgrid">' + blends.concat(singles).map(cardHtml).join("") + '</div><p class="linkrow" style="margin-top:1.5rem"><a href="#shop">' + T("Shop all coffee", "すべてのコーヒーを見る") + " →</a></p>"; walk(hp); }
-    if (sp) { sp.innerHTML = '<div class="pgrid">' + blends.concat(singles).map(cardHtml).join("") + "</div>"; walk(sp); }
+    if (sp) { sp.innerHTML = photoFig("range", "(max-width: 1100px) 100vw, 1100px", T("Our four single-origin coffees on a shelf: Colombia Pink Whiskey, Colombia Rum Barrel, Ethiopia Yirgacheffe and Sumatra Strawberry", "棚に並んだ4種類のシングルオリジン: コロンビア ピンクウイスキー、コロンビア ラムバレル、エチオピア イルガチェフェ、スマトラ ストロベリー"), "banner") + '<div class="pgrid">' + blends.concat(singles).map(cardHtml).join("") + "</div>"; walk(sp); }
   }
   document.addEventListener("click", function (e) {
     var q = e.target.closest("[data-q]");
@@ -1570,6 +1581,7 @@
 
   /* ---------- Coffee detail page ---------- */
   var cpMap = null, pendingSub = null;
+  function ppPhoto(p) { return photoFig(p.id, "(max-width: 900px) 92vw, 480px", T(tr(p.name) + " bag styled with " + p.notes.slice(0, 2).join(" and ").toLowerCase(), tr(p.name) + "のパッケージ"), "pp-photo"); }
   function renderCoffee(id) {
     var el = $("#coffeePage"); if (!el) return;
     var p = prod(id) || PRODUCTS[0], c = COFFEE[p.id], ids = Object.keys(p.blend), other = PRODUCTS[(PRODUCTS.indexOf(p) + 1) % PRODUCTS.length];
@@ -1583,7 +1595,7 @@
     var guide = JOURNAL.filter(function (a) { return a.slug === c.guide; })[0];
     el.innerHTML =
       '<nav class="crumbs" aria-label="Breadcrumb"><a href="#shop">' + T("Shop", "ショップ") + '</a><span aria-hidden="true">/</span><span aria-current="page">' + esc(tr(p.name)) + "</span></nav>" +
-      '<div class="pp" style="--tone:' + p.tone + '"><div class="pp-media"><div class="pp-bag"><div class="bagstage">' + bagSvg(p, 300, "front", true) + '</div><div class="bagflip" role="group" aria-label="' + T("Bag", "パッケージ") + '"><button type="button" data-bagside="front" aria-pressed="true">' + T("Front", "表") + '</button><button type="button" data-bagside="back" aria-pressed="false">' + T("Back", "裏") + "</button></div></div></div>" +
+      '<div class="pp" style="--tone:' + p.tone + '"><div class="pp-media"><div class="pp-bag"><div class="bagstage">' + (PHOTOIMG[p.id] ? ppPhoto(p) : bagSvg(p, 300, "front", true)) + '</div><div class="bagflip" role="group" aria-label="' + T("Bag", "パッケージ") + '">' + (PHOTOIMG[p.id] ? '<button type="button" data-bagside="photo" aria-pressed="true">' + T("Photo", "写真") + "</button>" : "") + '<button type="button" data-bagside="front" aria-pressed="' + !PHOTOIMG[p.id] + '">' + T("Front", "表") + '</button><button type="button" data-bagside="back" aria-pressed="false">' + T("Back", "裏") + "</button></div></div></div>" +
       '<div class="pp-info"><h1>' + esc(tr(p.name)) + '</h1><p class="pjp">' + esc(lang === "ja" ? p.name : p.jp) + " · " + (ids.length > 1 ? T("Blend", "ブレンド") : T("Single origin", "シングルオリジン")) + " · " + esc(p.weight) + "</p>" +
       '<p class="pp-price"><span class="mono">' + yen(p.price) + "</span> <small>" + T("or " + yen(unitPrice(p.id, "1m")) + " per bag on subscription", "定期便なら1袋 " + yen(unitPrice(p.id, "1m"))) + "</small></p>" +
       '<p class="pp-lede">' + esc(L(c.story)) + '</p><div class="chips">' + p.notes.map(function (n) { return '<span class="chip">' + esc(tr(n)) + "</span>"; }).join("") + "</div>" +
@@ -1604,7 +1616,7 @@
   document.addEventListener("click", function (e) {
     var bs = e.target.closest("[data-bagside]"); if (!bs) return;
     var side = bs.getAttribute("data-bagside"), pid = ($("[data-add-cp]") || { getAttribute: function () { return ""; } }).getAttribute("data-add-cp"), p = prod(pid); if (!p) return;
-    $(".bagstage").innerHTML = bagSvg(p, 300, side, true);
+    $(".bagstage").innerHTML = side === "photo" ? ppPhoto(p) : bagSvg(p, 300, side, true);
     $$(".bagflip button").forEach(function (x) { x.setAttribute("aria-pressed", String(x === bs)); });
   });
   function updateCpPrice() {
@@ -1631,6 +1643,7 @@
     var off = Math.round(SUB_OFF * 100);
     el.innerHTML =
       '<div class="view-head"><h1>' + T("Fresh coffee, on your rhythm", "焙煎したてを、あなたのペースで") + "</h1><p>" + T("Pick a coffee and how often you drink it. We roast to order and ship from Osaka, and every delivery is " + off + "% off.", "コーヒーと頻度を選ぶだけ。ご注文ごとに焙煎して大阪からお届けします。毎回 " + off + "% オフ。") + "</p></div>" +
+      photoFig("delivery", "(max-width: 1100px) 100vw, 1100px", T("A Beju Casablanca Blend bag being lifted out of a delivery box at home", "届いた箱からベージュのカサブランカ ブレンドを取り出すところ"), "banner") +
       '<ul class="perks"><li><b>' + off + "% " + T("off every bag", "毎回オフ") + "</b><span>" + T("Applied to every delivery, for as long as you subscribe.", "定期便を続ける限り、毎回適用されます。") + "</span></li>" +
       "<li><b>" + T("Roasted for you", "あなたのために焙煎") + "</b><span>" + T("Each delivery is roasted fresh, never from a shelf.", "毎回焙煎したてをお届け。作り置きはしません。") + "</span></li>" +
       "<li><b>" + T("Pause, skip or cancel", "一時停止・スキップ・解約自由") + "</b><span>" + T("Change or stop any time before your roast day.", "焙煎日の前ならいつでも変更・停止できます。") + "</span></li></ul>" +
@@ -1759,7 +1772,7 @@
     } else {
       var rel = prod(a.related);
       el.innerHTML = '<nav class="crumbs" aria-label="Breadcrumb"><a href="#journal">' + T("Journal", "読みもの") + '</a><span aria-hidden="true">/</span><span aria-current="page">' + esc(L(a.title)) + "</span></nav>" +
-        '<article class="article"><h1>' + esc(L(a.title)) + '</h1><p class="meta">' + esc(L(a.tag)) + " · " + a.mins + T(" min read", "分で読める") + ' · <time datetime="' + JOURNAL_DATE + '">' + T("14 October 2026", "2026年10月14日") + '</time></p><p class="lede">' + esc(L(a.sum)) + "</p>" + articleBody(a.body[lang]) +
+        '<article class="article"><h1>' + esc(L(a.title)) + '</h1><p class="meta">' + esc(L(a.tag)) + " · " + a.mins + T(" min read", "分で読める") + ' · <time datetime="' + JOURNAL_DATE + '">' + T("14 October 2026", "2026年10月14日") + '</time></p><p class="lede">' + esc(L(a.sum)) + "</p>" + (a.slug === "v60-recipe" ? photoFig("v60", "(max-width: 760px) 100vw, 704px", T("Hot water being poured in a slow spiral into a V60 dripper", "V60ドリッパーにゆっくりと円を描くようにお湯を注ぐところ"), "banner") : "") + articleBody(a.body[lang]) +
         (a.slug === "storing-beans" ? '<p class="linkrow"><a href="#subscribe">' + T("See how subscriptions work →", "定期便について見る →") + "</a></p>" : "") +
         (a.slug === "coffee-processing" ? '<p class="linkrow"><a href="#origins">' + T("Open the origins map →", "産地マップを開く →") + "</a></p>" : "") + "</article>" +
         (rel ? '<section class="pp-sec"><a class="crosslink" href="#shop.' + rel.id + '" style="--tone:' + rel.tone + '"><b>' + T("Try it with ", "このレシピにおすすめ: ") + esc(tr(rel.name)) + "</b><span>" + esc(tr(rel.blurb)) + "</span></a></section>" : "") +

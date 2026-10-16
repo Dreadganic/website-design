@@ -390,6 +390,17 @@ svg.near .lotdot text { opacity: 1; }
 .facts dt { font-family: var(--font-mono); font-size: var(--t-xs); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding-top: 0.15rem; }
 .facts dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
 .panel .used { border-top: 1px solid var(--line); padding-top: 1rem; display: grid; gap: 0.6rem; }
+.sphoto { margin: 0 0 1.5rem; display: grid; gap: 0.4rem; }
+.sphoto img { display: block; width: 100%; height: auto; border-radius: var(--radius); background: var(--bg2); }
+.sphoto figcaption { font-size: var(--t-xs); color: var(--muted); }
+.sphoto.banner img { aspect-ratio: 16 / 9; object-fit: cover; max-height: 460px; }
+.pp-bag .pp-photo { margin: 0; width: 100%; }
+.pp-bag .pp-photo img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; }
+.pp-bag:has(.pp-photo) { padding: 0.75rem 0.75rem 1rem; }
+.pc-photo { position: absolute; inset: 0; opacity: 0; transition: opacity 0.35s ease; pointer-events: none; }
+.pc-media .pc-photo img, .pcard:hover .pc-media .pc-photo img { width: 100%; height: 100%; max-width: none; object-fit: cover; filter: none; transform: none; }
+@media (hover: hover) { .pcard:hover .pc-photo, .pcard:focus-within .pc-photo { opacity: 1; } }
+@media (hover: none) { .pc-photo { display: none; } }
 .ophotos { display: flex; gap: 0.75rem; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: thin; padding-bottom: 0.25rem; }
 .ophotos:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .ophotos figure { flex: 0 0 86%; margin: 0; scroll-snap-align: start; display: grid; gap: 0.4rem; align-content: start; }
