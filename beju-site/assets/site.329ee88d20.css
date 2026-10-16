@@ -393,7 +393,8 @@ svg.near .lotdot text { opacity: 1; }
 .sphoto { margin: 0 0 1.5rem; display: grid; gap: 0.4rem; }
 .sphoto img { display: block; width: 100%; height: auto; border-radius: var(--radius); background: var(--bg2); }
 .sphoto figcaption { font-size: var(--t-xs); color: var(--muted); }
-.sphoto.banner img { aspect-ratio: 16 / 9; object-fit: cover; max-height: 460px; }
+.sphoto.banner img, .sphoto.banner video { aspect-ratio: 16 / 9; object-fit: cover; max-height: 460px; }
+.sphoto video { display: block; width: 100%; height: auto; border-radius: var(--radius); background: var(--bg2); }
 .pp-bag .pp-photo { margin: 0; width: 100%; }
 .pp-bag .pp-photo img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; }
 .pp-bag:has(.pp-photo) { padding: 0.75rem 0.75rem 1rem; }
