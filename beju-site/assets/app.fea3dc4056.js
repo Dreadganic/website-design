@@ -983,6 +983,45 @@
     return filter === "all" ? null : Object.keys(prod(filter).blend);
   }
   var MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  /* Origin photos: free Unsplash photos of each growing region or of coffee processing in general.
+     They are not photos of our partner farms, and the captions say only what each photo shows.
+     Served from Unsplash's CDN (their API guidelines ask for hotlinking) with photographer credit. */
+  var PH = function (img, user, name, en, ja, pos) { return { img: img, user: user, name: name, cap: [en, ja], pos: pos || "50% 50%" }; };
+  var PHOTOS = {
+    colombia: [
+      PH("1457414254764-c87b209f5249", "juliancs", "Julian Andres Carmona Serrato", "Hills in Colombia's coffee country", "コロンビアのコーヒー産地の丘陵"),
+      PH("1672851612794-6687bf0bf1a3", "davidremu_", "David Restrepo", "Coffee cherries ripening on the branch", "枝で熟していくコーヒーチェリー"),
+      PH("1672851613221-c56f31efce8c", "davidremu_", "David Restrepo", "Freshly picked coffee cherries", "摘みたてのコーヒーチェリー"),
+      PH("1723851944164-121e673fbffb", "jhonathan_posso", "Jhonathan David Posso Guaitarilla", "A working day in Nariño, southern Colombia", "コロンビア南部ナリーニョでの農作業", "50% 40%")
+    ],
+    brazil: [
+      PH("1671413945540-eaca7f4257f3", "projetocafegatomourisco", "Projeto Café Gato-Mourisco", "A valley in the Mogiana coffee region, São Paulo state", "サンパウロ州モジアナのコーヒー産地の谷"),
+      PH("1647220577886-6a5faaa7c141", "projetocafegatomourisco", "Projeto Café Gato-Mourisco", "Wooded hills beside a Mogiana coffee farm", "モジアナのコーヒー農園に隣接する森の丘")
+    ],
+    ethiopia: [
+      PH("1572888195250-3037a59d3578", "erikhathaway", "Erik Hathaway", "The Ethiopian highlands", "エチオピアの高地"),
+      PH("1649616551649-06bbf4d11354", "dimitry_b", "Dimitry B", "Picked cherries sorted into trays", "トレーに仕分けられたコーヒーチェリー")
+    ],
+    costarica: [
+      PH("1612668196612-70262cad2ad7", "juliebaa", "Juliana Barquero", "A coffee plant in Costa Rica", "コスタリカのコーヒーの木"),
+      PH("1670758566316-13ea9d10580d", "dagerotip", "George Dagerotip", "Coffee fermenting after picking", "収穫後に発酵させているコーヒー", "50% 60%")
+    ],
+    indonesia: [
+      PH("1440558929809-1412944a6225", "diohsb", "Dio Hasibuan", "Lake Toba, North Sumatra. Shimaren Farm is on its northwest shore.", "北スマトラのトバ湖。シマレン農園は湖の北西岸にあります。")
+    ]
+  };
+  function phUrl(x, w) { return "https://images.unsplash.com/photo-" + x.img + "?ixlib=rb-4.1.0&auto=format&fit=crop&q=70&w=" + w + "&h=" + Math.round(w * 0.75); }
+  function photoStrip(ids, max) {
+    var list = [];
+    ids.forEach(function (id) { (PHOTOS[id] || []).forEach(function (x) { list.push(x); }); });
+    if (max && ids.length > 1) list = ids.map(function (id) { return (PHOTOS[id] || [])[0]; }).filter(Boolean).slice(0, max);
+    if (!list.length) return "";
+    var ref = "?utm_source=beju_coffee&utm_medium=referral";
+    return '<div class="ophotos' + (list.length === 1 ? " one" : "") + '" tabindex="0" role="region" aria-label="' + T("Photos from the region", "産地の写真") + '">' + list.map(function (x) {
+      return '<figure><img src="' + phUrl(x, 800) + '" srcset="' + [480, 800, 1200].map(function (w) { return phUrl(x, w) + " " + w + "w"; }).join(", ") + '" sizes="(max-width: 700px) 86vw, 460px" width="800" height="600" loading="lazy" decoding="async" alt="' + esc(L(x.cap)) + '" style="object-position:' + x.pos + '">' +
+        "<figcaption>" + esc(L(x.cap)) + ' <span class="credit">' + T("Photo", "写真") + ': <a href="https://unsplash.com/@' + x.user + ref + '" target="_blank" rel="noopener">' + esc(x.name) + '</a> / <a href="https://unsplash.com/' + ref + '" target="_blank" rel="noopener">Unsplash</a></span></figcaption></figure>';
+    }).join("") + '</div><p class="phnote">' + T("Photos show the region or the process, not our partner farms.", "写真は産地や工程のイメージで、取引先の農園そのものではありません。") + "</p>";
+  }
   function originViz(o) {
     var now = new Date().getMonth() + 1, inSeason = o.months.indexOf(now) > -1, cells = "", next = now, i;
     for (i = 1; i <= 12; i++) cells += '<span class="mc' + (o.months.indexOf(i) > -1 ? " on" : "") + (i === now ? " now" : "") + '">' + "JFMAMJJASOND".charAt(i - 1) + "</span>";
@@ -1068,7 +1107,7 @@
     }).join("") + "</div>" : "";
     var used = lotUsers(lt).map(function (p) { return usedRow(p, o.id); }).join("");
     $("#panel").innerHTML = '<div class="tabs" role="group" aria-label="Choose an origin">' + tabs + "</div>" +
-      '<div><h2>' + o.country + '</h2><p class="region">' + (lang === "ja" ? o.country : o.jp) + " · " + (multi ? T(o.lots.length + " farms", o.lots.length + "つの農園") : esc(tr(o.region))) + " · " + distLine(o) + "</p></div>" + lots +
+      '<div><h2>' + o.country + '</h2><p class="region">' + (lang === "ja" ? o.country : o.jp) + " · " + (multi ? T(o.lots.length + " farms", o.lots.length + "つの農園") : esc(tr(o.region))) + " · " + distLine(o) + "</p></div>" + photoStrip([o.id]) + lots +
       (multi ? "" : '<div class="lot"><h3 class="lotname">' + esc(lt.farm) + '</h3><p class="lotplace">' + esc(lt.place) + "</p></div>") + originViz(lt) +
       "<p>" + esc(lt.story) + "</p>" +
       '<dl class="facts"><dt>Variety</dt><dd>' + esc(lt.variety) + "</dd><dt>Process</dt><dd>" + esc(lt.process) + "</dd><dt>" + T("Drying", "乾燥") + "</dt><dd>" + esc(lt.drying) + "</dd>" +
@@ -1554,7 +1593,7 @@
       (guide ? '<p class="linkrow"><a href="#journal.' + guide.slug + '">' + esc(L(guide.title)) + " →</a></p>" : "") + "</section>" +
       '<section class="pp-sec pp-two"><div><h2>' + T("Pairs well with", "相性のよいもの") + '</h2><div class="chips">' + c.pairs.map(function (x) { return '<span class="chip">' + esc(L(x)) + "</span>"; }).join("") + "</div></div>" +
       "<div><h2>" + T("Freshness", "鮮度") + "</h2><p>" + esc(L(c.rest)) + ' <a href="#journal.storing-beans">' + T("How to store it", "保存方法") + "</a></p></div></section>" +
-      '<section class="pp-sec"><h2>' + T("Where it grows", "産地") + '</h2><div class="pp-map"><div class="mapbox framed" id="cpMapBox"><svg id="cpMap" role="img" aria-label="' + T("Map of this coffee's origins", "このコーヒーの産地の地図") + '"></svg></div><ul class="pp-origins">' + origins + "</ul></div></section>" +
+      '<section class="pp-sec"><h2>' + T("Where it grows", "産地") + '</h2><div class="pp-map"><div class="mapbox framed" id="cpMapBox"><svg id="cpMap" role="img" aria-label="' + T("Map of this coffee's origins", "このコーヒーの産地の地図") + '"></svg></div><ul class="pp-origins">' + origins + "</ul></div>" + photoStrip(ids, 4) + "</section>" +
       '<section class="pp-sec subband" style="--tone:' + p.tone + '"><div><h2>' + T("Never run out", "切らさずに楽しむ") + "</h2><p>" + T("Get " + tr(p.name) + " every 2 weeks or every month and save " + Math.round(SUB_OFF * 100) + "% on every bag.", tr(p.name) + " を2週間ごと・毎月お届け。毎回 " + Math.round(SUB_OFF * 100) + "% オフ。") + '</p></div><a class="btn primary" href="#subscribe" data-subpid="' + p.id + '">' + T("Set up a subscription", "定期便を始める") + "</a></section>" +
       (other ? '<section class="pp-sec"><a class="crosslink" href="#shop.' + other.id + '"><b>' + T("Also roasting: ", "こちらもおすすめ: ") + esc(tr(other.name)) + "</b><span>" + esc(tr(other.blurb)) + "</span></a></section>" : "");
     walk(el);

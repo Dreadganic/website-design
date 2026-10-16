@@ -390,6 +390,18 @@ svg.near .lotdot text { opacity: 1; }
 .facts dt { font-family: var(--font-mono); font-size: var(--t-xs); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding-top: 0.15rem; }
 .facts dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
 .panel .used { border-top: 1px solid var(--line); padding-top: 1rem; display: grid; gap: 0.6rem; }
+.ophotos { display: flex; gap: 0.75rem; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: thin; padding-bottom: 0.25rem; }
+.ophotos:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.ophotos figure { flex: 0 0 86%; margin: 0; scroll-snap-align: start; display: grid; gap: 0.4rem; align-content: start; }
+.ophotos.one figure { flex-basis: 100%; }
+.ophotos img { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; border-radius: var(--radius); background: var(--bg2); }
+.ophotos figcaption { font-size: var(--t-xs); color: var(--muted); line-height: 1.45; }
+.ophotos .credit { display: block; }
+.ophotos .credit a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.phnote, .panel .phnote { font-size: var(--t-xs); color: var(--muted); margin: -0.4rem 0 0; line-height: 1.45; }
+.pp-sec .ophotos { margin-top: 1.5rem; }
+.pp-sec .phnote { margin-top: 0.4rem; }
+@media (min-width: 900px) { .pp-sec .ophotos figure { flex-basis: calc((100% - 1.5rem) / 3); } .pp-sec .ophotos.one figure { flex-basis: 60%; } }
 .usedrow { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
 .usedrow b { font-family: var(--font-display); }
 .usedrow small { color: var(--muted); font-family: var(--font-mono); font-size: var(--t-xs); display: block; }
