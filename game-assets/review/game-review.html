@@ -1,0 +1,201 @@
+<title>Beju Farm Game Review</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;600&family=Zen+Kaku+Gothic+New:wght@500;700&display=swap">
+<style>
+/* Layout: a single reading column on parchment; three review passes as numbered sections (they really are a sequence), each ending in what changed; tables for comparisons; a roadmap at the end. */
+:root {
+  --bg: #F4EAD4; --paper: #FBF5E8; --ink: #3E2A1C; --muted: #7A5A3A; --edge: #D9C29A; --accent: #2D6A46; --warn: #B4502C; --gold: #C98F12;
+  --display: 'Pixelify Sans', 'Courier New', monospace; --body: 'Zen Kaku Gothic New', system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #1E1712; --paper: #2A211A; --ink: #F2E6D2; --muted: #C8AE8A; --edge: #4A3A2A; --accent: #7EC89A; --warn: #F08A64; --gold: #F2C04A; color-scheme: dark; } }
+:root[data-theme="dark"] { --bg: #1E1712; --paper: #2A211A; --ink: #F2E6D2; --muted: #C8AE8A; --edge: #4A3A2A; --accent: #7EC89A; --warn: #F08A64; --gold: #F2C04A; color-scheme: dark; }
+body { background: var(--bg); color: var(--ink); font: 500 15px/1.7 var(--body); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 56px; }
+main { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+header { display: flex; flex-direction: column; gap: 6px; }
+.eyebrow { font: 600 13px var(--display); letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+h1 { font: 600 34px/1.15 var(--display); margin: 0; text-wrap: balance; }
+h2 { font: 600 22px/1.25 var(--display); margin: 0; text-wrap: balance; }
+h3 { font: 700 16px/1.4 var(--body); margin: 0; }
+p { margin: 0; max-width: 66ch; }
+.lede { font-size: 17px; color: var(--muted); }
+section { display: flex; flex-direction: column; gap: 14px; }
+.pass { display: flex; gap: 10px; align-items: baseline; }
+.pass b { font: 600 14px var(--display); color: var(--paper); background: var(--accent); padding: 1px 8px; border-radius: 6px; flex: none; }
+.box { background: var(--paper); border: 1px solid var(--edge); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+.box.keep { border-left: 4px solid var(--accent); }
+.box.fix { border-left: 4px solid var(--warn); }
+ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 66ch; }
+.tbl { overflow-x: auto; border: 1px solid var(--edge); border-radius: 10px; background: var(--paper); }
+table { border-collapse: collapse; width: 100%; min-width: 540px; font-size: 14px; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--edge); vertical-align: top; }
+th { font: 600 13px var(--display); color: var(--muted); letter-spacing: 0.04em; }
+tr:last-child td { border-bottom: 0; }
+.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tag { display: inline-block; font: 600 12px var(--display); padding: 0 6px; border-radius: 4px; border: 1px solid currentColor; }
+.t-now { color: var(--accent); } .t-next { color: var(--gold); } .t-later { color: var(--muted); }
+.src { font-size: 13px; color: var(--muted); }
+.src a { color: inherit; }
+a { color: var(--accent); }
+</style>
+
+<main>
+  <header>
+    <div class="eyebrow">Beju Farm · design review</div>
+    <h1>Where the game stands, and what to change</h1>
+    <p class="lede">Three review passes over the current playable build, each one checking the fixes from the pass before, measured against Hay Day, Egg, Inc., Good Coffee Great Coffee, cozy games like Neko Atsume and Stardew, and brand loyalty apps.</p>
+  </header>
+
+  <section>
+    <h2>The verdict</h2>
+    <div class="box">
+      <p>The game is rich and charming, and the parts that make it special are real: the art, the regional music, coffee knowledge baked into the systems, and real coffee orders feeding the farm. The weakness is the opposite of most prototypes: <b>too much at once, explained too little</b>. A new player meets 7 tabs, 5 currencies and about 20 systems inside the first minute, and the best idea, linking real orders to the game, is hidden in a Test tab.</p>
+      <p>The three biggest wins are all subtractive or connective: <b>reveal the game in steps</b>, <b>cut the currencies to three with one clear rule</b>, and <b>make product drops into in-game events</b>. Then build the backend so the leaderboard, co-ops and order rewards are real.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>The build today, by the numbers</h2>
+    <div class="tbl"><table>
+      <tr><th>What a player handles</th><th>Count</th><th>Notes</th></tr>
+      <tr><td>Main tabs</td><td class="num">7</td><td>Farm, Mill, Upgrade, Orders, Ranks, Shop, Test, all visible from second one</td></tr>
+      <tr><td>Sub-tabs</td><td class="num">7</td><td>Upgrade has 5, Shop has 2</td></tr>
+      <tr><td>Currencies and meters</td><td class="num">5</td><td>Coins, points (also XP), cranes, hearts, kilos of cherries</td></tr>
+      <tr><td>Things you can buy or unlock</td><td class="num">~90</td><td>6 farms, 9 varieties, 6 processes, 6 upgrade lines, 108 building levels, 8 staff, 7 decor, hats, 24 looks</td></tr>
+      <tr><td>Ways to sell coffee</td><td class="num">4</td><td>Raw cherries, roastery, contracts, weekly team order</td></tr>
+      <tr><td>Return hooks</td><td class="num">5</td><td>Offline earnings, daily tasks, contracts, weekly order, harvest goals for free coffee</td></tr>
+      <tr><td>Game file</td><td class="num">584 KB</td><td>One HTML file, saves in the browser, no accounts, simulated other players</td></tr>
+    </table></div>
+  </section>
+
+  <section>
+    <div class="pass"><b>Pass 1</b><h2>A new player's first ten minutes</h2></div>
+    <p>Played as someone who bought a bag of coffee, saw the app, and opened the game with no gaming habit.</p>
+    <div class="box keep"><h3>What works</h3><ul>
+      <li>Tapping a ripe bush feels good straight away: rustle, pop, cherries fly, kilos float up. That is the Hay Day "harvest" moment, and it lands.</li>
+      <li>The farm reads at a glance: bushes change colour as they ripen, pickers carry baskets, the storage grows.</li>
+      <li>Music and seasons give each farm a sense of place no other coffee game has.</li>
+    </ul></div>
+    <div class="box fix"><h3>What gets in the way</h3><ul>
+      <li><b>Everything is visible at once.</b> Seven tabs, a wall of upgrade rows, contracts, a leaderboard. Hay Day avoided forced tutorials, but it never shows a newcomer the whole game: buildings and features open as you level. Ours opens all of it.</li>
+      <li><b>The intro is a paragraph.</b> One modal explains picking, hearts, pickers, the mill and upgrades. Nobody reads it, so the mill (where the money is) is easy to miss.</li>
+      <li><b>Hearts block the fun part.</b> Ten taps and you're "tired". In an idle game the active tap is the hook; rationing it in minute one teaches people to stop tapping.</li>
+      <li><b>"Points" means two things.</b> They are both your level progress and a currency you spend. Spending them doesn't lower your level, which is right, but nothing on screen says so.</li>
+      <li><b>Two currencies buy similar things.</b> Storage costs coins, drying racks cost points, buildings cost coins, varieties cost points. There's no rule a player could guess.</li>
+    </ul></div>
+    <div class="box"><h3>Pass 1 proposals</h3><ul>
+      <li><b>Guided first harvest:</b> five goals in a row (pick 5 bushes, open the mill, process a lot, sell it, hire a picker), each with a pointing hand and a reward. No text walls.</li>
+      <li><b>Progressive tabs:</b> start with Farm and Mill only. Upgrade appears after the first sale, Orders at level 3, Ranks at level 5, Shop when you earn your first crane.</li>
+      <li><b>Soften hearts:</b> 30 hearts and a faster refill, or drop them and slow ripening instead.</li>
+      <li><b>Rename for clarity:</b> points become <i>Know-how</i> (spent), level progress becomes <i>Reputation</i> (never spent).</li>
+    </ul></div>
+  </section>
+
+  <section>
+    <div class="pass"><b>Pass 2</b><h2>Mid game, late game, and the pass 1 fixes</h2></div>
+    <p>Played from level 5 to a first prestige, with the pass 1 proposals assumed in place, checking they don't break anything later.</p>
+    <div class="box keep"><h3>What works</h3><ul>
+      <li>Contracts give real decisions: which variety to plant and which process to use now matter, and they pay double. This is the strongest system in the game.</li>
+      <li>Buildings fixed the coin pile-up, and seeing them appear on the farm is the right reward.</li>
+      <li>The foreman and agent are the classic idle turning point: you stop clicking and start choosing.</li>
+      <li>Prestige is purely cosmetic and never takes upgrades away, which is the version Call of Duty players preferred when it moved that way.</li>
+    </ul></div>
+    <div class="box fix"><h3>What gets in the way</h3><ul>
+      <li><b>Four upgrade lines all mean "more throughput".</b> Storage, carrying gear, picker speed and drying racks overlap, and buildings add more (housing, raised beds). Players can't tell which bottleneck they have.</li>
+      <li><b>Process choice is a solved puzzle.</b> Outside contracts, the highest multiplier always wins, so the choice isn't a choice.</li>
+      <li><b>Prestige pacing will run away.</b> Level 10 takes about 40 minutes, so a keen player could prestige several times a day and own the board in a week. Call of Duty ties prestige to seasons for this reason.</li>
+      <li><b>The social layer is fake.</b> The weekly team order and the leaderboard are simulated. Hay Day's long life came from neighbourhoods and derbies; Egg, Inc.'s from co-op contracts. Ours can't do that without a server.</li>
+      <li><b>The real-coffee link is buried.</b> Orders, stamps and cranes are the thing no competitor can copy, and they live in a Test tab.</li>
+    </ul></div>
+    <div class="box"><h3>Checking pass 1 against the later game</h3><ul>
+      <li>Progressive tabs still work late: by level 5 everything is open, so experienced players lose nothing.</li>
+      <li>The Know-how rename makes a clean rule possible: <b>coins build and hire, Know-how unlocks (varieties, farms, processes), cranes are for treats and looks.</b> That means moving picker speed, racks and stamina from points to coins.</li>
+      <li>Dropping hearts makes active play stronger, so auto-picking staff should stay clearly slower than you, which it already is (pickers are 3× slower).</li>
+    </ul></div>
+    <div class="box"><h3>Pass 2 proposals</h3><ul>
+      <li><b>Merge throughput into two lines:</b> <i>Storage</i> (how much you hold) and <i>Pickers</i> (speed and carrying combined). Racks fold into the mill building. One bottleneck warning on screen: "Storage full" or "Racks busy".</li>
+      <li><b>Make processes situational:</b> a daily market board ("naturals pay ×1.4 today") and contracts asking for specific processes. The mechanics already exist in the contracts system.</li>
+      <li><b>Seasonal ranks:</b> a monthly season board plus an all-time hall of fame. Prestige requirement rises within a season (10, 12, 14…), so the board rewards consistency over binge play.</li>
+      <li><b>Drop events:</b> every real product drop becomes a week-long in-game event: a limited variety or process, a themed contract chain, and a push notification. The app's original purpose (notify on drops) and the game finally become one thing.</li>
+      <li><b>Daily brew check-in streak:</b> the check-in from the original app design, with one free freeze. Duolingo found learners on a 7-day streak are 3.6× more likely to finish, and adding a second streak freeze lifted daily actives.</li>
+    </ul></div>
+  </section>
+
+  <section>
+    <div class="pass"><b>Pass 3</b><h2>Backend, and whether passes 1 and 2 survive it</h2></div>
+    <p>The game today is a single offline file. Everything players compete or get rewarded on needs a server.</p>
+    <div class="tbl"><table>
+      <tr><th>Need</th><th>Today</th><th>Proposal</th></tr>
+      <tr><td>Accounts and cloud save</td><td>Browser storage only</td><td>Sign in with the same account as bejucoffee.com orders, so order rewards find the right player. Save to the cloud every few minutes and on exit.</td></tr>
+      <tr><td>Real order rewards</td><td>Test buttons</td><td>The website already runs Stripe through Netlify Functions. A webhook on a paid order grants cranes and the next passport stamp server-side. The client never grants them itself.</td></tr>
+      <tr><td>Leaderboard</td><td>30 simulated players</td><td>Server-held stats only. Reject uploads where gained Reputation exceeds elapsed time × the best possible rate for that account (a simple speed limit for idle games).</td></tr>
+      <tr><td>Co-ops and weekly order</td><td>Simulated team</td><td>Groups of up to 10 friends sharing a weekly contract, built on the follow system in the community app design.</td></tr>
+      <tr><td>Drop events and push</td><td>None</td><td>Event config served from the backend (no app update needed) and push via Apple and Google notification services.</td></tr>
+      <tr><td>Analytics</td><td>None</td><td>Track day-1, day-7 and day-30 retention, tutorial drop-off, and orders that came from the game.</td></tr>
+    </table></div>
+    <div class="box"><h3>Stack recommendation</h3><ul>
+      <li><b>App shell:</b> wrap the existing web game in Capacitor for the App Store and Google Play. It reuses every line we've written and adds native push and in-app purchase hooks.</li>
+      <li><b>Backend:</b> Supabase (Postgres, auth, server functions) fits a small team and sits easily beside the Netlify site. PlayFab is the games-specialist alternative, with built-in leaderboards and server-only stat writes to stop cheating. Firebase is the easiest start but leaves leaderboards and anti-cheat to build yourself.</li>
+      <li><b>Simulation:</b> keep running the farm on the phone (idle games need to work offline) and validate on upload, rather than running the economy on the server.</li>
+    </ul></div>
+    <div class="box"><h3>Checking passes 1 and 2 against the backend</h3><ul>
+      <li>Progressive tabs and the currency rule are client-only, so they can ship now.</li>
+      <li>Seasons, co-ops, real leaderboards and drop events all need the backend, so they come after it.</li>
+      <li>Real rewards (free 100 g bags, crane grants) must be granted server-side and checked against Japan's premium rules (gifts up to 20% of the order value at ¥1,000 and over) and Apple's rule that game currency can't be sold for money. Cranes stay earn-only from physical orders.</li>
+    </ul></div>
+  </section>
+
+  <section>
+    <h2>How similar games found success</h2>
+    <div class="tbl"><table>
+      <tr><th>Game</th><th>What made it work</th><th>What we take</th></tr>
+      <tr><td>Hay Day</td><td>Retention treated as the one metric. A tight harvest, make, sell loop. No forced tutorial, but features open as you level. Neighbourhoods and weekly derbies.</td><td>Progressive reveal, co-ops, a weekly team event</td></tr>
+      <tr><td>Egg, Inc.</td><td>Calm idle loop, generous prestige maths, co-op contracts with friends, fair monetisation.</td><td>Co-op contracts, keep prestige generous, keep monetisation fair</td></tr>
+      <tr><td>Good Coffee, Great Coffee</td><td>Cozy hand-drawn café, coffee realism from barista training, cosmetics-only spending, hundreds of customer characters with stories.</td><td>Characters and stories on contracts, realism as a selling point, cosmetic-only monetisation</td></tr>
+      <tr><td>Neko Atsume, Stardew</td><td>Low pressure: you can't really lose. Neko works in a one-minute session; Stardew offers depth without stress.</td><td>Drop hearts, keep sessions short and complete, never punish being away</td></tr>
+      <tr><td>Starbucks and Kopi Kenangan apps</td><td>Studies of both found game elements raised engagement and brand love. Kopi Kenangan's showed engagement did not directly drive repurchase, so rewards must point at buying.</td><td>Link game moments directly to orders: drop events, passport, free bags</td></tr>
+      <tr><td>Duolingo</td><td>Streaks with forgiving freezes, and a focus on the first seven days.</td><td>Daily brew check-in with a freeze, tuned for week one</td></tr>
+    </table></div>
+    <p>Targets to aim for, from 2025 mobile benchmarks: median games keep about 22% of players on day 1, under 4% on day 7 and 0.7% on day 30; the top 10% keep about 40%, 11–12% and 4%. A companion game whose players already like the brand should aim for the top-10% line.</p>
+  </section>
+
+  <section>
+    <h2>Roadmap</h2>
+    <div class="tbl"><table>
+      <tr><th>When</th><th>Change</th><th>Why</th></tr>
+      <tr><td><span class="tag t-now">Now</span></td><td>Guided first harvest and progressive tabs</td><td>Biggest simplicity win; first-week retention matters most</td></tr>
+      <tr><td><span class="tag t-now">Now</span></td><td>Three currencies with one rule; rename points to Know-how and Reputation</td><td>Players can predict what things cost</td></tr>
+      <tr><td><span class="tag t-now">Now</span></td><td>Drop hearts (or soften), merge throughput upgrades into Storage and Pickers</td><td>Less to learn, active play stays fun</td></tr>
+      <tr><td><span class="tag t-now">Now</span></td><td>Daily brew check-in streak with a freeze; daily market board for processes</td><td>A reason to open the app every day</td></tr>
+      <tr><td><span class="tag t-next">Next</span></td><td>Capacitor app, accounts, cloud save, order webhook granting cranes and stamps</td><td>Makes the real-coffee link real</td></tr>
+      <tr><td><span class="tag t-next">Next</span></td><td>Drop events with push notifications</td><td>Turns every product launch into a game event and a sale</td></tr>
+      <tr><td><span class="tag t-next">Next</span></td><td>Real leaderboard with monthly seasons and an all-time hall</td><td>Fair competition, no week-one runaway leaders</td></tr>
+      <tr><td><span class="tag t-later">Later</span></td><td>Co-ops with followed friends; contract buyers with names and stories</td><td>Social retention, the Hay Day and Egg, Inc. lesson</td></tr>
+      <tr><td><span class="tag t-later">Later</span></td><td>New sprite silhouettes for prestige outfits; new regions as real origins launch</td><td>The passport and the farm grow with the roastery</td></tr>
+    </table></div>
+  </section>
+
+  <section>
+    <h2>Sources</h2>
+    <p class="src">
+      <a href="https://www.pocketgamer.biz/supercell-looking-back-10-years-of-hay-day-part-one">Supercell: looking back on 10 years of Hay Day (PocketGamer.biz)</a> ·
+      <a href="https://www.deconstructoroffun.com/blog//2013/01/behind-success-of-hay-day.html">Behind the success of Hay Day (Deconstructor of Fun)</a> ·
+      <a href="https://gamedeveloper.com/business/game-monetization-design-analysis-of-hay-day">Monetisation design analysis of Hay Day (Game Developer)</a> ·
+      <a href="https://en.wikipedia.org/wiki/Hay_Day">Hay Day (Wikipedia)</a> ·
+      <a href="https://www.gamedeveloper.com/design/the-math-of-idle-games-part-iii">The math of idle games, part III (Game Developer)</a> ·
+      <a href="https://www.pocketgamer.biz/egg-inc-idle-games-gold-standard/">Egg, Inc. as the idle monetisation gold standard (PocketGamer.biz)</a> ·
+      <a href="https://venturebeat.com/business/after-pizza-tapblaze-launches-good-coffee-great-coffee-on-mobile/">TapBlaze launches Good Coffee, Great Coffee (VentureBeat)</a> ·
+      <a href="https://newuniversity.org/2025/03/15/good-coffee-great-coffee-is-just-good-not-great/">Good Coffee, Great Coffee review (New University)</a> ·
+      <a href="https://www.lilachbullock.com/cozy-games/">What cozy games are</a> ·
+      <a href="https://ideas.repec.org/a/gam/jsusta/v15y2022i1p589-d1018982.html">Gamification in the Starbucks app (Sustainability, 2022)</a> ·
+      <a href="https://www.yupingliu.com/wordpress/2019/02/19/research-focus-gamify-your-loyalty-program/">Gamify your loyalty programme (Yuping Liu)</a> ·
+      <a href="https://www.braze.com/resources/articles/gamification-marketing-how-to.md">Gamification marketing, Dutch Bros case (Braze)</a> ·
+      <a href="https://blog.duolingo.com/how-duolingo-streak-builds-habit">How the Duolingo streak builds habit (Duolingo)</a> ·
+      <a href="https://lennysnewsletter.com/p/behind-the-product-duolingo-streaks">Behind the product: Duolingo streaks (Lenny's Newsletter)</a> ·
+      <a href="https://gamedevreports.substack.com/p/gameanalytics-mobile-and-pc-game">GameAnalytics mobile benchmarks (Game Dev Reports)</a> ·
+      <a href="https://learn.microsoft.com/gaming/playfab/what-is-playfab">What is PlayFab (Microsoft)</a> ·
+      <a href="https://community.playfab.com/answers/2344/view.html">PlayFab server-authoritative stats (PlayFab community)</a> ·
+      <a href="https://hostedgg.com/blog/signaldecay-offline-first-idle-games">Offline-first idle games (hostedgg)</a> ·
+      <a href="https://upcomer.com/how-the-prestige-system-works-in-call-of-duty-vanguard">Call of Duty: Vanguard prestige (Upcomer)</a>
+    </p>
+  </section>
+</main>
