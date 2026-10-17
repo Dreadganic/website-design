@@ -463,6 +463,7 @@ let S = load() || fresh();
   const d = fresh();
   if (S.prestige === undefined) S.prestige = Math.max(0, (S.year || 1) - 1);   /* old harvest years count as prestiges */
   S.bonus = 0;   /* prestige no longer gives a gameplay bonus */
+  ['coins', 'points', 'xp', 'cranes'].forEach((k) => { if (!Number.isFinite(S[k])) S[k] = 0; });   /* a broken number would silently swallow every reward */
   const veteran = S.guide === undefined && (S.stats.lotsSold > 0 || S.prestige > 0);
   if (S.look && S.look.crest === undefined) {   /* old looks: plate, border and outfit were separate; outfits already earned stay owned */
     S.skins = {}; for (let i = 0; i <= tierOf(S.prestige || 0); i++) S.skins[i] = true;
@@ -835,7 +836,7 @@ function newContract() {
   const base = saleFor(cupV, cupM, kg), mult = 1.8 + rnd() * 0.6 + (v ? 0.2 : 0) + (method ? 0.2 : 0);
   const home = v && LOCS.find((l) => l !== 'osaka' && ART.locations[l].beds.includes(v));
   const note = buyer === 'Beju Roastery' && home ? 'For the ' + ART.locations[home].reward : '';
-  return { id: Math.floor(rnd() * 1e9), buyer, note, v, method, minCup, kg, have: 0, coins: Math.round(base.coins * mult), points: Math.round(base.points * mult), due: S.minutesTotal + 1440 * (0.75 + rnd()) };
+  return { id: Math.floor(rnd() * 1e9), buyer, note, v, method, minCup, kg, have: 0, coins: Math.round(base.coins * mult), points: Math.round(base.points * mult), due: S.minutesTotal + 1440 * (1.5 + rnd() * 1.5) };
 }
 const fits = (c, l) => (!c.v || c.v === l.v) && (!c.method || c.method === l.method) && cupFor(l.v, l.method) >= c.minCup && c.have < c.kg;
 function contractsTick() {
@@ -856,13 +857,16 @@ function deliver(i, id, quiet) {
   S.lots.splice(i, 1); S.stats.lotsSold += 1; task('sell', 1);
   let extra = { coins: 0, points: 0 };
   if (spare > 0.05) { extra = saleFor(l.v, l.method, spare); earn(extra); }
-  if (c.have >= c.kg - 0.01) {
-    S.contracts = S.contracts.filter((x) => x !== c); S.nextContract = Math.min(S.nextContract, S.minutesTotal + 10);
-    earn({ coins: c.coins, points: c.points }); S.stats.contracts = (S.stats.contracts || 0) + 1; SFX.play('contract');
+  /* each delivery is paid its share straight away, so coffee in a contract that runs out of time is never lost */
+  const done = c.have >= c.kg - 0.01, pay = done ? { coins: c.coins - (c.paidC || 0), points: c.points - (c.paidP || 0) } : { coins: Math.round(c.coins * use / c.kg), points: Math.round(c.points * use / c.kg) };
+  c.paidC = (c.paidC || 0) + pay.coins; c.paidP = (c.paidP || 0) + pay.points;
+  earn(pay);
+  if (done) {
+    S.contracts = S.contracts.filter((x) => x !== c); S.nextContract = Math.min(S.nextContract, S.minutesTotal + 10); S.stats.contracts = (S.stats.contracts || 0) + 1; SFX.play('contract');
     if (c.event && S.event) { S.event.done += 1; if (S.event.done >= 3) { earn({ cranes: 10 }); S.badges.push({ event: eventDrop() ? eventDrop().name : 'Drop event', label: 'Drop', rank: 99 }); setTimeout(() => showModal('<h2>Drop event complete!</h2><p class="note">All three event contracts are delivered. The event badge is on your profile, and 10 cranes are yours.</p><button class="btn green" data-act="close">Brilliant</button>'), 600); } }
-    if (quiet) { toast('Contract for ' + c.buyer + ' complete: +' + fmt(c.coins) + ' coins'); return; }
-    showModal(img('board', 64) + '<h2>Contract complete!</h2><p class="note">' + c.buyer + ' received ' + fmt(c.kg) + ' kg' + (c.note ? ' (' + c.note.toLowerCase() + ')' : '') + '.' + (spare > 0.05 ? ' The spare ' + fmt(spare) + ' kg went to the roastery.' : '') + '</p><div class="stats"><div><small>Coins</small><b>+' + fmt(c.coins + extra.coins) + '</b></div><div><small>Points</small><b>+' + fmt(c.points + extra.points) + '</b></div></div><button class="btn green" data-act="close">Great</button>');
-  } else if (!quiet) SFX.play('stamp'), toast(fmt(use) + ' kg delivered to ' + c.buyer + ' (' + fmt(c.have) + ' / ' + fmt(c.kg) + ' kg)');
+    if (quiet) { toast('Contract for ' + c.buyer + ' complete: +' + fmt(c.coins) + ' coins, +' + fmt(c.points) + ' know-how in all'); return; }
+    showModal(img('board', 64) + '<h2>Contract complete!</h2><p class="note">' + c.buyer + ' received ' + fmt(c.kg) + ' kg' + (c.note ? ' (' + c.note.toLowerCase() + ')' : '') + '.' + (spare > 0.05 ? ' The spare ' + fmt(spare) + ' kg went to the roastery.' : '') + '</p><div class="stats"><div><small>Coins</small><b>+' + fmt(c.coins + extra.coins) + '</b></div><div><small>Know-how</small><b>+' + fmt(c.points + extra.points) + '</b></div></div><p class="note">Totals for the whole contract, including what earlier deliveries already paid.</p><button class="btn green" data-act="close">Great</button>');
+  } else if (!quiet) SFX.play('stamp'), toast(fmt(use) + ' kg delivered to ' + c.buyer + ': +' + fmt(pay.coins) + ' coins, +' + fmt(pay.points) + ' know-how (' + fmt(c.have) + ' / ' + fmt(c.kg) + ' kg)');
 }
 function staffTick() {
   if (!S.staff.foreman) return;
@@ -1090,7 +1094,7 @@ function renderPanel() {
     const vs = Object.keys(S.cherries).filter((v) => S.cherries[v] > 0);
     h += '<h2>Mill</h2><p class="note">Pick your cherries and a process; the tags show what each choice earns. About 5 kg of cherries make 1 kg of green coffee.</p>';
     h += '<div class="market">' + img(METHODS[marketPick()].art, 28) + '<span><b>Market today:</b> the roastery pays ×' + MARKET + ' for ' + METHODS[marketPick()].name.toLowerCase() + ' lots. It changes every farm day.</span></div>';
-    if (S.tabs.orders) h += '<h3>Buyers waiting · ' + S.contracts.length + '</h3><p class="note">Swipe to see them all. Contracts pay about twice the roastery, and lots that fit are tagged below.</p><div class="ccards">' + (S.contracts.length ? S.contracts.map(contractCard).join('') : '<p class="note">No buyers right now. New ones arrive shortly.</p>') + '</div>';
+    if (S.tabs.orders) h += '<h3>Buyers waiting · ' + S.contracts.length + '</h3><p class="note">Swipe to see them all. Contracts pay about twice the roastery, and each delivery is paid as it arrives. Lots that fit are tagged below.</p><div class="ccards">' + (S.contracts.length ? S.contracts.map(contractCard).join('') : '<p class="note">No buyers right now. New ones arrive shortly.</p>') + '</div>';
     h += '<h3>Drying racks ' + S.lots.length + ' / ' + racks() + '</h3>';
     S.lots.forEach((l, i) => {
       const m = METHODS[l.method], done = l.left <= 0, fit = S.tabs.orders && S.contracts.find((c) => fits(c, l));
