@@ -30,6 +30,9 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-
 .sound { position: absolute; left: 6px; bottom: 6px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 10px; background: rgba(62,42,28,0.8); color: #FFF4DE; cursor: pointer; }
 .sound[aria-pressed="false"] { color: #B89A7A; }
 .sound[aria-pressed="false"] #sfxWaves { display: none; }
+.sound.music { left: 46px; }
+.sound .slash { display: none; }
+.sound[aria-pressed="false"] .slash { display: inline; }
 .hud-r { position: absolute; right: 6px; top: 6px; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; pointer-events: none; }
 .hearts { display: flex; gap: 1px; flex-wrap: wrap; max-width: 150px; }
 .pill { display: flex; align-items: center; gap: 5px; padding: 2px 8px 2px 4px; border-radius: 10px; background: rgba(62,42,28,0.8); color: #FFF4DE; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -116,6 +119,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-
       <div class="pill" id="hudCranes"></div>
       <div class="pill" id="hudStore"></div>
     </div>
+    <button class="sound music" id="musicBtn" type="button" aria-pressed="true" aria-label="Music"><svg width="16" height="16" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><path fill="currentColor" d="M3 0h5v2H4v4H3zM7 2h1v4H7zM1 5h3v3H1zM5 4h3v3H5z"/><path class="slash" fill="currentColor" d="M0 0h1v1H0zM1 1h1v1H1zM2 2h1v1H2zM5 5h1v1H5zM6 6h1v1H6zM7 7h1v1H7z"/></svg></button>
     <button class="sound" id="sfxBtn" type="button" aria-pressed="true" aria-label="Sound effects"><svg width="18" height="16" viewBox="0 0 9 8" shape-rendering="crispEdges" aria-hidden="true"><path fill="currentColor" d="M0 3h2v2H0zM2 2h1v4H2zM3 1h1v6H3zM4 0h1v8H4z"/><path id="sfxWaves" fill="currentColor" d="M6 2h1v1H6zM6 5h1v1H6zM7 3h1v2H7zM8 1h1v1H8zM8 6h1v1H8z"/></svg></button>
     <div class="toast" id="toast" hidden></div>
   </div>
@@ -127,6 +131,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-
 
 <script>
 __SFX__
+__MUSIC__
 </script>
 <script>
 const ART = __ART__;
@@ -260,7 +265,7 @@ function fresh() {
     methods: { washed: true, natural: true }, vars: { caturra: true }, staff: { foreman: false, agent: false, rule: 'best' }, decor: {}, contracts: [], nextContract: 0, hat: 'straw', hats: { straw: true }, stamps: {},
     cherries: {}, lots: [], boosts: {}, minutes: 7 * 60 + 30, day: 1, taps: 0, year: 1, bonus: 0,
     tasks: null, weekly: { mine: 0, team: 1800, target: 4000, start: 1, claimed: false }, rewards: [], stats: { picked: 0, sold: 0, lotsSold: 0 },
-    farms: {}, intro: 0, seasonPick: 'auto', speed: 1, sfx: true, last: Date.now()
+    farms: {}, intro: 0, seasonPick: 'auto', speed: 1, sfx: true, music: true, musicVol: 0.45, last: Date.now()
   };
   LOCS.forEach((l) => { st.farms[l] = newFarm(l); });
   return st;
@@ -268,7 +273,7 @@ function fresh() {
 let S = load() || fresh();
 (function migrate() {   /* fields added after a save was made */
   const d = fresh();
-  ['staff', 'decor', 'contracts', 'nextContract', 'sfx'].forEach((k) => { if (S[k] === undefined) S[k] = d[k]; });
+  ['staff', 'decor', 'contracts', 'nextContract', 'sfx', 'music', 'musicVol'].forEach((k) => { if (S[k] === undefined) S[k] = d[k]; });
   LOCS.forEach((l) => { const f = S.farms[l]; if (!f.build) f.build = {}; if (f.manager === undefined) f.manager = null; });
 })();
 LOCS.forEach((l) => { const f = S.farms[l]; if (!f.shrubs.length) plant(f); f.workers.forEach((w) => { w.state = 'seek'; w.path = []; w.target = null; }); });
@@ -840,6 +845,7 @@ function renderPanel() {
     h += '<h3>Time</h3><div class="seg"><button type="button" data-act="away:1">Away 1 h</button><button type="button" data-act="away:4">Away 4 h</button><button type="button" data-act="away:12">Away 12 h</button><button type="button" data-act="day">Next day</button></div>';
     h += '<h3>Game speed</h3><div class="seg">' + [1, 3, 10].map((x) => '<button type="button" data-act="speed:' + x + '" aria-pressed="' + (S.speed === x) + '">×' + x + '</button>').join('') + '</div>';
     h += '<h3>Season</h3><div class="seg">' + ['auto', 'harvest', 'rainy', 'spring', 'summer', 'autumn', 'winter'].map((x) => '<button type="button" data-act="season:' + x + '" aria-pressed="' + (S.seasonPick === x) + '">' + x + '</button>').join('') + '</div><p class="note">Harvest and rainy apply to the coffee farms; spring to winter apply to Osaka.</p>';
+    h += '<h3>Music volume</h3><div class="seg">' + [['0.25', 'Quiet'], ['0.45', 'Normal'], ['0.7', 'Loud']].map(([v, t]) => '<button type="button" data-act="mvol:' + v + '" aria-pressed="' + (S.musicVol === +v) + '">' + t + '</button>').join('') + '</div><p class="note">Each farm has its own theme. Night versions play from 7 pm to 6 am on the farm clock. Use the buttons at the bottom left of the farm to turn music or sounds off.</p>';
     h += '<h3>Save</h3><div class="seg"><button type="button" data-act="reset">Reset the game</button></div><p class="note">Progress saves in this browser every few seconds.</p>';
   }
   P.innerHTML = h;
@@ -854,7 +860,7 @@ document.addEventListener('click', (e) => {
   setTimeout(() => {   /* sound for the action, once its effect is known */
     const spent = S.coins + S.points + S.cranes < wallet;
     const BUY = { hire: 'hire', up: 'buy', build: 'build', mgr: 'hire', foreman: 'hire', agent: 'hire', var: 'achieve', farm: 'achieve', method: 'achieve', buyhat: 'achieve', boost: 'crane', decor: 'achieve' };
-    const ALWAYS = { uptab: 'tick', shoptab: 'tick', hat: 'tick', rule: 'tick', mv: 'tick', speed: 'tick', season: 'tick', go: 'click', bed: 'click', skip: 'page', plant: 'dig', task: 'coins', weekly: 'crane', order: 'crane', sellraw: 'coins', add: 'xp' };
+    const ALWAYS = { mvol: 'tick', uptab: 'tick', shoptab: 'tick', hat: 'tick', rule: 'tick', mv: 'tick', speed: 'tick', season: 'tick', go: 'click', bed: 'click', skip: 'page', plant: 'dig', task: 'coins', weekly: 'crane', order: 'crane', sellraw: 'coins', add: 'xp' };
     if (BUY[a] && spent) SFX.play(BUY[a]); else if (a === 'decor' && decorOwned) SFX.play('tick'); else if (ALWAYS[a]) SFX.play(ALWAYS[a]);
   }, 0);
   if (a === 'hire') { if (f.workers.length < maxPickers(f) && spend('coins', hireCost())) { addWorker(f); toast('A new picker joins you'); } }
@@ -907,6 +913,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'away') away(+v);
   else if (a === 'day') { S.minutes = 1439.9; }
   else if (a === 'speed') S.speed = +v;
+  else if (a === 'mvol') { S.musicVol = +v; syncMusic(); }
   else if (a === 'season') S.seasonPick = v;
   else if (a === 'reset') { if (b.dataset.sure) { try { localStorage.removeItem(SAVE_KEY); } catch (er) { /* nothing saved */ } S = fresh(); LOCS.forEach((l) => plant(S.farms[l])); addWorker(S.farms[START]); addWorker(S.farms[START]); newTasks(); toast('New game started'); } else { b.dataset.sure = '1'; b.textContent = 'Tap again to reset'; return; } }
   refreshAll();
@@ -946,16 +953,33 @@ function loop(t) {
   tick(dt); draw(t / 1000);
   uiT += dt; saveT += dt;
   if (toastT > 0) { toastT -= dt; if (toastT <= 0) $('toast').hidden = true; }
-  if (uiT > 0.5) { uiT = 0; refreshHud(); if (!$('panel').matches(':hover') || tab === 'mill') renderPanel(); renderTabs(); }
+  if (uiT > 0.5) { uiT = 0; refreshHud(); syncMusic(); if (!$('panel').matches(':hover') || tab === 'mill') renderPanel(); renderTabs(); }
   if (saveT > 5) { saveT = 0; save(); }
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
 document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
 let soundReady = false;
-document.addEventListener('pointerdown', () => { if (!soundReady && S.sfx) { SFX.unlock(); soundReady = true; } }, true);
-function syncSound() { SFX.setEnabled(S.sfx); $('sfxBtn').setAttribute('aria-pressed', String(S.sfx)); $('sfxBtn').setAttribute('aria-label', S.sfx ? 'Sound effects on' : 'Sound effects off'); }
-$('sfxBtn').addEventListener('click', () => { S.sfx = !S.sfx; syncSound(); if (S.sfx) { SFX.unlock(); soundReady = true; SFX.play('tick'); } });
+function audioStart() {   /* browsers only allow sound after a tap, so everything starts on the first one */
+  if (soundReady) return; soundReady = true;
+  SFX.unlock(); Music.init(SFX.context()); syncMusic();
+}
+document.addEventListener('pointerdown', audioStart, true);
+const trackFor = () => (S.farms[S.loc].unlocked ? S.loc : 'main');
+function syncMusic() {
+  Music.setVolume(S.musicVol); Music.setEnabled(S.music);
+  const hr = S.minutes / 60; Music.setNight(hr >= 19 || hr < 6);
+  if (soundReady && Music.current() !== trackFor()) Music.play(trackFor());
+}
+const BIG = new Set(['coins', 'levelup', 'achieve', 'contract', 'build', 'crane']);
+SFX.onPlay = (n) => { if (BIG.has(n)) Music.duck(); };
+function syncSound() {
+  SFX.setEnabled(S.sfx); $('sfxBtn').setAttribute('aria-pressed', String(S.sfx)); $('sfxBtn').setAttribute('aria-label', S.sfx ? 'Sound effects on' : 'Sound effects off');
+  $('musicBtn').setAttribute('aria-pressed', String(S.music)); $('musicBtn').setAttribute('aria-label', S.music ? 'Music on' : 'Music off');
+}
+$('sfxBtn').addEventListener('click', () => { S.sfx = !S.sfx; syncSound(); if (S.sfx) SFX.play('tick'); });
+$('musicBtn').addEventListener('click', () => { S.music = !S.music; syncSound(); syncMusic(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) Music.pause(); else Music.resume(); });
 syncSound();
 window.addEventListener('pagehide', save);
 })();

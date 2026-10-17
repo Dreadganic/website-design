@@ -96,11 +96,14 @@ const SFX = (function () {
     last[name] = now;
     const p = (opt && opt.pitch) || R(0.92, 1.08);
     S[name](now + 0.005, p, opt && opt.n);
+    if (api.onPlay) api.onPlay(name);
   }
-  return {
-    play, unlock, names: Object.keys(S),
+  const api = {
+    play, unlock, names: Object.keys(S), onPlay: null,
+    context: () => (init() ? ac : null),
     setEnabled(v) { enabled = !!v; }, isEnabled: () => enabled,
     setVolume(v) { volume = v; if (out) out.gain.setTargetAtTime(v, ac.currentTime, 0.03); },
     state: () => (ac ? ac.state : 'not started')
   };
+  return api;
 })();
