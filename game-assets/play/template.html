@@ -965,7 +965,7 @@ function audioStart() {   /* browsers only allow sound after a tap, so everythin
   SFX.unlock(); Music.init(SFX.context()); syncMusic();
 }
 document.addEventListener('pointerdown', audioStart, true);
-const trackFor = () => (S.farms[S.loc].unlocked ? S.loc : 'main');
+const trackFor = () => S.loc;   /* every farm plays its own theme, open or not */
 function syncMusic() {
   Music.setVolume(S.musicVol); Music.setEnabled(S.music);
   const hr = S.minutes / 60; Music.setNight(hr >= 19 || hr < 6);
