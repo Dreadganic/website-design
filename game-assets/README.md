@@ -95,3 +95,9 @@ Pacing: costs start cheap and climb steeply (pickers ×1.5 each from 150 coins, 
 - **Bottleneck hint:** the Farm tab names what's slowing the farm (storage full, racks busy, pickers waiting for cherries).
 - **Real coffee** (Shop → Real coffee): how orders earn cranes and stamps, a link to bejucoffee.com, the passport, what each coffee gives, and free coffee earned.
 - Test tab: "Start a drop event" and "End the season".
+
+## The Mill is the decision screen
+- Buyer contracts live at the top of the Mill (a swipeable strip, from level 3), not in a separate tab.
+- Each process tile shows what the selected cherries would earn (`lotValue`: the best fitting contract plus any spare at roastery price, or the roastery price with market and drop bonuses), which buyer it fits, and a "Best pay" marker on the top choice.
+- Variety chips are tagged "wanted" when a contract asks for them; drying lots that fit a contract say who they're for; the replant list says which buyers want each variety.
+- The Orders tab is now **Daily**: check-in streak, daily tasks, weekly order and the prestige link.

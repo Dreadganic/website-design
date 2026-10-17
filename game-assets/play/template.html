@@ -77,6 +77,21 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-
 .stamps .off { opacity: 0.25; filter: grayscale(1); }
 .modal { position: fixed; inset: 0; background: rgba(20,12,6,0.6); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 20; }
 .modal[hidden] { display: none; }
+.ccards { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; scroll-snap-type: x proximity; }
+.ccard { flex: 0 0 220px; scroll-snap-align: start; display: flex; gap: 8px; align-items: center; padding: 6px 8px; background: var(--paper-2); border: 2px solid var(--edge); border-radius: 8px; }
+.ccard.ev { border-color: #C86C8E; background: #FFF0F5; }
+.cc-t { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; font-size: 12px; }
+.cc-t b { font-size: 14px; } .cc-t span { font-weight: 700; color: var(--muted); } .cc-t small { font-size: 11px; font-weight: 700; color: var(--muted); }
+.cc-t .bar { height: 6px; }
+.cc-x { width: 32px; height: 32px; flex: none; border: 2px solid var(--edge); border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer; font-weight: 700; }
+.tile { position: relative; }
+.tile.best { border-color: #2D6A46; box-shadow: 0 0 0 2px #2D6A46 inset; }
+.tags { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 4px; }
+.tile .tags span, .fit, .want { font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 4px; white-space: nowrap; }
+.tile .tags .bestpay { background: #2D6A46; color: #FBF1DC; }
+.tile .tags .fit, .fit { background: #F2C04A; color: #3E2A1C; }
+.tile .tags .est { background: #EFE2C4; color: #5A4630; }
+.want { background: #F2C04A; color: #3E2A1C; margin-left: 2px; }
 .bneck { padding: 8px 10px; background: #FBE3D6; border: 2px solid #B4502C; border-radius: 8px; font-size: 13px; color: #5A2A14; line-height: 1.45; }
 .drop { display: flex; gap: 8px; align-items: center; padding: 8px 10px; background: linear-gradient(90deg, #FFE4EE, #FFF1C4); border: 2px solid #C86C8E; border-radius: 8px; margin-bottom: 4px; }
 .drop div { display: flex; flex-direction: column; min-width: 0; }
@@ -888,7 +903,7 @@ function away(hours) {
 
 /* ---------- interface ---------- */
 let tab = 'farm', toastT = 0;
-const TABS = [['farm', 'Farm', 'i_worker'], ['mill', 'Mill', 'green_sack'], ['upgrades', 'Upgrade', 'storage_4'], ['orders', 'Orders', 'i_points'], ['ranks', 'Ranks', 'i_trophy'], ['shop', 'Shop', 'i_crane'], ['test', 'Test', 'i_box']];
+const TABS = [['farm', 'Farm', 'i_worker'], ['mill', 'Mill', 'green_sack'], ['upgrades', 'Upgrade', 'storage_4'], ['orders', 'Daily', 'i_points'], ['ranks', 'Ranks', 'i_trophy'], ['shop', 'Shop', 'i_crane'], ['test', 'Test', 'i_box']];
 function setTab(t) { if (t !== tab) SFX.play('click'); if (S.newTab === t) S.newTab = null; guideStep('tab:' + t); tab = t; renderTabs(); renderPanel(); }
 const GUIDE = [
   { text: 'Tap 5 ripe bushes on the farm', goal: 5, ev: 'pick', target: '#cv', reward: { coins: 100 } },
@@ -935,7 +950,7 @@ function renderGuide() {
 }
 const TAB_OPEN = { upgrades: () => S.stats.lotsSold >= 1 || S.guide > 3, orders: () => level() >= 3, ranks: () => level() >= 5, shop: () => level() >= 2 };
 function checkTabs() {
-  Object.keys(TAB_OPEN).forEach((k) => { if (!S.tabs[k] && TAB_OPEN[k]()) { S.tabs[k] = true; if (k === 'orders') { S.contracts = S.contracts.filter((c) => c.event); S.nextContract = 0; } S.newTab = k; toast('New tab: ' + TABS.find((x) => x[0] === k)[1]); SFX.play('achieve'); } });
+  Object.keys(TAB_OPEN).forEach((k) => { if (!S.tabs[k] && TAB_OPEN[k]()) { S.tabs[k] = true; if (k === 'orders') { S.contracts = S.contracts.filter((c) => c.event); S.nextContract = 0; setTimeout(() => toast('Buyers now post contracts in the Mill'), 2800); } S.newTab = k; toast('New tab: ' + TABS.find((x) => x[0] === k)[1]); SFX.play('achieve'); } });
 }
 function renderTabs() {
   const dot = { orders: S.tasks.some((t) => t.have >= t.goal && !t.done) || (S.weekly.team + S.weekly.mine >= S.weekly.target && !S.weekly.claimed), mill: S.lots.some((l) => l.left <= 0) };
@@ -963,6 +978,20 @@ function eventBanner() {
   const d = eventDrop(); if (!d) return '';
   return '<div class="drop">' + img('bush_' + d.variety + '_ripe', 30) + '<div><b>Drop event: ' + d.name + '</b><span>' + eventDays() + ' day' + (eventDays() === 1 ? '' : 's') + ' left · ' + S.event.done + '/3 event contracts · ' + d.method + ' and ' + ART.varieties[d.variety] + ' sell ×' + EVENT_MULT + '</span></div></div>';
 }
+function contractCard(c) {
+  const what = (c.method ? METHODS[c.method].name.toLowerCase() + ' ' : '') + (c.v ? ART.varieties[c.v] : 'any coffee'), hrs = Math.max(0, (c.due - S.minutesTotal) / 60);
+  const when = c.event ? 'until the drop ends' : (hrs >= 1 ? Math.floor(hrs) + ' h' : Math.ceil(hrs * 60) + ' min') + ' left';
+  return '<div class="ccard' + (c.event ? ' ev' : '') + '">' + img(c.v ? 'bush_' + c.v + '_ripe' : 'board', 28) + '<div class="cc-t"><b>' + c.buyer.split(',')[0] + '</b><span>' + fmt(c.kg) + ' kg ' + what + ' · cup ' + c.minCup.toFixed(1) + '+</span><span class="bar"><i style="width:' + Math.round(c.have / c.kg * 100) + '%"></i></span><small>' + icon('i_coin') + fmt(c.coins) + ' · ' + icon('i_points') + fmt(c.points) + ' · ' + when + '</small></div>' + (c.event ? '' : '<button type="button" class="cc-x" data-act="skip:' + c.id + '" aria-label="Skip this contract">✕</button>') + '</div>';
+}
+/* what a lot of this variety and process would earn: the best matching contract or the roastery */
+function lotValue(v, method, kg) {
+  const green = kg * 0.2, sale = saleFor(v, method, green).coins;
+  const c = S.tabs.orders && S.contracts.filter((x) => fits(x, { v, method })).sort((a, b) => b.coins / b.kg - a.coins / a.kg)[0];
+  if (!c) return { coins: sale, c: null };
+  const use = Math.min(green, c.kg - c.have);
+  return { coins: Math.round(c.coins * use / c.kg + saleFor(v, method, green - use).coins), c };
+}
+const wanted = (v) => (S.tabs.orders ? S.contracts.filter((c) => c.v === v && c.have < c.kg) : []);
 function row(art, title, sub, button) { return '<div class="row"><div class="art">' + art + '</div><div class="grow"><b>' + title + '</b><span>' + sub + '</span></div>' + button + '</div>'; }
 function btn(label, sub, act, enabled, cls) { return '<button class="btn ' + (cls || '') + '" type="button" data-act="' + act + '"' + (enabled ? '' : ' disabled') + '>' + label + (sub ? '<small>' + sub + '</small>' : '') + '</button>'; }
 const img = (n, w) => '<img src="' + url(n) + '" alt="" style="width:' + (w || 40) + 'px">';
@@ -992,12 +1021,13 @@ function renderPanel() {
     }
   } else if (tab === 'mill') {
     const vs = Object.keys(S.cherries).filter((v) => S.cherries[v] > 0);
-    h += '<h2>Mill</h2><p class="note">Choose a lot and a process. Lots dry on your racks in real time, then sell to the Osaka roastery. About 5 kg of cherries make 1 kg of green coffee.</p>';
+    h += '<h2>Mill</h2><p class="note">Pick your cherries and a process; the tags show what each choice earns. About 5 kg of cherries make 1 kg of green coffee.</p>';
     h += '<div class="market">' + img(METHODS[marketPick()].art, 28) + '<span><b>Market today:</b> the roastery pays ×' + MARKET + ' for ' + METHODS[marketPick()].name.toLowerCase() + ' lots. It changes every farm day.</span></div>';
+    if (S.tabs.orders) h += '<h3>Buyers waiting · ' + S.contracts.length + '</h3><p class="note">Swipe to see them all. Contracts pay about twice the roastery, and lots that fit are tagged below.</p><div class="ccards">' + (S.contracts.length ? S.contracts.map(contractCard).join('') : '<p class="note">No buyers right now. New ones arrive shortly.</p>') + '</div>';
     h += '<h3>Drying racks ' + S.lots.length + ' / ' + racks() + '</h3>';
     S.lots.forEach((l, i) => {
-      const m = METHODS[l.method], done = l.left <= 0;
-      h += row(img(m.art, 36), fmt(l.kg) + ' kg ' + ART.varieties[l.v] + ', ' + m.name.toLowerCase(), done ? 'Dry and ready to sell' : '<span class="bar" style="display:block"><i style="width:' + Math.round((1 - l.left / l.total) * 100) + '%"></i></span> ' + Math.ceil(l.left / 2.5) + ' min left', btn('Sell', done ? 'ready' : 'drying', 'sell:' + i, done, 'green'));
+      const m = METHODS[l.method], done = l.left <= 0, fit = S.tabs.orders && S.contracts.find((c) => fits(c, l));
+      h += row(img(m.art, 36), fmt(l.kg) + ' kg ' + ART.varieties[l.v] + ', ' + m.name.toLowerCase() + (fit ? ' <span class="fit">for ' + fit.buyer.split(',')[0] + '</span>' : ''), done ? 'Dry and ready to sell' : '<span class="bar" style="display:block"><i style="width:' + Math.round((1 - l.left / l.total) * 100) + '%"></i></span> ' + Math.ceil(l.left / 2.5) + ' min left', btn('Sell', done ? 'ready' : 'drying', 'sell:' + i, done, 'green'));
       if (done && S.tabs.orders) S.contracts.filter((c) => fits(c, l)).forEach((c) => { h += '<div class="seg" style="margin:-4px 0 6px 52px">' + btn('Deliver to ' + c.buyer.split(',')[0], fmt(Math.min(l.kg * 0.2, c.kg - c.have)) + ' kg · contract', 'deliver:' + i + '.' + c.id, true, 'blue') + '</div>'; });
     });
     if (!S.lots.length) h += '<p class="note">No lots drying yet.</p>';
@@ -1006,10 +1036,12 @@ function renderPanel() {
     if (!vs.length) h += '<p class="note">Storage is empty. Pick some cherries first.</p>';
     else {
       const pickV = S.millV && S.cherries[S.millV] > 0 ? S.millV : vs[0]; S.millV = pickV;
-      h += '<div class="seg">' + vs.map((v) => '<button type="button" data-act="mv:' + v + '" aria-pressed="' + (v === pickV) + '">' + ART.varieties[v] + ' ' + fmt(S.cherries[v]) + ' kg</button>').join('') + '</div>';
+      h += '<div class="seg">' + vs.map((v) => '<button type="button" data-act="mv:' + v + '" aria-pressed="' + (v === pickV) + '">' + ART.varieties[v] + ' ' + fmt(S.cherries[v]) + ' kg' + (wanted(v).length ? ' <span class="want">wanted</span>' : '') + '</button>').join('') + '</div>';
+      const vals = {}; Object.keys(METHODS).filter((k) => S.methods[k]).forEach((k) => { vals[k] = lotValue(pickV, k, S.cherries[pickV]); });
+      const bestK = Object.keys(vals).sort((a, b) => vals[b].coins - vals[a].coins)[0];
       h += '<div class="grid2">' + Object.keys(METHODS).map((k) => {
-        const m = METHODS[k], ok = S.methods[k];
-        return '<div class="tile"><div style="display:flex;gap:6px;align-items:center">' + img(m.art, 32) + '<div><b>' + m.name + '</b><br><span>×' + (m.mult * (k === marketPick() ? MARKET : 1)).toFixed(1) + (k === marketPick() ? ' today' : '') + ' · ' + Math.round(m.time / 2.5) + ' min</span></div></div>' +
+        const m = METHODS[k], ok = S.methods[k], val = vals[k];
+        return '<div class="tile' + (k === bestK ? ' best' : '') + '">' + (ok ? '<span class="tags">' + (k === bestK ? '<span class="bestpay">Best pay</span>' : '') + (val.c ? '<span class="fit">for ' + val.c.buyer.split(',')[0] + '</span>' : '') + '<span class="est">≈ ' + fmt(val.coins) + ' coins</span></span>' : '') + '<div style="display:flex;gap:6px;align-items:center">' + img(m.art, 32) + '<div><b>' + m.name + '</b><br><span>×' + (m.mult * (k === marketPick() ? MARKET : 1)).toFixed(1) + (k === marketPick() ? ' today' : '') + ' · ' + Math.round(m.time / 2.5) + ' min</span></div></div>' +
           (ok ? btn('Process', '', 'lot:' + k, S.lots.length < racks(), 'green') : '<span>' + m.unlock + '</span>' + (m.cost ? btn('Unlock', fmt(m.cost) + ' know-how', 'method:' + k, S.points >= m.cost) : '')) + '</div>';
       }).join('') + '</div>';
       if (S.lots.length >= racks()) h += '<p class="note">All racks are busy. Add racks in Upgrades, or build raised drying beds.</p>';
@@ -1066,12 +1098,7 @@ function renderPanel() {
     }).join('');
     }
   } else if (tab === 'orders') {
-    h += '<h2>Contracts board</h2><p class="note">Buyers pay about twice the roastery price. Finish a lot that matches, then deliver it from the Mill. New requests arrive as you complete them.</p>';
-    if (!S.contracts.length) h += '<p class="note">No contracts right now. A new one arrives shortly.</p>';
-    S.contracts.forEach((c) => {
-      const what = (c.method ? METHODS[c.method].name.toLowerCase() + ' ' : '') + (c.v ? ART.varieties[c.v] : 'coffee of any variety'), hrs = Math.max(0, (c.due - S.minutesTotal) / 60);
-      h += row(img(c.v ? 'bush_' + c.v + '_ripe' : 'board', 34), c.buyer, fmt(c.kg) + ' kg green ' + what + ', cup ' + c.minCup.toFixed(1) + '+' + (c.note ? ' · ' + c.note : '') + '<br>' + icon('i_coin') + fmt(c.coins) + ' · ' + icon('i_points') + fmt(c.points) + ' · ' + (c.event ? 'until the drop ends' : (hrs >= 1 ? Math.floor(hrs) + ' h' : Math.ceil(hrs * 60) + ' min') + ' left') + '<span class="bar" style="display:block;margin-top:3px"><i style="width:' + Math.round(c.have / c.kg * 100) + '%"></i></span>', (c.event ? '' : btn('Skip', '', 'skip:' + c.id, true)));
-    });
+    h += '<p class="note">Buyer contracts are in the Mill, right where you choose what to process.</p>' + btn('Open the Mill', '', 'tab:mill', true, 'blue');
     h += '<h2>Daily brew check-in</h2><p class="note">' + S.checkin.streak + '-day streak · ' + S.checkin.freezes + ' streak freeze' + (S.checkin.freezes === 1 ? '' : 's') + '. Open the game once a day to keep it going.</p>';
     h += '<h2>Daily tasks</h2><p class="note">New tasks every in-game day (day ' + S.day + ').</p>';
     S.tasks.forEach((t, i) => {
@@ -1181,7 +1208,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'go') { S.loc = v; setTab('farm'); }
   else if (a === 'bed') {
     const b = +v, cur = f.beds[b];
-    showModal('<h2>Replant field ' + (b + 1) + '</h2><p class="note">Now growing ' + ART.varieties[cur] + '. Replanting starts the field again from sprouts.</p>' + VAR_ORDER.filter((x) => S.vars[x] || (eventDrop() && eventDrop().variety === x)).map((x) => row(img('bush_' + x + '_ripe', 30), ART.varieties[x] + (ART.locations[f.loc].beds.includes(x) ? ' · native' : ''), VAR[x].kg + ' kg a pick · ×' + VAR[x].value + ' price', btn(x === cur ? 'Growing' : 'Plant', '', 'plant:' + b + '.' + x, x !== cur, 'green'))).join('') + '<button class="btn" data-act="close">Cancel</button>');
+    showModal('<h2>Replant field ' + (b + 1) + '</h2><p class="note">Now growing ' + ART.varieties[cur] + '. Replanting starts the field again from sprouts.</p>' + VAR_ORDER.filter((x) => S.vars[x] || (eventDrop() && eventDrop().variety === x)).map((x) => row(img('bush_' + x + '_ripe', 30), ART.varieties[x] + (ART.locations[f.loc].beds.includes(x) ? ' · native' : ''), VAR[x].kg + ' kg a pick · ×' + VAR[x].value + ' price' + (wanted(x).length ? ' · <b>wanted by ' + [...new Set(wanted(x).map((c) => c.buyer.split(',')[0]))].join(', ') + '</b>' : ''), btn(x === cur ? 'Growing' : 'Plant', '', 'plant:' + b + '.' + x, x !== cur, 'green'))).join('') + '<button class="btn" data-act="close">Cancel</button>');
     return;
   }
   else if (a === 'plant') { const [b, x] = v.split('.'); if (S.vars[x] || (eventDrop() && eventDrop().variety === x)) { replantBed(f, +b, x); $('modal').hidden = true; toast('Field ' + (+b + 1) + ' planted with ' + ART.varieties[x]); } }
