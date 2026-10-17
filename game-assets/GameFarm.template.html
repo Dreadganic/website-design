@@ -19,6 +19,14 @@ body{margin:0}
 
   <div style="padding: 48px 8px 8px">
     <div style="background: #F4E6C6; border: 3px solid #6E4624; border-radius: 8px; box-shadow: inset 0 0 0 2px #E2C894, 0 3px 0 #1E140C; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px">
+      <div style="display: flex; align-items: center; gap: 6px; border-bottom: 2px dashed #D8BC88; padding-bottom: 6px">
+        <button type="button" onClick="{{prevLoc}}" aria-label="Previous farm" class="wbtn" style="width: 34px; height: 30px; border: 2px solid #6E4624; border-radius: 6px; background: #E2C894; color: #3E2A1C; font: 700 14px 'Pixelify Sans', monospace; cursor: pointer">◀</button>
+        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; line-height: 1.1">
+          <b style="font-size: 17px; font-weight: 700">{{locName}}</b>
+          <span style="font-size: 12px; color: #7A5A3A">{{bedsLine}}</span>
+        </div>
+        <button type="button" onClick="{{nextLoc}}" aria-label="Next farm" class="wbtn" style="width: 34px; height: 30px; border: 2px solid #6E4624; border-radius: 6px; background: #E2C894; color: #3E2A1C; font: 700 14px 'Pixelify Sans', monospace; cursor: pointer">▶</button>
+      </div>
       <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
         <b style="font-size: 15px; font-weight: 600">{{goalText}}</b>
         <span style="font-size: 12px; font-weight: 600; padding: 2px 7px; border-radius: 4px; background: {{seasonBg}}; color: {{seasonInk}}; white-space: nowrap">{{season}}</span>
@@ -29,7 +37,7 @@ body{margin:0}
   </div>
 
   <div style="position: relative; width: 384px; height: 480px; margin: 0 auto; flex-shrink: 0; border-radius: 6px; overflow: hidden; box-shadow: 0 0 0 3px #1E140C">
-    <canvas ref="{{cv}}" onClick="{{tap}}" width="384" height="480" aria-label="Your Huila farm from above. Tap shrubs with red cherries to pick them." style="display: block; width: 384px; height: 480px; image-rendering: pixelated; cursor: pointer; touch-action: manipulation"></canvas>
+    <canvas ref="{{cv}}" onClick="{{tap}}" width="384" height="480" aria-label="{{canvasLabel}}" style="display: block; width: 384px; height: 480px; image-rendering: pixelated; cursor: pointer; touch-action: manipulation"></canvas>
 
     <div style="position: absolute; left: 8px; top: 8px; display: flex; flex-direction: column; gap: 5px; pointer-events: none">
       <div style="display: flex; gap: 2px" aria-label="{{heartsLabel}}">
@@ -69,7 +77,7 @@ body{margin:0}
     <sc-if value="{{rewardOn}}" hint-placeholder-val="{{ false }}">
       <div style="position: absolute; left: 24px; right: 24px; top: 130px; background: #F4E6C6; border: 3px solid #6E4624; border-radius: 12px; box-shadow: inset 0 0 0 2px #E2C894, 0 6px 0 #1E140C; padding: 18px 16px; display: flex; flex-direction: column; gap: 10px; align-items: center; text-align: center">
         <b style="font-size: 20px; font-weight: 700; color: #9C3A2A">Harvest complete!</b>
-        <span style="font-family: 'Zen Kaku Gothic New', system-ui, sans-serif; font-size: 15px; font-weight: 700; line-height: 1.5">A free 100 g bag of Colombia Pink Whiskey is added to your next order.</span>
+        <span style="font-family: 'Zen Kaku Gothic New', system-ui, sans-serif; font-size: 15px; font-weight: 700; line-height: 1.5">A free 100 g bag of {{rewardName}} is added to your next order.</span>
         <button type="button" onClick="{{closeReward}}" class="wbtn" style="height: 42px; padding: 0 20px; border: 3px solid #6E4624; border-radius: 8px; background: #8CB04A; color: #FFFFFF; font: 700 16px 'Pixelify Sans', monospace; cursor: pointer; box-shadow: inset 0 -3px 0 #5E7E2C">Wonderful!</button>
       </div>
     </sc-if>
@@ -97,16 +105,16 @@ body{margin:0}
   </nav>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"speed":{"editor":"range","default":1,"min":1,"max":5,"step":1},"$preview":{"width":390,"height":844}}'>
+<script type="text/x-dc" data-dc-script data-props='{"location":{"editor":"enum","options":["huila","mogiana","gedeo","toba","turrialba","osaka"],"default":"huila"},"season":{"editor":"enum","options":["auto","harvest","rainy","spring","summer","autumn","winter"],"default":"auto"},"speed":{"editor":"range","default":1,"min":1,"max":5,"step":1},"$preview":{"width":390,"height":844}}'>
 const ART = __SPRITES__;
-const BG = '__BG__';
-/* Huila's real harvest months, from the Finca Monteblanco lot on bejucoffee.com */
-const HUILA_MONTHS = [3, 4, 5, 10, 11];
+const BGS = __BGS__;
+const LOCS = ['huila', 'mogiana', 'gedeo', 'toba', 'turrialba', 'osaka'];
+const STAGES = ['sprout', 'young', 'flower', 'green', 'ripe'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const W = 192, H = 240, LANE_X = 97, DROP = { x: 128, y: 93 }, HOME = { x: 150, y: 80 };
 const WALK = [1, 0, 2, 0], MAX_HEARTS = 10;
 const LINES = [
-  'Welcome to your farm in Huila! Tap a shrub with red cherries to pick it. Each pick uses a heart.',
+  'Welcome to your farm! Tap a shrub with ripe cherries to pick it. Each pick uses a heart. Use the arrows above to visit your other farms.',
   'Nice picking! Pickers work while you’re away, slower than you, and never get tired. Hire one with coins.',
   'Baskets hold 500 kg. When they’re full, pickers stop. Ship cherries to the mill to keep going!'
 ];
@@ -139,9 +147,11 @@ class Component extends DCLogic {
     this.cv = el; this.ctx = el.getContext('2d');
     this.frame = document.createElement('canvas'); this.frame.width = W; this.frame.height = H;
     this.fx = this.frame.getContext('2d');
-    this.bg = new Image(); this.bg.src = BG;
+    this.bgs = {};
     let seed = 5; this.rnd = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
-    this.shrubs = ART.shrubs.map(([x, y]) => ({ x, y, p: this.rnd() * 1.15, g: 14 + this.rnd() * 10 }));
+    this.weather = Array.from({ length: 46 }, () => ({ x: this.rnd() * W, y: this.rnd() * H, v: 0.6 + this.rnd() * 0.8, ph: this.rnd() * 6 }));
+    this.loc = this.props.location || 'huila';
+    this.plant();
     this.workers = []; this.floats = [];
     this.cherries = 340; this.cap = 500; this.coins = 2400; this.harvested = 640; this.goal = 1000;
     this.hearts = MAX_HEARTS; this.heartT = 0; this.minutes = 13 * 60 + 5; this.day = 3;
@@ -151,6 +161,32 @@ class Component extends DCLogic {
     this.last = performance.now(); this.uiT = 0;
     const loop = (t) => { if (this.dead) return; this.tick(Math.min(0.05, (t - this.last) / 1000)); this.last = t; this.draw(t / 1000); this.raf = requestAnimationFrame(loop); };
     this.raf = requestAnimationFrame(loop);
+  }
+
+  plant() {
+    const L = ART.locations[this.loc];
+    this.shrubs = ART.shrubs.map(([x, y], i) => ({ x, y, v: L.beds[Math.floor(i / 8)], p: this.rnd() * 1.15, g: 14 + this.rnd() * 10 }));
+    (this.workers || []).forEach((w) => { w.x = HOME.x; w.y = HOME.y; w.state = 'seek'; w.path = []; w.target = null; });
+  }
+
+  season() {
+    const L = ART.locations[this.loc], pick = this.props.season || 'auto', m = new Date().getMonth() + 1;
+    if (pick !== 'auto' && L.seasons.indexOf(pick) > -1) return pick;
+    if (this.loc === 'osaka') return m >= 3 && m <= 5 ? 'spring' : m <= 8 && m >= 6 ? 'summer' : m >= 9 && m <= 11 ? 'autumn' : 'winter';
+    return L.months.indexOf(m) > -1 ? 'harvest' : 'rainy';
+  }
+
+  bgFor() {
+    const key = this.loc + '-' + this.season();
+    if (!this.bgs[key]) { const im = new Image(); im.src = BGS[key]; this.bgs[key] = im; }
+    return this.bgs[key];
+  }
+
+  travel(dir) {
+    const i = LOCS.indexOf(this.loc);
+    this.loc = LOCS[(i + dir + LOCS.length) % LOCS.length];
+    this.harvested = this.loc === 'osaka' ? 0 : 520 + Math.floor(this.rnd() * 300);
+    this.rewardShown = false; this.plant(); this.forceUpdate();
   }
 
   addWorker() {
@@ -168,14 +204,15 @@ class Component extends DCLogic {
     this.cherries += kg;
     const before = this.harvested;
     this.harvested = Math.min(this.goal, this.harvested + kg);
-    if (before < this.goal && this.harvested >= this.goal && !this.rewardShown) { this.rewardShown = true; this.rewardOn = true; }
+    if (this.loc !== 'osaka' && before < this.goal && this.harvested >= this.goal && !this.rewardShown) { this.rewardShown = true; this.rewardOn = true; }
   }
 
-  inSeason() { return HUILA_MONTHS.indexOf(new Date().getMonth() + 1) > -1; }
+  growth() { const s = this.season(); return s === 'harvest' ? 1.5 : s === 'winter' ? 0.5 : s === 'summer' ? 1.25 : 1; }
 
   /* ---------- simulation ---------- */
   tick(dt) {
-    const sp = this.props.speed ?? 1, d = dt * sp, grow = d * (this.inSeason() ? 1.5 : 1);
+    const sp = this.props.speed ?? 1, d = dt * sp, grow = d * this.growth();
+    if (this.props.location && this.props.location !== this.lastProp) { this.lastProp = this.props.location; if (this.props.location !== this.loc) { this.loc = this.props.location; this.plant(); } }
     this.minutes += d * 2.5; if (this.minutes >= 1440) { this.minutes -= 1440; this.day += 1; }
     this.heartT += d; if (this.heartT >= 6) { this.heartT = 0; if (this.hearts < MAX_HEARTS) this.hearts += 1; }
     const full = this.cherries >= this.cap;
@@ -184,7 +221,7 @@ class Component extends DCLogic {
       if (w.state === 'seek') {
         let best = null, bd = 1e9;
         if (w.carry < 9) this.shrubs.forEach((s) => { if (s.p >= 1 && !s.claim) { const dd = Math.abs(s.x + 9 - w.x) + Math.abs(s.y + 21 - w.y); if (dd < bd) { bd = dd; best = s; } } });
-        if (best && !full) { best.claim = w; w.target = best; w.path = this.route(w, { x: best.x + 9, y: best.y + 21 }); w.state = 'walk'; w.next = 'pick'; }
+        if (best && !full) { best.claim = w; w.target = best; w.path = this.route(w, { x: best.x + 9, y: best.y + 23 }); w.state = 'walk'; w.next = 'pick'; }
         else if (w.carry) { w.path = this.route(w, DROP); w.state = 'walk'; w.next = 'deposit'; }
         else { w.idle -= d; if (w.idle <= 0) { w.idle = 2 + this.rnd() * 3; w.path = this.route(w, { x: 136 + this.rnd() * 26, y: 80 + this.rnd() * 14 }); w.state = 'walk'; w.next = 'seek'; } }
       } else if (w.state === 'walk') {
@@ -214,7 +251,7 @@ class Component extends DCLogic {
     /* the shiba potters about between the pond, the path and the drying beds */
     const g = this.dog;
     g.t -= d;
-    if (g.t <= 0) { g.t = 2 + this.rnd() * 4; const spots = [[72, 104], [44, 104], [110, 100], [150, 96], [40, 66], [100, 76]]; const s = spots[Math.floor(this.rnd() * spots.length)]; g.tx = s[0]; g.ty = s[1]; }
+    if (g.t <= 0) { g.t = 2 + this.rnd() * 4; const spots = [[72, 104], [44, 104], [110, 100], [150, 96], [120, 100], [100, 92]]; const s = spots[Math.floor(this.rnd() * spots.length)]; g.tx = s[0]; g.ty = s[1]; }
     const ddx = g.tx - g.x, ddy = g.ty - g.y, dd = Math.hypot(ddx, ddy);
     if (dd > 1) { const v = Math.min(dd, 20 * d); g.x += ddx / dd * v; g.y += ddy / dd * v; g.walk += d; if (Math.abs(ddx) > 0.3) g.flip = ddx > 0; g.moving = true; } else g.moving = false;
     this.floats.forEach((f) => { f.t += dt; }); this.floats = this.floats.filter((f) => f.t < 1.1);
@@ -225,20 +262,20 @@ class Component extends DCLogic {
   draw(time) {
     const f = this.fx, c = this.ctx; if (!c) return;
     f.imageSmoothingEnabled = false;
-    if (this.bg.complete && this.bg.naturalWidth) f.drawImage(this.bg, 0, 0); else { f.fillStyle = '#8FA445'; f.fillRect(0, 0, W, H); }
-    const a = time * 0.6, kx = 24 + Math.cos(a) * 9, ky = 86 + Math.sin(a) * 4;
-    f.fillStyle = '#F08838'; f.fillRect(Math.round(kx), Math.round(ky), 4, 2); f.fillStyle = '#FFFFFF'; f.fillRect(Math.round(kx) + (Math.sin(a) > 0 ? 0 : 3), Math.round(ky), 1, 1);
+    const bg = this.bgFor(), season = this.season();
+    if (bg.complete && bg.naturalWidth) f.drawImage(bg, 0, 0); else { f.fillStyle = '#8FA445'; f.fillRect(0, 0, W, H); }
+    if (this.loc === 'osaka' && season !== 'winter') { const a = time * 0.6, kx = 24 + Math.cos(a) * 9, ky = 86 + Math.sin(a) * 4; f.fillStyle = '#F08838'; f.fillRect(Math.round(kx), Math.round(ky), 4, 2); f.fillStyle = '#FFFFFF'; f.fillRect(Math.round(kx) + (Math.sin(a) > 0 ? 0 : 3), Math.round(ky), 1, 1); }
     f.drawImage(this.sprite('sign'), 134, 168);
     if (this.cherries > 0) f.drawImage(this.sprite('cherrypile'), 120, 78);
     f.drawImage(this.sprite('basket'), 120, 81);
     if (this.cherries >= this.cap && Math.floor(time * 2) % 2 === 0) f.drawImage(this.sprite('bubble_full'), 120, 64);
-    const things = this.shrubs.map((s) => ({ y: s.y + 20, s })).concat(this.workers.map((w) => ({ y: w.y, w })), [{ y: this.dog.y, dog: true }]);
+    const things = this.shrubs.map((s) => ({ y: s.y + 22, s })).concat(this.workers.map((w) => ({ y: w.y, w })), [{ y: this.dog.y, dog: true }]);
     things.sort((p, q) => p.y - q.y);
     things.forEach((o) => {
       if (o.s) {
         const s = o.s;
-        f.drawImage(this.sprite(s.p < 0.3 ? 'sprout' : s.p < 0.55 ? 'bush_young' : s.p < 0.8 ? 'bush_flower' : s.p < 1 ? 'bush_green' : 'bush_ripe'), s.x, s.y);
-        if (s.p >= 1 && Math.floor(time * 3 + s.x / 18 + s.y / 17) % 6 === 0) f.drawImage(this.sprite('sparkle'), s.x + 11, s.y - 1);
+        f.drawImage(this.sprite('bush_' + s.v + '_' + STAGES[s.p < 0.3 ? 0 : s.p < 0.55 ? 1 : s.p < 0.8 ? 2 : s.p < 1 ? 3 : 4]), s.x, s.y);
+        if (s.p >= 1 && Math.floor(time * 3 + s.x / 18 + s.y / 17) % 6 === 0) f.drawImage(this.sprite('sparkle'), s.x + 11, s.y + 1);
       } else if (o.dog) {
         const g = this.dog, spr = this.sprite('shiba_' + (g.moving ? Math.floor(g.walk * 8) % 2 : 0)), X = Math.round(g.x) - 8, Y = Math.round(g.y) - 11;
         f.fillStyle = 'rgba(42,42,8,0.28)'; f.beginPath(); f.ellipse(X + 8, Y + 11, 6, 1.5, 0, 0, 7); f.fill();
@@ -255,6 +292,19 @@ class Component extends DCLogic {
         if (w.carry && w.dir !== 'up') f.drawImage(this.sprite('sack'), w.flip ? X - 3 : X + 11, Y + 12);
       }
     });
+    /* weather for the season: rain, snow, cherry blossom petals or falling leaves */
+    const wx = { rainy: ['#C8E4F4', 'rain'], winter: ['#FFFFFF', 'snow'], spring: ['#F8C8D8', 'petal'], autumn: ['#E8803A', 'petal'] }[season];
+    if (wx) {
+      this.weather.forEach((p) => {
+        const sp2 = wx[1] === 'rain' ? 150 : wx[1] === 'snow' ? 14 : 18;
+        const yy = (p.y + time * sp2 * p.v) % (H + 10) - 5, xx = (p.x + (wx[1] === 'rain' ? yy * 0.15 : Math.sin(time * 1.3 + p.ph) * 6 + time * 6 * p.v)) % W;
+        f.fillStyle = wx[0];
+        if (wx[1] === 'rain') { f.globalAlpha = 0.55; f.fillRect(Math.round(xx), Math.round(yy), 1, 4); f.globalAlpha = 1; }
+        else if (wx[1] === 'snow') f.fillRect(Math.round(xx), Math.round(yy), p.v > 1 ? 2 : 1, p.v > 1 ? 2 : 1);
+        else { f.fillRect(Math.round(xx), Math.round(yy), 2, 1); if (Math.sin(time * 4 + p.ph) > 0) f.fillRect(Math.round(xx), Math.round(yy) + 1, 1, 1); }
+      });
+      if (wx[1] === 'rain') { f.fillStyle = 'rgba(40,60,90,0.12)'; f.fillRect(0, 0, W, H); }
+    }
     /* time of day: warm dusk, blue night, soft dawn */
     const hr = this.minutes / 60;
     const tint = hr >= 20 || hr < 5 ? 'rgba(30,40,110,0.38)' : hr >= 17.5 ? 'rgba(240,120,40,' + (0.08 + (hr - 17.5) * 0.06).toFixed(2) + ')' : hr < 7 ? 'rgba(240,150,170,0.14)' : null;
@@ -287,8 +337,11 @@ class Component extends DCLogic {
     const workers = this.workers || [];
     const n = workers.length, cost = Math.round(400 * Math.pow(1.7, Math.max(0, n - 2))), coins = this.coins ?? 2400, can = n < 8 && coins >= cost;
     const cherries = this.cherries ?? 340, cap = this.cap ?? 500, harvested = this.harvested ?? 640, goal = this.goal ?? 1000;
-    const month = new Date().getMonth() + 1, inSeason = HUILA_MONTHS.indexOf(month) > -1;
-    let nextM = month; for (let i = 1; i <= 12; i++) { const m = ((month - 1 + i) % 12) + 1; if (HUILA_MONTHS.indexOf(m) > -1) { nextM = m; break; } }
+    const loc = this.loc || this.props.location || 'huila', L = ART.locations[loc], season = this.shrubs ? this.season() : 'harvest';
+    const month = new Date().getMonth() + 1;
+    let nextM = month; for (let i = 1; i <= 12; i++) { const m = ((month - 1 + i) % 12) + 1; if (L.months.indexOf(m) > -1) { nextM = m; break; } }
+    const uniq = L.beds.filter((v, i) => L.beds.indexOf(v) === i).map((v) => ART.varieties[v]);
+    const SEASON = { harvest: 'Harvest ×1.5', rainy: 'Rainy · flowering', spring: 'Spring', summer: 'Summer ×1.25', autumn: 'Autumn', winter: 'Winter ×0.5' };
     const step = this.step ?? 0, hearts = this.hearts ?? MAX_HEARTS;
     const mins = Math.floor(this.minutes ?? 785), hr = mins / 60, night = hr >= 19 || hr < 6;
     return {
@@ -303,20 +356,23 @@ class Component extends DCLogic {
       coins: coins.toLocaleString('en-US'),
       store: cherries + '/' + cap + ' kg',
       storeInk: cherries >= cap ? '#FF9A8A' : '#FFF4DE',
-      goalText: harvested >= goal ? 'Huila harvest complete!' : 'Huila harvest ' + harvested + ' / ' + goal + ' kg',
-      goalPct: Math.round(harvested / goal * 100),
-      goalReward: harvested >= goal ? 'Free 100 g Colombia Pink Whiskey on your next order' : 'Reach 1,000 kg: free 100 g Colombia Pink Whiskey with your next order',
-      season: inSeason ? 'Main crop ×1.5' : 'Next crop ' + MONTHS[nextM - 1],
-      seasonBg: inSeason ? '#D85A3A' : '#E2C894', seasonInk: inSeason ? '#FFFFFF' : '#3E2A1C',
+      goalText: loc === 'osaka' ? 'Garden harvest ' + harvested + ' kg' : harvested >= goal ? 'Harvest complete!' : 'Harvest ' + harvested + ' / ' + goal + ' kg',
+      locName: L.name, bedsLine: uniq.join(' · '),
+      canvasLabel: 'Your farm in ' + L.name + ', ' + season + ' season, seen from above. Tap shrubs with ripe cherries to pick them.',
+      prevLoc: () => this.travel(-1), nextLoc: () => this.travel(1),
+      goalPct: loc === 'osaka' ? 100 : Math.round(harvested / goal * 100),
+      goalReward: loc === 'osaka' ? 'The roastery garden: grow rare varieties for points, all year round' : harvested >= goal ? 'Free 100 g ' + L.reward + ' on your next order' : 'Reach 1,000 kg: free 100 g ' + L.reward + ' with your next order',
+      season: SEASON[season] + (season === 'rainy' ? '' : ''),
+      seasonBg: season === 'harvest' ? '#D85A3A' : season === 'rainy' ? '#4A8AB8' : season === 'winter' ? '#8CA8C8' : season === 'spring' ? '#E688A8' : season === 'autumn' ? '#D2702C' : '#6CA442', seasonInk: '#FFFFFF',
       talking: step < 3 && !this.rewardOn,
       line: LINES[Math.min(step, 2)],
       nextLine: () => { this.step = step + 1; this.forceUpdate(); },
-      rewardOn: !!this.rewardOn,
+      rewardOn: !!this.rewardOn, rewardName: L.reward,
       closeReward: () => { this.rewardOn = false; this.forceUpdate(); },
       tap: (e) => {
         if (!this.cv) return;
         const r = this.cv.getBoundingClientRect(), lx = (e.clientX - r.left) / r.width * W, ly = (e.clientY - r.top) / r.height * H;
-        const s = this.shrubs.find((x) => lx >= x.x && lx < x.x + 18 && ly >= x.y && ly < x.y + 20);
+        const s = this.shrubs.find((x) => lx >= x.x && lx < x.x + 18 && ly >= x.y && ly < x.y + 22);
         if (s && s.p >= 1) this.pick(s);
         else if (s) this.floats.push({ x: s.x + 9, y: s.y, text: s.p < 0.8 ? 'growing' : 'soon', t: 0 });
         else if (lx > 104 && lx < 182 && ly > 160 && ly < 200) this.floats.push({ x: 142, y: 164, text: '800 pts', t: 0 });

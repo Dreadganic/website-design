@@ -4,11 +4,30 @@ Cozy modern pixel art for the Beju Farm game: warm olive greens, ochre earth, fl
 
 | File | What it is |
 | --- | --- |
-| `farm-bg.png` | The painted Huila farm, 192 x 240, shown at 2x in the game. Everything that doesn't move. |
-| `sprites.json` | The moving pieces as palette grids: coffee shrubs (sprout, young, flowering, green, ripe), workers (3-frame walks facing down and up, 2 frames sideways, 8 shirt colours), the shiba (2 frames), basket, cherry pile, sack, sparkle, sign and the FULL bubble. Also the shrub positions in the beds. |
-| `sheet.png`, `sheet@4x.png` | Every moving sprite on one sheet. |
-| `farm-preview.png` | The farm with sample shrubs, workers and the dog, at 3x. |
-| `GameFarm.template.html` | The farm screen; `inject.py` fills in the sprites and the background. |
+| `bg/<location>-<season>.png` | 14 painted farm scenes (192 x 240, shown at 2x). The fields sit in the same place in every scene. |
+| `sprites.json` | Moving pieces as palette grids: 9 coffee varieties x 5 growth stages, workers (8 shirt colours), the shiba, props; plus shrub positions and the location, season and variety tables the game reads. |
+| `scenes.png` | Every scene side by side, with each location's own varieties growing. |
+| `varieties.png` | Every variety from sprout to ripe cherries. |
+| `sheet.png`, `sheet@4x.png` | Workers, the shiba and props. |
+| `bg-assets.json` | Where each scene is uploaded on the design canvas. |
+| `GameFarm.template.html` | The farm screen; `inject.py` fills in the sprites and scene urls. |
+
+## Locations and seasons
+
+| Location | Scene | Varieties | Seasons |
+| --- | --- | --- | --- |
+| Huila, Colombia | finca with a clay-tile roof, covered drying tunnel, banana shade plants | Pink Bourbon, Caturra, Castillo | harvest (Mar to May, Oct to Nov), rainy |
+| Mogiana, Brazil | fazenda, concrete drying patio, red earth, yellow ipê trees, palms | Yellow Bourbon, Mundo Novo, Yellow Catuaí | harvest (May to Aug), rainy |
+| Gedeo, Ethiopia | round thatched tukul, raised African beds, enset, acacia | Ethiopian heirloom | harvest (Oct to Jan), rainy |
+| Lake Toba, Sumatra | Batak house on stilts, lake shore and jetty, palms | Catimor | harvest (Oct to Feb), rainy |
+| Turrialba, Costa Rica | painted wooden house with a tin roof, wet mill, poró trees | Caturra, Yellow Catuaí, Geisha | harvest (Oct to Mar), rainy |
+| Osaka roastery garden | thatched farmhouse, koi pond, stone lantern | Geisha, Pink Bourbon, Yellow Bourbon | spring, summer, autumn, winter |
+
+Harvest months come from the lots on bejucoffee.com. In the rainy season the drying beds are empty or under tarps, puddles form, and the shrubs flower.
+
+## Ripe cherry colours
+
+Caturra red, Castillo deep red, Pink Bourbon pink, Yellow Bourbon yellow, Mundo Novo burgundy, Yellow Catuaí golden, Catimor bright red (compact dwarf bush), Ethiopian heirloom small and dark crimson (darker, looser bush), Geisha long and wine red (tall, slender bush with bronze tips).
 
 ## Editing
 
@@ -16,7 +35,7 @@ Everything is drawn in code, so a change is one edit and one run:
 
 ```
 python3 game-assets/build_sprites.py
-python3 game-assets/inject.py <background asset url> <output.dc.html>
+python3 game-assets/inject.py <output.dc.html>
 ```
 
 ## Free packs worth knowing about
