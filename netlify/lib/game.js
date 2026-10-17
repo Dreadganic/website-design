@@ -77,13 +77,13 @@ function cleanName(s) {
   if (s.length < 2 || BLOCK.test(s)) return null;
   return s;
 }
-/* A look is a crest (nameplate and border, capped at the tier the player's prestige has reached), an outfit and a background. Old clients sent plate/border. */
+/* A look is a crest (nameplate and border, capped at the tier the player's prestige has reached), an outfit (any of the 8 once they have prestiged, since each prestige picks one) and a background. Old clients sent plate/border. */
 const BGS = ["none", "mogiana", "huila", "gedeo", "toba", "turrialba", "osaka", "beju"];
 const cleanLook = (l, prestige) => {
   const n = (x, max) => Math.max(0, Math.min(max, Math.floor(Number(x) || 0)));
   l = l || {};
   const cap = prestige === undefined ? 7 : n(prestige, 7);
-  return { crest: n(l.crest !== undefined ? l.crest : l.plate, cap), skin: n(l.skin, cap), bg: BGS.includes(l.bg) ? l.bg : "none" };
+  return { crest: n(l.crest !== undefined ? l.crest : l.plate, cap), skin: cap > 0 ? n(l.skin, 7) : 0, bg: BGS.includes(l.bg) ? l.bg : "none" };
 };
 
 /* Which passport origins each real coffee can stamp, in blend order (mirrors the game's COFFEES) */

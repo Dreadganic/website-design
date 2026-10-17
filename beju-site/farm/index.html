@@ -133,7 +133,8 @@ canvas.hint { transform: none !important; }
 .p-crane { background: linear-gradient(110deg, #FFF6D0, #F2C04A, #FFFFFF, #F2C04A, #FFF6D0); background-size: 300% 100%; animation: shine 2.4s linear infinite; color: #4A3208; border-color: #E8B830; box-shadow: 0 0 10px rgba(242,192,74,0.75); }
 .fr { position: relative; display: inline-grid; place-items: center; flex: none; border-radius: 12px; background: #FBF1DC; border: 3px solid var(--edge); overflow: hidden; }
 .fr img { image-rendering: pixelated; position: relative; z-index: 1; }
-.fr.bgd { background-repeat: no-repeat; }
+.fr .fbg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; image-rendering: pixelated; }
+.look.pick { border-color: var(--green, #3E8A3A); box-shadow: 0 0 0 2px rgba(62,138,58,0.35); }
 .bg-beju { background: radial-gradient(circle at 50% 70%, #FFF6D0 0 18%, transparent 19%), repeating-conic-gradient(from 0deg at 50% 70%, #F2C04A 0 10deg, #FFE28A 10deg 20deg) !important; }
 .look .lk { font-size: 9px; font-weight: 700; color: var(--ink); line-height: 1.1; text-align: center; }
 .b-bronze { border-color: #B06A34; box-shadow: inset 0 0 0 2px #ECAE72; }
@@ -980,20 +981,20 @@ const SKINS = [
 ];
 const TAG_COLOR = ['#FFF4DE', '#F0B07A', '#E4EAF0', '#FFE27A', '#9EF0C8', '#FFC4D8', '#FF9A5A', '#FFF0A0'];
 const tierOf = (p) => Math.min(p, TIERS.length - 1);
-const SKIN_COST = [0, 20, 30, 40, 50, 60, 80, 100];   /* each prestige makes the next outfit available to buy with cranes */
+/* outfits are not tied to tiers: each prestige lets the player pick any one outfit they don't have yet, so collections differ from player to player */
 /* character backgrounds come from the passport: each origin stamp gives that farm's scene, opening Osaka gives the garden, and all five origin stamps give the gold Beju backdrop */
 const ORIGINS = ['mogiana', 'huila', 'gedeo', 'toba', 'turrialba'];
 const BG_LIST = ['none'].concat(LOCS, ['beju']);
-const BG_POS = { mogiana: '50% 38%', huila: '50% 38%', gedeo: '50% 38%', toba: '50% 38%', turrialba: '50% 38%', osaka: '50% 38%' };
 const bgOpen = (id) => id === 'none' || (id === 'beju' ? ORIGINS.every((l) => S.stamps[l]) : id === 'osaka' ? S.farms.osaka.unlocked : !!S.stamps[id]);
 const bgName = (id) => id === 'none' ? 'Plain' : id === 'beju' ? 'Beju gold' : ART.locations[id].name.split(',')[0];
 const bgHow = (id) => id === 'beju' ? 'All 5 stamps' : id === 'osaka' ? 'Open Osaka' : bgName(id) + ' stamp';
 const normLook = (l) => { l = l || {}; const n = (x) => Math.max(0, Math.min(7, Math.floor(Number(x) || 0))); return { crest: n(l.crest !== undefined ? l.crest : l.plate), skin: n(l.skin), bg: BG_LIST.indexOf(l.bg) > -1 ? l.bg : 'none' }; };
-(function bgStyles() {   /* one stylesheet rule per scene, so avatars don't each carry the picture */
-  const st = document.createElement('style');
-  st.textContent = LOCS.map((l) => '.bg-' + l + '{background-image:url(' + BGS[l + '-' + (l === 'osaka' ? 'spring' : 'harvest')] + ');background-size:240% auto;background-position:' + BG_POS[l] + ';image-rendering:pixelated}').join('');
-  document.head.appendChild(st);
-})();
+const BG_THUMB = {};   /* an 80 px square cut from each farm scene, made once, so avatars stay light and work everywhere an <img> does */
+LOCS.forEach((l) => {
+  const im = new Image();
+  im.onload = () => { const c = document.createElement('canvas'); c.width = c.height = 80; const x = c.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(im, 56, 60, 80, 80, 0, 0, 80, 80); try { BG_THUMB[l] = c.toDataURL(); } catch (e) { BG_THUMB[l] = BGS[im.dataset.k]; } };
+  im.dataset.k = l + '-' + (l === 'osaka' ? 'spring' : 'harvest'); im.src = BGS[im.dataset.k];
+});
 const skinLook = (i) => ({ shirt: SKINS[i].shirt, hat: SKINS[i].hat, pants: SKINS[i].pants });
 /* the other players on the board (simulated until the app has a server) */
 const BOT_NAMES = ['mika.brews', 'kenji_pourover', 'hana.at.home', 'cafe_lucia', 'bean_samurai', 'pourover_pedro', 'tomo_roasts', 'aroma.amara', 'v60_vince', 'geisha_gabi', 'yuki.drip', 'marco_moka', 'sol_de_huila', 'chemex_chloe', 'riku.ristretto', 'nyala_coffee', 'barista.ben', 'kiko_kettle', 'mogiana_mae', 'dripdrop.dan', 'ayumi_aeropress', 'felipe_finca', 'sakura_sips', 'ruby_roastery', 'ole_espresso', 'lena_latte', 'sumatra_sam', 'koa_cupper', 'ivy.infuser', 'toba_terrace'];
@@ -1004,8 +1005,8 @@ function bots() {
     const prestige = p0 + Math.floor(S.day * rp), xp = (x0 + S.day * rx) % XP_AT(15);
     let lv = 1; while (xp >= XP_AT(lv + 1)) lv++;
     const seasonP = Math.floor(sp * sp * 5 * new Date().getDate() / 31);   /* prestiges so far this month */
-    const tr = tierOf(prestige), skin = Math.floor(r() * (tr + 1)), bgs = BG_LIST.slice(0, 1 + Math.min(7, prestige + 2));
-    return { name, prestige, seasonP, level: lv, points: Math.round(xp), look: { crest: tr, skin: Math.max(skin, tr - 2), bg: bgs[Math.floor(r() * bgs.length)] } };
+    const tr = tierOf(prestige), skin = prestige ? Math.floor(r() * SKINS.length) : 0, bgs = BG_LIST.slice(0, 1 + Math.min(7, prestige + 2));
+    return { name, prestige, seasonP, level: lv, points: Math.round(xp), look: { crest: tr, skin, bg: bgs[Math.floor(r() * bgs.length)] } };
   });
 }
 function board(mode) {
@@ -1125,7 +1126,7 @@ function fresh() {
     methods: { washed: true, natural: true }, vars: { caturra: true }, staff: { foreman: false, agent: false, rule: 'best' }, decor: {}, contracts: [], nextContract: 0, hat: 'straw', hats: { straw: true }, stamps: {},
     cherries: {}, lots: [], boosts: {}, minutes: 7 * 60 + 30, minutesTotal: 0, day: 1, taps: 0, year: 1, bonus: 0,
     tasks: null, weekly: { mine: 0, team: 1800, target: 4000, start: 1, claimed: false }, rewards: [], stats: { picked: 0, sold: 0, lotsSold: 0 },
-    farms: {}, intro: 0, seasonPick: 'auto', speed: 1, sfx: true, music: true, musicVol: 0.45, guide: 0, guideN: 0, tabs: { upgrades: false, orders: false, ranks: false, shop: false }, newTab: null, checkin: { last: '', streak: 0, freezes: 1 }, season: { key: seasonKey(), prestige: 0 }, badges: [], event: null, prestige: 0, name: 'You', look: { crest: 0, skin: 0, bg: 'none' }, skins: { 0: true }, dormant: {}, last: Date.now()
+    farms: {}, intro: 0, seasonPick: 'auto', speed: 1, sfx: true, music: true, musicVol: 0.45, guide: 0, guideN: 0, tabs: { upgrades: false, orders: false, ranks: false, shop: false }, newTab: null, checkin: { last: '', streak: 0, freezes: 1 }, season: { key: seasonKey(), prestige: 0 }, badges: [], event: null, prestige: 0, name: 'You', look: { crest: 0, skin: 0, bg: 'none' }, skins: { 0: true }, skinPicks: 0, dormant: {}, last: Date.now()
   };
   LOCS.forEach((l) => { st.farms[l] = newFarm(l); });
   return st;
@@ -1140,7 +1141,7 @@ let S = load() || fresh();
     S.skins = {}; for (let i = 0; i <= tierOf(S.prestige || 0); i++) S.skins[i] = true;
     S.look = { crest: tierOf(S.look.plate || 0), skin: S.look.skin || 0, bg: 'none' };
   }
-  ['staff', 'decor', 'contracts', 'nextContract', 'sfx', 'music', 'musicVol', 'name', 'look', 'skins', 'dormant', 'guide', 'guideN', 'tabs', 'newTab', 'checkin', 'season', 'badges', 'event'].forEach((k) => { if (S[k] === undefined) S[k] = JSON.parse(JSON.stringify(d[k])); });
+  ['staff', 'decor', 'contracts', 'nextContract', 'sfx', 'music', 'musicVol', 'name', 'look', 'skins', 'skinPicks', 'dormant', 'guide', 'guideN', 'tabs', 'newTab', 'checkin', 'season', 'badges', 'event'].forEach((k) => { if (S[k] === undefined) S[k] = JSON.parse(JSON.stringify(d[k])); });
   if (veteran) { S.guide = 6; S.tabs = { upgrades: true, orders: true, ranks: true, shop: true }; }   /* existing players skip the guide */
   if (!S.lv.pickers) { S.lv.pickers = Math.max(S.lv.speed || 1, S.lv.carry >= 3 ? 8 : S.lv.carry >= 2 ? 4 : 1); S.lv.speed = S.lv.pickers; }
   S.hearts = Math.min(S.hearts, 24 + S.lv.hearts * 6);
@@ -1589,6 +1590,10 @@ function unlockFarm(loc) {
   if (loc === 'osaka') { S.vars.geisha = true; [0, 1, 2, 3].forEach((b) => replantBed(f, b, 'geisha')); showModal('<h2>Osaka garden open</h2>' + img('bush_geisha_ripe', 54) + '<p class="note">The roastery garden comes with Geisha seeds. Geisha is now unlocked for every farm, and the garden is a new background for your farmer in Ranks.</p><button class="btn green" data-act="close">Lovely</button>'); }
   addWorker(f); toast(ART.locations[loc].name + ' is open');
 }
+function skinPicker() {   /* the outfit choice offered with each prestige */
+  if (!S.skinPicks) return '';
+  return '<p class="note"><b>Choose a new outfit.</b> It is yours for good. You can also pick later in Ranks.</p><div class="looks">' + SKINS.map((sk, i) => S.skins[i] ? '' : '<button type="button" class="look pick" data-act="pickskin:' + i + '">' + avatar({ crest: S.look.crest, skin: i, bg: S.look.bg }, 40) + '<small>' + sk.name + '</small></button>').join('') + '</div>';
+}
 function stampBg(l) {   /* a new stamp unlocks that farm's scene as a character background */
   setTimeout(() => toast('New background: ' + bgName(l) + (ORIGINS.every((o) => S.stamps[o]) ? ', and Beju gold for the full passport' : '')), 1200);
 }
@@ -1596,11 +1601,12 @@ function prestige() {
   if (level() < prestigeNeed()) return;
   S.prestige += 1; S.season.prestige += 1;
   const t = tierOf(S.prestige);
-  S.look.crest = t;   /* the new crest goes on straight away; the outfit is the player's choice */
+  S.look.crest = t;   /* the new crest goes on straight away */
+  if (SKINS.some((sk, i) => !S.skins[i])) S.skinPicks += 1;   /* and the player picks one new outfit */
   S.xp = 0; S.points = 0;
   LOCS.forEach((l) => { if (FARM_LEVEL[l] && S.farms[l].unlocked) S.dormant[l] = FARM_LEVEL[l]; });
   const asleep = Object.keys(S.dormant);
-  showModal(avatar(S.look, 64) + '<h2>Prestige ' + S.prestige + '</h2>' + plate(S.name, S.look.crest, starsFor(S.prestige)) + '<p class="note">' + (S.prestige < TIERS.length ? 'New crest: <b>' + TIERS[t] + '</b>. Its nameplate and border are yours and already on.' + (S.skins[t] ? '' : ' The ' + SKINS[t].name + ' outfit is now in the Ranks tab for ' + SKIN_COST[t] + ' cranes, if you want it.') : 'You are past the top tier: every prestige adds a star to your name.') + '</p>' +
+  showModal(avatar(S.look, 64) + '<h2>Prestige ' + S.prestige + '</h2>' + plate(S.name, S.look.crest, starsFor(S.prestige)) + '<p class="note">' + (S.prestige < TIERS.length ? 'New crest: <b>' + TIERS[t] + '</b>. Its nameplate and border are yours and already on.' : 'You are past the top tier: every prestige adds a star to your name.') + '</p>' + skinPicker() +
     (asleep.length ? '<p class="note">' + asleep.map((l) => ART.locations[l].name.split(',')[0] + ' wakes at level ' + S.dormant[l]).join(', ') + '. Brazil and Osaka stay open.</p>' : '') + '<button class="btn green" data-act="close">Back to the farm</button>');
 }
 function wakeFarms() {
@@ -1698,7 +1704,7 @@ function shopTabs() {
   const st = S.shopTab || 'cranes', dot = Object.keys(DECOR).some((k) => S.decor[k] === undefined && S.coins >= DECOR[k].cost);
   return '<div class="seg subtabs">' + [['cranes', 'Cranes'], ['decor', 'Decor'], ['beju', 'Real coffee']].map(([k, t]) => '<button type="button" data-act="shoptab:' + k + '" aria-pressed="' + (st === k) + '">' + t + (k === 'decor' && dot ? ' <i class="dot" aria-label="something to buy"></i>' : '') + '</button>').join('') + '</div>';
 }
-function avatar(look, size) { look = normLook(look); return '<span class="fr b-' + PLATES[look.crest] + (look.bg !== 'none' ? ' bgd bg-' + look.bg : '') + '" style="width:' + size + 'px;height:' + size + 'px"><img src="' + url('worker_down_0', skinLook(look.skin)) + '" alt="" style="height:' + Math.round(size * 0.78) + 'px"></span>'; }
+function avatar(look, size) { look = normLook(look); return '<span class="fr b-' + PLATES[look.crest] + (look.bg === 'beju' ? ' bg-beju' : '') + '" style="width:' + size + 'px;height:' + size + 'px">' + (BG_THUMB[look.bg] ? '<img class="fbg" src="' + BG_THUMB[look.bg] + '" alt="">' : '') + '<img src="' + url('worker_down_0', skinLook(look.skin)) + '" alt="" style="height:' + Math.round(size * 0.78) + 'px"></span>'; }
 function plate(name, i, stars) { return '<span class="plate p-' + PLATES[i] + '">' + name + (stars ? ' ' + '★'.repeat(Math.min(5, stars)) : '') + '</span>'; }
 const starsFor = (p) => (p >= TIERS.length ? p - TIERS.length + 1 : 0);
 function bottleneck() {   /* name the one thing slowing the farm down right now */
@@ -1858,9 +1864,9 @@ function renderPanel() {
       const open = i <= t;
       return '<button type="button" class="look" data-act="crest:' + i + '" aria-pressed="' + (S.look.crest === i) + '"' + (open ? '' : ' disabled') + '>' + avatar({ crest: i, skin: S.look.skin, bg: S.look.bg }, 40) + plate('P' + i, i) + '<small>' + (open ? nm : 'Prestige ' + i) + '</small></button>';
     }).join('') + '</div>';
-    h += '<h3>Outfit</h3><p class="note">Each prestige makes one more outfit available. Buy the ones you like with cranes, or keep your favourite.</p><div class="looks">' + SKINS.map((sk, i) => {
-      const own = !!S.skins[i], open = i <= t, sub = own ? sk.name : open ? SKIN_COST[i] + ' cranes' : 'Prestige ' + i;
-      return '<button type="button" class="look" data-act="skin:' + i + '" aria-pressed="' + (S.look.skin === i) + '"' + (own || (open && S.cranes >= SKIN_COST[i]) ? '' : ' disabled') + '>' + avatar({ crest: 0, skin: i }, 40) + '<small>' + sub + '</small></button>';
+    h += '<h3>Outfit</h3><p class="note">' + (S.skinPicks ? '<b>You have ' + S.skinPicks + ' outfit pick' + (S.skinPicks > 1 ? 's' : '') + ' waiting.</b> Tap a new outfit to keep it.' : 'Each prestige lets you pick one new outfit, in any order, so no two collections are alike.') + '</p><div class="looks">' + SKINS.map((sk, i) => {
+      const own = !!S.skins[i], can = !own && S.skinPicks > 0;
+      return '<button type="button" class="look' + (can ? ' pick' : '') + '" data-act="' + (own ? 'skin:' : 'pickskin:') + i + '" aria-pressed="' + (S.look.skin === i) + '"' + (own || can ? '' : ' disabled') + '>' + avatar({ crest: 0, skin: i }, 40) + '<small>' + (can ? 'Pick ' + sk.name : sk.name) + '</small></button>';
     }).join('') + '</div>';
     h += '<h3>Background</h3><p class="note">Passport stamps unlock scenes behind your farmer: ' + has() + ' of 5 origin stamps collected. Real orders on bejucoffee.com stamp the passport.</p><div class="looks">' + BG_LIST.map((id) => {
       const open = bgOpen(id);
@@ -1923,7 +1929,7 @@ document.addEventListener('click', (e) => {
   const wallet = S.coins + S.points + S.cranes, decorOwned = S.decor[v] !== undefined;
   setTimeout(() => {   /* sound for the action, once its effect is known */
     const spent = S.coins + S.points + S.cranes < wallet;
-    const BUY = { hire: 'hire', up: 'buy', build: 'build', mgr: 'hire', foreman: 'hire', agent: 'hire', var: 'achieve', farm: 'achieve', method: 'achieve', buyhat: 'achieve', skin: 'achieve', boost: 'crane', decor: 'achieve' };
+    const BUY = { hire: 'hire', up: 'buy', build: 'build', mgr: 'hire', foreman: 'hire', agent: 'hire', var: 'achieve', farm: 'achieve', method: 'achieve', buyhat: 'achieve', boost: 'crane', decor: 'achieve' };
     const ALWAYS = { ranktab: 'tick', crest: 'tick', skin: 'tick', bg: 'tick', rename: 'tick', mvol: 'tick', uptab: 'tick', shoptab: 'tick', hat: 'tick', rule: 'tick', mv: 'tick', speed: 'tick', season: 'tick', go: 'click', bed: 'click', skip: 'page', plant: 'dig', task: 'coins', weekly: 'crane', order: 'crane', sellraw: 'coins', add: 'xp' };
     if (BUY[a] && spent) SFX.play(BUY[a]); else if (a === 'decor' && decorOwned) SFX.play('tick'); else if (ALWAYS[a]) SFX.play(ALWAYS[a]);
   }, 0);
@@ -1960,13 +1966,14 @@ document.addEventListener('click', (e) => {
   else if (a === 'weekly') { S.weekly.claimed = true; S.cranes += 30; showModal('<h2>Order delivered!</h2><p class="note">The team delivered ' + fmt(S.weekly.target) + ' kg of washed coffee to the roastery. +30 cranes and the Co-op Roaster badge.</p><button class="btn green" data-act="close">Hooray</button>'); }
   else if (a === 'prestigeAsk') {
     const asleep = LOCS.filter((l) => FARM_LEVEL[l] && S.farms[l].unlocked);
-    showModal('<h2>Prestige ' + (S.prestige + 1) + '?</h2><p class="note"><b>You keep</b> coins, cranes, every upgrade, building, manager, variety, process, decoration, hat, outfit and background.</p><p class="note"><b>You lose</b> your level and ' + fmt(S.points) + ' unspent know-how' + (asleep.length ? ', and ' + asleep.map((l) => ART.locations[l].name.split(',')[0]).join(', ') + (asleep.length > 1 ? ' go' : ' goes') + ' dormant until you level back up' : '') + '.</p><p class="note">You gain ' + (S.prestige + 1 < TIERS.length ? 'the ' + TIERS[S.prestige + 1] + ' crest (nameplate and border), and the ' + SKINS[S.prestige + 1].name + ' outfit goes on sale for ' + SKIN_COST[S.prestige + 1] + ' cranes' : 'a star on your name') + ', and you jump above everyone on prestige ' + S.prestige + '.</p>' + btn('Prestige now', '', 'prestige', true, 'green') + '<button class="btn" data-act="close">Not yet</button>');
+    showModal('<h2>Prestige ' + (S.prestige + 1) + '?</h2><p class="note"><b>You keep</b> coins, cranes, every upgrade, building, manager, variety, process, decoration, hat, outfit and background.</p><p class="note"><b>You lose</b> your level and ' + fmt(S.points) + ' unspent know-how' + (asleep.length ? ', and ' + asleep.map((l) => ART.locations[l].name.split(',')[0]).join(', ') + (asleep.length > 1 ? ' go' : ' goes') + ' dormant until you level back up' : '') + '.</p><p class="note">You gain ' + (S.prestige + 1 < TIERS.length ? 'the ' + TIERS[S.prestige + 1] + ' crest (nameplate and border)' : 'a star on your name') + (SKINS.some((sk, i) => !S.skins[i]) ? ', you pick one new outfit' : '') + ', and you jump above everyone on prestige ' + S.prestige + '.</p>' + btn('Prestige now', '', 'prestige', true, 'green') + '<button class="btn" data-act="close">Not yet</button>');
     return;
   }
   else if (a === 'prestige') { $('modal').hidden = true; prestige(); SFX.play('levelup'); SFX.play('achieve'); setTimeout(() => { NET.lastScore = ''; submitScore(); cloudSync(true); }, 500); }
   else if (a === 'cloudLoad') { if (NET.pending) { S = NET.pending; NET.pending = null; save(); location.reload(); } }
   else if (a === 'crest') { if (+v <= tierOf(S.prestige)) S.look.crest = +v; }
-  else if (a === 'skin') { const i = +v; if (!S.skins[i] && i <= tierOf(S.prestige) && spend('cranes', SKIN_COST[i])) { S.skins[i] = true; toast(SKINS[i].name + ' outfit bought'); } if (S.skins[i]) S.look.skin = i; }
+  else if (a === 'skin') { if (S.skins[+v]) S.look.skin = +v; }
+  else if (a === 'pickskin') { const i = +v; if (!S.skins[i] && S.skinPicks > 0) { S.skinPicks -= 1; S.skins[i] = true; S.look.skin = i; toast(SKINS[i].name + ' outfit is yours'); SFX.play('achieve'); if (!$('modal').hidden && $('modalCard').querySelector('[data-act^="pickskin"]')) closeModal(); } }
   else if (a === 'bg') { if (bgOpen(v)) S.look.bg = v; }
   else if (a === 'rename') { const nv = ($('nameIn').value || '').trim().slice(0, 16); if (nv) { S.name = nv; toast('Name saved'); } }
   else if (a === 'boost') {
