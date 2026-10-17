@@ -1,0 +1,691 @@
+<title>Beju Farm</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&family=Zen+Kaku+Gothic+New:wght@500;700&display=swap">
+<style>
+/* One cozy world: a dark-wood frame around the farm, parchment panels, pixel type for game labels */
+:root {
+  --wood: #3A2A1C; --wood-2: #4E3826; --ink: #3E2A1C; --muted: #7A5A3A; --paper: #F4E6C6; --paper-2: #E8D4A8;
+  --edge: #6E4624; --gold: #F2C04A; --leaf: #8CB04A; --leaf-ink: #5E7E2C; --cherry: #D84A36; --sky: #7EC8F0; --off: #D8C8A8;
+  --pixel: 'Pixelify Sans', ui-monospace, monospace; --body: 'Zen Kaku Gothic New', system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { background: var(--wood); }
+body { color: var(--ink); font-family: var(--pixel); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 12px 32px; }
+.app { max-width: 400px; margin: 0 auto; display: flex; flex-direction: column; gap: 8px; }
+button { font-family: var(--pixel); }
+button:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.card { background: var(--paper); border: 3px solid var(--edge); border-radius: 10px; box-shadow: inset 0 0 0 2px var(--paper-2), 0 3px 0 #1E140C; }
+.top { display: flex; align-items: center; gap: 6px; padding: 6px 8px; }
+.top .name { flex: 1; min-width: 0; text-align: center; line-height: 1.15; }
+.top .name b { display: block; font-size: 18px; }
+.top .name span { font-size: 12px; color: var(--muted); }
+.arrow { width: 38px; height: 38px; border: 2px solid var(--edge); border-radius: 8px; background: var(--paper-2); color: var(--ink); font-size: 16px; font-weight: 700; cursor: pointer; }
+.chip { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 5px; color: #fff; white-space: nowrap; }
+.stage { position: relative; width: 100%; aspect-ratio: 4 / 5; border-radius: 8px; overflow: hidden; box-shadow: 0 0 0 3px #1E140C; background: #5E7A2C; }
+.stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; cursor: pointer; touch-action: manipulation; }
+.hud-l { position: absolute; left: 6px; top: 6px; display: flex; flex-direction: column; gap: 5px; pointer-events: none; }
+.hud-r { position: absolute; right: 6px; top: 6px; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; pointer-events: none; }
+.hearts { display: flex; gap: 1px; flex-wrap: wrap; max-width: 150px; }
+.pill { display: flex; align-items: center; gap: 5px; padding: 2px 8px 2px 4px; border-radius: 10px; background: rgba(62,42,28,0.8); color: #FFF4DE; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pill img, .ic { width: 16px; height: 16px; image-rendering: pixelated; vertical-align: -3px; }
+.clock { display: flex; align-items: center; gap: 5px; }
+.clockbox { background: var(--paper); border: 3px solid var(--edge); border-radius: 8px; overflow: hidden; text-align: center; box-shadow: 0 2px 0 var(--ink); }
+.clockbox .sky { height: 16px; display: flex; align-items: center; justify-content: center; border-bottom: 2px solid var(--edge); }
+.clockbox .sky i { width: 9px; height: 9px; border-radius: 5px; display: block; }
+.clockbox b { font-size: 15px; padding: 0 6px; font-variant-numeric: tabular-nums; }
+.day { width: 38px; height: 38px; border-radius: 19px; background: var(--paper); border: 3px solid var(--edge); display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; box-shadow: 0 2px 0 var(--ink); }
+.day small { font-size: 8px; color: var(--muted); font-weight: 600; } .day b { font-size: 16px; }
+.toast { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); max-width: 92%; padding: 8px 12px; background: var(--paper); border: 3px solid var(--edge); border-radius: 10px; font-size: 15px; text-align: center; box-shadow: 0 3px 0 #1E140C; pointer-events: none; }
+.tabs { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
+.tab { height: 46px; border: 3px solid var(--edge); border-radius: 8px; background: var(--paper-2); color: var(--ink); font-size: 12px; font-weight: 700; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; position: relative; }
+.tab[aria-pressed="true"] { background: var(--gold); }
+.tab img { width: 18px; height: 18px; image-rendering: pixelated; }
+.tab .dot { position: absolute; top: 3px; right: 4px; width: 8px; height: 8px; border-radius: 4px; background: var(--cherry); border: 1px solid var(--ink); }
+.panel { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.panel h2 { margin: 0; font-size: 18px; font-weight: 700; }
+.panel h3 { margin: 0; font-size: 15px; font-weight: 700; }
+.note { font-family: var(--body); font-size: 13px; font-weight: 700; color: var(--muted); line-height: 1.45; margin: 0; }
+.bar { height: 12px; border: 2px solid var(--edge); border-radius: 4px; background: var(--paper-2); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--leaf); box-shadow: inset 0 2px 0 #A8C860; }
+.row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 2px dashed var(--paper-2); }
+.row:first-of-type { border-top: 0; }
+.row .grow { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.row .grow b { font-size: 15px; }
+.row .grow span { font-family: var(--body); font-size: 12px; font-weight: 700; color: var(--muted); line-height: 1.35; }
+.art { width: 48px; height: 48px; flex-shrink: 0; display: flex; align-items: flex-end; justify-content: center; background: var(--paper-2); border: 2px solid var(--edge); border-radius: 6px; overflow: hidden; }
+.art img { image-rendering: pixelated; max-width: 44px; max-height: 44px; }
+.btn { min-width: 76px; min-height: 44px; padding: 4px 10px; border: 3px solid var(--edge); border-radius: 8px; background: var(--gold); color: var(--ink); font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: inset 0 -3px 0 rgba(0,0,0,0.18); display: inline-flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.15; }
+.btn small { font-size: 11px; font-weight: 600; }
+.btn.green { background: #9CC860; } .btn.blue { background: #9CCCF0; }
+.btn:disabled { background: var(--off); color: #8A7458; cursor: default; }
+.btn:active:not(:disabled) { transform: translateY(2px); }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.tile { border: 2px solid var(--edge); border-radius: 8px; background: #FBF1DC; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+.tile[aria-pressed="true"] { background: #FFE9B0; box-shadow: 0 0 0 2px var(--cherry); }
+.tile b { font-size: 14px; } .tile span { font-family: var(--body); font-size: 12px; font-weight: 700; color: var(--muted); }
+.stamps { display: flex; gap: 6px; flex-wrap: wrap; }
+.stamps img { width: 40px; height: 40px; image-rendering: pixelated; }
+.stamps .off { opacity: 0.25; filter: grayscale(1); }
+.modal { position: fixed; inset: 0; background: rgba(20,12,6,0.6); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 20; }
+.modal[hidden] { display: none; }
+.modal .card { max-width: 360px; width: 100%; padding: 18px 16px; display: flex; flex-direction: column; gap: 10px; text-align: center; align-items: center; }
+.modal h2 { margin: 0; font-size: 22px; }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; width: 100%; }
+.stats div { background: #FBF1DC; border: 2px solid var(--paper-2); border-radius: 6px; padding: 6px 2px; display: flex; flex-direction: column; gap: 2px; font-variant-numeric: tabular-nums; }
+.stats small { font-size: 11px; color: var(--muted); }
+.stats b { font-size: 17px; }
+.seg { display: flex; gap: 4px; flex-wrap: wrap; }
+.seg button { min-height: 36px; padding: 0 10px; border: 2px solid var(--edge); border-radius: 6px; background: var(--paper-2); font-size: 13px; font-weight: 700; cursor: pointer; color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--gold); }
+.level { display: flex; align-items: center; gap: 8px; }
+.level b { font-size: 15px; white-space: nowrap; }
+.level .bar { flex: 1; }
+@media (prefers-reduced-motion: reduce) { .btn:active:not(:disabled) { transform: none; } }
+</style>
+
+<div class="app">
+  <div class="card top">
+    <button class="arrow" id="prevLoc" type="button" aria-label="Previous farm">◀</button>
+    <div class="name"><b id="locName">Huila, Colombia</b><span id="locBeds">Pink Bourbon · Caturra · Castillo</span></div>
+    <span class="chip" id="seasonChip">Harvest</span>
+    <button class="arrow" id="nextLoc" type="button" aria-label="Next farm">▶</button>
+  </div>
+
+  <div class="stage" id="stage">
+    <canvas id="cv" width="384" height="480" aria-label="Your farm seen from above. Tap shrubs with ripe cherries to pick them."></canvas>
+    <div class="hud-l">
+      <div class="hearts" id="hearts" aria-label="Hearts"></div>
+      <div class="pill" id="hudLevel"></div>
+    </div>
+    <div class="hud-r">
+      <div class="clock">
+        <div class="clockbox"><div class="sky" id="sky"><i id="sun"></i></div><b id="clock">13:05</b></div>
+        <div class="day"><small>DAY</small><b id="day">1</b></div>
+      </div>
+      <div class="pill" id="hudCoins"></div>
+      <div class="pill" id="hudCranes"></div>
+      <div class="pill" id="hudStore"></div>
+    </div>
+    <div class="toast" id="toast" hidden></div>
+  </div>
+
+  <div class="tabs" role="tablist" id="tabs"></div>
+  <div class="card panel" id="panel"></div>
+</div>
+<div class="modal" id="modal" hidden><div class="card" id="modalCard"></div></div>
+
+<script>
+const ART = __ART__;
+const BGS = __BGS__;
+(function () {
+'use strict';
+const W = 192, H = 240, LANE_X = 97, HOME = { x: 150, y: 80 }, DROP = { x: 120, y: 106 }, STORE_AT = { x: 98, y: 68 };
+const LOCS = ['huila', 'mogiana', 'gedeo', 'toba', 'turrialba', 'osaka'];
+const STAGES = ['sprout', 'young', 'flower', 'green', 'ripe'];
+const WALK = [1, 0, 2, 0];
+const VALUE = { caturra: 1, castillo: 1, pinkbourbon: 1.4, yellowbourbon: 1.3, mundonovo: 1, catuai: 1.1, catimor: 0.9, heirloom: 1.8, geisha: 3 };
+const METHODS = {
+  washed: { name: 'Washed', time: 60, mult: 1.0, cup: 84, art: 'proc_washed', unlock: 'Unlocked' },
+  natural: { name: 'Natural', time: 90, mult: 1.3, cup: 85.5, art: 'proc_natural', unlock: 'Unlocked' },
+  honey: { name: 'Honey', time: 75, mult: 1.2, cup: 85, art: 'proc_honey', cost: 400, unlock: '400 points' },
+  whiskey: { name: 'Whiskey barrel', time: 120, mult: 2.0, cup: 87.5, art: 'proc_whiskey', cost: 2500, coffee: 'pinkwhiskey', unlock: 'Order Colombia Pink Whiskey, or 2,500 points' },
+  rum: { name: 'Rum barrel', time: 120, mult: 1.9, cup: 87, art: 'proc_rum', cost: 2500, coffee: 'rumbarrel', unlock: 'Order Colombia Rum Barrel, or 2,500 points' },
+  strawberry: { name: 'Strawberry infused', time: 120, mult: 2.2, cup: 88, art: 'proc_strawberry', cost: 3000, coffee: 'strawberry', unlock: 'Order Sumatra Strawberry, or 3,000 points' }
+};
+/* Real Beju coffees: buying one gives cranes, its origin's passport stamp (one per order line; a blend stamps its next origin by share) and any process it unlocks */
+const COFFEES = {
+  casablanca: { name: 'Casablanca Blend', price: 3000, stamps: ['mogiana', 'huila', 'turrialba'] },
+  pinkwhiskey: { name: 'Colombia Pink Whiskey', price: 4500, stamps: ['huila'], method: 'whiskey' },
+  rumbarrel: { name: 'Colombia Rum Barrel', price: 4500, stamps: ['huila'], method: 'rum' },
+  yirgacheffe: { name: 'Ethiopia Yirgacheffe', price: 2800, stamps: ['gedeo'] },
+  strawberry: { name: 'Sumatra Strawberry', price: 3800, stamps: ['toba'], method: 'strawberry' }
+};
+const FARM_COST = { huila: 0, mogiana: 2000, gedeo: 2500, toba: 3000, turrialba: 3500, osaka: 0 };
+const UP = {
+  storage: { name: 'Storage', max: 5, cost: (l) => [0, 600, 1800, 5000, 14000][l], cur: 'coins' },
+  carry: { name: 'Carrying gear', max: 3, cost: (l) => [0, 900, 3500][l], cur: 'coins' },
+  speed: { name: 'Picker speed', max: 6, cost: (l) => Math.round(250 * Math.pow(1.8, l - 1)), cur: 'points' },
+  racks: { name: 'Drying racks', max: 4, cost: (l) => [0, 300, 900, 2400][l], cur: 'points' },
+  hearts: { name: 'Stamina', max: 4, cost: (l) => [0, 200, 600, 1500][l], cur: 'points' },
+  field: { name: 'Clear the fourth field', max: 2, cost: () => 800, cur: 'points' }
+};
+const SAVE_KEY = 'beju-farm-save-v1';
+const $ = (id) => document.getElementById(id);
+const fmt = (n) => Math.floor(n).toLocaleString('en-US');
+
+/* ---------- sprites: palette grids drawn once into canvases; icons also as image urls for the panels ---------- */
+const cache = {};
+function sprite(name, opt) {
+  const key = name + '|' + (opt ? JSON.stringify(opt) : '');
+  if (cache[key]) return cache[key];
+  const s = ART.sprites[name], pal = Object.assign({}, s.pal);
+  if (opt && opt.shirt) { pal.c = opt.shirt[0]; pal.C = opt.shirt[1]; pal.D = opt.shirt[2]; }
+  if (opt && opt.hat) { pal.h = opt.hat[0]; pal.H = opt.hat[1]; pal.k = opt.hat[2]; }
+  const c = document.createElement('canvas'); c.width = s.w; c.height = s.h;
+  const x = c.getContext('2d'), img = x.createImageData(s.w, s.h);
+  s.rows.forEach((r, y) => {
+    for (let i = 0; i < r.length; i++) {
+      const ch = r[i]; if (ch === '.') continue;
+      const h = pal[ch], o = (y * s.w + i) * 4;
+      img.data[o] = parseInt(h.slice(1, 3), 16); img.data[o + 1] = parseInt(h.slice(3, 5), 16); img.data[o + 2] = parseInt(h.slice(5, 7), 16);
+      img.data[o + 3] = h.length > 7 ? parseInt(h.slice(7, 9), 16) : 255;
+    }
+  });
+  x.putImageData(img, 0, 0);
+  return (cache[key] = c);
+}
+const urls = {};
+function url(name, opt) { const k = name + (opt ? JSON.stringify(opt) : ''); return urls[k] || (urls[k] = sprite(name, opt).toDataURL()); }
+const icon = (name, alt) => '<img class="ic" src="' + url(name) + '" alt="' + (alt || '') + '">';
+
+/* ---------- state ---------- */
+let seed = 7;
+const rnd = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+function newFarm(loc) {
+  return { loc, unlocked: loc === 'huila' || loc === 'osaka', field: loc === 'osaka', shrubs: [], workers: [], harvested: 0, goal: 1000, rewarded: false, dog: { x: 80, y: 104, tx: 80, ty: 104, t: 1, walk: 0 } };
+}
+function fresh() {
+  const st = {
+    v: 1, loc: 'huila', coins: 1500, points: 300, xp: 0, cranes: 20, hearts: 10, heartT: 0,
+    lv: { storage: 1, carry: 1, speed: 1, racks: 1, hearts: 1 },
+    methods: { washed: true, natural: true }, hat: 'straw', hats: { straw: true }, stamps: { huila: true, osaka: true },
+    cherries: {}, lots: [], boosts: {}, minutes: 7 * 60 + 30, day: 1, taps: 0, year: 1, bonus: 0,
+    tasks: null, weekly: { mine: 0, team: 1800, target: 4000, start: 1, claimed: false }, rewards: [], stats: { picked: 0, sold: 0, lotsSold: 0 },
+    farms: {}, intro: 0, seasonPick: 'auto', speed: 1, last: Date.now()
+  };
+  LOCS.forEach((l) => { st.farms[l] = newFarm(l); });
+  return st;
+}
+let S = load() || fresh();
+LOCS.forEach((l) => { const f = S.farms[l]; if (!f.shrubs.length) plant(f); f.workers.forEach((w) => { w.state = 'seek'; w.path = []; w.target = null; }); });
+if (!S.farms.huila.workers.length) { addWorker(S.farms.huila); addWorker(S.farms.huila); }
+if (!S.tasks) newTasks();
+
+function load() { try { const t = localStorage.getItem(SAVE_KEY); return t ? JSON.parse(t) : null; } catch (e) { return null; } }
+function save() {
+  S.last = Date.now();
+  const copy = JSON.parse(JSON.stringify(S, (k, v) => (k === 'target' || k === 'claim' || k === 'path') ? undefined : v));
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(copy)); } catch (e) { /* storage blocked: the game still runs, it just won't remember */ }
+}
+
+function plant(f) {
+  const L = ART.locations[f.loc];
+  const pos = ART.shrubs.slice();
+  if (f.field) for (let r = 0; r < 2; r++) for (let c = 0; c < 4; c++) pos.push([104 + 6 + c * 18, 160 + r * 17]);
+  f.shrubs = pos.map(([x, y], i) => ({ x, y, v: i < 24 ? L.beds[Math.floor(i / 8)] : L.beds[i % 3], p: rnd() * 1.1, g: 14 + rnd() * 10 }));
+}
+function addWorker(f) {
+  const n = f.workers.length;
+  f.workers.push({ x: HOME.x, y: HOME.y, state: 'seek', path: [], carry: 0, t: 0, idle: 0, shirt: n + Object.keys(S.farms).indexOf(f.loc) * 2, dir: 'down', flip: false, walk: 0 });
+}
+const totalWorkers = () => LOCS.reduce((s, l) => s + S.farms[l].workers.length, 0);
+const hireCost = () => Math.round(300 * Math.pow(1.55, Math.max(0, totalWorkers() - 2)));
+const cap = () => ART.storage[S.lv.storage - 1].cap;
+const stored = () => Object.values(S.cherries).reduce((a, b) => a + b, 0);
+const carryKg = () => ART.carry[S.lv.carry - 1].kg;
+const maxHearts = () => 8 + S.lv.hearts * 2;
+const pickerMult = () => (1 + 0.18 * (S.lv.speed - 1)) * (S.boosts.pick > S.minutesTotal ? 2 : 1);
+const level = () => Math.floor(Math.sqrt(S.xp / 120)) + 1;
+const levelSpan = () => { const l = level(); const a = 120 * (l - 1) * (l - 1), b = 120 * l * l; return [(S.xp - a) / (b - a), l]; };
+S.minutesTotal = S.minutesTotal || 0;
+
+function season(loc) {
+  const L = ART.locations[loc], m = new Date().getMonth() + 1, pick = S.seasonPick;
+  if (pick !== 'auto' && L.seasons.indexOf(pick) > -1) return pick;
+  if (loc === 'osaka') return m >= 3 && m <= 5 ? 'spring' : m >= 6 && m <= 8 ? 'summer' : m >= 9 && m <= 11 ? 'autumn' : 'winter';
+  return L.months.indexOf(m) > -1 ? 'harvest' : 'rainy';
+}
+const growth = (loc) => ({ harvest: 1.5, winter: 0.5, summer: 1.25 })[season(loc)] || 1;
+const bgImgs = {};
+function bg(loc) { const k = loc + '-' + season(loc); if (!bgImgs[k]) { const im = new Image(); im.src = BGS[k]; bgImgs[k] = im; } return bgImgs[k]; }
+
+/* ---------- tasks and the weekly team order ---------- */
+function newTasks() {
+  S.tasks = [
+    { id: 'pick', text: 'Pick 15 ripe shrubs yourself', goal: 15, have: 0, reward: { coins: 300 } },
+    { id: 'store', text: 'Bring in 200 kg of cherries', goal: 200, have: 0, reward: { points: 150 } },
+    { id: 'sell', text: 'Sell 2 processed lots', goal: 2, have: 0, reward: { cranes: 3 } }
+  ];
+}
+function task(id, n) { S.tasks.forEach((t) => { if (t.id === id && !t.done) t.have = Math.min(t.goal, t.have + n); }); }
+
+/* ---------- the world loop ---------- */
+const cv = $('cv'), ctx = cv.getContext('2d'), frame = document.createElement('canvas'); frame.width = W; frame.height = H;
+const fx = frame.getContext('2d');
+const floats = [], bursts = [];
+const weather = Array.from({ length: 46 }, () => ({ x: rnd() * W, y: rnd() * H, v: 0.6 + rnd() * 0.8, ph: rnd() * 6 }));
+function route(w, to) {
+  const zone = (p) => p.y > 108 ? (p.x < LANE_X ? 'L' : 'R') + (p.y > 156 ? 2 : 1) : 'top';
+  if (zone(w) !== 'top' && zone(w) === zone(to)) return [to];
+  return [{ x: LANE_X, y: w.y > 108 ? w.y : 103 }, { x: LANE_X, y: to.y > 108 ? to.y : 103 }, to];
+}
+function store(f, v, kg) {
+  const room = cap() - stored(), take = Math.min(room, kg);
+  if (take <= 0) return 0;
+  S.cherries[v] = (S.cherries[v] || 0) + take;
+  S.stats.picked += take; task('store', take);
+  f.harvested = Math.min(f.goal, f.harvested + take);
+  if (f.loc !== 'osaka' && !f.rewarded && f.harvested >= f.goal) {
+    f.rewarded = true;
+    const reward = ART.locations[f.loc].reward;
+    S.rewards.unshift({ text: 'Free 100 g ' + reward, from: ART.locations[f.loc].name, day: S.day });
+    showModal('<h2>Harvest complete!</h2><p class="note">' + ART.locations[f.loc].name + ' reached 1,000 kg. A free 100 g bag of <b>' + reward + '</b> is added to your next bejucoffee.com order.</p><button class="btn green" data-act="close">Wonderful!</button>');
+  }
+  return take;
+}
+function tickFarm(f, d, visible) {
+  const g = d * growth(f.loc) * (S.boosts.grow > S.minutesTotal ? 2 : 1);
+  f.shrubs.forEach((s) => { if (s.p < 1) s.p = Math.min(1, s.p + g / s.g); });
+  const full = stored() >= cap(), pm = pickerMult(), carry = carryKg();
+  f.workers.forEach((w) => {
+    if (w.state === 'seek') {
+      let best = null, bd = 1e9;
+      if (w.carry < carry && !full) f.shrubs.forEach((s) => { if (s.p >= 1 && !s.claim) { const dd = Math.abs(s.x + 9 - w.x) + Math.abs(s.y + 23 - w.y); if (dd < bd) { bd = dd; best = s; } } });
+      if (best) { best.claim = w; w.target = best; w.path = route(w, { x: best.x + 9, y: best.y + 23 }); w.state = 'walk'; w.next = 'pick'; }
+      else if (w.carry) { w.path = route(w, DROP); w.state = 'walk'; w.next = 'deposit'; }
+      else { w.idle -= d; if (w.idle <= 0) { w.idle = 2 + rnd() * 3; w.path = route(w, { x: 140 + rnd() * 22, y: 82 + rnd() * 12 }); w.state = 'walk'; w.next = 'seek'; } }
+    } else if (w.state === 'walk') {
+      const p = w.path[0];
+      if (!p) { w.state = w.next; w.t = 0; return; }
+      const dx = p.x - w.x, dy = p.y - w.y, dist = Math.hypot(dx, dy), v = 24 * d * pm;
+      if (Math.abs(dx) > Math.abs(dy)) { w.dir = 'side'; w.flip = dx < 0; } else { w.dir = dy < 0 ? 'up' : 'down'; }
+      if (dist <= v) { w.x = p.x; w.y = p.y; w.path.shift(); } else { w.x += dx / dist * v; w.y += dy / dist * v; }
+      w.walk += d;
+      if (w.next === 'pick' && (!w.target || w.target.p < 1)) { if (w.target) w.target.claim = null; w.target = null; w.state = 'seek'; }
+    } else if (w.state === 'pick') {
+      w.t += d * pm; w.dir = 'up';
+      if (!w.target || w.target.p < 1) { w.state = 'seek'; return; }
+      if (w.t >= 2.4) {
+        const s = w.target; s.p = 0; s.claim = null; w.target = null; w.carry += 3; w.lastV = s.v;
+        if (w.carry >= carry) { w.path = route(w, DROP); w.state = 'walk'; w.next = 'deposit'; } else w.state = 'seek';
+      }
+    } else if (w.state === 'deposit') {
+      w.dir = 'up';
+      const kg = store(f, w.lastV || ART.locations[f.loc].beds[0], w.carry);
+      if (kg) { w.carry -= kg; if (visible) floats.push({ x: DROP.x, y: 70, text: '+' + kg + ' kg', t: 0 }); }
+      if (!w.carry) w.state = 'seek';
+    }
+  });
+  const dg = f.dog; dg.t -= d;
+  if (dg.t <= 0) { dg.t = 2 + rnd() * 4; const sp = [[72, 104], [44, 104], [110, 100], [150, 96], [140, 100], [100, 92]][Math.floor(rnd() * 6)]; dg.tx = sp[0]; dg.ty = sp[1]; }
+  const ddx = dg.tx - dg.x, ddy = dg.ty - dg.y, dd = Math.hypot(ddx, ddy);
+  if (dd > 1) { const v = Math.min(dd, 20 * d); dg.x += ddx / dd * v; dg.y += ddy / dd * v; dg.walk += d; if (Math.abs(ddx) > 0.3) dg.flip = ddx > 0; dg.moving = true; } else dg.moving = false;
+}
+function tick(dt) {
+  const d = dt * S.speed;
+  S.minutesTotal += d * 2.5;
+  S.minutes += d * 2.5;
+  if (S.minutes >= 1440) { S.minutes -= 1440; S.day += 1; newTasks(); toast('Day ' + S.day + ': new daily tasks'); }
+  S.weekly.team += d * 0.6;
+  if (S.day - S.weekly.start >= 7) { S.weekly = { mine: 0, team: 1500, target: 4000, start: S.day, claimed: false }; toast('A new weekly roastery order is in'); }
+  S.heartT += d; if (S.heartT >= 6) { S.heartT = 0; if (S.hearts < maxHearts()) S.hearts += 1; }
+  S.lots.forEach((l) => { if (l.left > 0) l.left = Math.max(0, l.left - d); });
+  LOCS.forEach((l) => { const f = S.farms[l]; if (f.unlocked) tickFarm(f, d, l === S.loc); });
+  floats.forEach((t) => { t.t += dt; }); while (floats.length && floats[0].t > 1.1) floats.shift();
+  bursts.forEach((b) => { b.t += dt; b.x += b.vx * dt; b.y += b.vy * dt; b.vy += 120 * dt; });
+  for (let i = bursts.length - 1; i >= 0; i--) if (bursts[i].t > 0.6) bursts.splice(i, 1);
+}
+function draw(time) {
+  const f = S.farms[S.loc], sea = season(S.loc), b = bg(S.loc);
+  fx.imageSmoothingEnabled = false;
+  if (b.complete && b.naturalWidth) fx.drawImage(b, 0, 0); else { fx.fillStyle = '#7A9A3A'; fx.fillRect(0, 0, W, H); }
+  if (S.loc === 'osaka' && sea !== 'winter') { const a = time * 0.6, kx = 24 + Math.cos(a) * 9, ky = 86 + Math.sin(a) * 4; fx.fillStyle = '#F08838'; fx.fillRect(Math.round(kx), Math.round(ky), 4, 2); }
+  if (f.field && S.loc !== 'osaka') fx.drawImage(sprite('bed_open'), 104, 160);
+  if (!f.field) fx.drawImage(sprite('sign'), 134, 168);
+  fx.drawImage(sprite('storage_' + S.lv.storage), STORE_AT.x, STORE_AT.y);
+  if (stored() >= cap() && Math.floor(time * 2) % 2 === 0) fx.drawImage(sprite('bubble_full'), STORE_AT.x + 12, STORE_AT.y - 8);
+  const things = f.shrubs.map((s) => ({ y: s.y + 22, s })).concat(f.workers.map((w) => ({ y: w.y, w })), [{ y: f.dog.y, dog: f.dog }]);
+  things.sort((p, q) => p.y - q.y);
+  const hat = ART.hats[S.hat];
+  things.forEach((o) => {
+    if (o.s) {
+      const s = o.s;
+      fx.drawImage(sprite('bush_' + s.v + '_' + STAGES[s.p < 0.3 ? 0 : s.p < 0.55 ? 1 : s.p < 0.8 ? 2 : s.p < 1 ? 3 : 4]), s.x, s.y);
+      if (s.p >= 1 && Math.floor(time * 3 + s.x / 18 + s.y / 17) % 6 === 0) fx.drawImage(sprite('sparkle'), s.x + 11, s.y + 1);
+    } else if (o.dog) {
+      const g = o.dog, spr = sprite('shiba_' + (g.moving ? Math.floor(g.walk * 8) % 2 : 0)), X = Math.round(g.x) - 8, Y = Math.round(g.y) - 11;
+      fx.fillStyle = 'rgba(42,42,8,0.28)'; fx.beginPath(); fx.ellipse(X + 8, Y + 11, 6, 1.5, 0, 0, 7); fx.fill();
+      if (g.flip) { fx.save(); fx.translate(X + 16, Y); fx.scale(-1, 1); fx.drawImage(spr, 0, 0); fx.restore(); } else fx.drawImage(spr, X, Y);
+    } else {
+      const w = o.w, moving = w.state === 'walk';
+      let fr = 0;
+      if (moving) fr = w.dir === 'side' ? Math.floor(w.walk * 7) % 2 : WALK[Math.floor(w.walk * 7) % 4];
+      else if (w.state === 'pick') fr = Math.floor(w.t * 4) % 2 ? 1 : 2;
+      if (w.dir === 'side') fr = Math.min(fr, 1);
+      const spr = sprite('worker_' + w.dir + '_' + fr, { shirt: ART.shirts[w.shirt % ART.shirts.length], hat }), X = Math.round(w.x) - 8, Y = Math.round(w.y) - 23;
+      fx.fillStyle = 'rgba(42,42,8,0.3)'; fx.beginPath(); fx.ellipse(X + 8, Y + 23, 5, 1.6, 0, 0, 7); fx.fill();
+      if (w.dir === 'side' && w.flip) { fx.save(); fx.translate(X + 16, Y); fx.scale(-1, 1); fx.drawImage(spr, 0, 0); fx.restore(); } else fx.drawImage(spr, X, Y);
+      if (w.carry && w.dir !== 'up') {
+        const gear = ART.carry[S.lv.carry - 1].sprite, gs = sprite(gear);
+        fx.drawImage(gs, w.flip ? X - gs.width + 4 : X + 12, Y + 24 - gs.height - 2);
+      }
+    }
+  });
+  bursts.forEach((p) => { fx.fillStyle = p.c; fx.fillRect(Math.round(p.x), Math.round(p.y), 1, 1); });
+  const wx = { rainy: ['#C8E4F4', 'rain'], winter: ['#FFFFFF', 'snow'], spring: ['#F8C8D8', 'petal'], autumn: ['#E8803A', 'petal'] }[sea];
+  if (wx) {
+    weather.forEach((p) => {
+      const spd = wx[1] === 'rain' ? 150 : wx[1] === 'snow' ? 14 : 18;
+      const yy = (p.y + time * spd * p.v) % (H + 10) - 5, xx = ((p.x + (wx[1] === 'rain' ? yy * 0.15 : Math.sin(time * 1.3 + p.ph) * 6 + time * 6 * p.v)) % W + W) % W;
+      fx.fillStyle = wx[0];
+      if (wx[1] === 'rain') { fx.globalAlpha = 0.55; fx.fillRect(Math.round(xx), Math.round(yy), 1, 4); fx.globalAlpha = 1; }
+      else if (wx[1] === 'snow') fx.fillRect(Math.round(xx), Math.round(yy), p.v > 1 ? 2 : 1, p.v > 1 ? 2 : 1);
+      else fx.fillRect(Math.round(xx), Math.round(yy), 2, 1);
+    });
+    if (wx[1] === 'rain') { fx.fillStyle = 'rgba(40,60,90,0.12)'; fx.fillRect(0, 0, W, H); }
+  }
+  const hr = S.minutes / 60;
+  const tint = hr >= 20 || hr < 5 ? 'rgba(30,40,110,0.38)' : hr >= 17.5 ? 'rgba(240,120,40,' + (0.08 + (hr - 17.5) * 0.06).toFixed(2) + ')' : hr < 7 ? 'rgba(240,150,170,0.14)' : null;
+  if (tint) { fx.fillStyle = tint; fx.fillRect(0, 0, W, H); }
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(frame, 0, 0, W * 2, H * 2);
+  ctx.textAlign = 'center';
+  if (!f.field) { ctx.font = '700 13px "Pixelify Sans", monospace'; ctx.fillStyle = '#4A2E18'; ctx.fillText('EXPAND', 142 * 2, 173 * 2); }
+  ctx.font = '700 18px "Pixelify Sans", monospace';
+  floats.forEach((t) => {
+    const y = (t.y - t.t * 12) * 2;
+    ctx.globalAlpha = Math.max(0, 1 - t.t);
+    ctx.fillStyle = '#3E2A1C'; ctx.fillText(t.text, t.x * 2 + 2, y + 2); ctx.fillStyle = '#FFF4DE'; ctx.fillText(t.text, t.x * 2, y);
+  });
+  ctx.globalAlpha = 1;
+}
+
+/* ---------- player actions ---------- */
+cv.addEventListener('click', (e) => {
+  const r = cv.getBoundingClientRect(), lx = (e.clientX - r.left) / r.width * W, ly = (e.clientY - r.top) / r.height * H;
+  const f = S.farms[S.loc];
+  const s = f.shrubs.find((x) => lx >= x.x && lx < x.x + 18 && ly >= x.y && ly < x.y + 22);
+  if (s) {
+    if (s.p < 1) { floats.push({ x: s.x + 9, y: s.y, text: s.p < 0.8 ? 'growing' : 'soon', t: 0 }); return; }
+    if (S.hearts <= 0) { floats.push({ x: s.x + 9, y: s.y, text: 'tired', t: 0 }); return; }
+    if (stored() >= cap()) { floats.push({ x: s.x + 9, y: s.y, text: 'storage full', t: 0 }); return; }
+    if (s.claim) { const w = s.claim; w.target = null; if (w.state === 'pick' || w.state === 'walk') w.state = 'seek'; }
+    s.p = 0; s.claim = null; S.hearts -= 1; S.taps += 1; task('pick', 1);
+    const kg = store(f, s.v, 3);
+    floats.push({ x: s.x + 9, y: s.y, text: '+' + kg + ' kg', t: 0 });
+    for (let i = 0; i < 7; i++) bursts.push({ x: s.x + 9, y: s.y + 8, vx: (rnd() - 0.5) * 60, vy: -30 - rnd() * 40, t: 0, c: i % 2 ? '#E83A30' : '#3E8036' });
+    if (S.intro === 0) { S.intro = 1; }
+    return;
+  }
+  if (!f.field && lx > 104 && lx < 182 && ly > 160 && ly < 200) { setTab('upgrades'); toast('Clear the fourth field in Upgrades'); return; }
+  if (lx > STORE_AT.x && lx < STORE_AT.x + 40 && ly > STORE_AT.y && ly < STORE_AT.y + 38) { setTab('mill'); return; }
+  if (Math.hypot(lx - f.dog.x, ly - f.dog.y + 5) < 9) floats.push({ x: f.dog.x, y: f.dog.y - 14, text: 'woof!', t: 0 });
+});
+function travel(dir) {
+  let i = LOCS.indexOf(S.loc);
+  i = (i + dir + LOCS.length) % LOCS.length;
+  S.loc = LOCS[i];
+  refreshAll();
+}
+$('prevLoc').addEventListener('click', () => travel(-1));
+$('nextLoc').addEventListener('click', () => travel(1));
+
+function spend(cur, n) { if (S[cur] < n) return false; S[cur] -= n; return true; }
+function earn(r) { if (r.coins) S.coins += r.coins; if (r.points) { S.points += r.points; S.xp += r.points; } if (r.cranes) S.cranes += r.cranes; }
+function buyUpgrade(key) {
+  const u = UP[key];
+  if (key === 'field') {
+    const f = S.farms[S.loc];
+    if (f.field || !spend('points', u.cost())) return;
+    f.field = true; const old = f.shrubs; plant(f); f.shrubs.forEach((s, i) => { if (old[i]) s.p = old[i].p; });
+    toast('Field cleared: 8 new shrubs planted'); return;
+  }
+  const l = S.lv[key]; if (l >= u.max) return;
+  if (!spend(u.cur, u.cost(l))) return;
+  S.lv[key] = l + 1;
+  if (key === 'hearts') S.hearts = maxHearts();
+  toast(u.name + ' upgraded');
+  if (key === 'storage') showModal('<h2>' + ART.storage[S.lv.storage - 1].name + '!</h2><img src="' + url('storage_' + S.lv.storage) + '" alt="" style="width:160px;image-rendering:pixelated"><p class="note">Storage now holds ' + fmt(cap()) + ' kg, so your pickers keep working longer while you’re away.</p><button class="btn green" data-act="close">Great</button>');
+}
+function startLot(v, method) {
+  const busy = S.lots.length, kg = S.cherries[v] || 0;
+  if (busy >= S.lv.racks || kg <= 0 || !S.methods[method]) return;
+  const m = METHODS[method];
+  S.cherries[v] = 0;
+  S.lots.push({ v, kg, method, left: m.time, total: m.time });
+  task('store', 0);
+  toast(fmt(kg) + ' kg of ' + ART.varieties[v] + ' on the ' + m.name.toLowerCase() + ' racks');
+}
+function sellLot(i) {
+  const l = S.lots[i]; if (!l || l.left > 0) return;
+  const m = METHODS[l.method], green = l.kg * 0.2, bonus = 1 + S.bonus;
+  const coins = Math.round(green * 22 * VALUE[l.v] * m.mult * bonus), cup = Math.min(94, m.cup + (VALUE[l.v] - 1) * 2 + S.bonus * 10), points = Math.round(green * Math.max(1, cup - 80) * 0.6 * bonus);
+  earn({ coins, points });
+  if (l.method === 'washed') S.weekly.mine += green;
+  S.lots.splice(i, 1);
+  S.stats.sold += green; S.stats.lotsSold += 1; task('sell', 1);
+  showModal('<img src="' + url('green_sack') + '" alt="" style="width:72px;image-rendering:pixelated"><h2>Sold to the Osaka roastery</h2><p class="note">' + fmt(green) + ' kg of ' + m.name.toLowerCase() + ' ' + ART.varieties[l.v] + ', cup score ' + cup.toFixed(1) + '.</p><div class="stats"><div><small>Coins</small><b>+' + fmt(coins) + '</b></div><div><small>Points</small><b>+' + fmt(points) + '</b></div><div><small>Cup</small><b>' + cup.toFixed(1) + '</b></div></div><button class="btn green" data-act="close">Nice</button>');
+}
+function sellRaw() {
+  const kg = stored(); if (!kg) return;
+  const coins = Math.round(kg * 2);
+  S.cherries = {}; earn({ coins });
+  toast('Sold ' + fmt(kg) + ' kg of fresh cherries for ' + fmt(coins) + ' coins');
+}
+function realOrder(id) {
+  const c = COFFEES[id], cranes = Math.round(c.price / 100);
+  S.cranes += cranes;
+  const next = c.stamps.find((s) => !S.stamps[s]) || null;   /* one stamp per order line; a blend stamps its next origin by share */
+  let msg = '+' + cranes + ' cranes';
+  if (next) { S.stamps[next] = true; S.cranes += 20; msg += ', +20 for a new stamp: ' + ART.locations[next].name; S.farms[next].unlocked = true; if (!S.farms[next].workers.length) addWorker(S.farms[next]); }
+  if (c.method && !S.methods[c.method]) { S.methods[c.method] = true; msg += ', and ' + METHODS[c.method].name.toLowerCase() + ' processing unlocked'; }
+  showModal('<h2>Order delivered</h2><p class="note">' + c.name + ' arrived from bejucoffee.com: ' + msg + '.</p>' + (next ? '<img src="' + url('stamp_' + next) + '" alt="" style="width:72px;image-rendering:pixelated">' : '') + '<button class="btn green" data-act="close">Collect</button>');
+}
+function unlockFarm(loc) { const f = S.farms[loc]; if (f.unlocked || !spend('points', FARM_COST[loc])) return; f.unlocked = true; addWorker(f); toast(ART.locations[loc].name + ' is open'); }
+function prestige() {
+  if (level() < 10) return;
+  const keep = { methods: S.methods, hats: S.hats, hat: S.hat, stamps: S.stamps, rewards: S.rewards, year: S.year + 1, bonus: S.bonus + 0.1, cranes: S.cranes, seasonPick: S.seasonPick, speed: S.speed, unlocked: LOCS.filter((l) => S.farms[l].unlocked) };
+  S = fresh(); Object.assign(S, keep);
+  keep.unlocked.forEach((l) => { S.farms[l].unlocked = true; });
+  LOCS.forEach((l) => plant(S.farms[l])); addWorker(S.farms.huila); addWorker(S.farms.huila); newTasks();
+  showModal('<h2>Harvest year ' + S.year + '</h2><p class="note">Your farms start fresh, but you keep every farm, process, hat and stamp. Roaster’s Knowledge: +' + Math.round(S.bonus * 100) + '% to cup scores and sale prices, forever.</p><button class="btn green" data-act="close">Begin</button>');
+}
+function away(hours) {
+  const mins = hours * 60, before = stored();
+  let kg = 0;
+  LOCS.forEach((l) => {
+    const f = S.farms[l]; if (!f.unlocked || !f.workers.length) return;
+    const perWorkerMin = carryKg() / ((2.4 * carryKg() / 3 + 8) / pickerMult()) * 60 / 60 * 0.5;   /* kg a picker brings in per game minute, walking included */
+    kg += f.workers.length * perWorkerMin * mins * growth(l) / 1.2;
+    f.shrubs.forEach((s) => { s.p = 1; });
+  });
+  const room = cap() - before, got = Math.min(room, Math.round(kg));
+  const v = ART.locations[S.loc].beds[0];
+  if (got > 0) S.cherries[v] = (S.cherries[v] || 0) + got;
+  S.lots.forEach((l) => { l.left = 0; });
+  const coinsEarned = 0;
+  S.minutesTotal += mins; S.minutes = (S.minutes + mins) % 1440; S.day += Math.floor(mins / 1440);
+  const fullAfter = Math.round(room / Math.max(1, kg / hours) * 10) / 10;
+  showModal('<h2>Welcome back!</h2><p class="note">You were away for ' + hours + ' h. Your pickers brought in <b>' + fmt(got) + ' kg</b> of cherries' + (kg > room ? ', then storage filled up after about ' + fullAfter + ' h and they rested.' : '.') + ' Any lots on the racks finished drying.</p>' +
+    '<div class="stats"><div><small>Picked</small><b>' + fmt(got) + '</b></div><div><small>Storage</small><b>' + fmt(stored()) + '</b></div><div><small>Cap</small><b>' + fmt(cap()) + '</b></div></div>' +
+    (kg > room ? '<p class="note">A bigger store keeps them going longer: see Upgrades.</p>' : '') + '<button class="btn green" data-act="close">Collect</button>');
+  return coinsEarned;
+}
+
+/* ---------- interface ---------- */
+let tab = 'farm', toastT = 0;
+const TABS = [['farm', 'Farm', 'i_worker'], ['mill', 'Mill', 'green_sack'], ['upgrades', 'Upgrade', 'storage_4'], ['orders', 'Orders', 'i_points'], ['shop', 'Cranes', 'i_crane'], ['test', 'Test', 'i_box']];
+function setTab(t) { tab = t; renderTabs(); renderPanel(); }
+function renderTabs() {
+  const dot = { orders: S.tasks.some((t) => t.have >= t.goal && !t.done) || (S.weekly.team + S.weekly.mine >= S.weekly.target && !S.weekly.claimed), mill: S.lots.some((l) => l.left <= 0) };
+  $('tabs').innerHTML = TABS.map(([id, label, ic]) => '<button class="tab" role="tab" type="button" data-tab="' + id + '" aria-pressed="' + (tab === id) + '"><img src="' + url(ic) + '" alt="">' + label + (dot[id] ? '<i class="dot"></i>' : '') + '</button>').join('');
+}
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; toastT = 2.6; }
+function showModal(html) { $('modalCard').innerHTML = html; $('modal').hidden = false; }
+function row(art, title, sub, button) { return '<div class="row"><div class="art">' + art + '</div><div class="grow"><b>' + title + '</b><span>' + sub + '</span></div>' + button + '</div>'; }
+function btn(label, sub, act, enabled, cls) { return '<button class="btn ' + (cls || '') + '" type="button" data-act="' + act + '"' + (enabled ? '' : ' disabled') + '>' + label + (sub ? '<small>' + sub + '</small>' : '') + '</button>'; }
+const img = (n, w) => '<img src="' + url(n) + '" alt="" style="width:' + (w || 40) + 'px">';
+
+function renderPanel() {
+  const P = $('panel'), f = S.farms[S.loc], L = ART.locations[S.loc];
+  let h = '';
+  if (tab === 'farm') {
+    const [frac, lvl] = levelSpan();
+    h += '<div class="level"><b>Farm level ' + lvl + '</b><div class="bar"><i style="width:' + Math.round(frac * 100) + '%"></i></div><span class="note">Year ' + S.year + '</span></div>';
+    if (!f.unlocked) {
+      h += '<h2>' + L.name + '</h2><p class="note">This farm opens with its passport stamp: order ' + ({ mogiana: 'the Casablanca Blend', gedeo: 'Ethiopia Yirgacheffe', toba: 'Sumatra Strawberry', turrialba: 'the Casablanca Blend (its third origin)' }[S.loc] || 'its coffee') + ' on bejucoffee.com. Or open it with points.</p>' + btn('Open farm', fmt(FARM_COST[S.loc]) + ' points', 'farm:' + S.loc, S.points >= FARM_COST[S.loc], 'green');
+    } else {
+      if (S.loc !== 'osaka') {
+        h += '<div><div style="display:flex;justify-content:space-between;align-items:baseline"><h3>Harvest ' + fmt(f.harvested) + ' / 1,000 kg</h3><span class="note">' + (f.rewarded ? 'Reward earned' : 'Reward: free 100 g') + '</span></div><div class="bar"><i style="width:' + Math.round(f.harvested / f.goal * 100) + '%"></i></div><p class="note">' + (f.rewarded ? 'Free 100 g ' + L.reward + ' is on your next order.' : 'Reach 1,000 kg for a free 100 g ' + L.reward + ' with your next bejucoffee.com order.') + '</p></div>';
+      } else h += '<p class="note">The Osaka roastery garden: rare varieties all year round, through four Japanese seasons.</p>';
+      h += row(img('worker_down_0', 22), 'Pickers here: ' + f.workers.length + '/6', 'Carrying ' + ART.carry[S.lv.carry - 1].name.toLowerCase() + ' (' + carryKg() + ' kg). You pick 3× faster, but pickers never tire.', btn('Hire', fmt(hireCost()) + ' coins', 'hire', S.coins >= hireCost() && f.workers.length < 6));
+      h += row(img('storage_' + S.lv.storage, 44), ART.storage[S.lv.storage - 1].name + ': ' + fmt(stored()) + ' / ' + fmt(cap()) + ' kg', stored() >= cap() ? 'Full! Pickers have stopped. Process or sell cherries.' : 'Cherries from every farm come here.', btn('Mill', 'process', 'tab:mill', true, 'blue'));
+      h += row(img('i_cherry', 28), 'Sell fresh cherries', 'Quick coins, 2 per kg. Processing pays far more.', btn('Sell all', fmt(stored() * 2) + ' coins', 'sellraw', stored() > 0));
+    }
+  } else if (tab === 'mill') {
+    const vs = Object.keys(S.cherries).filter((v) => S.cherries[v] > 0);
+    h += '<h2>Mill</h2><p class="note">Choose a lot and a process. Lots dry on your racks in real time, then sell to the Osaka roastery. About 5 kg of cherries make 1 kg of green coffee.</p>';
+    h += '<h3>Drying racks ' + S.lots.length + ' / ' + S.lv.racks + '</h3>';
+    S.lots.forEach((l, i) => {
+      const m = METHODS[l.method], done = l.left <= 0;
+      h += row(img(m.art, 36), fmt(l.kg) + ' kg ' + ART.varieties[l.v] + ', ' + m.name.toLowerCase(), done ? 'Dry and ready to sell' : '<span class="bar" style="display:block"><i style="width:' + Math.round((1 - l.left / l.total) * 100) + '%"></i></span> ' + Math.ceil(l.left / 2.5) + ' min left', btn('Sell', done ? 'ready' : 'drying', 'sell:' + i, done, 'green'));
+    });
+    if (!S.lots.length) h += '<p class="note">No lots drying yet.</p>';
+    h += '<h3>Start a lot</h3>';
+    if (!vs.length) h += '<p class="note">Storage is empty. Pick some cherries first.</p>';
+    else {
+      const pickV = S.millV && S.cherries[S.millV] > 0 ? S.millV : vs[0]; S.millV = pickV;
+      h += '<div class="seg">' + vs.map((v) => '<button type="button" data-act="mv:' + v + '" aria-pressed="' + (v === pickV) + '">' + ART.varieties[v] + ' ' + fmt(S.cherries[v]) + ' kg</button>').join('') + '</div>';
+      h += '<div class="grid2">' + Object.keys(METHODS).map((k) => {
+        const m = METHODS[k], ok = S.methods[k];
+        return '<div class="tile"><div style="display:flex;gap:6px;align-items:center">' + img(m.art, 32) + '<div><b>' + m.name + '</b><br><span>×' + m.mult.toFixed(1) + ' · ' + Math.round(m.time / 2.5) + ' min</span></div></div>' +
+          (ok ? btn('Process', '', 'lot:' + k, S.lots.length < S.lv.racks, 'green') : '<span>' + m.unlock + '</span>' + (m.cost ? btn('Unlock', fmt(m.cost) + ' pts', 'method:' + k, S.points >= m.cost) : '')) + '</div>';
+      }).join('') + '</div>';
+      if (S.lots.length >= S.lv.racks) h += '<p class="note">All racks are busy. Add racks in Upgrades.</p>';
+    }
+  } else if (tab === 'upgrades') {
+    h += '<h2>Upgrades</h2><p class="note">' + icon('i_coin') + ' ' + fmt(S.coins) + ' coins · ' + icon('i_points') + ' ' + fmt(S.points) + ' points</p>';
+    const st = S.lv.storage, nextS = ART.storage[st];
+    h += row(img('storage_' + Math.min(5, st + (st < 5 ? 1 : 0)), 44), 'Storage: ' + ART.storage[st - 1].name, st < 5 ? 'Next: ' + nextS.name + ', holds ' + fmt(nextS.cap) + ' kg (now ' + fmt(cap()) + ')' : 'The Beju barn holds ' + fmt(cap()) + ' kg', btn(st < 5 ? 'Build' : 'Max', st < 5 ? fmt(UP.storage.cost(st)) + ' coins' : '', 'up:storage', st < 5 && S.coins >= UP.storage.cost(st)));
+    const cl = S.lv.carry;
+    h += row(img(ART.carry[Math.min(2, cl)].sprite, 34), 'Carrying gear: ' + ART.carry[cl - 1].name, cl < 3 ? 'Next: ' + ART.carry[cl].name + ', ' + ART.carry[cl].kg + ' kg per trip (now ' + carryKg() + ')' : 'Wheelbarrows: 30 kg a trip', btn(cl < 3 ? 'Buy' : 'Max', cl < 3 ? fmt(UP.carry.cost(cl)) + ' coins' : '', 'up:carry', cl < 3 && S.coins >= UP.carry.cost(cl)));
+    [['speed', 'worker_side_1', 'Picker speed lv ' + S.lv.speed, '+18% walking and picking per level'], ['racks', 'proc_natural', 'Drying racks: ' + S.lv.racks, 'Process more lots at once'], ['hearts', 'i_heart', 'Stamina: ' + maxHearts() + ' hearts', '+2 hearts for picking by hand']].forEach(([k, a, t, sub]) => {
+      const lv = S.lv[k], u = UP[k], max = lv >= u.max;
+      h += row(img(a, k === 'hearts' ? 28 : 36), t, sub, btn(max ? 'Max' : 'Up', max ? '' : fmt(u.cost(lv)) + ' pts', 'up:' + k, !max && S.points >= u.cost(lv)));
+    });
+    if (S.loc !== 'osaka') h += row(img('bed_open', 44), 'Fourth field at ' + L.name.split(',')[0], f.field ? 'Cleared and planted' : '8 more shrubs in the overgrown bed', btn(f.field ? 'Done' : 'Clear', f.field ? '' : '800 pts', 'up:field', !f.field && S.points >= 800 && f.unlocked));
+    h += '<h3>Farms</h3>' + LOCS.filter((l) => l !== 'osaka').map((l) => row(img('stamp_' + l, 36), ART.locations[l].name, S.farms[l].unlocked ? 'Open' : 'Free with its passport stamp, or with points', S.farms[l].unlocked ? btn('Visit', '', 'go:' + l, true, 'blue') : btn('Open', fmt(FARM_COST[l]) + ' pts', 'farm:' + l, S.points >= FARM_COST[l]))).join('');
+  } else if (tab === 'orders') {
+    h += '<h2>Daily tasks</h2><p class="note">New tasks every in-game day (day ' + S.day + ').</p>';
+    S.tasks.forEach((t, i) => {
+      const r = t.reward, rl = r.coins ? r.coins + ' coins' : r.points ? r.points + ' pts' : r.cranes + ' cranes';
+      h += row(img(t.id === 'pick' ? 'i_cherry' : t.id === 'store' ? 'i_box' : 'green_sack', 28), t.text, '<span class="bar" style="display:block"><i style="width:' + Math.round(t.have / t.goal * 100) + '%"></i></span>' + fmt(t.have) + ' / ' + t.goal, t.done ? btn('Done', '', 'none', false) : btn('Claim', rl, 'task:' + i, t.have >= t.goal, 'green'));
+    });
+    const wk = S.weekly, tot = Math.min(wk.target, wk.team + wk.mine);
+    h += '<h2>Weekly roastery order</h2><p class="note">Deliver ' + fmt(wk.target) + ' kg of washed green coffee as a team. Your washed lots count when you sell them. Ends in ' + Math.max(0, 7 - (S.day - wk.start)) + ' days.</p>';
+    h += '<div class="bar"><i style="width:' + Math.round(tot / wk.target * 100) + '%"></i></div><p class="note">' + fmt(tot) + ' / ' + fmt(wk.target) + ' kg · you: ' + fmt(wk.mine) + ' kg · mika.brews, kenji_pourover and hana.at.home: ' + fmt(wk.team) + ' kg</p>';
+    h += btn(wk.claimed ? 'Claimed' : 'Claim 30 cranes', '', 'weekly', tot >= wk.target && !wk.claimed && wk.mine > 0, 'green');
+    h += '<h2>New harvest year</h2><p class="note">At farm level 10, start a new year: coins, pickers and upgrades reset; you keep farms, processes, hats and stamps, and gain +10% to cup scores and prices forever. You are level ' + level() + '.</p>' + btn('Start year ' + (S.year + 1), level() >= 10 ? 'ready' : 'level 10', 'prestige', level() >= 10);
+    h += '<h2>Real coffee rewards</h2>' + (S.rewards.length ? S.rewards.map((r) => row(img('green_sack', 28), r.text, 'From ' + r.from + ', day ' + r.day + '. Added to your next bejucoffee.com order.', '')).join('') : '<p class="note">Finish a farm’s 1,000 kg harvest to earn free coffee.</p>');
+  } else if (tab === 'shop') {
+    h += '<h2>Crane shop</h2><p class="note">' + icon('i_crane') + ' ' + S.cranes + ' cranes. Earn 1 crane per ¥100 spent on bejucoffee.com and 20 for each new passport stamp (try it in the Test tab).</p>';
+    [['grow', 'Growth ×2 for 30 min', 'Every farm grows twice as fast', 5, 'sparkle'], ['pick', 'Pickers ×2 for 30 min', 'Every picker works twice as fast', 5, 'worker_side_1'], ['hearts', 'Refill hearts', 'Back to full stamina', 2, 'i_heart'], ['points', '+500 points', 'For upgrades and unlocks', 10, 'i_points'], ['dry', 'Instant drying', 'Every lot on the racks finishes now', 6, 'proc_natural']].forEach(([k, t, sub, c, a]) => {
+      const active = (k === 'grow' || k === 'pick') && S.boosts[k] > S.minutesTotal;
+      h += row(img(a, 30), t, active ? 'Active: ' + Math.ceil((S.boosts[k] - S.minutesTotal)) + ' game min left' : sub, btn('Use', c + ' cranes', 'boost:' + k, S.cranes >= c));
+    });
+    h += '<h3>Picker hats</h3><div class="grid2">' + Object.keys(ART.hats).map((k) => {
+      const owned = S.hats[k], cost = { straw: 0, beju: 15, sakura: 20, indigo: 15, harvest: 20 }[k];
+      return '<div class="tile" aria-pressed="' + (S.hat === k) + '"><div style="display:flex;align-items:center;gap:6px"><img src="' + url('worker_down_0', { hat: ART.hats[k] }) + '" alt="" style="width:32px;image-rendering:pixelated"><b>' + ({ straw: 'Straw', beju: 'Beju green', sakura: 'Sakura', indigo: 'Indigo', harvest: 'Harvest orange' })[k] + '</b></div>' +
+        (owned ? btn(S.hat === k ? 'Wearing' : 'Wear', '', 'hat:' + k, S.hat !== k, 'blue') : btn('Buy', cost + ' cranes', 'buyhat:' + k, S.cranes >= cost)) + '</div>';
+    }).join('') + '</div>';
+  } else {
+    h += '<h2>Test tools</h2><p class="note">For playtesting: everything here stands in for something that will come from real orders or real time.</p>';
+    h += '<h3>Simulate a bejucoffee.com order</h3><div class="seg">' + Object.keys(COFFEES).map((k) => '<button type="button" data-act="order:' + k + '">' + COFFEES[k].name + '</button>').join('') + '</div>';
+    h += '<div class="stamps">' + LOCS.map((l) => '<img src="' + url('stamp_' + l) + '" alt="' + ART.locations[l].name + (S.stamps[l] ? ', stamped' : ', not yet') + '" class="' + (S.stamps[l] ? '' : 'off') + '">').join('') + '</div>';
+    h += '<h3>Resources</h3><div class="seg"><button type="button" data-act="add:coins">+1,000 coins</button><button type="button" data-act="add:points">+500 points</button><button type="button" data-act="add:cranes">+50 cranes</button><button type="button" data-act="add:xp">+1 level</button><button type="button" data-act="add:cherries">Fill storage</button></div>';
+    h += '<h3>Time</h3><div class="seg"><button type="button" data-act="away:1">Away 1 h</button><button type="button" data-act="away:4">Away 4 h</button><button type="button" data-act="away:12">Away 12 h</button><button type="button" data-act="day">Next day</button></div>';
+    h += '<h3>Game speed</h3><div class="seg">' + [1, 3, 10].map((x) => '<button type="button" data-act="speed:' + x + '" aria-pressed="' + (S.speed === x) + '">×' + x + '</button>').join('') + '</div>';
+    h += '<h3>Season</h3><div class="seg">' + ['auto', 'harvest', 'rainy', 'spring', 'summer', 'autumn', 'winter'].map((x) => '<button type="button" data-act="season:' + x + '" aria-pressed="' + (S.seasonPick === x) + '">' + x + '</button>').join('') + '</div><p class="note">Harvest and rainy apply to the coffee farms; spring to winter apply to Osaka.</p>';
+    h += '<h3>Save</h3><div class="seg"><button type="button" data-act="reset">Reset the game</button></div><p class="note">Progress saves in this browser every few seconds.</p>';
+  }
+  P.innerHTML = h;
+}
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-tab]'); if (t) { setTab(t.dataset.tab); return; }
+  const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
+  const [a, v] = b.dataset.act.split(':');
+  const f = S.farms[S.loc];
+  if (a === 'close') { $('modal').hidden = true; return; }
+  if (a === 'hire') { if (f.workers.length < 6 && spend('coins', hireCost())) { addWorker(f); toast('A new picker joins you'); } }
+  else if (a === 'tab') setTab(v);
+  else if (a === 'sellraw') sellRaw();
+  else if (a === 'mv') S.millV = v;
+  else if (a === 'lot') startLot(S.millV, v);
+  else if (a === 'sell') sellLot(+v);
+  else if (a === 'method') { if (spend('points', METHODS[v].cost)) { S.methods[v] = true; toast(METHODS[v].name + ' unlocked'); } }
+  else if (a === 'up') buyUpgrade(v);
+  else if (a === 'farm') unlockFarm(v);
+  else if (a === 'go') { S.loc = v; setTab('farm'); }
+  else if (a === 'task') { const tk = S.tasks[+v]; if (tk.have >= tk.goal && !tk.done) { tk.done = true; earn(tk.reward); toast('Task complete!'); } }
+  else if (a === 'weekly') { S.weekly.claimed = true; S.cranes += 30; showModal('<h2>Order delivered!</h2><p class="note">The team delivered ' + fmt(S.weekly.target) + ' kg of washed coffee to the roastery. +30 cranes and the Co-op Roaster badge.</p><button class="btn green" data-act="close">Hooray</button>'); }
+  else if (a === 'prestige') prestige();
+  else if (a === 'boost') {
+    const cost = { grow: 5, pick: 5, hearts: 2, points: 10, dry: 6 }[v];
+    if (!spend('cranes', cost)) return;
+    if (v === 'grow' || v === 'pick') S.boosts[v] = Math.max(S.boosts[v] || 0, S.minutesTotal) + 30;
+    if (v === 'hearts') S.hearts = maxHearts();
+    if (v === 'points') earn({ points: 500 });
+    if (v === 'dry') S.lots.forEach((l) => { l.left = 0; });
+    toast('Boost used');
+  }
+  else if (a === 'buyhat') { const cost = { beju: 15, sakura: 20, indigo: 15, harvest: 20 }[v]; if (spend('cranes', cost)) { S.hats[v] = true; S.hat = v; } }
+  else if (a === 'hat') S.hat = v;
+  else if (a === 'order') realOrder(v);
+  else if (a === 'add') {
+    if (v === 'coins') S.coins += 1000; if (v === 'points') earn({ points: 500 }); if (v === 'cranes') S.cranes += 50;
+    if (v === 'xp') { const l = level(); S.xp = 120 * l * l; }
+    if (v === 'cherries') { const vv = ART.locations[S.loc].beds[0]; S.cherries[vv] = (S.cherries[vv] || 0) + (cap() - stored()); }
+  }
+  else if (a === 'away') away(+v);
+  else if (a === 'day') { S.minutes = 1439.9; }
+  else if (a === 'speed') S.speed = +v;
+  else if (a === 'season') S.seasonPick = v;
+  else if (a === 'reset') { if (b.dataset.sure) { try { localStorage.removeItem(SAVE_KEY); } catch (er) { /* nothing saved */ } S = fresh(); LOCS.forEach((l) => plant(S.farms[l])); addWorker(S.farms.huila); addWorker(S.farms.huila); newTasks(); toast('New game started'); } else { b.dataset.sure = '1'; b.textContent = 'Tap again to reset'; return; } }
+  refreshAll();
+});
+
+function refreshHud() {
+  const L = ART.locations[S.loc], sea = season(S.loc);
+  $('locName').textContent = L.name;
+  $('locBeds').textContent = L.beds.filter((v, i) => L.beds.indexOf(v) === i).map((v) => ART.varieties[v]).join(' · ');
+  const SEA = { harvest: ['Harvest ×1.5', '#D85A3A'], rainy: ['Rainy · flowering', '#4A8AB8'], spring: ['Spring', '#E688A8'], summer: ['Summer ×1.25', '#6CA442'], autumn: ['Autumn', '#D2702C'], winter: ['Winter ×0.5', '#8CA8C8'] }[sea];
+  $('seasonChip').textContent = SEA[0]; $('seasonChip').style.background = SEA[1];
+  const mh = maxHearts();
+  $('hearts').innerHTML = Array.from({ length: mh }, (_, i) => '<svg width="14" height="12" viewBox="0 0 7 6" shape-rendering="crispEdges" aria-hidden="true" style="filter:drop-shadow(1px 1px 0 #3E2A1C)"><g fill="' + (i < S.hearts ? '#F07A3A' : '#5A3A2C') + '"><rect x="1" y="0" width="2" height="1"/><rect x="4" y="0" width="2" height="1"/><rect x="0" y="1" width="7" height="2"/><rect x="1" y="3" width="5" height="1"/><rect x="2" y="4" width="3" height="1"/><rect x="3" y="5" width="1" height="1"/></g></svg>').join('');
+  $('hearts').setAttribute('aria-label', S.hearts + ' of ' + mh + ' hearts');
+  $('hudLevel').innerHTML = icon('i_points') + 'Lv ' + level() + ' · ' + fmt(S.points);
+  $('hudCoins').innerHTML = icon('i_coin') + fmt(S.coins);
+  $('hudCranes').innerHTML = icon('i_crane') + S.cranes;
+  const full = stored() >= cap();
+  $('hudStore').innerHTML = icon('i_cherry') + '<span style="color:' + (full ? '#FF9A8A' : '#FFF4DE') + '">' + fmt(stored()) + '/' + fmt(cap()) + '</span>';
+  const mins = Math.floor(S.minutes), hr = mins / 60, night = hr >= 19 || hr < 6;
+  $('clock').textContent = String(Math.floor(hr)).padStart(2, '0') + ':' + String(mins % 60).padStart(2, '0');
+  $('day').textContent = S.day;
+  $('sky').style.background = night ? '#2C3470' : hr >= 17 ? '#F0A060' : '#7EC8F0';
+  $('sun').style.background = night ? '#F4F0D0' : '#FFD84A';
+}
+function refreshAll() { refreshHud(); renderTabs(); renderPanel(); }
+
+/* ---------- start: offline earnings, intro, loop ---------- */
+const awayMs = Date.now() - (S.last || Date.now());
+refreshAll();
+if (awayMs > 5 * 60 * 1000) away(Math.min(12, Math.round(awayMs / 3600000 * 10) / 10 || 0.1));
+else if (S.intro === 0) showModal('<img src="' + url('worker_down_0', { shirt: ART.shirts[0] }) + '" alt="" style="width:48px;image-rendering:pixelated"><h2>Welcome to Beju Farm</h2><p class="note">Tap shrubs with ripe cherries to pick them; each pick uses a heart. Pickers work on every farm you own, even while you’re away. Process cherries in the Mill, sell to the roastery, and spend coins and points on upgrades. The Test tab lets you try everything quickly.</p><button class="btn green" data-act="close">Start farming</button>');
+let last = performance.now(), uiT = 0, saveT = 0;
+function loop(t) {
+  const dt = Math.min(0.05, (t - last) / 1000); last = t;
+  tick(dt); draw(t / 1000);
+  uiT += dt; saveT += dt;
+  if (toastT > 0) { toastT -= dt; if (toastT <= 0) $('toast').hidden = true; }
+  if (uiT > 0.5) { uiT = 0; refreshHud(); if (!$('panel').matches(':hover') || tab === 'mill') renderPanel(); renderTabs(); }
+  if (saveT > 5) { saveT = 0; save(); }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+window.addEventListener('pagehide', save);
+})();
+</script>

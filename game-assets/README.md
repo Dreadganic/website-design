@@ -41,3 +41,14 @@ python3 game-assets/inject.py <output.dc.html>
 ## Free packs worth knowing about
 
 If the game later needs more general art, these CC0 packs can be used commercially with no credit required: Kenney Tiny Farm, Kenney 1-Bit Pack, and Ninja Adventure by Pixel-boy and AAA. Avoid the free version of Sprout Lands, which is licensed for non-commercial use only.
+
+## Playable build (`play/`)
+
+`python3 play/build.py <out.html>` inlines `sprites.json` and the scene PNGs into `play/template.html`, giving one self-contained page. It saves to localStorage (`beju-farm-save-v1`).
+
+New art used by it (all in `sprites.json`):
+- `storage_1..5`: basket → basket stack → crate pile → storage shed → Beju barn (100 / 250 / 500 / 1,200 / 3,000 kg)
+- `carry_backbasket`, `carry_wheelbarrow`: picker carrying gear (9 / 15 / 30 kg per trip)
+- `bed_open`: cleared fourth field
+- `proc_<method>`: processing pictures for the mill
+- `green_sack`, `i_*` icons, `stamp_<loc>` passport stamps

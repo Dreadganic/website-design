@@ -916,6 +916,332 @@ add_grid("bubble_full", [".oooooooooooooo.", "owwwwwwwwwwwwwwo", "owrrrwrwrwrwwr
 add_grid("sign", [".oooooooooooooo.", "oaaaaaaaaaaaaabo", "oabbbbbbbbbbbbco", "oabbbbbbbbbbbbco", "obccccccccccccco", ".oooooooooooooo.", "......obco......", "......obco......", "......obdo......"],
          {"a": WOOD[0], "b": WOOD[1], "c": WOOD[2], "d": WOOD[3], "o": OUT})
 
+# ---------------- upgrade, processing and interface art ----------------
+def rect(p, x0, y0, w, h, c):
+    for y in range(y0, y0 + h):
+        for x in range(x0, x0 + w):
+            p(x, y, c)
+
+
+def frame(p, x0, y0, w, h, fillc, out=OUT):
+    rect(p, x0, y0, w, h, out); rect(p, x0 + 1, y0 + 1, w - 2, h - 2, fillc)
+
+
+def basket_at(p, x0, y0, full=True):
+    rows = ["..oooooooooooo..", ".oaaaaaaaaaaaao.", ".obbbbbbbbbbbbo.", ".oooooooooooooo.", ".obcbcbcbcbcbco.", ".ocbcbcbcbcbcdo.", ".obcbcbcbcbcbdo.", "..ocdcdcdcdcdo..", "..oooooooooooo.."]
+    pal = {"a": "#F4D490", "b": "#DCB468", "c": "#BC8C48", "d": "#906830", "o": OUT}
+    for y, r in enumerate(rows):
+        for x, ch in enumerate(r):
+            if ch != ".":
+                p(x0 + x, y0 + y, pal[ch])
+    if full:
+        for (x, y) in [(3, -1), (5, -2), (7, -1), (9, -2), (11, -1), (4, 0), (6, -1), (8, 0), (10, -1), (12, 0)]:
+            p(x0 + x, y0 + y, "#E83A30"); p(x0 + x, y0 + y - 1, "#FFB4A0")
+
+
+def crate_at(p, x0, y0, w=16, h=12, full=True):
+    frame(p, x0, y0, w, h, WOOD[1])
+    for x in range(x0 + 1, x0 + w - 1):
+        p(x, y0 + h // 2, WOOD[3]); p(x, y0 + 1, WOOD[0])
+    for y in range(y0 + 1, y0 + h - 1):
+        p(x0 + 3, y, WOOD[2]); p(x0 + w - 4, y, WOOD[2])
+    if full:
+        for x in range(x0 + 2, x0 + w - 2, 2):
+            p(x, y0 - 1, "#E83A30"); p(x + 1, y0 - 1, "#B02820"); p(x, y0 - 2, "#FFB4A0")
+
+
+def storage(level):
+    def draw(p):
+        for y in range(34, 38):
+            for x in range(2, 38):
+                if ((x - 20) / 18) ** 2 + ((y - 36) / 2.2) ** 2 <= 1:
+                    p(x, y, "#2A2A0840")
+        if level == 1:
+            basket_at(p, 12, 26)
+        elif level == 2:
+            basket_at(p, 4, 26); basket_at(p, 20, 26); basket_at(p, 12, 16)
+        elif level == 3:
+            crate_at(p, 3, 24); crate_at(p, 21, 24); crate_at(p, 12, 13); basket_at(p, 23, 14)
+        elif level == 4:   # wooden shed with sacks inside
+            rect(p, 4, 16, 32, 20, OUT); rect(p, 5, 17, 30, 18, WOOD[2])
+            for x in range(5, 35, 4):
+                for y in range(17, 35):
+                    p(x, y, WOOD[3])
+            rect(p, 12, 22, 16, 13, "#3A2418")
+            for (sx, sy) in [(13, 27), (20, 28), (16, 23)]:
+                rect(p, sx, sy, 7, 7, "#C8A870"); rect(p, sx + 1, sy + 1, 5, 2, "#E0C890"); p(sx + 3, sy + 3, "#2D6A46")
+            for y in range(4, 17):
+                inset = (16 - y) // 2
+                for x in range(1 + inset, 39 - inset):
+                    p(x, y, OUT if x in (1 + inset, 38 - inset) or y == 16 else WOOD[0] if (x + y) % 6 else WOOD[1])
+        else:              # the barn, with the Beju crane on the gable
+            rect(p, 1, 14, 38, 22, OUT); rect(p, 2, 15, 36, 20, "#B8483A")
+            for x in range(2, 38, 3):
+                for y in range(15, 35):
+                    p(x, y, "#9A3A2E")
+            rect(p, 12, 20, 16, 15, "#F4ECDC"); rect(p, 13, 21, 14, 14, "#7A4A2A")
+            for k in range(14):
+                p(13 + k, 21 + k * 13 // 14, "#F4ECDC"); p(26 - k, 21 + k * 13 // 14, "#F4ECDC")
+            rect(p, 19, 21, 2, 14, "#F4ECDC")
+            for y in range(0, 15):
+                half = 4 + y * 1.25
+                for x in range(int(20 - half), int(20 + half) + 1):
+                    p(x, y, OUT if abs(x - 20) >= int(half) or y == 14 else "#7A3A30" if (x + y) % 5 else "#6A3028")
+            for (x, y) in [(19, 6), (20, 6), (18, 7), (21, 7), (16, 8), (23, 8), (19, 8), (20, 8), (19, 9), (20, 10)]:
+                p(x, y, "#F8F4EC")
+    return draw
+
+
+for lv in range(1, 6):
+    add_layer("storage_%d" % lv, 40, 38, storage(lv))
+STORAGE = [{"name": "Basket", "cap": 100}, {"name": "Basket stack", "cap": 250}, {"name": "Crate pile", "cap": 500},
+           {"name": "Storage shed", "cap": 1200}, {"name": "Beju barn", "cap": 3000}]
+
+
+def backbasket(p):
+    rect(p, 1, 1, 8, 8, OUT); rect(p, 2, 2, 6, 6, "#DCB468")
+    for y in range(2, 8):
+        for x in range(2, 8):
+            if (x + y) % 2:
+                p(x, y, "#BC8C48")
+    for x in range(2, 8, 2):
+        p(x, 1, "#E83A30"); p(x + 1, 1, "#FFB4A0")
+
+
+def wheelbarrow(p):
+    for x in range(2, 16):
+        p(x, 2, OUT)
+    for y in range(3, 7):
+        for x in range(2 + (y - 3), 16 - (y - 3)):
+            p(x, y, "#7A8A96" if x in (2 + (y - 3), 15 - (y - 3)) else "#A8B8C4")
+    for x in range(4, 14, 2):
+        p(x, 1, "#E83A30"); p(x + 1, 1, "#B02820"); p(x, 0, "#FFB4A0")
+    rect(p, 7, 7, 4, 3, OUT); rect(p, 8, 8, 2, 1, "#4A4A4A")
+    for x in range(14, 18):
+        p(x, 1, WOOD[3])
+
+
+add_layer("carry_backbasket", 10, 10, backbasket)
+add_layer("carry_wheelbarrow", 18, 10, wheelbarrow)
+CARRY = [{"name": "Cloth sack", "kg": 9, "sprite": "sack"}, {"name": "Back basket", "kg": 15, "sprite": "carry_backbasket"},
+         {"name": "Wheelbarrow", "kg": 30, "sprite": "carry_wheelbarrow"}]
+
+
+def bed_open(p):
+    w, h = 78, 40
+    for y in range(h):
+        for x in range(w):
+            border = x < 3 or x >= w - 3 or y < 3 or y >= h - 3
+            if border:
+                p(x, y, WOOD[4] if x in (0, w - 1) or y in (0, h - 1) else WOOD[1] if y < 2 or x < 2 else WOOD[2])
+            else:
+                row = (y - 3) % 9
+                p(x, y, SOIL[0] if row == 0 else SOIL[1] if row < 3 else SOIL[2] if row < 7 else SOIL[3])
+
+
+add_layer("bed_open", 78, 40, bed_open)
+
+
+def icon(name, draw, size=24):
+    add_layer(name, size, size, draw)
+
+
+def proc_washed(p):
+    frame(p, 2, 8, 20, 14, CONCRETE[1], "#5E5A54")
+    rect(p, 4, 10, 16, 10, WATER[2])
+    for x in range(5, 19, 3):
+        p(x, 11, "#FFFFFF")
+    for (x, y) in [(7, 15), (11, 17), (15, 14), (9, 18), (14, 18)]:
+        p(x, y, "#E8D8A0"); p(x + 1, y, "#C8B070")
+    for (x, y) in [(10, 3), (11, 4), (12, 5), (13, 4), (14, 3)]:
+        p(x, y, WATER[1])
+
+
+def proc_natural(p):
+    for k in range(8):
+        a = k / 8 * math.tau
+        p(18 + math.cos(a) * 4, 6 + math.sin(a) * 4, "#F8C030")
+    rect(p, 16, 4, 5, 5, "#FFE070")
+    frame(p, 1, 13, 22, 7, WOOD[2])
+    for x in range(2, 22):
+        p(x, 14, "#C64034" if x % 3 else "#8A2426"); p(x, 15, "#A82E2C" if x % 2 else "#D86048"); p(x, 16, "#C64034")
+    for x in (3, 19):
+        for y in range(20, 23):
+            p(x, y, WOOD[4])
+
+
+def proc_honey(p):
+    for (cx, cy) in [(8, 14), (14, 12), (12, 18), (17, 17)]:
+        for y in range(-3, 4):
+            for x in range(-2, 3):
+                if x * x / 6 + y * y / 10 <= 1:
+                    p(cx + x, cy + y, "#E8A830" if x < 0 else "#C88420")
+        for y in range(-2, 3):
+            p(cx, cy + y, "#8A5A18")
+    for y in range(2, 9):
+        p(12, y, "#F8C040"); p(13, y, "#E0A028")
+    rect(p, 11, 9, 4, 2, "#F8C040")
+
+
+def barrel(dark):
+    def draw(p):
+        body = ["#B07A44", "#8E5E34", "#6E4626"] if not dark else ["#7A4A2E", "#5E3822", "#422614"]
+        for y in range(3, 22):
+            bulge = int(2.5 * math.sin((y - 3) / 18 * math.pi))
+            for x in range(5 - bulge, 19 + bulge):
+                c = body[0] if x < 9 else body[1] if x < 15 else body[2]
+                if x in (5 - bulge, 18 + bulge):
+                    c = OUT
+                p(x, y, c)
+        for y in (6, 18):
+            for x in range(4, 20):
+                p(x, y, "#5A5A60"); p(x, y + 1, "#8A8A92")
+        for x in range(6, 18):
+            p(x, 3, OUT)
+        if dark:
+            rect(p, 9, 10, 6, 5, "#E8D0A0"); p(11, 12, "#7A2A20"); p(12, 12, "#7A2A20")
+    return draw
+
+
+def proc_strawberry(p):
+    frame(p, 5, 5, 14, 17, "#DDEEF2", "#7A9AA8")
+    rect(p, 6, 3, 12, 3, "#C8A870"); rect(p, 6, 3, 12, 1, "#E0C890")
+    rect(p, 6, 12, 12, 9, "#E8C0C8")
+    for (x, y) in [(8, 15), (12, 14), (10, 18), (14, 18), (15, 13)]:
+        rect(p, x, y, 3, 3, "#E83A40"); p(x + 1, y + 1, "#FFD860"); p(x + 1, y - 1, "#3E8A3A")
+
+
+icon("proc_washed", proc_washed); icon("proc_natural", proc_natural); icon("proc_honey", proc_honey)
+icon("proc_whiskey", barrel(False)); icon("proc_rum", barrel(True)); icon("proc_strawberry", proc_strawberry)
+
+
+def bean_sack(p):
+    for y in range(4, 22):
+        half = 6 + min(3, (y - 4) // 3)
+        for x in range(12 - half, 12 + half):
+            p(x, y, OUT if x in (12 - half, 11 + half) or y == 21 else "#C8A870" if (x + y) % 3 else "#B49058")
+    rect(p, 9, 1, 6, 4, "#B49058"); rect(p, 8, 4, 8, 1, OUT)
+    for (x, y) in [(11, 10), (12, 10), (10, 11), (13, 11), (11, 12), (12, 12), (11, 13), (12, 14)]:
+        p(x, y, "#2D6A46")
+
+
+icon("green_sack", bean_sack)
+
+
+def mk_icon(fn):
+    def draw(p):
+        fn(p)
+    return draw
+
+
+def i_coin(p):
+    for y in range(12):
+        for x in range(12):
+            d = (x - 5.5) ** 2 + (y - 5.5) ** 2
+            if d <= 30:
+                p(x, y, OUT if d > 22 else "#FFE080" if x + y < 9 else "#F2C04A" if d < 12 else "#D09A30")
+    rect(p, 5, 3, 2, 6, "#B07A20")
+
+
+def i_crane(p):
+    for y in range(12):
+        for x in range(12):
+            if (x - 5.5) ** 2 + (y - 5.5) ** 2 <= 30:
+                p(x, y, OUT if (x - 5.5) ** 2 + (y - 5.5) ** 2 > 22 else "#2D6A46")
+    for (x, y) in [(2, 4), (3, 5), (4, 6), (5, 6), (6, 6), (7, 6), (8, 5), (9, 4), (5, 3), (5, 4), (6, 5), (5, 7), (6, 8)]:
+        p(x, y, "#F8F4EC")
+
+
+def i_points(p):
+    pts = [(5.5, 0), (7, 4), (11.5, 4.5), (8, 7.2), (9.5, 11.5), (5.5, 9), (1.5, 11.5), (3, 7.2), (-0.5, 4.5), (4, 4)]
+    for y in range(12):
+        for x in range(12):
+            inside = False
+            j = len(pts) - 1
+            for i in range(len(pts)):
+                xi, yi = pts[i]; xj, yj = pts[j]
+                if ((yi > y + 0.5) != (yj > y + 0.5)) and (x + 0.5 < (xj - xi) * (y + 0.5 - yi) / (yj - yi + 1e-9) + xi):
+                    inside = not inside
+                j = i
+            if inside:
+                p(x, y, "#9CC860" if y < 6 else "#6E9A3A")
+
+
+def i_cherry(p):
+    for (cx, cy) in [(3.5, 7.5), (8, 8)]:
+        for y in range(12):
+            for x in range(12):
+                d = (x - cx) ** 2 + (y - cy) ** 2
+                if d <= 7:
+                    p(x, y, OUT if d > 5 else "#FFB4A0" if x < cx and y < cy else "#E83A30")
+    for (x, y) in [(4, 4), (5, 3), (6, 2), (7, 3), (8, 4), (8, 5), (6, 1), (7, 1)]:
+        p(x, y, "#3E7C34")
+
+
+def i_bean(p):
+    for y in range(12):
+        for x in range(12):
+            d = ((x - 5.5) / 4.5) ** 2 + ((y - 5.5) / 5.5) ** 2
+            if d <= 1:
+                p(x, y, OUT if d > 0.75 else "#B8C878" if x < 5 else "#94A85A")
+    for y in range(2, 10):
+        p(5 + (1 if y in (4, 5, 6) else 0), y, "#6A7A3A")
+
+
+def i_heart(p):
+    rows = [".oo.oo.", "ohhoffo", "ohfffffo"[:7], "offfffo", ".offfo.", "..ofo..", "...o..."]
+    for y, r in enumerate(rows):
+        for x, ch in enumerate(r):
+            if ch != ".":
+                p(x + 2, y + 3, {"o": OUT, "h": "#FFD0A0", "f": "#F07A3A"}[ch])
+
+
+def i_cup(p):
+    rect(p, 1, 4, 8, 7, OUT); rect(p, 2, 5, 6, 5, "#F8F4EC"); rect(p, 2, 5, 6, 1, "#6A3A20")
+    for y in range(6, 9):
+        p(9, y, OUT)
+    p(10, 6, OUT); p(10, 8, OUT)
+    for (x, y) in [(3, 1), (4, 2), (6, 1), (7, 2)]:
+        p(x, y, "#C8C0B8")
+
+
+def i_box(p):
+    rect(p, 1, 3, 10, 8, OUT); rect(p, 2, 4, 8, 6, WOOD[1]); rect(p, 2, 6, 8, 1, WOOD[3]); rect(p, 5, 4, 2, 6, WOOD[2])
+
+
+def i_worker(p):
+    rect(p, 2, 2, 8, 2, "#F4DE9C"); rect(p, 0, 4, 12, 1, "#A88440"); rect(p, 3, 5, 6, 3, "#F8D2B0"); p(4, 6, OUT); p(7, 6, OUT); rect(p, 2, 8, 8, 4, "#4860C0")
+
+
+for nm, fn in [("i_coin", i_coin), ("i_crane", i_crane), ("i_points", i_points), ("i_cherry", i_cherry), ("i_bean", i_bean),
+               ("i_heart", i_heart), ("i_cup", i_cup), ("i_box", i_box), ("i_worker", i_worker)]:
+    add_layer(nm, 12, 12, fn)
+
+STAMP_COLORS = {"huila": "#B2455F", "mogiana": "#7A5230", "gedeo": "#6A4C9C", "toba": "#17788A", "turrialba": "#A5650F", "osaka": "#2D6A46"}
+
+
+def stamp(col):
+    def draw(p):
+        for y in range(24):
+            for x in range(24):
+                d = math.hypot(x - 11.5, y - 11.5)
+                if 9.5 <= d <= 11.5:
+                    p(x, y, col)
+                elif d <= 7.5 and (x + y) % 7 == 0:
+                    p(x, y, col + "40")
+        for (x, y) in [(7, 9), (8, 10), (9, 11), (10, 12), (11, 12), (12, 12), (13, 12), (14, 11), (15, 10), (16, 9), (11, 7), (11, 8), (11, 9), (12, 10), (11, 13), (11, 14), (12, 15)]:
+            p(x, y, col)
+        for x in range(6, 18):
+            p(x, 18, col if x % 3 else col + "80")
+    return draw
+
+
+for loc, col in STAMP_COLORS.items():
+    add_layer("stamp_" + loc, 24, 24, stamp(col))
+
+HATS = {"straw": ["#F4DE9C", "#D8B868", "#A88440"], "beju": ["#6FB08A", "#2D6A46", "#1E4A30"], "sakura": ["#FAD2DF", "#E68EAC", "#C86C8E"],
+        "indigo": ["#7088D0", "#3A4C9C", "#262F6A"], "harvest": ["#F8B860", "#E07830", "#A84E18"]}
+
 SHIRTS = [["#7890E0", "#4860C0", "#304090"], ["#F07888", "#D04058", "#902838"], ["#90C070", "#5A9848", "#386830"],
           ["#F8C860", "#D89830", "#A06818"], ["#B898E8", "#8060C0", "#584090"], ["#70D0D8", "#30A0B0", "#207078"],
           ["#E0A878", "#B07040", "#7A4A24"], ["#F8A0C0", "#E06890", "#A84068"]]
@@ -945,19 +1271,19 @@ def render(s, shirt=None):
 
 SHRUBS = [(bx + 6 + c * 18, by + r * 17) for (bx, by) in BEDS[:3] for r in range(2) for c in range(4)]
 with open(os.path.join(HERE, "sprites.json"), "w") as f:
-    json.dump({"sprites": S, "shirts": SHIRTS, "shrubs": SHRUBS, "locations": LOCATIONS,
+    json.dump({"sprites": S, "shirts": SHIRTS, "shrubs": SHRUBS, "locations": LOCATIONS, "storage": STORAGE, "carry": CARRY, "hats": HATS, "stampColors": STAMP_COLORS, "beds": BEDS,
                "varieties": {k: v[0] for k, v in VARIETIES.items()}}, f, separators=(",", ":"))
 
 # sheet of non-shrub sprites
-names = [n for n in S if not n.startswith("bush_")]
+names = [n for n in S if not n.startswith("bush_") and n != "bed_open"]
 x = y = rowh = 0
 place = {}
 for n in names:
     s = S[n]
-    if x + s["w"] > 160:
+    if x + s["w"] > 200:
         x, y, rowh = 0, y + rowh + 3, 0
     place[n] = (x, y); x += s["w"] + 3; rowh = max(rowh, s["h"])
-sheet = Image.new("RGBA", (160, y + rowh), (0, 0, 0, 0))
+sheet = Image.new("RGBA", (200, y + rowh), (0, 0, 0, 0))
 for n, (sx, sy) in place.items():
     sheet.alpha_composite(render(S[n]), (sx, sy))
 sheet.save(os.path.join(HERE, "sheet.png"))
