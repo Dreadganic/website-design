@@ -87,3 +87,10 @@ Pacing: costs start cheap and climb steeply (pickers ×1.5 each from 150 coins, 
 - **Daily brew check-in:** once per real day, a 7-day reward cycle and streak freezes (start with 1, earn 1 per completed week, hold up to 2).
 - **Market board:** one process pays ×1.4 each farm day, shown in the Mill.
 - Test tab: "Next real day" (check-in) and "Restart guide".
+
+## Seasons, drop events, bottlenecks, real coffee (review pass 2)
+- **Monthly seasons:** a season board (prestiges this calendar month) and an all-time board in Ranks. Each prestige in a season needs two more levels (10, 12, 14 … 20); a new month resets the season count. Finishing a season with a prestige or in the top 10 earns a badge (Champion, Top 3, Top 10, Farmer) shown on your profile.
+- **Drop events:** `DROPS` lists product launches. A drop runs 7 days: the featured variety is free to plant, lots of that variety or process sell ×1.5, and three Beju Roastery event contracts (no expiry, no skip) pay 2.5–3.5× and finish with a badge and 10 cranes. It opens with a phone-style notification; on the live app this comes from the server as a push.
+- **Bottleneck hint:** the Farm tab names what's slowing the farm (storage full, racks busy, pickers waiting for cherries).
+- **Real coffee** (Shop → Real coffee): how orders earn cranes and stamps, a link to bejucoffee.com, the passport, what each coffee gives, and free coffee earned.
+- Test tab: "Start a drop event" and "End the season".

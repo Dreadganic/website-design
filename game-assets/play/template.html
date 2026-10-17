@@ -77,6 +77,18 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-
 .stamps .off { opacity: 0.25; filter: grayscale(1); }
 .modal { position: fixed; inset: 0; background: rgba(20,12,6,0.6); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 20; }
 .modal[hidden] { display: none; }
+.bneck { padding: 8px 10px; background: #FBE3D6; border: 2px solid #B4502C; border-radius: 8px; font-size: 13px; color: #5A2A14; line-height: 1.45; }
+.drop { display: flex; gap: 8px; align-items: center; padding: 8px 10px; background: linear-gradient(90deg, #FFE4EE, #FFF1C4); border: 2px solid #C86C8E; border-radius: 8px; margin-bottom: 4px; }
+.drop div { display: flex; flex-direction: column; min-width: 0; }
+.drop b { font-size: 14px; } .drop span { font-size: 12px; font-weight: 700; color: #7A5A3A; }
+.push { display: flex; flex-direction: column; gap: 2px; width: 100%; text-align: left; padding: 10px 12px; border-radius: 14px; background: #F4F4F6; color: #1E1E22; box-shadow: 0 2px 8px rgba(0,0,0,0.18); font-family: -apple-system, system-ui, sans-serif; font-size: 13px; }
+.push-app { font-size: 11px; color: #6E6E76; letter-spacing: 0.04em; }
+.season { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; padding: 8px 10px; background: #E2F0E6; border: 2px solid #2D6A46; border-radius: 8px; font-size: 13px; }
+.season span { font-weight: 700; color: #3E5A48; }
+.badges { display: flex; gap: 6px; flex-wrap: wrap; }
+.badge { display: flex; flex-direction: column; align-items: center; padding: 4px 8px; border-radius: 8px; border: 2px solid #A87818; background: #FFF1C4; font: 700 12px 'Pixelify Sans', monospace; }
+.badge small { font: 700 10px var(--body, sans-serif); color: #7A5A3A; }
+.badge.r1 { background: linear-gradient(#FFF4B0, #F2C04A); } .badge.r99 { border-color: #C86C8E; background: #FFE4EE; }
 .hn { font-size: 12px; color: #FFF4DE; margin-left: 3px; text-shadow: 1px 1px 0 #3E2A1C; }
 .guide { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: #2D6A46; color: #FBF1DC; border: 3px solid #1E4A30; border-radius: 10px; font-weight: 700; font-size: 13px; }
 .guide[hidden] { display: none; }
@@ -255,6 +267,12 @@ const DECOR_AT = { bench: [[138, 96]], planter: [[179, 104]], lantern: [[91, 140
 /* prestige: purely for show. It ranks you above everyone on a lower prestige, unlocks a nameplate, border and farmer outfit per tier,
    and costs you level, points and access to farms until you level back up. Coins, upgrades and cosmetics are never touched. */
 const PRESTIGE_LEVEL = 10;
+/* monthly seasons: a fresh board each calendar month, and each prestige within a season asks for two more levels (10, 12, 14 ... up to 20) */
+const seasonKey = (d) => { d = d || new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); };
+const seasonName = (k) => new Date(+k.slice(0, 4), +k.slice(5) - 1, 1).toLocaleString('en', { month: 'long', year: 'numeric' });
+const prestigeNeed = () => Math.min(20, PRESTIGE_LEVEL + 2 * S.season.prestige);
+const daysLeft = () => { const n = new Date(); return Math.ceil((new Date(n.getFullYear(), n.getMonth() + 1, 1) - n) / 86400000); };
+const BADGE = (rank) => (rank === 1 ? 'Champion' : rank <= 3 ? 'Top 3' : rank <= 10 ? 'Top 10' : 'Farmer');
 const FARM_LEVEL = { huila: 3, gedeo: 5, toba: 7, turrialba: 9 };   /* dormant farms reopen at these levels after a prestige */
 const TIERS = ['Seedling', 'Bronze Bean', 'Silver Leaf', 'Gold Cherry', 'Jade Highland', 'Sakura', 'Obsidian Ember', 'Golden Crane'];
 const PLATES = ['seed', 'bronze', 'silver', 'gold', 'jade', 'sakura', 'ember', 'crane'];
@@ -276,15 +294,45 @@ const BOT_NAMES = ['mika.brews', 'kenji_pourover', 'hana.at.home', 'cafe_lucia',
 function bots() {
   return BOT_NAMES.map((name, i) => {
     let z = (i + 1) * 9301 + 49297; const r = () => { z = (z * 233280 + 49297) % 2147483647; return z / 2147483647; };
-    const p0 = [9, 8, 7, 6, 6, 5, 5, 4, 4, 4, 3, 3, 3, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0][(i * 7) % 30], rp = r() * 0.12, x0 = r() * XP_AT(16), rx = 400 + r() * 2600;
+    const p0 = [9, 8, 7, 6, 6, 5, 5, 4, 4, 4, 3, 3, 3, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0][(i * 7) % 30], sp = r(), rp = r() * 0.12, x0 = r() * XP_AT(16), rx = 400 + r() * 2600;
     const prestige = p0 + Math.floor(S.day * rp), xp = (x0 + S.day * rx) % XP_AT(15);
     let lv = 1; while (xp >= XP_AT(lv + 1)) lv++;
-    return { name, prestige, level: lv, points: Math.round(xp), look: { plate: tierOf(prestige), border: tierOf(prestige), skin: tierOf(prestige) } };
+    const seasonP = Math.floor(sp * sp * 5 * new Date().getDate() / 31);   /* prestiges so far this month */
+    return { name, prestige, seasonP, level: lv, points: Math.round(xp), look: { plate: tierOf(prestige), border: tierOf(prestige), skin: tierOf(prestige) } };
   });
 }
-function board() {
-  const me = { name: S.name, prestige: S.prestige, level: level(), points: Math.round(S.xp), look: S.look, you: true };
-  return bots().concat([me]).sort((a, b) => b.prestige - a.prestige || b.level - a.level || b.points - a.points);
+function board(mode) {
+  const me = { name: S.name, prestige: S.prestige, seasonP: S.season.prestige, level: level(), points: Math.round(S.xp), look: S.look, you: true };
+  const key = mode === 'all' ? 'prestige' : 'seasonP';
+  return bots().concat([me]).sort((a, b) => b[key] - a[key] || b.level - a.level || b.points - a.points);
+}
+function seasonTick() {   /* a new month closes the old season and hands out its badge */
+  if (S.season.key === seasonKey()) return;
+  const list = board('season'), rank = list.findIndex((x) => x.you) + 1, old = S.season.key;
+  if (S.season.prestige > 0 || rank <= 10) { S.badges.push({ key: old, rank, label: BADGE(rank) }); showModal('<h2>' + seasonName(old) + ' season over</h2><p class="note">You finished <b>#' + rank + '</b> with ' + S.season.prestige + ' prestige' + (S.season.prestige === 1 ? '' : 's') + ' this season. Your <b>' + BADGE(rank) + '</b> badge is on your profile.</p><p class="note">A new season starts now: the season board resets and your next prestige is back to level ' + PRESTIGE_LEVEL + '. Your all-time prestige and looks stay.</p><button class="btn green" data-act="close">Start the season</button>'); }
+  S.season = { key: seasonKey(), prestige: 0 };
+}
+/* drop events: each real product launch becomes a week in the game. On the live app the list comes from the server and a push notification announces it */
+const DROPS = [
+  { id: 'pinknat', name: 'Huila Pink Bourbon Natural', variety: 'pinkbourbon', method: 'natural', note: 'A limited natural from Huila, as fruity as it gets.' },
+  { id: 'gujiwash', name: 'Ethiopia Guji Washed', variety: 'heirloom', method: 'washed', note: 'Floral, tea-like heirloom coffee from the Guji highlands.' },
+  { id: 'geishahoney', name: 'Geisha Honey', variety: 'geisha', method: 'honey', note: 'A tiny lot of Geisha, honey processed for sweetness.' }
+];
+const EVENT_MULT = 1.5;
+const eventOn = () => S.event && Date.now() < S.event.ends;
+const eventDrop = () => (eventOn() ? DROPS.find((d) => d.id === S.event.id) : null);
+const eventDays = () => Math.max(1, Math.ceil((S.event.ends - Date.now()) / 86400000));
+function startDrop(id) {
+  const d = DROPS.find((x) => x.id === id) || DROPS[0];
+  S.event = { id: d.id, ends: Date.now() + 7 * 86400000, done: 0 };
+  S.contracts = S.contracts.filter((c) => !c.event);
+  for (let k = 0; k < 3; k++) S.contracts.push(eventContract(d, k));
+  showModal('<div class="push"><span class="push-app">BEJU · now</span><b>New drop: ' + d.name + '</b><span>' + d.note + ' Plant it free all week in Beju Farm.</span></div><h2>Drop event</h2><p class="note">For 7 days: ' + ART.varieties[d.variety] + ' seeds are free to plant, ' + d.method + ' and ' + ART.varieties[d.variety] + ' lots sell for ×' + EVENT_MULT + ', and Beju has three event contracts for you. Finish all three for the event badge and 10 cranes.</p><p class="note"><a href="https://bejucoffee.com" target="_blank" rel="noopener">See the real coffee on bejucoffee.com</a></p><button class="btn green" data-act="close">Let\'s grow it</button>');
+  SFX.play('achieve');
+}
+function eventContract(d, k) {
+  const kg = Math.max(5, Math.round(cap() * 0.2 * (0.3 + k * 0.2))), base = saleFor(d.variety, d.method, kg);
+  return { id: Math.floor(rnd() * 1e9), buyer: 'Beju Roastery', note: 'Drop event ' + (k + 1) + '/3: ' + d.name, v: d.variety, method: d.method, minCup: Math.floor((cupFor(d.variety, d.method) - 1) * 2) / 2, kg, have: 0, coins: Math.round(base.coins * (2.5 + k * 0.5)), points: Math.round(base.points * (2.5 + k * 0.5)), due: Infinity, event: true };
 }
 /* contracts */
 const BUYERS = ['Kissa Hoshi, Osaka', 'Mame Lab, Kyoto', 'Blue Door Café, Melbourne', 'Nordlys Roasters, Oslo', 'Café Solar, Bogotá', 'Little Crane Bakery', 'Hanami Coffee Stand', 'Beju Roastery', 'Beju Roastery'];
@@ -362,7 +410,7 @@ function fresh() {
     methods: { washed: true, natural: true }, vars: { caturra: true }, staff: { foreman: false, agent: false, rule: 'best' }, decor: {}, contracts: [], nextContract: 0, hat: 'straw', hats: { straw: true }, stamps: {},
     cherries: {}, lots: [], boosts: {}, minutes: 7 * 60 + 30, day: 1, taps: 0, year: 1, bonus: 0,
     tasks: null, weekly: { mine: 0, team: 1800, target: 4000, start: 1, claimed: false }, rewards: [], stats: { picked: 0, sold: 0, lotsSold: 0 },
-    farms: {}, intro: 0, seasonPick: 'auto', speed: 1, sfx: true, music: true, musicVol: 0.45, guide: 0, guideN: 0, tabs: { upgrades: false, orders: false, ranks: false, shop: false }, newTab: null, checkin: { last: '', streak: 0, freezes: 1 }, prestige: 0, name: 'You', look: { plate: 0, border: 0, skin: 0 }, dormant: {}, last: Date.now()
+    farms: {}, intro: 0, seasonPick: 'auto', speed: 1, sfx: true, music: true, musicVol: 0.45, guide: 0, guideN: 0, tabs: { upgrades: false, orders: false, ranks: false, shop: false }, newTab: null, checkin: { last: '', streak: 0, freezes: 1 }, season: { key: seasonKey(), prestige: 0 }, badges: [], event: null, prestige: 0, name: 'You', look: { plate: 0, border: 0, skin: 0 }, dormant: {}, last: Date.now()
   };
   LOCS.forEach((l) => { st.farms[l] = newFarm(l); });
   return st;
@@ -373,7 +421,7 @@ let S = load() || fresh();
   if (S.prestige === undefined) S.prestige = Math.max(0, (S.year || 1) - 1);   /* old harvest years count as prestiges */
   S.bonus = 0;   /* prestige no longer gives a gameplay bonus */
   const veteran = S.guide === undefined && (S.stats.lotsSold > 0 || S.prestige > 0);
-  ['staff', 'decor', 'contracts', 'nextContract', 'sfx', 'music', 'musicVol', 'name', 'look', 'dormant', 'guide', 'guideN', 'tabs', 'newTab', 'checkin'].forEach((k) => { if (S[k] === undefined) S[k] = JSON.parse(JSON.stringify(d[k])); });
+  ['staff', 'decor', 'contracts', 'nextContract', 'sfx', 'music', 'musicVol', 'name', 'look', 'dormant', 'guide', 'guideN', 'tabs', 'newTab', 'checkin', 'season', 'badges', 'event'].forEach((k) => { if (S[k] === undefined) S[k] = JSON.parse(JSON.stringify(d[k])); });
   if (veteran) { S.guide = 6; S.tabs = { upgrades: true, orders: true, ranks: true, shop: true }; }   /* existing players skip the guide */
   if (!S.lv.pickers) { S.lv.pickers = Math.max(S.lv.speed || 1, S.lv.carry >= 3 ? 8 : S.lv.carry >= 2 ? 4 : 1); S.lv.speed = S.lv.pickers; }
   S.hearts = Math.min(S.hearts, 24 + S.lv.hearts * 6);
@@ -699,7 +747,7 @@ const MARKET = 1.4;
 const cupFor = (v, method) => { const vr = VAR[v]; return Math.min(95, METHODS[method].cup + (vr.value - 1) * 2 + ((vr.cup || {})[method] || 0) + S.bonus * 10 + shadeCup()); };
 function saleFor(v, method, green) {
   const bonus = 1 + S.bonus, cup = cupFor(v, method);
-  return { cup, coins: Math.round(green * 22 * VAR[v].value * METHODS[method].mult * bonus * (method === marketPick() ? MARKET : 1)), points: Math.round(green * (3 + Math.max(0, cup - 80)) * 0.8 * bonus) };
+  return { cup, coins: Math.round(green * 22 * VAR[v].value * METHODS[method].mult * bonus * (method === marketPick() ? MARKET : 1) * (eventDrop() && (v === eventDrop().variety || method === eventDrop().method) ? EVENT_MULT : 1)), points: Math.round(green * (3 + Math.max(0, cup - 80)) * 0.8 * bonus) };
 }
 function sellLot(i, quiet) {
   const l = S.lots[i]; if (!l || l.left > 0) return;
@@ -734,8 +782,9 @@ function contractsTick() {
   const before = S.contracts.length;
   S.contracts = S.contracts.filter((c) => c.due > S.minutesTotal);
   if (S.contracts.length < before) toast('A contract ran out of time');
+  if (S.event && !eventOn() && S.contracts.some((c) => c.event)) { S.contracts = S.contracts.filter((c) => !c.event); toast('The drop event has ended'); }
   if (!S.nextContract) { while (S.contracts.length < 3) S.contracts.push(newContract()); }   /* a full board on a new save */
-  if (S.contracts.length < contractSlots() && S.minutesTotal >= S.nextContract) { S.contracts.push(newContract()); S.nextContract = S.minutesTotal + 20; }
+  if (S.contracts.filter((c) => !c.event).length < contractSlots() && S.minutesTotal >= S.nextContract) { S.contracts.push(newContract()); S.nextContract = S.minutesTotal + 20; }
 }
 function deliver(i, id, quiet) {
   const l = S.lots[i], c = S.contracts.find((x) => x.id === id);
@@ -749,6 +798,7 @@ function deliver(i, id, quiet) {
   if (c.have >= c.kg - 0.01) {
     S.contracts = S.contracts.filter((x) => x !== c); S.nextContract = Math.min(S.nextContract, S.minutesTotal + 10);
     earn({ coins: c.coins, points: c.points }); S.stats.contracts = (S.stats.contracts || 0) + 1; SFX.play('contract');
+    if (c.event && S.event) { S.event.done += 1; if (S.event.done >= 3) { earn({ cranes: 10 }); S.badges.push({ event: eventDrop() ? eventDrop().name : 'Drop event', label: 'Drop', rank: 99 }); setTimeout(() => showModal('<h2>Drop event complete!</h2><p class="note">All three event contracts are delivered. The event badge is on your profile, and 10 cranes are yours.</p><button class="btn green" data-act="close">Brilliant</button>'), 600); } }
     if (quiet) { toast('Contract for ' + c.buyer + ' complete: +' + fmt(c.coins) + ' coins'); return; }
     showModal(img('board', 64) + '<h2>Contract complete!</h2><p class="note">' + c.buyer + ' received ' + fmt(c.kg) + ' kg' + (c.note ? ' (' + c.note.toLowerCase() + ')' : '') + '.' + (spare > 0.05 ? ' The spare ' + fmt(spare) + ' kg went to the roastery.' : '') + '</p><div class="stats"><div><small>Coins</small><b>+' + fmt(c.coins + extra.coins) + '</b></div><div><small>Points</small><b>+' + fmt(c.points + extra.points) + '</b></div></div><button class="btn green" data-act="close">Great</button>');
   } else if (!quiet) SFX.play('stamp'), toast(fmt(use) + ' kg delivered to ' + c.buyer + ' (' + fmt(c.have) + ' / ' + fmt(c.kg) + ' kg)');
@@ -794,8 +844,8 @@ function unlockFarm(loc) {
   addWorker(f); toast(ART.locations[loc].name + ' is open');
 }
 function prestige() {
-  if (level() < PRESTIGE_LEVEL) return;
-  S.prestige += 1;
+  if (level() < prestigeNeed()) return;
+  S.prestige += 1; S.season.prestige += 1;
   const t = tierOf(S.prestige);
   S.look = { plate: t, border: t, skin: t };   /* wear the newest look straight away */
   S.xp = 0; S.points = 0;
@@ -891,11 +941,22 @@ function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = fals
 function showModal(html) { $('modalCard').innerHTML = html; if ($('modal').hidden) SFX.play('page'); $('modal').hidden = false; }
 function shopTabs() {
   const st = S.shopTab || 'cranes', dot = Object.keys(DECOR).some((k) => S.decor[k] === undefined && S.coins >= DECOR[k].cost);
-  return '<div class="seg subtabs">' + [['cranes', 'Cranes'], ['decor', 'Decor']].map(([k, t]) => '<button type="button" data-act="shoptab:' + k + '" aria-pressed="' + (st === k) + '">' + t + (k === 'decor' && dot ? ' <i class="dot" aria-label="something to buy"></i>' : '') + '</button>').join('') + '</div>';
+  return '<div class="seg subtabs">' + [['cranes', 'Cranes'], ['decor', 'Decor'], ['beju', 'Real coffee']].map(([k, t]) => '<button type="button" data-act="shoptab:' + k + '" aria-pressed="' + (st === k) + '">' + t + (k === 'decor' && dot ? ' <i class="dot" aria-label="something to buy"></i>' : '') + '</button>').join('') + '</div>';
 }
 function avatar(look, size) { return '<span class="fr b-' + PLATES[look.border] + '" style="width:' + size + 'px;height:' + size + 'px"><img src="' + url('worker_down_0', skinLook(look.skin)) + '" alt="" style="height:' + Math.round(size * 0.78) + 'px"></span>'; }
 function plate(name, i, stars) { return '<span class="plate p-' + PLATES[i] + '">' + name + (stars ? ' ' + '★'.repeat(Math.min(5, stars)) : '') + '</span>'; }
 const starsFor = (p) => (p >= TIERS.length ? p - TIERS.length + 1 : 0);
+function bottleneck() {   /* name the one thing slowing the farm down right now */
+  const f = S.farms[S.loc];
+  if (stored() >= cap()) return '<b>Storage is full.</b> Pickers have stopped. Process cherries in the Mill or build bigger storage.';
+  if (S.lots.length >= racks() && stored() > cap() * 0.5) return '<b>Every drying rack is busy.</b> More racks in Upgrade, or raised drying beds in Build, would keep the mill moving.';
+  if (f.workers.length && !f.shrubs.some((x) => x.p >= 1) && f.workers.every((w) => w.state === 'walk' && w.next === 'seek' || w.state === 'seek')) return '<b>Pickers are waiting for cherries.</b> Faster coffees, a compost shed or the fourth field would give them more to pick.';
+  return '';
+}
+function eventBanner() {
+  const d = eventDrop(); if (!d) return '';
+  return '<div class="drop">' + img('bush_' + d.variety + '_ripe', 30) + '<div><b>Drop event: ' + d.name + '</b><span>' + eventDays() + ' day' + (eventDays() === 1 ? '' : 's') + ' left · ' + S.event.done + '/3 event contracts · ' + d.method + ' and ' + ART.varieties[d.variety] + ' sell ×' + EVENT_MULT + '</span></div></div>';
+}
 function row(art, title, sub, button) { return '<div class="row"><div class="art">' + art + '</div><div class="grow"><b>' + title + '</b><span>' + sub + '</span></div>' + button + '</div>'; }
 function btn(label, sub, act, enabled, cls) { return '<button class="btn ' + (cls || '') + '" type="button" data-act="' + act + '"' + (enabled ? '' : ' disabled') + '>' + label + (sub ? '<small>' + sub + '</small>' : '') + '</button>'; }
 const img = (n, w) => '<img src="' + url(n) + '" alt="" style="width:' + (w || 40) + 'px">';
@@ -903,6 +964,7 @@ const img = (n, w) => '<img src="' + url(n) + '" alt="" style="width:' + (w || 4
 function renderPanel() {
   const P = $('panel'), f = S.farms[S.loc], L = ART.locations[S.loc];
   let h = '';
+  h += eventBanner();
   if (tab === 'farm') {
     const [frac, lvl] = levelSpan();
     h += '<div class="level"><b>Farm level ' + lvl + '</b><div class="bar"><i style="width:' + Math.round(frac * 100) + '%"></i></div><span class="note">Prestige ' + S.prestige + '</span></div>';
@@ -913,6 +975,7 @@ function renderPanel() {
       else if (!S.farms[prevFarm(S.loc)].unlocked) h += '<h2>' + L.name + '</h2><p class="note">Locked. Open ' + ART.locations[prevFarm(S.loc)].name + ' first, then this farm costs ' + fmt(FARM_COST[S.loc]) + ' know-how.</p>' + btn('Locked', '', 'noop', false);
       else h += '<h2>' + L.name + '</h2><p class="note">Your next farm. Earn know-how by processing and selling lots in the Mill.</p>' + btn('Open farm', fmt(FARM_COST[S.loc]) + ' know-how', 'farm:' + S.loc, S.points >= FARM_COST[S.loc], 'green');
     } else {
+      const bn = bottleneck(); if (bn) h += '<div class="bneck">' + bn + '</div>';
       if (S.loc !== 'osaka') {
         h += '<div><div style="display:flex;justify-content:space-between;align-items:baseline"><h3>Harvest ' + fmt(f.harvested) + ' / 1,000 kg</h3><span class="note">' + (f.rewarded ? 'Reward earned' : 'Reward: free 100 g') + '</span></div><div class="bar"><i style="width:' + Math.round(f.harvested / f.goal * 100) + '%"></i></div><p class="note">' + (f.rewarded ? 'Free 100 g ' + L.reward + ' is on your next order.' : 'Reach 1,000 kg for a free 100 g ' + L.reward + ' with your next bejucoffee.com order.') + '</p></div>';
       } else h += '<p class="note">The Osaka roastery garden: rare varieties all year round, through four Japanese seasons.</p>';
@@ -1001,7 +1064,7 @@ function renderPanel() {
     if (!S.contracts.length) h += '<p class="note">No contracts right now. A new one arrives shortly.</p>';
     S.contracts.forEach((c) => {
       const what = (c.method ? METHODS[c.method].name.toLowerCase() + ' ' : '') + (c.v ? ART.varieties[c.v] : 'coffee of any variety'), hrs = Math.max(0, (c.due - S.minutesTotal) / 60);
-      h += row(img(c.v ? 'bush_' + c.v + '_ripe' : 'board', 34), c.buyer, fmt(c.kg) + ' kg green ' + what + ', cup ' + c.minCup.toFixed(1) + '+' + (c.note ? ' · ' + c.note : '') + '<br>' + icon('i_coin') + fmt(c.coins) + ' · ' + icon('i_points') + fmt(c.points) + ' · ' + (hrs >= 1 ? Math.floor(hrs) + ' h' : Math.ceil(hrs * 60) + ' min') + ' left' + '<span class="bar" style="display:block;margin-top:3px"><i style="width:' + Math.round(c.have / c.kg * 100) + '%"></i></span>', btn('Skip', '', 'skip:' + c.id, true));
+      h += row(img(c.v ? 'bush_' + c.v + '_ripe' : 'board', 34), c.buyer, fmt(c.kg) + ' kg green ' + what + ', cup ' + c.minCup.toFixed(1) + '+' + (c.note ? ' · ' + c.note : '') + '<br>' + icon('i_coin') + fmt(c.coins) + ' · ' + icon('i_points') + fmt(c.points) + ' · ' + (c.event ? 'until the drop ends' : (hrs >= 1 ? Math.floor(hrs) + ' h' : Math.ceil(hrs * 60) + ' min') + ' left') + '<span class="bar" style="display:block;margin-top:3px"><i style="width:' + Math.round(c.have / c.kg * 100) + '%"></i></span>', (c.event ? '' : btn('Skip', '', 'skip:' + c.id, true)));
     });
     h += '<h2>Daily brew check-in</h2><p class="note">' + S.checkin.streak + '-day streak · ' + S.checkin.freezes + ' streak freeze' + (S.checkin.freezes === 1 ? '' : 's') + '. Open the game once a day to keep it going.</p>';
     h += '<h2>Daily tasks</h2><p class="note">New tasks every in-game day (day ' + S.day + ').</p>';
@@ -1016,11 +1079,13 @@ function renderPanel() {
     h += '<h2>Prestige</h2><p class="note">Prestige now lives in the Ranks tab, with the leaderboard and your nameplates, borders and outfits.</p>' + btn('Open Ranks', '', 'tab:ranks', true, 'blue');
     h += '<h2>Real coffee rewards</h2>' + (S.rewards.length ? S.rewards.map((r) => row(img('green_sack', 28), r.text, 'From ' + r.from + ', day ' + r.day + '. Added to your next bejucoffee.com order.', '')).join('') : '<p class="note">Finish a farm’s 1,000 kg harvest to earn free coffee.</p>');
   } else if (tab === 'ranks') {
-    const list = board(), pos = list.findIndex((x) => x.you) + 1, t = tierOf(S.prestige), ready = level() >= PRESTIGE_LEVEL;
+    const mode = S.rankTab || 'season', list = board(mode), pos = list.findIndex((x) => x.you) + 1, t = tierOf(S.prestige), need = prestigeNeed(), ready = level() >= need;
     h += '<div class="me">' + avatar(S.look, 64) + '<div class="me-t">' + plate(S.name, S.look.plate, starsFor(S.prestige)) + '<span class="note">Prestige ' + S.prestige + ' · ' + TIERS[t] + '</span><span class="note">Level ' + level() + ' · ' + fmt(Math.round(S.xp)) + ' know-how · rank #' + pos + ' of ' + list.length + '</span></div></div>';
-    h += '<h3>Prestige</h3><p class="note">The board ranks by prestige first, then level, then know-how earned this run, so one more prestige always beats any amount of know-how. Unspent know-how does not carry over, so spend it before you prestige.</p>';
-    h += '<div class="bar"><i style="width:' + Math.min(100, Math.round(levelSpan()[1] / PRESTIGE_LEVEL * 100)) + '%"></i></div>';
-    h += btn(ready ? 'Prestige to ' + (S.prestige + 1) : 'Prestige at level ' + PRESTIGE_LEVEL, ready ? (S.prestige + 1 < TIERS.length ? 'unlocks ' + TIERS[S.prestige + 1] : 'adds a star') : 'you are level ' + level(), 'prestigeAsk', ready, 'green');
+    h += '<div class="season"><b>' + seasonName(S.season.key) + ' season</b><span>' + daysLeft() + ' day' + (daysLeft() === 1 ? '' : 's') + ' left · ' + S.season.prestige + ' prestige' + (S.season.prestige === 1 ? '' : 's') + ' this season</span></div>';
+    if (S.badges.length) h += '<div class="badges">' + S.badges.slice(-6).map((bd) => '<span class="badge r' + Math.min(bd.rank, 11) + '">' + (bd.label || 'Event') + '<small>' + (bd.key ? seasonName(bd.key) : bd.event) + '</small></span>').join('') + '</div>';
+    h += '<h3>Prestige</h3><p class="note">The board ranks by prestige first, then level, then know-how earned this run, so one more prestige always beats any amount of know-how. Unspent know-how does not carry over, so spend it before you prestige. Each prestige this season needs two more levels than the last, so steady play beats a binge.</p>';
+    h += '<div class="bar"><i style="width:' + Math.min(100, Math.round(levelSpan()[1] / need * 100)) + '%"></i></div>';
+    h += btn(ready ? 'Prestige to ' + (S.prestige + 1) : 'Prestige at level ' + need, ready ? (S.prestige + 1 < TIERS.length ? 'unlocks ' + TIERS[S.prestige + 1] : 'adds a star') : 'you are level ' + level(), 'prestigeAsk', ready, 'green');
     h += '<h3>Your look</h3><p class="note">Every tier you reach stays yours. Mix and match.</p>';
     [['plate', 'Nameplate'], ['border', 'Border'], ['skin', 'Farmer outfit']].forEach(([k, label]) => {
       h += '<p class="note"><b>' + label + '</b></p><div class="looks">' + TIERS.map((nm, i) => {
@@ -1029,11 +1094,18 @@ function renderPanel() {
         return '<button type="button" class="look" data-act="look:' + k + '.' + i + '" aria-pressed="' + on + '"' + (open ? '' : ' disabled') + '>' + art + '<small>' + (open ? (k === 'skin' ? SKINS[i].name : 'P' + i) : 'Prestige ' + i) + '</small></button>';
       }).join('') + '</div>';
     });
-    h += '<h3>Leaderboard</h3><div class="lb">' + list.slice(0, 15).concat(pos > 15 ? [list[pos - 1]] : []).map((x) => {
+    h += '<h3>Leaderboard</h3><div class="seg subtabs">' + [['season', 'This season'], ['all', 'All time']].map(([k, tl]) => '<button type="button" data-act="ranktab:' + k + '" aria-pressed="' + (mode === k) + '">' + tl + '</button>').join('') + '</div><div class="lb">' + list.slice(0, 15).concat(pos > 15 ? [list[pos - 1]] : []).map((x) => {
       const r = list.indexOf(x) + 1;
-      return '<div class="lb-row' + (x.you ? ' you' : '') + '"><b class="rk">' + r + '</b>' + avatar(x.look, 40) + '<div class="lb-n">' + plate(x.name, x.look.plate, starsFor(x.prestige)) + '<span class="note">' + TIERS[tierOf(x.prestige)] + '</span></div><div class="lb-s"><b>P' + x.prestige + '</b><span>Lv ' + x.level + '</span><span>' + fmt(x.points) + ' kh</span></div></div>';
+      return '<div class="lb-row' + (x.you ? ' you' : '') + '"><b class="rk">' + r + '</b>' + avatar(x.look, 40) + '<div class="lb-n">' + plate(x.name, x.look.plate, starsFor(x.prestige)) + '<span class="note">' + TIERS[tierOf(x.prestige)] + '</span></div><div class="lb-s"><b>P' + (mode === 'all' ? x.prestige : x.seasonP) + '</b><span>Lv ' + x.level + '</span><span>' + fmt(x.points) + ' kh</span></div></div>';
     }).join('') + '</div>';
     h += '<h3>Your name</h3><div class="seg"><input id="nameIn" maxlength="16" value="' + S.name.replace(/"/g, '') + '" aria-label="Your name on the leaderboard"><button type="button" data-act="rename">Save</button></div>';
+  } else if (tab === 'shop' && S.shopTab === 'beju') {
+    h += shopTabs();
+    h += '<h2>Real coffee, real rewards</h2><p class="note">Every order on bejucoffee.com feeds your farm: 1 crane for every ¥100, and a passport stamp for each new origin. Blends stamp their next origin by share. Finish a farm\'s 1,000 kg harvest and a free 100 g bag goes in your next order.</p>';
+    h += '<p><a class="btn green" href="https://bejucoffee.com" target="_blank" rel="noopener">Shop at bejucoffee.com</a></p>';
+    h += '<h3>Passport</h3><div class="stamps">' + LOCS.map((l) => '<img src="' + url('stamp_' + l) + '" alt="' + ART.locations[l].name + (S.stamps[l] ? ', stamped' : ', not yet') + '" class="' + (S.stamps[l] ? '' : 'off') + '">').join('') + '</div>';
+    h += '<h3>What each coffee gives</h3>' + Object.keys(COFFEES).map((k) => { const c = COFFEES[k], next = c.stamps.find((x) => !S.stamps[x]); return row(img(next ? 'stamp_' + next : 'i_crane', 30), c.name, '¥' + fmt(c.price) + ' · ' + Math.round(c.price / 100) + ' cranes' + (next ? ' · stamp: ' + ART.locations[next].name.split(',')[0] : ' · all stamps collected') + (c.method ? ' · unlocks ' + METHODS[c.method].name.toLowerCase() + ' processing' : ''), ''); }).join('');
+    h += '<h3>Free coffee earned</h3>' + (S.rewards.length ? S.rewards.map((r) => row(img('green_sack', 28), r.text, 'From ' + r.from + ', day ' + r.day + '. Added to your next order.', '')).join('') : '<p class="note">None yet. Finish a farm\'s 1,000 kg harvest to earn a free 100 g bag.</p>');
   } else if (tab === 'shop' && (S.shopTab || 'cranes') === 'decor') {
     h += shopTabs();
     h += '<h2>Decor</h2><p class="note">' + icon('i_coin') + ' ' + fmt(S.coins) + ' coins. Buy once and it shows on every farm. Tap again to hide or show it.</p>';
@@ -1057,7 +1129,7 @@ function renderPanel() {
     h += '<h2>Test tools</h2><p class="note">For playtesting: everything here stands in for something that will come from real orders or real time.</p>';
     h += '<h3>Simulate a bejucoffee.com order</h3><div class="seg">' + Object.keys(COFFEES).map((k) => '<button type="button" data-act="order:' + k + '">' + COFFEES[k].name + '</button>').join('') + '</div>';
     h += '<div class="stamps">' + LOCS.map((l) => '<img src="' + url('stamp_' + l) + '" alt="' + ART.locations[l].name + (S.stamps[l] ? ', stamped' : ', not yet') + '" class="' + (S.stamps[l] ? '' : 'off') + '">').join('') + '</div>';
-    h += '<h3>Resources</h3><div class="seg"><button type="button" data-act="add:coins">+1,000 coins</button><button type="button" data-act="add:bigcoins">+25,000 coins</button><button type="button" data-act="add:contracts">New contracts</button><button type="button" data-act="add:checkin">Next real day</button><button type="button" data-act="add:guide">Restart guide</button><button type="button" data-act="add:points">+2,000 know-how</button><button type="button" data-act="add:cranes">+50 cranes</button><button type="button" data-act="add:vars">All varieties</button><button type="button" data-act="add:xp">+1 level</button><button type="button" data-act="add:cherries">Fill storage</button></div>';
+    h += '<h3>Resources</h3><div class="seg"><button type="button" data-act="add:coins">+1,000 coins</button><button type="button" data-act="add:bigcoins">+25,000 coins</button><button type="button" data-act="add:contracts">New contracts</button><button type="button" data-act="add:checkin">Next real day</button><button type="button" data-act="add:drop">Start a drop event</button><button type="button" data-act="add:season">End the season</button><button type="button" data-act="add:guide">Restart guide</button><button type="button" data-act="add:points">+2,000 know-how</button><button type="button" data-act="add:cranes">+50 cranes</button><button type="button" data-act="add:vars">All varieties</button><button type="button" data-act="add:xp">+1 level</button><button type="button" data-act="add:cherries">Fill storage</button></div>';
     h += '<h3>Time</h3><div class="seg"><button type="button" data-act="away:1">Away 1 h</button><button type="button" data-act="away:4">Away 4 h</button><button type="button" data-act="away:12">Away 12 h</button><button type="button" data-act="day">Next day</button></div>';
     h += '<h3>Game speed</h3><div class="seg">' + [1, 3, 10].map((x) => '<button type="button" data-act="speed:' + x + '" aria-pressed="' + (S.speed === x) + '">×' + x + '</button>').join('') + '</div>';
     h += '<h3>Season</h3><div class="seg">' + ['auto', 'harvest', 'rainy', 'spring', 'summer', 'autumn', 'winter'].map((x) => '<button type="button" data-act="season:' + x + '" aria-pressed="' + (S.seasonPick === x) + '">' + x + '</button>').join('') + '</div><p class="note">Harvest and rainy apply to the coffee farms; spring to winter apply to Osaka.</p>';
@@ -1076,7 +1148,7 @@ document.addEventListener('click', (e) => {
   setTimeout(() => {   /* sound for the action, once its effect is known */
     const spent = S.coins + S.points + S.cranes < wallet;
     const BUY = { hire: 'hire', up: 'buy', build: 'build', mgr: 'hire', foreman: 'hire', agent: 'hire', var: 'achieve', farm: 'achieve', method: 'achieve', buyhat: 'achieve', boost: 'crane', decor: 'achieve' };
-    const ALWAYS = { look: 'tick', rename: 'tick', mvol: 'tick', uptab: 'tick', shoptab: 'tick', hat: 'tick', rule: 'tick', mv: 'tick', speed: 'tick', season: 'tick', go: 'click', bed: 'click', skip: 'page', plant: 'dig', task: 'coins', weekly: 'crane', order: 'crane', sellraw: 'coins', add: 'xp' };
+    const ALWAYS = { ranktab: 'tick', look: 'tick', rename: 'tick', mvol: 'tick', uptab: 'tick', shoptab: 'tick', hat: 'tick', rule: 'tick', mv: 'tick', speed: 'tick', season: 'tick', go: 'click', bed: 'click', skip: 'page', plant: 'dig', task: 'coins', weekly: 'crane', order: 'crane', sellraw: 'coins', add: 'xp' };
     if (BUY[a] && spent) SFX.play(BUY[a]); else if (a === 'decor' && decorOwned) SFX.play('tick'); else if (ALWAYS[a]) SFX.play(ALWAYS[a]);
   }, 0);
   if (a === 'hire') { if (f.workers.length < maxPickers(f) && spend('coins', hireCost())) { addWorker(f); guideStep('hire'); toast('A new picker joins you'); } }
@@ -1090,6 +1162,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'guideSkip') { S.guide = GUIDE.length; ['upgrades', 'orders', 'ranks', 'shop'].forEach((k) => { S.tabs[k] = true; }); toast('Guide skipped: every tab is open'); }
   else if (a === 'farm') unlockFarm(v);
   else if (a === 'uptab') S.upTab = v;
+  else if (a === 'ranktab') S.rankTab = v;
   else if (a === 'shoptab') S.shopTab = v;
   else if (a === 'build') { const n = f.build[v] || 0; if (n < 3 && spend('coins', buildCost(S.loc, v))) { f.build[v] = n + 1; toast(ART.buildings[v].name + (n ? ' upgraded to level ' + (n + 1) : ' built')); } }
   else if (a === 'mgr') { if (!f.manager && spend('coins', MANAGER_COST(S.loc))) { f.manager = { x: 150, y: 94, tx: 150, ty: 94, t: 0, walk: 0, dir: 'down' }; toast('Your manager takes over at ' + ART.locations[S.loc].name.split(',')[0]); } }
@@ -1102,10 +1175,10 @@ document.addEventListener('click', (e) => {
   else if (a === 'go') { S.loc = v; setTab('farm'); }
   else if (a === 'bed') {
     const b = +v, cur = f.beds[b];
-    showModal('<h2>Replant field ' + (b + 1) + '</h2><p class="note">Now growing ' + ART.varieties[cur] + '. Replanting starts the field again from sprouts.</p>' + VAR_ORDER.filter((x) => S.vars[x]).map((x) => row(img('bush_' + x + '_ripe', 30), ART.varieties[x] + (ART.locations[f.loc].beds.includes(x) ? ' · native' : ''), VAR[x].kg + ' kg a pick · ×' + VAR[x].value + ' price', btn(x === cur ? 'Growing' : 'Plant', '', 'plant:' + b + '.' + x, x !== cur, 'green'))).join('') + '<button class="btn" data-act="close">Cancel</button>');
+    showModal('<h2>Replant field ' + (b + 1) + '</h2><p class="note">Now growing ' + ART.varieties[cur] + '. Replanting starts the field again from sprouts.</p>' + VAR_ORDER.filter((x) => S.vars[x] || (eventDrop() && eventDrop().variety === x)).map((x) => row(img('bush_' + x + '_ripe', 30), ART.varieties[x] + (ART.locations[f.loc].beds.includes(x) ? ' · native' : ''), VAR[x].kg + ' kg a pick · ×' + VAR[x].value + ' price', btn(x === cur ? 'Growing' : 'Plant', '', 'plant:' + b + '.' + x, x !== cur, 'green'))).join('') + '<button class="btn" data-act="close">Cancel</button>');
     return;
   }
-  else if (a === 'plant') { const [b, x] = v.split('.'); if (S.vars[x]) { replantBed(f, +b, x); $('modal').hidden = true; toast('Field ' + (+b + 1) + ' planted with ' + ART.varieties[x]); } }
+  else if (a === 'plant') { const [b, x] = v.split('.'); if (S.vars[x] || (eventDrop() && eventDrop().variety === x)) { replantBed(f, +b, x); $('modal').hidden = true; toast('Field ' + (+b + 1) + ' planted with ' + ART.varieties[x]); } }
   else if (a === 'var') { const nx = VAR_ORDER.find((x) => !S.vars[x]); if (v === nx && spend('points', VAR[v].cost)) { S.vars[v] = true; showModal('<h2>' + ART.varieties[v] + ' unlocked</h2>' + img('bush_' + v + '_ripe', 54) + '<p class="note">' + VAR[v].perk + ' Replant a field in the Farm tab to start growing it.</p><button class="btn green" data-act="close">Plant it</button>'); } }
   else if (a === 'task') { const tk = S.tasks[+v]; if (tk.have >= tk.goal && !tk.done) { tk.done = true; earn(tk.reward); toast('Task complete!'); } }
   else if (a === 'weekly') { S.weekly.claimed = true; S.cranes += 30; showModal('<h2>Order delivered!</h2><p class="note">The team delivered ' + fmt(S.weekly.target) + ' kg of washed coffee to the roastery. +30 cranes and the Co-op Roaster badge.</p><button class="btn green" data-act="close">Hooray</button>'); }
@@ -1130,7 +1203,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'hat') S.hat = v;
   else if (a === 'order') realOrder(v);
   else if (a === 'add') {
-    if (v === 'coins') S.coins += 1000; if (v === 'bigcoins') S.coins += 25000; if (v === 'checkin') { const y = new Date(Date.now() - 86400000); S.checkin.last = dayKey(y); checkIn(); } if (v === 'guide') { S.guide = 0; S.guideN = 0; } if (v === 'contracts') { S.contracts = []; for (let k = 0; k < contractSlots(); k++) S.contracts.push(newContract()); } if (v === 'points') earn({ points: 2000 }); if (v === 'cranes') S.cranes += 50; if (v === 'vars') VAR_ORDER.forEach((x) => { S.vars[x] = true; });
+    if (v === 'coins') S.coins += 1000; if (v === 'bigcoins') S.coins += 25000; if (v === 'drop') { const i = S.event ? (DROPS.findIndex((d) => d.id === S.event.id) + 1) % DROPS.length : 0; startDrop(DROPS[i].id); } if (v === 'season') { const n = new Date(); S.season.key = seasonKey(new Date(n.getFullYear(), n.getMonth() - 1, 1)); seasonTick(); } if (v === 'checkin') { const y = new Date(Date.now() - 86400000); S.checkin.last = dayKey(y); checkIn(); } if (v === 'guide') { S.guide = 0; S.guideN = 0; } if (v === 'contracts') { S.contracts = []; for (let k = 0; k < contractSlots(); k++) S.contracts.push(newContract()); } if (v === 'points') earn({ points: 2000 }); if (v === 'cranes') S.cranes += 50; if (v === 'vars') VAR_ORDER.forEach((x) => { S.vars[x] = true; });
     if (v === 'xp') { S.xp = XP_AT(level() + 1); wakeFarms(); }
     if (v === 'cherries') { const vv = S.farms[S.loc].beds[0]; S.cherries[vv] = (S.cherries[vv] || 0) + (cap() - stored()); }
   }
@@ -1165,7 +1238,7 @@ function refreshHud() {
   $('sky').style.background = night ? '#2C3470' : hr >= 17 ? '#F0A060' : '#7EC8F0';
   $('sun').style.background = night ? '#F4F0D0' : '#FFD84A';
 }
-function refreshAll() { refreshHud(); renderTabs(); renderPanel(); renderGuide(); }
+function refreshAll() { seasonTick(); refreshHud(); renderTabs(); renderPanel(); renderGuide(); }
 
 /* ---------- start: offline earnings, intro, loop ---------- */
 const awayMs = Date.now() - (S.last || Date.now());
