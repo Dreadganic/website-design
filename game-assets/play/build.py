@@ -10,6 +10,7 @@ for f in sorted(os.listdir(os.path.join(ROOT, "bg"))):
     if f.endswith(".png"):
         bgs[f[:-4]] = "data:image/png;base64," + base64.b64encode(open(os.path.join(ROOT, "bg", f), "rb").read()).decode()
 t = open(os.path.join(HERE, "template.html")).read()
-t = t.replace("__ART__", json.dumps(art, separators=(",", ":"))).replace("__BGS__", json.dumps(bgs, separators=(",", ":")))
+sfx = open(os.path.join(ROOT, "audio", "sfx.js")).read()
+t = t.replace("__SFX__", sfx).replace("__ART__", json.dumps(art, separators=(",", ":"))).replace("__BGS__", json.dumps(bgs, separators=(",", ":")))
 open(sys.argv[1], "w").write(t)
 print(sys.argv[1], len(t) // 1024, "KB")

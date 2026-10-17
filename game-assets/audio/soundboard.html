@@ -1,0 +1,72 @@
+<title>Beju Farm Sound Board</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&family=Zen+Kaku+Gothic+New:wght@500;700&display=swap">
+<style>
+/* Layout: wood ground, a header, one parchment card per group of game sounds with a grid of play tiles. One look in both themes (matches the game). */
+:root {
+  --wood: #3A2A1C; --wood-2: #2A1E14; --paper: #F4E6C6; --paper-2: #FBF1DC; --edge: #6E4624; --ink: #3E2A1C; --muted: #7A5A3A;
+  --gold: #F2C04A; --green: #2D6A46; --leaf: #8CC8A8;
+  --display: 'Pixelify Sans', 'Courier New', monospace; --body: 'Zen Kaku Gothic New', system-ui, sans-serif;
+  color-scheme: dark;
+}
+html, body { background: var(--wood); }
+body { color: var(--paper); font-family: var(--body); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 24px 40px; }
+.wrap { max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+.eyebrow { font-family: var(--display); font-size: 13px; letter-spacing: 0.12em; color: var(--gold); text-transform: uppercase; }
+h1 { font-family: var(--display); font-weight: 600; font-size: 34px; line-height: 1.1; margin: 4px 0 6px; text-wrap: balance; }
+.sub { font-size: 14px; color: #E2C894; margin: 0; font-weight: 500; max-width: 60ch; line-height: 1.6; }
+.bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.demo { min-height: 44px; padding: 0 16px; border: 3px solid var(--edge); border-radius: 8px; background: var(--gold); color: var(--ink); font: 700 15px var(--display); cursor: pointer; box-shadow: 0 3px 0 var(--wood-2); }
+.demo:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--wood-2); }
+label.vol { display: flex; align-items: center; gap: 8px; font: 600 13px var(--display); color: #E2C894; flex: 1; min-width: 180px; }
+input[type=range] { flex: 1; accent-color: var(--gold); }
+.state { font: 600 12px var(--display); color: var(--leaf); }
+.card { background: var(--paper); color: var(--ink); border: 3px solid var(--edge); border-radius: 12px; box-shadow: inset 0 0 0 2px #E2C894, 0 4px 0 var(--wood-2); padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+h2 { font-family: var(--display); font-weight: 600; font-size: 18px; margin: 0; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+.tile { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border: 2px solid var(--edge); border-radius: 8px; background: var(--paper-2); color: var(--ink); text-align: left; cursor: pointer; font: inherit; min-width: 0; transition: background 0.12s; }
+.tile b { font: 600 15px var(--display); }
+.tile span { font-size: 11px; font-weight: 700; color: var(--muted); line-height: 1.35; }
+.tile.hit { background: var(--gold); }
+button:focus-visible { outline: 3px solid var(--green); outline-offset: 2px; }
+#groups { display: flex; flex-direction: column; gap: 16px; }
+p.note { margin: 0; font-size: 13px; line-height: 1.6; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .tile { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Beju Farm · sound test</div>
+    <h1>Farm Sound Board</h1>
+    <p class="sub">Soft, natural game sounds, made live in the browser with no audio files. Each one shifts its pitch a little every time, so tapping the same bush twenty times never sounds the same twice.</p>
+  </header>
+  <div class="bar">
+    <button class="demo" id="demo" type="button">Play a farm moment</button>
+    <label class="vol" for="vol">VOLUME <input id="vol" type="range" min="0" max="100" value="70"></label>
+  </div>
+  <p class="state"><span id="astate">Audio: not started</span>. No sound on an iPhone? Flip the Ring/Silent switch to ring and turn the volume up.</p>
+  <div id="groups"></div>
+</div>
+
+<script src="sfx.js"></script>
+<script>
+(function () {
+'use strict';
+const GROUPS = [
+  ['On the farm', [['harvest', 'Pick a ripe bush', 'Leaves rustle, cherries pop into the basket'], ['brush', 'Bush not ready', 'A light brush of leaves'], ['thud', 'Picker drops cherries', 'A soft sack thump at the store'], ['knock', 'Storage full', 'Two knocks on the crate'], ['nope', 'Too tired', 'A dull bonk when hearts run out'], ['dig', 'Replant a field', 'Two spadefuls of soil'], ['woof', 'Pat the shiba', 'A small double bark']]],
+  ['In the mill', [['pour', 'Start a lot', 'Beans pour onto the racks'], ['splash', 'Washed lot', 'Cherries hit the wet mill'], ['ding', 'Lot is dry', 'A clear bell'], ['xp', 'One coin', 'A single bright chime'], ['coins', 'Sell a lot', 'A run of chimes, like picking up XP']]],
+  ['Menus', [['click', 'Switch tab', 'A short wooden click'], ['tick', 'Sub-tab or toggle', 'A lighter tick'], ['page', 'Open a window', 'A page turning'], ['close', 'Close a window', 'The page turns back'], ['buy', 'Buy an upgrade', 'A wooden clunk and two coins']]],
+  ['Progress', [['build', 'Build or upgrade', 'Three hammer taps, then a chime'], ['hire', 'Hire a picker', 'Footsteps on grass and a whistle hello'], ['contract', 'Contract complete', 'Page, stamp, then coins'], ['crane', 'Earn cranes', 'Paper wings flutter, then a chime'], ['achieve', 'Unlock something', 'A two-note toast'], ['levelup', 'Level up', 'A rising bell arpeggio']]]
+];
+const $ = (id) => document.getElementById(id);
+$('groups').innerHTML = GROUPS.map(([title, list]) => '<section class="card"><h2>' + title + '</h2><div class="grid">' + list.map(([k, t, s]) => '<button type="button" class="tile" data-k="' + k + '"><b>' + t + '</b><span>' + s + '</span></button>').join('') + '</div></section>').join('');
+let unlocked = false;
+function ready() { if (!unlocked) { SFX.unlock(); unlocked = true; } }
+function flash(k) { const b = document.querySelector('.tile[data-k="' + k + '"]'); if (!b) return; b.classList.add('hit'); setTimeout(() => b.classList.remove('hit'), 180); }
+$('groups').addEventListener('click', (e) => { const b = e.target.closest('.tile'); if (!b) return; ready(); SFX.play(b.dataset.k); flash(b.dataset.k); });
+$('vol').addEventListener('input', () => SFX.setVolume(+$('vol').value / 100));
+const MOMENT = [[0, 'click'], [400, 'harvest'], [800, 'harvest'], [1150, 'harvest'], [1600, 'brush'], [2100, 'thud'], [2700, 'click'], [3100, 'pour'], [4000, 'ding'], [4500, 'coins'], [5300, 'levelup']];
+$('demo').addEventListener('click', () => { ready(); MOMENT.forEach(([ms, k]) => setTimeout(() => { SFX.play(k); flash(k); }, ms)); });
+setInterval(() => { $('astate').textContent = 'Audio: ' + SFX.state(); }, 500);
+})();
+</script>

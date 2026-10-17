@@ -27,6 +27,9 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-
 .stage { position: relative; width: 100%; aspect-ratio: 4 / 5; border-radius: 8px; overflow: hidden; box-shadow: 0 0 0 3px #1E140C; background: #5E7A2C; }
 .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; cursor: pointer; touch-action: manipulation; }
 .hud-l { position: absolute; left: 6px; top: 6px; display: flex; flex-direction: column; gap: 5px; pointer-events: none; }
+.sound { position: absolute; left: 6px; bottom: 6px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 10px; background: rgba(62,42,28,0.8); color: #FFF4DE; cursor: pointer; }
+.sound[aria-pressed="false"] { color: #B89A7A; }
+.sound[aria-pressed="false"] #sfxWaves { display: none; }
 .hud-r { position: absolute; right: 6px; top: 6px; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; pointer-events: none; }
 .hearts { display: flex; gap: 1px; flex-wrap: wrap; max-width: 150px; }
 .pill { display: flex; align-items: center; gap: 5px; padding: 2px 8px 2px 4px; border-radius: 10px; background: rgba(62,42,28,0.8); color: #FFF4DE; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -113,6 +116,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-
       <div class="pill" id="hudCranes"></div>
       <div class="pill" id="hudStore"></div>
     </div>
+    <button class="sound" id="sfxBtn" type="button" aria-pressed="true" aria-label="Sound effects"><svg width="18" height="16" viewBox="0 0 9 8" shape-rendering="crispEdges" aria-hidden="true"><path fill="currentColor" d="M0 3h2v2H0zM2 2h1v4H2zM3 1h1v6H3zM4 0h1v8H4z"/><path id="sfxWaves" fill="currentColor" d="M6 2h1v1H6zM6 5h1v1H6zM7 3h1v2H7zM8 1h1v1H8zM8 6h1v1H8z"/></svg></button>
     <div class="toast" id="toast" hidden></div>
   </div>
 
@@ -121,6 +125,9 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-
 </div>
 <div class="modal" id="modal" hidden><div class="card" id="modalCard"></div></div>
 
+<script>
+__SFX__
+</script>
 <script>
 const ART = __ART__;
 const BGS = __BGS__;
@@ -253,7 +260,7 @@ function fresh() {
     methods: { washed: true, natural: true }, vars: { caturra: true }, staff: { foreman: false, agent: false, rule: 'best' }, decor: {}, contracts: [], nextContract: 0, hat: 'straw', hats: { straw: true }, stamps: {},
     cherries: {}, lots: [], boosts: {}, minutes: 7 * 60 + 30, day: 1, taps: 0, year: 1, bonus: 0,
     tasks: null, weekly: { mine: 0, team: 1800, target: 4000, start: 1, claimed: false }, rewards: [], stats: { picked: 0, sold: 0, lotsSold: 0 },
-    farms: {}, intro: 0, seasonPick: 'auto', speed: 1, last: Date.now()
+    farms: {}, intro: 0, seasonPick: 'auto', speed: 1, sfx: true, last: Date.now()
   };
   LOCS.forEach((l) => { st.farms[l] = newFarm(l); });
   return st;
@@ -261,7 +268,7 @@ function fresh() {
 let S = load() || fresh();
 (function migrate() {   /* fields added after a save was made */
   const d = fresh();
-  ['staff', 'decor', 'contracts', 'nextContract'].forEach((k) => { if (S[k] === undefined) S[k] = d[k]; });
+  ['staff', 'decor', 'contracts', 'nextContract', 'sfx'].forEach((k) => { if (S[k] === undefined) S[k] = d[k]; });
   LOCS.forEach((l) => { const f = S.farms[l]; if (!f.build) f.build = {}; if (f.manager === undefined) f.manager = null; });
 })();
 LOCS.forEach((l) => { const f = S.farms[l]; if (!f.shrubs.length) plant(f); f.workers.forEach((w) => { w.state = 'seek'; w.path = []; w.target = null; }); });
@@ -373,7 +380,7 @@ function tickFarm(f, d, visible) {
     } else if (w.state === 'deposit') {
       w.dir = 'up';
       const kg = store(f, w.lastV || f.beds[0], w.carry);
-      if (kg) { w.carry -= kg; if (visible) floats.push({ x: DROP.x, y: 70, text: '+' + kg + ' kg', t: 0 }); }
+      if (kg) { w.carry -= kg; if (visible) SFX.play('thud'); if (visible) floats.push({ x: DROP.x, y: 70, text: '+' + kg + ' kg', t: 0 }); }
       if (!w.carry) w.state = 'seek';
     }
   });
@@ -396,7 +403,7 @@ function tick(dt) {
   S.weekly.team += d * 0.6;
   if (S.day - S.weekly.start >= 7) { S.weekly = { mine: 0, team: 1500, target: 4000, start: S.day, claimed: false }; toast('A new weekly roastery order is in'); }
   S.heartT += d; if (S.heartT >= 6) { S.heartT = 0; if (S.hearts < maxHearts()) S.hearts += 1; }
-  S.lots.forEach((l) => { if (l.left > 0) l.left = Math.max(0, l.left - d); });
+  S.lots.forEach((l) => { if (l.left > 0) { l.left = Math.max(0, l.left - d); if (!l.left && !S.staff.foreman) SFX.play('ding'); } });
   LOCS.forEach((l) => { const f = S.farms[l]; if (f.unlocked) tickFarm(f, d, l === S.loc); });
   contractsTick();
   S.staffT = (S.staffT || 0) + d; if (S.staffT >= 1) { S.staffT = 0; staffTick(); }
@@ -490,12 +497,13 @@ cv.addEventListener('click', (e) => {
   const f = S.farms[S.loc];
   const s = f.shrubs.find((x) => lx >= x.x && lx < x.x + 18 && ly >= x.y && ly < x.y + 22);
   if (s) {
-    if (s.p < 1) { floats.push({ x: s.x + 9, y: s.y, text: s.p < 0.8 ? 'growing' : 'soon', t: 0 }); return; }
-    if (S.hearts <= 0) { floats.push({ x: s.x + 9, y: s.y, text: 'tired', t: 0 }); return; }
-    if (stored() >= cap()) { floats.push({ x: s.x + 9, y: s.y, text: 'storage full', t: 0 }); return; }
+    if (s.p < 1) { SFX.play('brush'); floats.push({ x: s.x + 9, y: s.y, text: s.p < 0.8 ? 'growing' : 'soon', t: 0 }); return; }
+    if (S.hearts <= 0) { SFX.play('nope'); floats.push({ x: s.x + 9, y: s.y, text: 'tired', t: 0 }); return; }
+    if (stored() >= cap()) { SFX.play('knock'); floats.push({ x: s.x + 9, y: s.y, text: 'storage full', t: 0 }); return; }
     if (s.claim) { const w = s.claim; w.target = null; if (w.state === 'pick' || w.state === 'walk') w.state = 'seek'; }
     s.p = 0; s.claim = null; S.hearts -= 1; S.taps += 1; task('pick', 1);
     const kg = store(f, s.v, VAR[s.v].kg);
+    SFX.play('harvest');
     floats.push({ x: s.x + 9, y: s.y, text: '+' + kg + ' kg', t: 0 });
     for (let i = 0; i < 7; i++) bursts.push({ x: s.x + 9, y: s.y + 8, vx: (rnd() - 0.5) * 60, vy: -30 - rnd() * 40, t: 0, c: i % 2 ? '#E83A30' : '#3E8036' });
     if (S.intro === 0) { S.intro = 1; }
@@ -503,7 +511,7 @@ cv.addEventListener('click', (e) => {
   }
   if (!f.field && lx > 104 && lx < 182 && ly > 160 && ly < 200) { setTab('upgrades'); toast('Clear the fourth field in Upgrades'); return; }
   if (lx > STORE_AT.x && lx < STORE_AT.x + 40 && ly > STORE_AT.y && ly < STORE_AT.y + 38) { setTab('mill'); return; }
-  if (Math.hypot(lx - f.dog.x, ly - f.dog.y + 5) < 9) floats.push({ x: f.dog.x, y: f.dog.y - 14, text: 'woof!', t: 0 });
+  if (Math.hypot(lx - f.dog.x, ly - f.dog.y + 5) < 9) SFX.play('woof'), floats.push({ x: f.dog.x, y: f.dog.y - 14, text: 'woof!', t: 0 });
 });
 function travel(dir) {
   let i = LOCS.indexOf(S.loc);
@@ -515,7 +523,11 @@ $('prevLoc').addEventListener('click', () => travel(-1));
 $('nextLoc').addEventListener('click', () => travel(1));
 
 function spend(cur, n) { if (S[cur] < n) return false; S[cur] -= n; return true; }
-function earn(r) { if (r.coins) S.coins += r.coins; if (r.points) { S.points += r.points; S.xp += r.points; } if (r.cranes) S.cranes += r.cranes; }
+function earn(r) {
+  const lv = level();
+  if (r.coins) S.coins += r.coins; if (r.points) { S.points += r.points; S.xp += r.points; } if (r.cranes) S.cranes += r.cranes;
+  if (level() > lv) { SFX.play('levelup'); toast('Level ' + level() + '!'); }
+}
 function buyUpgrade(key) {
   const u = UP[key];
   if (key === 'field') {
@@ -538,6 +550,7 @@ function startLot(v, method, quiet) {
   S.cherries[v] = 0;
   S.lots.push({ v, kg, method, left: time, total: time });
   task('store', 0);
+  if (!quiet) { SFX.play('pour'); if (method === 'washed') SFX.play('splash'); }
   if (!quiet) toast(fmt(kg) + ' kg of ' + ART.varieties[v] + ' on the ' + m.name.toLowerCase() + ' racks');
   return true;
 }
@@ -555,6 +568,7 @@ function sellLot(i, quiet) {
   if (l.method === 'washed') S.weekly.mine += green;
   S.lots.splice(i, 1);
   S.stats.sold += green; S.stats.lotsSold += 1; task('sell', 1);
+  SFX.play(quiet ? 'xp' : 'coins', { n: pea ? 9 : 5 });
   if (quiet) return r;
   showModal('<img src="' + url('green_sack') + '" alt="" style="width:72px;image-rendering:pixelated"><h2>' + (pea ? 'Peaberry lot!' : 'Sold to the Osaka roastery') + '</h2><p class="note">' + fmt(green) + ' kg of ' + m.name.toLowerCase() + ' ' + ART.varieties[l.v] + ', cup score ' + r.cup.toFixed(1) + '.' + (pea ? ' Your sorting table picked out the round peaberries: double coins and points.' : '') + '</p><div class="stats"><div><small>Coins</small><b>+' + fmt(r.coins) + '</b></div><div><small>Points</small><b>+' + fmt(r.points) + '</b></div><div><small>Cup</small><b>' + r.cup.toFixed(1) + '</b></div></div><button class="btn green" data-act="close">Nice</button>');
   return r;
@@ -591,10 +605,10 @@ function deliver(i, id, quiet) {
   if (spare > 0.05) { extra = saleFor(l.v, l.method, spare); earn(extra); }
   if (c.have >= c.kg - 0.01) {
     S.contracts = S.contracts.filter((x) => x !== c); S.nextContract = Math.min(S.nextContract, S.minutesTotal + 10);
-    earn({ coins: c.coins, points: c.points }); S.stats.contracts = (S.stats.contracts || 0) + 1;
+    earn({ coins: c.coins, points: c.points }); S.stats.contracts = (S.stats.contracts || 0) + 1; SFX.play('contract');
     if (quiet) { toast('Contract for ' + c.buyer + ' complete: +' + fmt(c.coins) + ' coins'); return; }
     showModal(img('board', 64) + '<h2>Contract complete!</h2><p class="note">' + c.buyer + ' received ' + fmt(c.kg) + ' kg' + (c.note ? ' (' + c.note.toLowerCase() + ')' : '') + '.' + (spare > 0.05 ? ' The spare ' + fmt(spare) + ' kg went to the roastery.' : '') + '</p><div class="stats"><div><small>Coins</small><b>+' + fmt(c.coins + extra.coins) + '</b></div><div><small>Points</small><b>+' + fmt(c.points + extra.points) + '</b></div></div><button class="btn green" data-act="close">Great</button>');
-  } else if (!quiet) toast(fmt(use) + ' kg delivered to ' + c.buyer + ' (' + fmt(c.have) + ' / ' + fmt(c.kg) + ' kg)');
+  } else if (!quiet) SFX.play('stamp'), toast(fmt(use) + ' kg delivered to ' + c.buyer + ' (' + fmt(c.have) + ' / ' + fmt(c.kg) + ' kg)');
 }
 function staffTick() {
   if (!S.staff.foreman) return;
@@ -673,13 +687,13 @@ function away(hours) {
 /* ---------- interface ---------- */
 let tab = 'farm', toastT = 0;
 const TABS = [['farm', 'Farm', 'i_worker'], ['mill', 'Mill', 'green_sack'], ['upgrades', 'Upgrade', 'storage_4'], ['orders', 'Orders', 'i_points'], ['shop', 'Shop', 'i_crane'], ['test', 'Test', 'i_box']];
-function setTab(t) { tab = t; renderTabs(); renderPanel(); }
+function setTab(t) { if (t !== tab) SFX.play('click'); tab = t; renderTabs(); renderPanel(); }
 function renderTabs() {
   const dot = { orders: S.tasks.some((t) => t.have >= t.goal && !t.done) || (S.weekly.team + S.weekly.mine >= S.weekly.target && !S.weekly.claimed), mill: S.lots.some((l) => l.left <= 0) };
   $('tabs').innerHTML = TABS.map(([id, label, ic]) => '<button class="tab" role="tab" type="button" data-tab="' + id + '" aria-pressed="' + (tab === id) + '"><img src="' + url(ic) + '" alt="">' + label + (dot[id] ? '<i class="dot"></i>' : '') + '</button>').join('');
 }
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; toastT = 2.6; }
-function showModal(html) { $('modalCard').innerHTML = html; $('modal').hidden = false; }
+function showModal(html) { $('modalCard').innerHTML = html; if ($('modal').hidden) SFX.play('page'); $('modal').hidden = false; }
 function shopTabs() {
   const st = S.shopTab || 'cranes', dot = Object.keys(DECOR).some((k) => S.decor[k] === undefined && S.coins >= DECOR[k].cost);
   return '<div class="seg subtabs">' + [['cranes', 'Cranes'], ['decor', 'Decor']].map(([k, t]) => '<button type="button" data-act="shoptab:' + k + '" aria-pressed="' + (st === k) + '">' + t + (k === 'decor' && dot ? ' <i class="dot" aria-label="something to buy"></i>' : '') + '</button>').join('') + '</div>';
@@ -835,7 +849,14 @@ document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
   const [a, v] = b.dataset.act.split(':');
   const f = S.farms[S.loc];
-  if (a === 'close') { $('modal').hidden = true; return; }
+  if (a === 'close') { SFX.play('close'); $('modal').hidden = true; return; }
+  const wallet = S.coins + S.points + S.cranes, decorOwned = S.decor[v] !== undefined;
+  setTimeout(() => {   /* sound for the action, once its effect is known */
+    const spent = S.coins + S.points + S.cranes < wallet;
+    const BUY = { hire: 'hire', up: 'buy', build: 'build', mgr: 'hire', foreman: 'hire', agent: 'hire', var: 'achieve', farm: 'achieve', method: 'achieve', buyhat: 'achieve', boost: 'crane', decor: 'achieve' };
+    const ALWAYS = { uptab: 'tick', shoptab: 'tick', hat: 'tick', rule: 'tick', mv: 'tick', speed: 'tick', season: 'tick', go: 'click', bed: 'click', skip: 'page', plant: 'dig', task: 'coins', weekly: 'crane', order: 'crane', sellraw: 'coins', add: 'xp' };
+    if (BUY[a] && spent) SFX.play(BUY[a]); else if (a === 'decor' && decorOwned) SFX.play('tick'); else if (ALWAYS[a]) SFX.play(ALWAYS[a]);
+  }, 0);
   if (a === 'hire') { if (f.workers.length < maxPickers(f) && spend('coins', hireCost())) { addWorker(f); toast('A new picker joins you'); } }
   else if (a === 'tab') setTab(v);
   else if (a === 'sellraw') sellRaw();
@@ -865,7 +886,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'var') { const nx = VAR_ORDER.find((x) => !S.vars[x]); if (v === nx && spend('points', VAR[v].cost)) { S.vars[v] = true; showModal('<h2>' + ART.varieties[v] + ' unlocked</h2>' + img('bush_' + v + '_ripe', 54) + '<p class="note">' + VAR[v].perk + ' Replant a field in the Farm tab to start growing it.</p><button class="btn green" data-act="close">Plant it</button>'); } }
   else if (a === 'task') { const tk = S.tasks[+v]; if (tk.have >= tk.goal && !tk.done) { tk.done = true; earn(tk.reward); toast('Task complete!'); } }
   else if (a === 'weekly') { S.weekly.claimed = true; S.cranes += 30; showModal('<h2>Order delivered!</h2><p class="note">The team delivered ' + fmt(S.weekly.target) + ' kg of washed coffee to the roastery. +30 cranes and the Co-op Roaster badge.</p><button class="btn green" data-act="close">Hooray</button>'); }
-  else if (a === 'prestige') prestige();
+  else if (a === 'prestige') { prestige(); SFX.play('levelup'); }
   else if (a === 'boost') {
     const cost = { grow: 5, pick: 5, hearts: 2, points: 10, dry: 6 }[v];
     if (!spend('cranes', cost)) return;
@@ -931,6 +952,11 @@ function loop(t) {
 }
 requestAnimationFrame(loop);
 document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+let soundReady = false;
+document.addEventListener('pointerdown', () => { if (!soundReady && S.sfx) { SFX.unlock(); soundReady = true; } }, true);
+function syncSound() { SFX.setEnabled(S.sfx); $('sfxBtn').setAttribute('aria-pressed', String(S.sfx)); $('sfxBtn').setAttribute('aria-label', S.sfx ? 'Sound effects on' : 'Sound effects off'); }
+$('sfxBtn').addEventListener('click', () => { S.sfx = !S.sfx; syncSound(); if (S.sfx) { SFX.unlock(); soundReady = true; SFX.play('tick'); } });
+syncSound();
 window.addEventListener('pagehide', save);
 })();
 </script>

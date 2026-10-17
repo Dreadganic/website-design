@@ -60,3 +60,9 @@ Pacing: costs start cheap and climb steeply (pickers ×1.5 each from 150 coins, 
 - **Buildings** (Upgrade → Build): six lots per farm along the fence, three levels each, paid in coins (base × 3^level × farm multiplier). Picker housing (+2 picker places a level), wet mill (faster washed drying), raised drying beds (+1 rack), compost shed (+10% growth), shade trees (+0.4 cup), sorting table (peaberry lots at double value). Sprites: `build_<key>`.
 - **Staff** (Upgrade → Staff): farm manager per farm (+25% picker speed, +50% away earnings, walks the farm), mill foreman (starts and sells lots automatically, with a process rule), contracts agent (delivers to matching contracts, steers the foreman, +1 contract slot).
 - **Decor** (Shop → Decor): bandana, bench, planter, lanterns (glow at night), Beju flag, bunting and coffee cart, bought once with coins and shown on every farm. Sprites: `deco_<key>`.
+
+## Sound
+- `audio/theme.html`: the farm jukebox (one chiptune theme per farm, day and night arrangements).
+- `audio/sfx.js`: game sound effects, synthesised live with the Web Audio API (no files). Soft and natural with a small random pitch on every play. `SFX.play(name)`, `SFX.unlock()` inside the first tap (iPhone), `SFX.setEnabled()`, `SFX.setVolume()`. `play/build.py` inlines it into the game.
+- `audio/soundboard.html`: plays every effect; publish it with `sfx.js` alongside.
+- In the game: harvest, brush, knock (storage full), nope (no hearts), thud (picker drop-off), woof, dig (replant), pour/splash (start a lot), ding (lot dry), coins/xp (sales), click/tick (tabs), page/close (windows), buy, build, hire, stamp/contract, crane, achieve, levelup. A speaker button on the farm view turns them off.
