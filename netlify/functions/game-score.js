@@ -1,6 +1,7 @@
-/* POST /.netlify/functions/game-score  { name, prestige, seasonP, level, points, look }  ->  { ok, rank } or 422 { error }
+/* POST /.netlify/functions/game-score  { name, prestige, seasonP, seasonKh, level, points, look }  ->  { ok, rank } or 422 { error }
    GET  /.netlify/functions/game-score?mode=season|all      ->  { season, top: [...], me? }
-   The leaderboard. Ranks by prestige, then level, then points. Each submission must be possible since the last one. */
+   The leaderboard. All time ranks by prestige, then level, then points; the season board ranks by know-how earned this month.
+   Each submission must be possible since the last one. */
 const G = require("../lib/game");
 
 const rankSort = (key) => (a, b) => b[key] - a[key] || b.level - a.level || b.points - a.points;
@@ -8,9 +9,9 @@ async function boardFor(store, mode, season) {
   const keys = await store.list("scores/");
   const rows = (await Promise.all(keys.map((k) => store.get(k)))).filter(Boolean);
   const live = mode === "all" ? rows : rows.filter((r) => r.season === season);
-  return live.sort(rankSort(mode === "all" ? "prestige" : "seasonP"));
+  return live.sort(mode === "all" ? rankSort("prestige") : (a, b) => (b.seasonKh || 0) - (a.seasonKh || 0) || b.prestige - a.prestige);
 }
-const publicRow = (r, i) => ({ rank: i + 1, name: r.name, prestige: r.prestige, seasonP: r.seasonP, level: r.level, points: r.points, look: r.look });
+const publicRow = (r, i) => ({ rank: i + 1, name: r.name, prestige: r.prestige, seasonP: r.seasonP, seasonKh: r.seasonKh || 0, level: r.level, points: r.points, look: r.look });
 
 exports.handler = async (event) => {
   const deps = exports.__deps;
@@ -30,7 +31,7 @@ exports.handler = async (event) => {
   if (!name) return G.json(422, { error: "bad_name" });
   const key = "scores/" + me.id, prev = await store.get(key);
   const nextSeasonP = prev && prev.season !== season ? Math.min(b.seasonP | 0, 1) : b.seasonP | 0;   /* a new month starts the season count again */
-  const next = { prestige: b.prestige | 0, seasonP: nextSeasonP, level: b.level | 0, points: Math.floor(Number(b.points) || 0) };
+  const next = { prestige: b.prestige | 0, seasonP: nextSeasonP, seasonKh: Math.floor(Number(b.seasonKh) || 0), level: b.level | 0, points: Math.floor(Number(b.points) || 0) };
   const problem = G.checkScore(prev && Object.assign({}, prev, { seasonP: prev.season === season ? prev.seasonP : 0 }), next, now);
   if (problem) return G.json(422, { error: problem });
   const row = Object.assign(next, { id: me.id, name, look: G.cleanLook(b.look, next.prestige), season, at: now, prestigeAt: !prev || next.prestige > prev.prestige ? now : prev.prestigeAt });

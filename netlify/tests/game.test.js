@@ -43,7 +43,7 @@ test("saves: versions stop an old device overwriting newer progress", async () =
 
 test("scores: honest progress is accepted and ranked", async () => {
   const a = await newPlayer(), b = await newPlayer();
-  const s = (p, sp, pts) => ({ name: "Farmer", prestige: p, seasonP: sp, level: G.levelFor(pts), points: pts, look: { crest: p + 3, skin: p, bg: "huila", char: "kitsune" } });
+  const s = (p, sp, pts) => ({ name: "Farmer", prestige: p, seasonP: sp, seasonKh: pts, level: G.levelFor(pts), points: pts, look: { crest: p + 3, skin: p, bg: "huila", char: "kitsune" } });
   assert.equal((await call(score, "POST", s(0, 0, 500), a)).status, 200);
   assert.equal((await call(score, "POST", s(0, 0, 100), b)).status, 200);
   clock += 60000;
@@ -75,7 +75,7 @@ test("scores: a real prestige is accepted, but not twice in a few minutes", asyn
   for (let i = 0; i < 12; i++) { clock += 300000; await call(score, "POST", s(0, 0, 900 + (i + 1) * 1800), a); }
   clock += 60000;
   assert.equal((await call(score, "POST", s(1, 1, 0), a)).status, 200);
-  for (const pts of [20000, 40000]) { clock += 60000; assert.equal((await call(score, "POST", s(1, 1, pts), a)).status, 200); }   /* bursts can reach level 12 quickly... */
+  for (const pts of [40000, G.XP_AT(18)]) { clock += 60000; assert.equal((await call(score, "POST", s(1, 1, pts), a)).status, 200); }   /* bursts can reach level 18 quickly... */
   clock += 60000;
   assert.equal((await call(score, "POST", s(2, 2, 0), a)).body.error, "prestige_too_fast");   /* ...but a second prestige this soon is refused */
   clock += 15 * 60000;
@@ -97,6 +97,18 @@ test("claims: a paid order grants cranes and coffees once", async () => {
   Object.defineProperty(claim, "__deps", { get: () => ({ store, now: clock, fetch: unpaid }), configurable: true });
   assert.equal((await call(claim, "POST", { session_id: "cs_test_zzzzzzzzzzzz" }, a)).status, 402);
   assert.equal((await call(claim, "POST", { session_id: "nope" }, a)).status, 400);
+});
+
+test("scores: prestige needs 8 more levels each time, and the season board ranks know-how", async () => {
+  assert.deepEqual([0, 1, 2, 3].map(G.prestigeNeed), [10, 18, 26, 34]);
+  assert.ok(G.XP_AT(11) > G.XP_AT(10) && Math.abs(G.XP_AT(20) / G.XP_AT(19) - 1.18) < 0.01, "levels past 10 grow 1.18x");
+  const a = await newPlayer(), b = await newPlayer();
+  const s = (kh, pts) => ({ name: "Farmer", prestige: 0, seasonP: 0, seasonKh: kh, level: G.levelFor(pts), points: pts });
+  await call(score, "POST", s(5000, 5000), a); await call(score, "POST", s(9000, 2000), b);
+  const board = await call(score, "GET", undefined, a, { mode: "season" });
+  assert.equal(board.body.top[0].seasonKh, 9000, "most know-how this month leads the season board");
+  clock += 20000;
+  assert.equal((await call(score, "POST", s(5000 + 1e7, 5000), a)).body.error, "too_fast");
 });
 
 test("events: only current and upcoming drops are served", async () => {

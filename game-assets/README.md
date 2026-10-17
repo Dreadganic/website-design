@@ -109,3 +109,11 @@ Pacing: costs start cheap and climb steeply (pickers ×1.5 each from 150 coins, 
 
 ## Online (backend)
 The game talks to Netlify Functions (`netlify/functions/game-*.js`, storage in Netlify Blobs) only when it runs on bejucoffee.com, a Netlify preview or localhost. It then creates an anonymous account, keeps a cloud save (offering to load newer progress from another device), submits scores and shows the live leaderboard, links an order from `?claim=cs_…` (rewards counted by the server), and starts drop events from `netlify/lib/game-events.json`. Windows now queue instead of replacing each other. Build the site copy with `python3 game-assets/play/build.py beju-site/farm/index.html --site`. See SETUP.md section 4.
+
+## Pacing rules (from the prestige playtest)
+- **Hiring** is priced per farm: 150 × the farm's price multiplier × 1.45 for each picker past the second on that farm.
+- **Daily tasks** reset each real day and the **weekly order** runs for a real week; the other farmers' share fills steadily over the week.
+- **Away time:** with a mill foreman, lots keep drying and selling while you are away (storage still caps what the pickers bring in). The welcome-back screen shows what the mill earned.
+- **Buildings** go to level 5. **Farm mastery** (Upgrades › Build, coins, needs the farm's manager) adds 10% picking per level, cost ×1.45 a level. **Cupping research** (Upgrades › Seeds, know-how) adds 0.3 cup score per level, cost ×1.4 a level.
+- **Prestige** needs level 10, 18, 26, 34 ... by lifetime prestige, and each level past 10 needs 1.18× the XP of the last. The season board ranks know-how earned this month; the all-time board stays prestige first. The server mirrors these rules.
+- Bot playtest on this build: prestige 5 at 8.3 h of active play, or 13.6 days of three 10-minute sessions a day (`game-assets/sim`).

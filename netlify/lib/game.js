@@ -36,13 +36,14 @@ async function authed(event, store) {
 }
 
 /* The game's own rules, mirrored so the server can check what a client claims */
-const XP_AT = (l) => Math.round(100 * Math.pow(l - 1, 2.4));
+const XP_AT = (l) => l <= 10 ? Math.round(100 * Math.pow(l - 1, 2.4)) : Math.round(100 * Math.pow(9, 2.4) * Math.pow(1.18, l - 10));
 const levelFor = (xp) => { let l = 1; while (xp >= XP_AT(l + 1)) l++; return l; };
 const PRESTIGE_LEVEL = 10;
+const prestigeNeed = (p) => PRESTIGE_LEVEL + 8 * p;   /* by lifetime prestige: 10, 18, 26, 34 ... */
 const seasonKey = (ms) => { const d = new Date((ms || Date.now()) + 9 * 3600e3); return d.getUTCFullYear() + "-" + String(d.getUTCMonth() + 1).padStart(2, "0"); };   /* seasons follow Japan time */
 const RULES = {
-  xpPerSecond: 60,          /* far above the best late-game rate, so honest players never hit it */
-  xpBurst: 25000,           /* contracts, check-ins and offline earnings arrive in lumps */
+  xpPerSecond: 1500,        /* a maxed farm with mastery earns a few hundred a second; this leaves room above that */
+  xpBurst: 150000,          /* contracts, check-ins and offline earnings arrive in lumps */
   minPrestigeGapSec: 15 * 60, /* reaching level 10+ again takes far longer than this */
   minScoreGapSec: 15,
   minSaveGapSec: 5,
@@ -53,20 +54,23 @@ const RULES = {
 function checkScore(prev, next, now) {
   const n = next;
   if (!Number.isInteger(n.prestige) || !Number.isInteger(n.seasonP) || !Number.isFinite(n.points) || n.prestige < 0 || n.seasonP < 0 || n.points < 0) return "bad_numbers";
+  n.seasonKh = Math.max(0, Math.floor(Number(n.seasonKh) || 0));
   if (n.seasonP > n.prestige) return "bad_numbers";
   const lv = levelFor(n.points);
   if (n.level !== lv) return "level_mismatch";
-  if (!prev) return n.prestige <= 1 && n.points <= RULES.xpBurst * 4 ? null : "too_far_for_a_new_player";
+  if (!prev) return n.prestige <= 1 && n.points <= RULES.xpBurst * 4 && n.seasonKh <= RULES.xpBurst * 4 ? null : "too_far_for_a_new_player";
   const dt = Math.max(0, (now - prev.at) / 1000);
   if (dt < RULES.minScoreGapSec) return "too_soon";
   const sameSeason = prev.season === seasonKey(now);
   if (n.prestige < prev.prestige) return "prestige_went_down";
   if (n.prestige > prev.prestige + 1) return "prestige_jump";
   if (n.prestige === prev.prestige + 1) {
-    if (prev.level < Math.min(20, PRESTIGE_LEVEL + 2 * (sameSeason ? prev.seasonP : 0)) && prev.points < XP_AT(PRESTIGE_LEVEL)) return "prestige_without_level";
+    if (prev.level < prestigeNeed(prev.prestige)) return "prestige_without_level";
     if (now - (prev.prestigeAt || 0) < RULES.minPrestigeGapSec * 1000) return "prestige_too_fast";
   } else if (n.points > prev.points + RULES.xpPerSecond * dt + RULES.xpBurst) return "too_fast";
   if (sameSeason && n.seasonP > prev.seasonP + (n.prestige - prev.prestige)) return "season_jump";
+  const khBase = sameSeason ? prev.seasonKh || 0 : 0;   /* know-how earned this month can only grow as fast as play allows */
+  if (n.seasonKh > khBase + RULES.xpPerSecond * dt + RULES.xpBurst) return "too_fast";
   return null;
 }
 
@@ -90,4 +94,4 @@ const cleanLook = (l, prestige) => {
 /* Which passport origins each real coffee can stamp, in blend order (mirrors the game's COFFEES) */
 const STAMPS = { casablanca: ["mogiana", "huila", "turrialba"], pinkwhiskey: ["huila"], rumbarrel: ["huila"], yirgacheffe: ["gedeo"], strawberry: ["toba"] };
 
-module.exports = { json, parse, stores, memoryStore, authed, hash, newId, newToken, XP_AT, levelFor, seasonKey, RULES, checkScore, cleanName, cleanLook, STAMPS };
+module.exports = { json, parse, stores, memoryStore, authed, hash, newId, newToken, XP_AT, levelFor, prestigeNeed, seasonKey, RULES, checkScore, cleanName, cleanLook, STAMPS };
