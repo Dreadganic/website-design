@@ -115,6 +115,18 @@ button, a.btn, [data-act], [data-tab] { touch-action: manipulation; -webkit-tap-
 @keyframes hint { 50% { outline-color: #FFF4C0; transform: translateY(-2px); } }
 canvas.hint { transform: none !important; }
 .tab.fresh { animation: hint 1s ease-in-out 4; }
+.tab.locked { background: #D8C8A8; color: #7A6A50; border-style: dashed; }
+.tab.locked img { filter: grayscale(1) brightness(0.8); opacity: 0.6; }
+.tab .lock { position: absolute; top: 2px; right: 3px; font-size: 9px; line-height: 1; }
+.lvl { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+.lvl-badge { width: 74px; height: 74px; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle at 35% 30%, #FFF4B0, #F2C04A 55%, #B88A20); border: 4px solid var(--edge); box-shadow: 0 0 0 3px #FFE27A, 0 0 18px rgba(242,192,74,0.8); font: 700 30px/1 "Pixelify Sans", monospace; color: #4A3208; animation: lvlpop 0.5s ease-out; }
+.lvl-badge small { display: block; font-size: 10px; letter-spacing: 0.08em; }
+.lvl h2 { margin: 0; }
+.lvl-list { display: flex; flex-direction: column; gap: 6px; width: 100%; text-align: left; }
+.lvl-list .row { margin: 0; }
+.lvl-next { font-size: 12px; color: var(--muted); }
+@keyframes lvlpop { 0% { transform: scale(0.3) rotate(-20deg); } 70% { transform: scale(1.15) rotate(4deg); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .lvl-badge { animation: none; } }
 .market { display: flex; gap: 8px; align-items: center; padding: 8px 10px; background: #FFF1C4; border: 2px solid #C98F12; border-radius: 8px; font-size: 13px; }
 .streak { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; width: 100%; }
 .streak span { display: flex; flex-direction: column; align-items: center; padding: 4px 2px; border: 2px solid #D9C29A; border-radius: 6px; font-size: 9px; font-weight: 700; color: #7A5A3A; line-height: 1.2; text-align: center; }
@@ -620,6 +632,7 @@ function tickFarm(f, d, visible) {
 }
 const me = { x: 150, y: 96, tx: 150, ty: 96, t: 0, walk: 0, dir: 'down', flip: false, moving: false };
 const aura = [];
+let fireworks = 0, fwT = 0;
 function tickMe(d) {
   me.t -= d;
   if (me.t <= 0) { me.t = 2.5 + rnd() * 4; const sp = [[150, 96], [120, 104], [70, 108], [96, 140], [96, 186], [160, 104], [40, 106]][Math.floor(rnd() * 7)]; me.tx = sp[0]; me.ty = sp[1]; }
@@ -643,6 +656,11 @@ function tick(dt) {
   S.lots.forEach((l) => { if (l.left > 0) { l.left = Math.max(0, l.left - d); if (!l.left && !S.staff.foreman) SFX.play('ding'); } });
   LOCS.forEach((l) => { const f = S.farms[l]; if (f.unlocked && !S.dormant[l]) tickFarm(f, d, l === S.loc); });
   tickMe(d);
+  if (fireworks > 0) {   /* level-up fireworks: coloured bursts popping over your farmer */
+    fireworks -= dt; fwT -= dt;
+    if (fwT <= 0) { fwT = 0.22; const cx = me.x + (rnd() - 0.5) * 30, cy = me.y - 34 - rnd() * 16, col = ['#F2C04A', '#E83A30', '#7ED0A8', '#F8B8CC', '#7890E0', '#FFFFFF'][Math.floor(rnd() * 6)];
+      for (let i = 0; i < 14; i++) { const a = i / 14 * 6.283, v = 30 + rnd() * 20; bursts.push({ x: cx, y: cy, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 20, t: 0, c: i % 3 ? col : '#FFF4B0' }); } }
+  }
   contractsTick();
   S.staffT = (S.staffT || 0) + d; if (S.staffT >= 1) { S.staffT = 0; staffTick(); }
   floats.forEach((t) => { t.t += dt; }); while (floats.length && floats[0].t > 1.1) floats.shift();
@@ -789,7 +807,44 @@ function spend(cur, n) { if (S[cur] < n) return false; S[cur] -= n; return true;
 function earn(r) {
   const lv = level();
   if (r.coins) S.coins += r.coins; if (r.points) { S.points += r.points; S.xp += r.points; S.season.kh = (S.season.kh || 0) + r.points; } if (r.cranes) S.cranes += r.cranes;
-  if (level() > lv) { SFX.play('levelup'); toast('Level ' + level() + '!'); wakeFarms(); }
+  if (level() > lv) levelUp(lv, level());
+}
+/* level ups: a fanfare, fireworks over your farmer, and a window listing what the new level gives */
+const levelCoins = (l) => Math.round(50 * Math.pow(l, 1.5) / 10) * 10;
+let LV = null;   /* the level-up window on screen or waiting, so quick level ups share one window */
+function levelUp(from, to) {
+  const shown = LV && (($('modalCard').querySelector('.lvl') && !$('modal').hidden) || modalQueue.some((h) => h.indexOf('class="lvl"') > -1));
+  if (!shown) LV = { from, coins: 0, cranes: 0, boost: false, opened: [] };
+  const opened = LV.opened;
+  let coins = 0, cranes = 0, boost = false;
+  for (let l = from + 1; l <= to; l++) {
+    coins += levelCoins(l);
+    if (l % 5 === 0) { cranes += 3; boost = true; }
+    Object.keys(TAB_LEVEL).forEach((k) => { if (TAB_LEVEL[k] === l && !S.tabs[k]) opened.push(['i_trophy', TAB_WHAT[k]]); });
+    Object.keys(S.dormant).forEach((loc) => { if (S.dormant[loc] === l) opened.push(['stamp_' + loc, ART.locations[loc].name.split(',')[0] + ' wakes up and gets back to work']); });
+    if (l === prestigeNeed()) opened.push(['i_trophy', 'Prestige ' + (S.prestige + 1) + ' is ready in Ranks']);
+  }
+  S.coins += coins; S.cranes += cranes; S.hearts = maxHearts();
+  if (boost) S.boosts.grow = Math.max(S.boosts.grow || 0, S.minutesTotal) + 10 * REAL_MIN;
+  LV.coins += coins; LV.cranes += cranes; LV.boost = LV.boost || boost; from = LV.from;
+  const got = [['i_coin', '+' + fmt(LV.coins) + ' coins'], ['i_heart', 'Stamina refilled']];
+  if (LV.cranes) got.push(['i_crane', '+' + LV.cranes + ' cranes for milestone levels']);
+  if (LV.boost) got.push(['sparkle', 'Growth ×2 for 10 minutes on every farm']);
+  wakeFarms(); checkTabs();
+  let next = null;   /* the next level with something new */
+  for (let l = to + 1; l < to + 60 && !next; l++) {
+    if (Object.keys(TAB_LEVEL).some((k) => TAB_LEVEL[k] === l && !S.tabs[k])) next = [l, { shop: 'the Shop', orders: 'the Daily tab and buyer contracts', ranks: 'Ranks and the leaderboard' }[Object.keys(TAB_LEVEL).find((k) => TAB_LEVEL[k] === l)]];
+    else if (Object.keys(S.dormant).some((loc) => S.dormant[loc] === l)) next = [l, ART.locations[Object.keys(S.dormant).find((loc) => S.dormant[loc] === l)].name.split(',')[0] + ' wakes'];
+    else if (l === prestigeNeed()) next = [l, 'prestige ' + (S.prestige + 1)];
+    else if (l % 5 === 0) next = [l, 'milestone: 3 cranes and a growth boost'];
+  }
+  fireworks = 1.6; SFX.play('fanfare');
+  const rows = (list) => list.map(([ic, txt]) => '<div class="row"><div class="art">' + img(ic, 24) + '</div><div class="grow"><b>' + txt + '</b></div></div>').join('');
+  const html = ('<div class="lvl"><div class="lvl-badge"><div><small>LEVEL</small>' + to + '</div></div><h2>Congratulations!</h2><p class="note">You just advanced a farming level. You are now level ' + to + (to - from > 1 ? ' (up ' + (to - from) + ' levels)' : '') + '.</p>' +
+    (opened.length ? '<div class="lvl-list"><p class="note"><b>Unlocked</b></p>' + rows(opened) + '</div>' : '') + '<div class="lvl-list"><p class="note"><b>Rewards</b></p>' + rows(got) + '</div>' +
+    (next ? '<p class="lvl-next">Next at level ' + next[0] + ': ' + next[1] + '</p>' : '') + '<button class="btn green" data-act="close">Continue</button></div>');
+  const qi = modalQueue.findIndex((h) => h.indexOf('class="lvl"') > -1);
+  if (shown && qi > -1) modalQueue[qi] = html; else showModal(html, shown);
 }
 function buyUpgrade(key) {
   const u = UP[key];
@@ -823,6 +878,7 @@ function startLot(v, method, quiet) {
 }
 const marketPick = () => { const ms = Object.keys(METHODS).filter((k) => S.methods[k]); return ms[(S.day * 7 + 3) % ms.length]; };
 const MARKET = 1.4;
+const REAL_MIN = 150;   /* S.minutesTotal moves 2.5 game minutes a second, so 150 per real minute */
 const cupFor = (v, method) => { const vr = VAR[v]; return Math.min(95, METHODS[method].cup + (vr.value - 1) * 2 + ((vr.cup || {})[method] || 0) + S.bonus * 10 + shadeCup()) + 0.3 * (S.research || 0); };
 function saleFor(v, method, green) {
   const bonus = 1 + S.bonus, cup = cupFor(v, method);
@@ -1034,15 +1090,21 @@ function renderGuide() {
   if (t) t.classList.add('hint');
 }
 const TAB_OPEN = { upgrades: () => S.stats.lotsSold >= 1 || S.guide > 3, orders: () => level() >= 3, ranks: () => level() >= 5, shop: () => level() >= 2 };
+/* every tab shows from the start; locked ones say what opens them */
+const TAB_LEVEL = { shop: 2, orders: 3, ranks: 5 };
+const TAB_HINT = { upgrades: 'sell your first lot', shop: 'reach level 2', orders: 'reach level 3', ranks: 'reach level 5' };
+const TAB_SHORT = { upgrades: '1st sale', shop: 'Lv 2', orders: 'Lv 3', ranks: 'Lv 5' };
+const TAB_WHAT = { shop: 'Shop: characters, building styles, boosts and decor', orders: 'Daily tab, and buyers start posting contracts in the Mill', ranks: 'Ranks: the leaderboard, crests, outfits and prestige' };
+const tabLocked = (id) => !!TAB_OPEN[id] && !S.tabs[id];
 function checkTabs() {
   Object.keys(TAB_OPEN).forEach((k) => { if (!S.tabs[k] && TAB_OPEN[k]()) { S.tabs[k] = true; if (k === 'orders') { S.contracts = S.contracts.filter((c) => c.event); S.nextContract = 0; setTimeout(() => toast('Buyers now post contracts in the Mill'), 2800); } S.newTab = k; toast('New tab: ' + TABS.find((x) => x[0] === k)[1]); SFX.play('achieve'); } });
 }
 function setHTML(el, html) { if (el.__html === html) return false; el.__html = html; el.innerHTML = html; return true; }   /* rebuilding unchanged buttons swallows taps */
 function renderTabs() {
   const dot = { orders: S.tasks.some((t) => t.have >= t.goal && !t.done) || (S.weekly.team + S.weekly.mine >= S.weekly.target && !S.weekly.claimed), mill: S.lots.some((l) => l.left <= 0) };
-  const shown = TABS.filter(([id]) => !TAB_OPEN[id] || S.tabs[id]);
-  $('tabs').style.gridTemplateColumns = 'repeat(' + shown.length + ', minmax(0, 1fr))';
-  setHTML($('tabs'), shown.map(([id, label, ic]) => '<button class="tab' + (S.newTab === id ? ' fresh' : '') + '" role="tab" type="button" data-tab="' + id + '" aria-pressed="' + (tab === id) + '"><img src="' + url(ic) + '" alt="">' + label + (dot[id] ? '<i class="dot"></i>' : '') + '</button>').join(''));
+  $('tabs').style.gridTemplateColumns = 'repeat(' + TABS.length + ', minmax(0, 1fr))';
+  setHTML($('tabs'), TABS.map(([id, label, ic]) => { const locked = tabLocked(id);
+    return '<button class="tab' + (S.newTab === id ? ' fresh' : '') + (locked ? ' locked' : '') + '" role="tab" type="button" data-tab="' + id + '" aria-pressed="' + (tab === id) + '"' + (locked ? ' aria-label="' + label + ', locked: ' + TAB_HINT[id] + '"' : '') + '><img src="' + url(ic) + '" alt="">' + (locked ? TAB_SHORT[id] : label) + (locked ? '<i class="lock" aria-hidden="true">🔒</i>' : dot[id] ? '<i class="dot"></i>' : '') + '</button>'; }).join(''));
 }
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; toastT = 2.6; }
 const modalQueue = [];
@@ -1268,7 +1330,7 @@ function renderPanel() {
     h += '<h2>Crane shop</h2><p class="note">' + icon('i_crane') + ' ' + S.cranes + ' cranes. Earn 1 crane per ¥100 spent on bejucoffee.com and 20 for each new passport stamp (try it in the Test tab).</p>' + (S.farms.osaka.unlocked ? '' : row(img('stamp_osaka', 30), 'Osaka roastery garden', 'Rare varieties all year, four seasons. Cranes only.', btn('Open', OSAKA_CRANES + ' cranes', 'farm:osaka', S.cranes >= OSAKA_CRANES)));
     [['grow', 'Growth ×2 for 30 min', 'Every farm grows twice as fast', 5, 'sparkle'], ['pick', 'Pickers ×2 for 30 min', 'Every picker works twice as fast', 5, 'worker_side_1'], ['hearts', 'Refill hearts', 'Back to full stamina', 2, 'i_heart'], ['points', '+500 know-how', 'For varieties, farms and processes', 10, 'i_points'], ['dry', 'Instant drying', 'Every lot on the racks finishes now', 6, 'proc_natural']].forEach(([k, t, sub, c, a]) => {
       const active = (k === 'grow' || k === 'pick') && S.boosts[k] > S.minutesTotal;
-      h += row(img(a, 30), t, active ? 'Active: ' + Math.ceil((S.boosts[k] - S.minutesTotal)) + ' game min left' : sub, btn('Use', c + ' cranes', 'boost:' + k, S.cranes >= c));
+      h += row(img(a, 30), t, active ? 'Active: ' + Math.ceil((S.boosts[k] - S.minutesTotal) / REAL_MIN) + ' min left' : sub, btn('Use', c + ' cranes', 'boost:' + k, S.cranes >= c));
     });
     h += '<h3>Picker hats</h3><div class="grid2">' + Object.keys(ART.hats).map((k) => {
       const owned = S.hats[k], cost = { straw: 0, beju: 15, sakura: 20, indigo: 15, harvest: 20 }[k];
@@ -1292,7 +1354,7 @@ function renderPanel() {
   P.querySelectorAll('.ccards').forEach((x, i) => { if (strips[i]) x.scrollLeft = strips[i]; });
 }
 document.addEventListener('click', (e) => {
-  const t = e.target.closest('[data-tab]'); if (t) { setTab(t.dataset.tab); return; }
+  const t = e.target.closest('[data-tab]'); if (t) { if (tabLocked(t.dataset.tab)) { SFX.play('nope'); toast(TABS.find((x) => x[0] === t.dataset.tab)[1] + ' opens when you ' + TAB_HINT[t.dataset.tab]); return; } setTab(t.dataset.tab); return; }
   const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
   const [a, v] = b.dataset.act.split(':');
   const f = S.farms[S.loc];
@@ -1358,7 +1420,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'boost') {
     const cost = { grow: 5, pick: 5, hearts: 2, points: 10, dry: 6 }[v];
     if (!spend('cranes', cost)) return;
-    if (v === 'grow' || v === 'pick') S.boosts[v] = Math.max(S.boosts[v] || 0, S.minutesTotal) + 30;
+    if (v === 'grow' || v === 'pick') S.boosts[v] = Math.max(S.boosts[v] || 0, S.minutesTotal) + 30 * REAL_MIN;
     if (v === 'hearts') S.hearts = maxHearts();
     if (v === 'points') earn({ points: 500 });
     if (v === 'dry') S.lots.forEach((l) => { l.left = 0; });
@@ -1369,7 +1431,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'order') realOrder(v);
   else if (a === 'add') {
     if (v === 'coins') S.coins += 1000; if (v === 'bigcoins') S.coins += 25000; if (v === 'drop') { const i = S.event ? (DROPS.findIndex((d) => d.id === S.event.id) + 1) % DROPS.length : 0; startDrop(DROPS[i].id); } if (v === 'season') { const n = new Date(); S.season.key = seasonKey(new Date(n.getFullYear(), n.getMonth() - 1, 1)); seasonTick(); } if (v === 'checkin') { const y = new Date(Date.now() - 86400000); S.checkin.last = dayKey(y); checkIn(); } if (v === 'guide') { S.guide = 0; S.guideN = 0; } if (v === 'contracts') { S.contracts = []; for (let k = 0; k < contractSlots(); k++) S.contracts.push(newContract()); } if (v === 'points') earn({ points: 2000 }); if (v === 'cranes') S.cranes += 50; if (v === 'vars') VAR_ORDER.forEach((x) => { S.vars[x] = true; }); if (v === 'stamp') { const l = ORIGINS.find((o) => !S.stamps[o]); if (l) { S.stamps[l] = true; stampBg(l); } }
-    if (v === 'xp') { S.xp = XP_AT(level() + 1); wakeFarms(); }
+    if (v === 'xp') { const lv = level(); S.xp = XP_AT(lv + 1); levelUp(lv, level()); }
     if (v === 'cherries') { const vv = S.farms[S.loc].beds[0]; S.cherries[vv] = (S.cherries[vv] || 0) + (cap() - stored()); }
   }
   else if (a === 'away') away(+v);

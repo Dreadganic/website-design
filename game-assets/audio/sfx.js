@@ -53,6 +53,15 @@ const SFX = (function () {
   }
   function bell(t, f, gain, dur) { tone(t, { f, gain, dur: dur || 0.5, verb: true }); tone(t, { f: f * 2.76, gain: gain * 0.35, dur: (dur || 0.5) * 0.45, verb: true }); tone(t, { f: f * 5.4, gain: gain * 0.12, dur: (dur || 0.5) * 0.2 }); }
   const XP = [1568, 1760, 2093, 2349, 2637];
+  function brass(t, f, dur, gain) {   /* a little horn: two detuned saws through a filter that opens on the attack */
+    const g = ac.createGain(), lp = ac.createBiquadFilter();
+    lp.type = 'lowpass'; lp.Q.value = 2; lp.frequency.setValueAtTime(f * 1.2, t); lp.frequency.exponentialRampToValueAtTime(f * 6, t + 0.05); lp.frequency.exponentialRampToValueAtTime(f * 2.2, t + dur);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + 0.03); g.gain.setValueAtTime(gain * 0.8, t + Math.max(0.05, dur - 0.08)); g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.12);
+    [0, 6].forEach((cents) => { const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.detune.value = cents; o.connect(lp); o.start(t); o.stop(t + dur + 0.15); });
+    lp.connect(g); g.connect(out); g.connect(verb);
+  }
+  function harp(t, f, gain) { tone(t, { f, gain, dur: 0.9, wave: 'triangle', verb: true }); tone(t, { f: f * 2, gain: gain * 0.3, dur: 0.4, verb: true }); }
+  function timpani(t, gain) { tone(t, { f: 98, f2: 82, glide: 0.4, gain, dur: 0.55 }); hiss(t, { type: 'lowpass', f: 300, gain: gain * 0.5, dur: 0.18 }); }
 
   const S = {
     harvest(t, p) {   /* leaves rustle, then the cherries pop into your basket */
@@ -72,6 +81,15 @@ const SFX = (function () {
     build(t, p) { [0, 0.24, 0.48].forEach((d, i) => S.wood(t + d, p * R(0.94, 1.08) * (i === 2 ? 0.92 : 1))); bell(t + 0.62, 1046 * p, 0.12, 0.45); },
     buy(t, p) { S.wood(t, p * 0.9); S.coins(t + 0.08, p, 2); },
     xp(t, p) { bell(t, XP[Math.floor(Math.random() * XP.length)] * p, 0.12, 0.35); },
+    fanfare(t) {   /* the level-up jingle: a horn call, a held chord and a harp run, in the spirit of an old MMO skill advance */
+      const n = (s) => 261.63 * Math.pow(2, s / 12);   /* semitones above middle C */
+      timpani(t, 0.28);
+      [[-5, 0, 0.11], [0, 0.12, 0.11], [4, 0.24, 0.11], [7, 0.36, 0.42], [4, 0.84, 0.1], [5, 0.96, 0.1], [7, 1.08, 0.1]].forEach(([s, d, len]) => brass(t + d, n(s + 12), len, 0.07));
+      [0, 0.06, 0.12].forEach((d) => timpani(t + 1.14 + d, 0.18));
+      [12, 16, 19, 24].forEach((s) => brass(t + 1.26, n(s), 1.05, s === 24 ? 0.07 : 0.04));
+      [0, 4, 7, 12, 16, 19, 24].forEach((s, i) => harp(t + 1.26 + i * 0.055, n(s + 12), 0.07));
+      bell(t + 1.7, n(36), 0.05, 0.9);
+    },
     coins(t, p, n) { for (let i = 0; i < (n || 5); i++) S.xp(t + i * R(0.055, 0.09), p * R(0.97, 1.03)); },
     levelup(t, p) { [1046, 1318, 1568, 2093].forEach((f, i) => bell(t + i * 0.1, f * p, 0.14, 0.7)); [0.45, 0.55].forEach((d) => bell(t + d, 2637 * p, 0.06, 0.6)); },
     achieve(t, p) { bell(t, 1318 * p, 0.12, 0.6); bell(t + 0.12, 1975 * p, 0.12, 0.9); tone(t, { f: 659 * p, gain: 0.05, dur: 1.0, attack: 0.08, verb: true }); },
