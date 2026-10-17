@@ -1,1 +1,3 @@
 node_modules/
+game-assets/sim/*.html
+game-assets/sim/*.json

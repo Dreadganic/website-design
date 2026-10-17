@@ -1,0 +1,184 @@
+<title>Beju Farm Prestige Playtest</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column of field notes, with wide figures that scroll on their own */
+:root {
+  --bg: #F3F5F1; --panel: #FFFFFF; --fg: #1E2A24; --muted: #5C6B63; --line: #D5DDD7;
+  --leaf: #2F6B4F; --cherry: #B8323A; --gold: #B98A1E; --soft: #E5ECE6;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121815; --panel: #1A221E; --fg: #E4ECE6; --muted: #9AAAA1; --line: #2E3A34;
+  --leaf: #6CC59A; --cherry: #F07880; --gold: #E2B64A; --soft: #223029; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #121815; --panel: #1A221E; --fg: #E4ECE6; --muted: #9AAAA1; --line: #2E3A34;
+  --leaf: #6CC59A; --cherry: #F07880; --gold: #E2B64A; --soft: #223029; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font: 16px/1.6 var(--body); }
+.wrap { max-width: 780px; margin: 0 auto; padding-block: 40px 72px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 36px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(30px, 6vw, 44px); font-weight: 800; }
+h2 { font-size: 24px; font-weight: 800; }
+h3 { font-size: 17px; font-weight: 600; }
+p { margin: 0; max-width: 66ch; }
+section { display: flex; flex-direction: column; gap: 14px; }
+.eyebrow { font: 600 12px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--leaf); }
+.lede { font-size: 18px; color: var(--muted); }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; }
+.kpi b { font: 800 28px/1.1 var(--display); font-variant-numeric: tabular-nums; }
+.kpi span { font-size: 13px; color: var(--muted); }
+.kpi.bad b { color: var(--cherry); } .kpi.good b { color: var(--leaf); }
+.fig { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; overflow-x: auto; }
+.fig svg { display: block; min-width: 620px; width: 100%; height: auto; }
+.cap { font-size: 13px; color: var(--muted); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+.tw { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 12px/1.3 var(--mono); letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+ol, ul { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 10px; max-width: 68ch; }
+li b { color: var(--fg); }
+.pill { display: inline-block; font: 600 11px/1 var(--mono); padding: 4px 7px; border-radius: 99px; letter-spacing: 0.04em; vertical-align: 2px; }
+.pill.bug { background: var(--cherry); color: var(--panel); }
+.pill.design { background: var(--soft); color: var(--leaf); }
+.rec { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; }
+.rec .num { font: 600 12px var(--mono); color: var(--muted); }
+code { font: 13px var(--mono); background: var(--soft); padding: 1px 5px; border-radius: 4px; }
+a { color: var(--leaf); }
+.note { font-size: 14px; color: var(--muted); }
+</style>
+
+<div class="wrap">
+<header style="display:flex;flex-direction:column;gap:12px">
+  <span class="eyebrow">Playtest · 17 October 2026 · bot-played to prestige 5</span>
+  <h1>Beju Farm reaches prestige 5 in under three hours</h1>
+  <p class="lede">A bot played the current build from a new save to prestige 5, once as an always-on player and once as a casual player with three 10-minute sessions a day. The first prestige lands right where the genre puts it. Everything after it comes far too quickly, because content runs out and the prestige requirement stops growing.</p>
+</header>
+
+<section>
+  <div class="kpis">
+    <div class="kpi good"><b>32 min</b><span>to the first prestige (genre range is about 15 to 90 minutes)</span></div>
+    <div class="kpi bad"><b>2.75 h</b><span>of active play to prestige 5</span></div>
+    <div class="kpi bad"><b>4.6 days</b><span>for a casual player to reach prestige 5</span></div>
+    <div class="kpi bad"><b>55 min</b><span>to open Osaka without a single real order</span></div>
+  </div>
+  <p class="note">The bot plays well: it decides every 2 seconds, taps ripe shrubs whenever it has stamina, and buys the cheapest useful thing first. A person will be slower, perhaps 1.5 to 2 times, so read every time on this page as a lower bound. The bot ran inside the real game code at about 700 times speed with a fake clock, so real-day features such as check-ins and month changes behaved as they would for a player.</p>
+</section>
+
+<section>
+  <span class="eyebrow">Today's build</span>
+  <h2>How the first three hours play</h2>
+  <div class="tw"><table>
+    <thead><tr><th>Time</th><th>What happens</th></tr></thead>
+    <tbody>
+      <tr><td class="n">0–10 min</td><td>Catimor, Catuai and Honey unlocked, Huila opens at level 4. A purchase every minute or so. The opening is in good shape.</td></tr>
+      <tr><td class="n">25–32 min</td><td>Barrel and strawberry processes, first manager, Gedeo opens. Prestige 1 at level 10.</td></tr>
+      <tr><td class="n">55 min</td><td>Osaka opens on cranes earned from daily tasks and the weekly order alone. Prestige 2 follows at 58 minutes.</td></tr>
+      <tr><td class="n">1.5–2 h</td><td>Every variety and process is owned. Know-how piles up with nothing to spend it on.</td></tr>
+      <tr><td class="n">2.2–2.8 h</td><td>Nearly every building is maxed. Coins sit unspent and the bot waits 6 to 7 minutes between purchases. Prestige 5 at 2 h 45 min.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <span class="eyebrow">What the run showed</span>
+  <h2>Seven problems</h2>
+  <ol>
+    <li><span class="pill design">Design</span> <b>New farms stay at one picker.</b> The hire price is shared across all farms and rises 1.5 times per picker, so the 17th picker costs about 65,000 coins. The bot ended with 12 pickers at Mogiana and one at each other farm. New regions add almost nothing.</li>
+    <li><span class="pill design">Design</span> <b>Prestige costs nothing.</b> Because the other farms are so small, putting them to sleep barely dents income. The intended downside does not bite.</li>
+    <li><span class="pill design">Design</span> <b>The requirement stops growing.</b> The level needed rises 10, 12, 14 and so on, but is capped at 20 within a season. Once the farms are built, income reaches about 650,000 know-how an hour, and level 20 needs only 116,000. A dedicated player could prestige every 20 to 30 minutes, dozens of times a month, so the season board would rank hours played and nothing else.</li>
+    <li><span class="pill design">Design</span> <b>Content runs out at about 2.5 hours.</b> The bot made 143 purchases in total and then had nothing left to buy. Idle games keep going because some upgrades never end.</li>
+    <li><span class="pill design">Design</span> <b>Know-how has no late use.</b> After the last variety, know-how only counts as XP, so "spend it before you prestige" stops meaning anything.</li>
+    <li><span class="pill design">Design</span> <b>Cranes leak from play.</b> A game day lasts 9.6 real minutes, so the "daily" tasks pay 3 cranes every 10 minutes and the "weekly" order pays 30 every 67 minutes. Osaka, meant to come from real orders, opens in under an hour.</li>
+    <li><span class="pill design">Design</span> <b>Time away barely counts.</b> The casual player needed almost the same play time as the active one (2.3 hours compared with 2.8). Storage fills quickly, and the foreman does nothing while you are away. <span class="pill bug">Bug</span> The away screen also drops the day counter whenever you are away for less than a full game day.</li>
+  </ol>
+</section>
+
+<section>
+  <span class="eyebrow">Similar games</span>
+  <h2>Where the genre puts prestige</h2>
+  <div class="tw"><table>
+    <thead><tr><th>Game</th><th>First reset</th><th>Later resets</th></tr></thead>
+    <tbody>
+      <tr><td>Indie idle postmortem</td><td class="n">25–35 min</td><td>The developer would cut it to 15–20 minutes in hindsight.</td></tr>
+      <tr><td>Design opinion piece</td><td class="n">45–90 min</td><td>Calls a first reset that took 10 hours of active play a failure.</td></tr>
+      <tr><td>Egg, Inc.</td><td>When progress slows</td><td>Community guides say anywhere from 2 hours to every 3 weeks.</td></tr>
+      <tr><td>Cookie Clicker</td><td class="n">Days to weeks</td><td>Players are advised to wait for 100 to 500 prestige levels.</td></tr>
+      <tr><td>Hay Day</td><td>No reset</td><td>Paced by real-time timers, such as 4-hour chili peppers at level 25, over months.</td></tr>
+      <tr><td><b>Beju Farm today</b></td><td class="n">32 min</td><td>20–45 minutes each, for ever.</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">These are community and developer accounts, not studies. The pattern they share is a fast first reset and later resets that stretch from hours to days.</p>
+</section>
+
+<section>
+  <span class="eyebrow">Iterations</span>
+  <h2>Eleven variants, played to prestige 5</h2>
+  <p>Each variant was patched into the real game and played by the same bot. Every fix that made the economy healthier also made prestiges faster, until the requirement was tied to lifetime prestiges and grew geometrically.</p>
+  <div class="fig"><svg id="chart" viewBox="0 0 760 350" role="img" aria-label="Hours of active play at each prestige, by variant"></svg></div>
+  <p class="cap">Hours of active play at which each prestige landed. Dots mark prestiges 1 to 5.</p>
+</section>
+
+<section>
+  <span class="eyebrow">Recommendation</span>
+  <h2>The tested set</h2>
+  <p>Played together, these give prestige 1 at 30 minutes, then 54 minutes, 1.6 hours, 3.3 hours and prestige 5 at 8.8 hours for the bot. The casual player gets there in 14.6 days. For a person that probably means 13 to 18 hours of play, or about three weeks of short daily sessions, comfortably inside a monthly season.</p>
+  <div class="rec"><span class="num">1 · Hiring</span><h3>Price pickers per farm</h3><p>The price becomes 150 × the farm's price multiplier × 1.45 for each picker past the second on that farm. Every farm can then grow to 14–16 pickers, new regions matter, and putting farms to sleep has a real cost.</p></div>
+  <div class="rec"><span class="num">2 · Cranes</span><h3>Make daily and weekly mean real days</h3><p>Daily tasks reset each real day and the weekly order each real week. Earning Osaka through play then takes about 1 to 2 weeks of daily play, and real orders stay the fast route.</p></div>
+  <div class="rec"><span class="num">3 · Away time</span><h3>Keep the foreman working offline</h3><p>While you are away, the foreman dries and sells lots from whatever the pickers bring in. Storage stays the limit on idle earnings, so upgrading it pays off. The day-counter bug gets fixed at the same time.</p></div>
+  <div class="rec"><span class="num">4 · Content</span><h3>Buildings to level 5, plus two upgrades that never end</h3><p><b>Farm mastery</b> costs coins and gives +10% picking per level, with the price rising 1.45 times per level. <b>Cupping research</b> costs know-how and gives +0.3 cup score per level, with the price rising 1.4 times per level. Coins and know-how always have somewhere to go, and spending know-how before you prestige matters again.</p></div>
+  <div class="rec"><span class="num">5 · Prestige</span><h3>Requirement grows with lifetime prestige</h3><p>Levels needed become 10, 18, 26, 34, 42, and each level past 10 costs 1.18 times the last. The season board would rank know-how earned this month rather than the number of prestiges, so newer players can compete there. The all-time board stays prestige first. The server's score check would change to match.</p></div>
+  <p class="note">A lighter option (levels 10, 18, 26, 34, 42 with each level costing 1.15 times the last) puts prestige 5 at 4.9 hours for the bot, or 8.6 days for the casual player. The tested set still leaves gaps late in a run: about 29 waits of more than 5 minutes for the active bot and 15 for the casual one. Drop events and contracts can fill those, or the upgrade prices can rise more gently.</p>
+</section>
+
+<section>
+  <span class="eyebrow">Sources</span>
+  <ul class="note">
+    <li><a href="https://itch.io/t/5446445/feedback-prestige-loop-accelerates-to-endgame-levels-at-3-prestige-points" target="_blank" rel="noopener">itch.io: prestige loop feedback thread</a></li>
+    <li><a href="https://dev.to/tanishpaul1106/aura-data-and-prestige-designing-the-economy-of-doomscroll-2077-293f" target="_blank" rel="noopener">DEV Community: designing a prestige economy</a></li>
+    <li><a href="https://west-games.com/idle-game-prestige-timing-calculator/" target="_blank" rel="noopener">Idle game prestige timing calculator</a></li>
+    <li><a href="https://egg-inc.fandom.com/wiki/Prestige?oldid=9210" target="_blank" rel="noopener">Egg, Inc. wiki: Prestige</a></li>
+    <li><a href="https://www.pocketgamer.com/cookie-clicker/ascension-guide" target="_blank" rel="noopener">Pocket Gamer: Cookie Clicker ascension guide</a></li>
+    <li><a href="https://steamcommunity.com/app/1454400/discussions/0/2961670087541736210/?ctp=2" target="_blank" rel="noopener">Steam: Cookie Clicker first ascension discussion</a></li>
+    <li><a href="https://mechanicsofmagic.com/2024/04/09/mda-8-kinds-of-fun-hay-day/" target="_blank" rel="noopener">Mechanics of Magic: Hay Day analysis</a></li>
+  </ul>
+</section>
+</div>
+
+<script>
+(function () {
+  const runs = [
+    ['Today', [0.54, 0.96, 1.45, 2.02, 2.75], 'base'],
+    ['Per-farm hiring, real days, offline', [0.5, 0.7, 0.9, 1.1, 1.4], 'base'],
+    ['+ season needs +3 levels', [0.5, 0.7, 1.0, 1.3, 1.7], 'base'],
+    ['+ lifetime +6 levels', [0.5, 0.9, 1.3, 1.9, 2.7], 'base'],
+    ['+ lifetime +10 levels', [0.5, 1.0, 1.8, 3.0, 4.8], 'base'],
+    ['Geometric levels, no new upgrades', [0.5, 0.9, 1.8, 4.3, 13.6], 'warn'],
+    ['+ endless upgrades', [0.5, 0.9, 1.7, 4.2, 12.7], 'base'],
+    ['Lighter option (×1.15)', [0.5, 0.8, 1.3, 2.4, 4.9], 'base'],
+    ['Recommended (×1.18)', [0.5, 0.9, 1.6, 3.3, 8.8], 'rec']
+  ];
+  const svg = document.getElementById('chart'), NS = 'http://www.w3.org/2000/svg';
+  const L = 230, R = 700, T = 14, rowH = 34, max = 14;
+  const x = (h) => L + (R - L) * h / max;
+  const el = (n, a, txt) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); if (txt != null) e.textContent = txt; svg.appendChild(e); return e; };
+  const bottom = T + runs.length * rowH;
+  [0, 2, 4, 6, 8, 10, 12, 14].forEach((h) => {
+    el('line', { x1: x(h), x2: x(h), y1: T - 4, y2: bottom, stroke: 'var(--line)', 'stroke-width': 1 });
+    el('text', { x: x(h), y: bottom + 18, 'text-anchor': 'middle', fill: 'var(--muted)', 'font-size': 12, 'font-family': 'IBM Plex Mono, monospace' }, h + 'h');
+  });
+  runs.forEach(([name, ps, kind], i) => {
+    const y = T + i * rowH + rowH / 2, col = kind === 'rec' ? 'var(--leaf)' : kind === 'warn' ? 'var(--gold)' : 'var(--muted)';
+    el('text', { x: L - 10, y: y + 4, 'text-anchor': 'end', fill: kind === 'rec' ? 'var(--leaf)' : 'var(--fg)', 'font-size': 13, 'font-weight': kind === 'rec' ? 600 : 400, 'font-family': 'IBM Plex Sans, sans-serif' }, name);
+    el('line', { x1: x(0), x2: x(ps[4]), y1: y, y2: y, stroke: col, 'stroke-width': kind === 'rec' ? 4 : 2, 'stroke-linecap': 'round' });
+    ps.forEach((h, j) => el('circle', { cx: x(h), cy: y, r: j === 4 ? 5 : 3.5, fill: j === 4 ? col : 'var(--panel)', stroke: col, 'stroke-width': 2 }));
+    el('text', { x: x(ps[4]) + 9, y: y + 4, fill: col, 'font-size': 12, 'font-family': 'IBM Plex Mono, monospace' }, ps[4] + 'h');
+  });
+  el('line', { x1: x(0), x2: x(max), y1: T + rowH * 0.06, y2: T + rowH * 0.06, stroke: 'none' });
+})();
+</script>
