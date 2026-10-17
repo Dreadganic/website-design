@@ -8,95 +8,114 @@
 <body>
 <x-dc>
 <helmet>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600&amp;family=Zen+Kaku+Gothic+New:wght@500;700&amp;display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&amp;family=Zen+Kaku+Gothic+New:wght@500;700&amp;display=swap">
 <style>
 body{margin:0}
-@keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}
-.gbtn:active{transform:translateY(2px)}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(2px)}}
+.wbtn:active{transform:translateY(2px)}
 </style>
 </helmet>
-<div style="width: 390px; height: 844px; box-sizing: border-box; background: {{page}}; color: {{ink}}; font-family: 'Pixelify Sans', monospace; display: flex; flex-direction: column; overflow: hidden">
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #3A2A1C; color: #3E2A1C; font-family: 'Pixelify Sans', monospace; display: flex; flex-direction: column; overflow: hidden">
 
-  <div style="padding: 48px 8px 6px; display: flex; flex-direction: column; gap: 6px">
-    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px">
-      <div style="background: #F8F8F8; border: 3px solid #485868; border-radius: 8px; box-shadow: inset 0 0 0 2px #B8D0E8; padding: 7px 8px; display: flex; flex-direction: column; gap: 4px">
-        <span style="font-size: 13px; color: {{muted}}">COINS</span><b style="font-size: 18px; font-weight: 400">{{coins}}</b>
+  <div style="padding: 48px 8px 8px">
+    <div style="background: #F4E6C6; border: 3px solid #6E4624; border-radius: 8px; box-shadow: inset 0 0 0 2px #E2C894, 0 3px 0 #1E140C; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px">
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
+        <b style="font-size: 15px; font-weight: 600">{{goalText}}</b>
+        <span style="font-size: 12px; font-weight: 600; padding: 2px 7px; border-radius: 4px; background: {{seasonBg}}; color: {{seasonInk}}; white-space: nowrap">{{season}}</span>
       </div>
-      <div style="background: #F8F8F8; border: 3px solid #485868; border-radius: 8px; box-shadow: inset 0 0 0 2px #B8D0E8; padding: 7px 8px; display: flex; flex-direction: column; gap: 4px">
-        <span style="font-size: 13px; color: {{muted}}">BASKETS</span><b style="font-size: 18px; font-weight: 400; color: {{storeInk}}">{{store}}</b>
-      </div>
-      <a href="GameShop.dc.html" style="background: #F8F8F8; border: 3px solid #485868; border-radius: 8px; box-shadow: inset 0 0 0 2px #B8D0E8; padding: 7px 8px; display: flex; flex-direction: column; gap: 4px; color: {{ink}}; text-decoration: none">
-        <span style="font-size: 13px; color: {{muted}}">CRANES</span><b style="font-size: 18px; font-weight: 400">45</b>
-      </a>
-    </div>
-    <div style="background: #F8F8F8; border: 3px solid #485868; border-radius: 8px; box-shadow: inset 0 0 0 2px #B8D0E8; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px">
-      <div style="display: flex; justify-content: space-between; align-items: center; gap: 6px">
-        <span style="font-size: 14px; line-height: 1.5">{{goalText}}</span>
-        <span style="font-size: 13px; padding: 3px 5px; background: {{seasonBg}}; color: {{seasonInk}}; white-space: nowrap">{{season}}</span>
-      </div>
-      <div style="height: 8px; border: 2px solid {{ink}}; background: {{paper}}"><div style="width: {{goalPct}}%; height: 4px; background: {{bar}}"></div></div>
-      <span style="font-family: 'Zen Kaku Gothic New', system-ui, sans-serif; font-size: 12px; font-weight: 700; color: {{muted}}">{{goalReward}}</span>
+      <div style="height: 10px; border: 2px solid #6E4624; border-radius: 3px; background: #E2C894; overflow: hidden"><div style="width: {{goalPct}}%; height: 6px; background: #7EA03C; box-shadow: inset 0 2px 0 #A8C860"></div></div>
+      <span style="font-family: 'Zen Kaku Gothic New', system-ui, sans-serif; font-size: 12px; font-weight: 700; color: #7A5A3A">{{goalReward}}</span>
     </div>
   </div>
 
-  <div style="position: relative; width: 384px; height: 480px; margin: 0 auto; flex-shrink: 0; outline: 3px solid #485868; border-radius: 4px">
+  <div style="position: relative; width: 384px; height: 480px; margin: 0 auto; flex-shrink: 0; border-radius: 6px; overflow: hidden; box-shadow: 0 0 0 3px #1E140C">
     <canvas ref="{{cv}}" onClick="{{tap}}" width="384" height="480" aria-label="Your Huila farm from above. Tap shrubs with red cherries to pick them." style="display: block; width: 384px; height: 480px; image-rendering: pixelated; cursor: pointer; touch-action: manipulation"></canvas>
+
+    <div style="position: absolute; left: 8px; top: 8px; display: flex; flex-direction: column; gap: 5px; pointer-events: none">
+      <div style="display: flex; gap: 2px" aria-label="{{heartsLabel}}">
+        <sc-for list="{{hearts}}" as="h" hint-placeholder-count="10">
+          <svg width="16" height="14" viewBox="0 0 7 6" shape-rendering="crispEdges" aria-hidden="true" style="filter: drop-shadow(1px 1px 0 #3E2A1C)"><g fill="{{h.fill}}"><rect x="1" y="0" width="2" height="1"></rect><rect x="4" y="0" width="2" height="1"></rect><rect x="0" y="1" width="7" height="2"></rect><rect x="1" y="3" width="5" height="1"></rect><rect x="2" y="4" width="3" height="1"></rect><rect x="3" y="5" width="1" height="1"></rect></g><rect x="1" y="1" width="1" height="1" fill="{{h.shine}}"></rect></svg>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="position: absolute; right: 8px; top: 8px; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; pointer-events: none">
+      <div style="display: flex; align-items: center; gap: 6px">
+        <div style="display: flex; flex-direction: column; align-items: center; background: #F4E6C6; border: 3px solid #6E4624; border-radius: 8px; box-shadow: 0 2px 0 #3E2A1C; overflow: hidden">
+          <div style="width: 64px; height: 18px; background: {{skyBg}}; display: flex; align-items: center; justify-content: center; border-bottom: 2px solid #6E4624">
+            <span style="width: 10px; height: 10px; border-radius: 5px; background: {{skyIcon}}; box-shadow: {{skyGlow}}"></span>
+          </div>
+          <b style="font-size: 15px; font-weight: 700; padding: 1px 6px">{{clock}}</b>
+        </div>
+        <div style="width: 38px; height: 38px; border-radius: 19px; background: #F4E6C6; border: 3px solid #6E4624; box-shadow: 0 2px 0 #3E2A1C; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1">
+          <span style="font-size: 8px; font-weight: 600; color: #7A5A3A">DAY</span><b style="font-size: 16px; font-weight: 700">{{day}}</b>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 10px; background: rgba(62,42,28,0.78); color: #FFF4DE; font-size: 14px; font-weight: 600">
+        <span style="width: 10px; height: 10px; border-radius: 5px; background: #F2C04A; box-shadow: inset -2px -2px 0 #C08A28"></span>{{coins}}
+      </div>
+      <div style="display: flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 10px; background: rgba(62,42,28,0.78); color: {{storeInk}}; font-size: 14px; font-weight: 600">
+        <span style="width: 10px; height: 10px; border-radius: 5px; background: #E83A30; box-shadow: inset -2px -2px 0 #9A1C20"></span>{{store}}
+      </div>
+    </div>
+
     <sc-if value="{{talking}}" hint-placeholder-val="{{ true }}">
-      <div style="position: absolute; left: 6px; right: 6px; bottom: 6px; background: #F8F8F8; border: 4px solid #485868; border-radius: 10px; box-shadow: inset 0 0 0 3px #B8D0E8; padding: 14px 14px 12px; display: flex; flex-direction: column; gap: 8px">
-        <p style="margin: 0; font-size: 16px; line-height: 1.8">{{line}}</p>
-        <button type="button" onClick="{{nextLine}}" aria-label="Next" style="align-self: flex-end; border: 0; background: transparent; color: {{ink}}; font: 16px 'Pixelify Sans', monospace; cursor: pointer; padding: 4px; animation: blink 0.9s steps(1) infinite">▼</button>
+      <div style="position: absolute; left: 8px; right: 8px; bottom: 8px; background: #F4E6C6; border: 3px solid #6E4624; border-radius: 10px; box-shadow: inset 0 0 0 2px #E2C894, 0 4px 0 #1E140C; padding: 12px 14px 8px; display: flex; flex-direction: column; gap: 4px">
+        <span style="font-size: 12px; font-weight: 700; color: #9C6C3C">ROASTER JORDAN</span>
+        <p style="margin: 0; font-size: 16px; line-height: 1.35">{{line}}</p>
+        <button type="button" onClick="{{nextLine}}" aria-label="Next" style="align-self: flex-end; border: 0; background: transparent; color: #6E4624; font: 700 14px 'Pixelify Sans', monospace; cursor: pointer; padding: 4px 6px; animation: bob 0.8s steps(2) infinite">▼</button>
       </div>
     </sc-if>
     <sc-if value="{{rewardOn}}" hint-placeholder-val="{{ false }}">
-      <div style="position: absolute; left: 20px; right: 20px; top: 120px; background: #F8F8F8; border: 4px solid #485868; border-radius: 10px; box-shadow: inset 0 0 0 3px #B8D0E8, 0 6px 0 rgba(0,0,0,0.35); padding: 18px 14px; display: flex; flex-direction: column; gap: 10px; align-items: center; text-align: center">
-        <span style="font-size: 18px">HARVEST COMPLETE!</span>
+      <div style="position: absolute; left: 24px; right: 24px; top: 130px; background: #F4E6C6; border: 3px solid #6E4624; border-radius: 12px; box-shadow: inset 0 0 0 2px #E2C894, 0 6px 0 #1E140C; padding: 18px 16px; display: flex; flex-direction: column; gap: 10px; align-items: center; text-align: center">
+        <b style="font-size: 20px; font-weight: 700; color: #9C3A2A">Harvest complete!</b>
         <span style="font-family: 'Zen Kaku Gothic New', system-ui, sans-serif; font-size: 15px; font-weight: 700; line-height: 1.5">A free 100 g bag of Colombia Pink Whiskey is added to your next order.</span>
-        <button type="button" onClick="{{closeReward}}" class="gbtn" style="height: 40px; padding: 0 16px; border: 3px solid {{ink}}; background: {{bar}}; color: {{btnInk}}; font: 15px 'Pixelify Sans', monospace; cursor: pointer">GREAT!</button>
+        <button type="button" onClick="{{closeReward}}" class="wbtn" style="height: 42px; padding: 0 20px; border: 3px solid #6E4624; border-radius: 8px; background: #8CB04A; color: #FFFFFF; font: 700 16px 'Pixelify Sans', monospace; cursor: pointer; box-shadow: inset 0 -3px 0 #5E7E2C">Wonderful!</button>
       </div>
     </sc-if>
   </div>
 
   <div style="flex: 1; padding: 8px 8px 0; display: flex; gap: 6px">
-    <div style="flex: 1; min-width: 0; background: #F8F8F8; border: 3px solid #485868; border-radius: 8px; box-shadow: inset 0 0 0 2px #B8D0E8; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; justify-content: center">
-      <span style="font-size: 15px">PICKERS {{workerCount}}/8</span>
-      <span style="font-size: 13px; color: {{muted}}; line-height: 1.6">≈{{workerRate}}KG/MIN · YOU PICK 3× FASTER</span>
+    <div style="flex: 1; min-width: 0; background: #F4E6C6; border: 3px solid #6E4624; border-radius: 8px; box-shadow: inset 0 0 0 2px #E2C894; padding: 8px 10px; display: flex; flex-direction: column; justify-content: center; gap: 4px">
+      <b style="font-size: 16px; font-weight: 700">Pickers {{workerCount}}/8</b>
+      <span style="font-size: 13px; color: #7A5A3A">≈{{workerRate}} kg/min · you pick 3× faster</span>
     </div>
-    <button type="button" onClick="{{hire}}" class="gbtn" style="width: 92px; border: 3px solid {{ink}}; background: {{hireBg}}; color: {{btnInk}}; font: 14px 'Pixelify Sans', monospace; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; line-height: 1.3">
-      <span>{{hireLabel}}</span><span style="font-size: 13px">{{hireCost}}</span>
+    <button type="button" onClick="{{hire}}" class="wbtn" style="width: 88px; border: 3px solid #6E4624; border-radius: 8px; background: {{hireBg}}; color: #3E2A1C; font: 700 15px 'Pixelify Sans', monospace; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; box-shadow: inset 0 -3px 0 rgba(0,0,0,0.18)">
+      <span>{{hireLabel}}</span><span style="font-size: 12px; font-weight: 600">{{hireCost}}</span>
     </button>
-    <button type="button" onClick="{{ship}}" class="gbtn" style="width: 92px; border: 3px solid {{ink}}; background: {{shipBg}}; color: {{btnInk}}; font: 14px 'Pixelify Sans', monospace; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; line-height: 1.3">
-      <span>SHIP</span><span style="font-size: 13px">{{shipSub}}</span>
+    <button type="button" onClick="{{ship}}" class="wbtn" style="width: 88px; border: 3px solid #6E4624; border-radius: 8px; background: {{shipBg}}; color: #3E2A1C; font: 700 15px 'Pixelify Sans', monospace; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; box-shadow: inset 0 -3px 0 rgba(0,0,0,0.18)">
+      <span>Ship</span><span style="font-size: 12px; font-weight: 600">{{shipSub}}</span>
     </button>
   </div>
 
-  <nav aria-label="Game" style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); padding: 8px 4px 24px; font-size: 13px">
-    <a href="GameFarm.dc.html" aria-current="page" style="display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 6px 0; color: {{navOn}}; text-decoration: none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" aria-hidden="true"><path d="M12 21V11"></path><path d="M12 11c0-4 3-7 7-7 0 4-3 7-7 7zM12 14c0-3-2.5-5.5-6-5.5 0 3 2.5 5.5 6 5.5z"></path></svg>FARM</a>
-    <a href="GameOrders.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 6px 0; color: {{navOff}}; text-decoration: none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" aria-hidden="true"><path d="M5 4h14v16H5z"></path><path d="M9 9h6M9 13h6M9 17h3"></path></svg>ORDERS</a>
-    <a href="GameUnlocks.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 6px 0; color: {{navOff}}; text-decoration: none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"></path></svg>UPGRADE</a>
-    <a href="GameShop.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 6px 0; color: {{navOff}}; text-decoration: none"><svg width="20" height="20" viewBox="0 0 100 100" aria-hidden="true"><g fill="currentColor"><path d="M50 46 L50 70 L2 20Z"></path><path d="M50 46 L50 70 L98 20Z"></path><path d="M42 60 L50 50 L58 60 L50 82Z"></path><path d="M46 54 L54 54 L54 12Z"></path><path d="M46 74 L54 74 L50 98Z"></path></g></svg>CRANES</a>
-    <a href="Main.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 6px 0; color: {{navOff}}; text-decoration: none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" aria-hidden="true"><path d="M4 8h13v5a6 6 0 0 1-6 6h-1a6 6 0 0 1-6-6z"></path><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17"></path></svg>BEJU</a>
+  <nav aria-label="Game" style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); padding: 6px 4px 24px; font-size: 12px; font-weight: 600">
+    <a href="GameFarm.dc.html" aria-current="page" style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 0; color: #F2C04A; text-decoration: none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 21V11"></path><path d="M12 11c0-4 3-7 7-7 0 4-3 7-7 7zM12 14c0-3-2.5-5.5-6-5.5 0 3 2.5 5.5 6 5.5z"></path></svg>Farm</a>
+    <a href="GameOrders.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 0; color: #D8C0A0; text-decoration: none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 4h14v16H5z"></path><path d="M9 9h6M9 13h6M9 17h3"></path></svg>Orders</a>
+    <a href="GameUnlocks.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 0; color: #D8C0A0; text-decoration: none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"></path></svg>Upgrade</a>
+    <a href="GameShop.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 0; color: #D8C0A0; text-decoration: none"><svg width="20" height="20" viewBox="0 0 100 100" aria-hidden="true"><g fill="currentColor"><path d="M50 46 L50 70 L2 20Z"></path><path d="M50 46 L50 70 L98 20Z"></path><path d="M42 60 L50 50 L58 60 L50 82Z"></path><path d="M46 54 L54 54 L54 12Z"></path><path d="M46 74 L54 74 L50 98Z"></path></g></svg>Cranes</a>
+    <a href="Main.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 0; color: #D8C0A0; text-decoration: none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M4 8h13v5a6 6 0 0 1-6 6h-1a6 6 0 0 1-6-6z"></path><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17"></path></svg>Beju</a>
   </nav>
 </div>
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props='{"speed":{"editor":"range","default":1,"min":1,"max":5,"step":1},"$preview":{"width":390,"height":844}}'>
 const ART = __SPRITES__;
+const BG = '__BG__';
 /* Huila's real harvest months, from the Finca Monteblanco lot on bejucoffee.com */
 const HUILA_MONTHS = [3, 4, 5, 10, 11];
-const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-const W = 192, H = 240, PATH_X = 96, DROP = { x: 80, y: 70 };
-const WALK = [1, 0, 2, 0];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const W = 192, H = 240, LANE_X = 97, DROP = { x: 128, y: 93 }, HOME = { x: 150, y: 80 };
+const WALK = [1, 0, 2, 0], MAX_HEARTS = 10;
 const LINES = [
-  'Welcome to your farm in Huila! Tap a shrub with red cherries to pick it.',
-  'Nice picking! Pickers work while you’re away, but slower than you. Hire one with coins.',
+  'Welcome to your farm in Huila! Tap a shrub with red cherries to pick it. Each pick uses a heart.',
+  'Nice picking! Pickers work while you’re away, slower than you, and never get tired. Hire one with coins.',
   'Baskets hold 500 kg. When they’re full, pickers stop. Ship cherries to the mill to keep going!'
 ];
 
 class Component extends DCLogic {
   componentWillUnmount() { this.dead = true; cancelAnimationFrame(this.raf); }
 
-  /* draw a sprite once into its own canvas; shirts swap the c/C/D colours */
   sprite(name, shirt) {
-    const key = name + '|' + (shirt || '');
+    const key = name + '|' + (shirt ? shirt[1] : '');
     this.cache = this.cache || {};
     if (this.cache[key]) return this.cache[key];
     const s = ART.sprites[name], pal = Object.assign({}, s.pal);
@@ -115,46 +134,20 @@ class Component extends DCLogic {
     return (this.cache[key] = c);
   }
 
-  /* ---------- the map: 12 x 15 tiles of 16 px ---------- */
-  buildBg() {
-    const bg = document.createElement('canvas'); bg.width = W; bg.height = H;
-    const b = bg.getContext('2d');
-    const put = (n, x, y) => b.drawImage(this.sprite(n), x, y);
-    const inField = (c, r, locked) => this.fields.some((f) => !!f.locked === locked && c >= f.c && c < f.c + 4 && r >= f.r && r < f.r + 3);
-    const flowers = [[1, 4], [3, 4], [8, 4], [10, 4], [2, 8], [9, 8], [3, 12], [8, 12], [0, 3], [11, 12]];
-    for (let r = 0; r < 15; r++) for (let c = 0; c < 12; c++) {
-      let t = (c + r * 3) % 4 === 0 ? 'grass_b' : 'grass';
-      if (r === 14 || inField(c, r, true)) t = 'tallgrass';
-      else if ((c === 5 || c === 6) && r >= 3 && r <= 13) t = 'path';
-      else if (inField(c, r, false)) t = 'soil';
-      else if (flowers.some(([x, y]) => x === c && y === r)) t = 'grass_flower';
-      put(t, c * 16, r * 16);
-    }
-    put('pond', 138, 22);
-    put('drybed', 18, 8); put('drybed', 18, 30);
-    put('walls', 60, 26); put('roof', 60, 0); put('step', 89, 53);
-    put('sign', 114, 52);
-    for (let c = 0; c < 12; c++) if (c !== 5 && c !== 6) put('fence', c * 16, 204);
-    put('sign', 136, 156);
-    [['tree', 136, -8], ['tree', 162, -10], ['fruittree', 170, 56], ['bigtree', -16, 42], ['tree', 172, 74], ['fruittree', -8, 138],
-     ['tree', 172, 138], ['tree', -8, 212], ['tree', 172, 212]].forEach(([n, x, y]) => put(n, x, y));
-    this.bg = bg;
-  }
-
   setup(el) {
     if (!el || this.cv === el) return;
     this.cv = el; this.ctx = el.getContext('2d');
     this.frame = document.createElement('canvas'); this.frame.width = W; this.frame.height = H;
     this.fx = this.frame.getContext('2d');
-    this.fields = [{ c: 1, r: 5 }, { c: 7, r: 5 }, { c: 1, r: 9 }, { c: 7, r: 9, locked: true }];
+    this.bg = new Image(); this.bg.src = BG;
     let seed = 5; this.rnd = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
-    this.shrubs = [];
-    this.fields.forEach((f) => { if (!f.locked) for (let r = 0; r < 3; r++) for (let c = 0; c < 4; c++) this.shrubs.push({ x: (f.c + c) * 16, y: (f.r + r) * 16, p: this.rnd() * 1.15, g: 14 + this.rnd() * 10 }); });
+    this.shrubs = ART.shrubs.map(([x, y]) => ({ x, y, p: this.rnd() * 1.15, g: 14 + this.rnd() * 10 }));
     this.workers = []; this.floats = [];
     this.cherries = 340; this.cap = 500; this.coins = 2400; this.harvested = 640; this.goal = 1000;
+    this.hearts = MAX_HEARTS; this.heartT = 0; this.minutes = 13 * 60 + 5; this.day = 3;
     this.taps = 0; this.step = 0; this.rewardShown = false;
+    this.dog = { x: 80, y: 104, tx: 80, ty: 104, t: 2, walk: 0, flip: false };
     this.addWorker(); this.addWorker();
-    this.buildBg();
     this.last = performance.now(); this.uiT = 0;
     const loop = (t) => { if (this.dead) return; this.tick(Math.min(0.05, (t - this.last) / 1000)); this.last = t; this.draw(t / 1000); this.raf = requestAnimationFrame(loop); };
     this.raf = requestAnimationFrame(loop);
@@ -162,13 +155,13 @@ class Component extends DCLogic {
 
   addWorker() {
     const i = this.workers.length;
-    this.workers.push({ x: PATH_X, y: 60, state: 'seek', path: [], carry: 0, t: 0, idle: 0, shirt: ART.shirts[i % ART.shirts.length], dir: 'down', flip: false, walk: 0 });
+    this.workers.push({ x: HOME.x, y: HOME.y, state: 'seek', path: [], carry: 0, t: 0, idle: 0, shirt: ART.shirts[i % ART.shirts.length], dir: 'down', flip: false, walk: 0 });
   }
 
   route(w, to) {
-    const zone = (p) => p.y > 80 ? (p.x < PATH_X ? 'L' : 'R') + (p.y > 140 ? 2 : 1) : 'top';
+    const zone = (p) => p.y > 108 ? (p.x < LANE_X ? 'L' : 'R') + (p.y > 156 ? 2 : 1) : 'top';
     if (zone(w) !== 'top' && zone(w) === zone(to)) return [to];
-    return [{ x: PATH_X, y: w.y }, { x: PATH_X, y: to.y }, to];
+    return [{ x: LANE_X, y: w.y > 108 ? w.y : 103 }, { x: LANE_X, y: to.y > 108 ? to.y : 103 }, to];
   }
 
   gain(kg) {
@@ -178,18 +171,22 @@ class Component extends DCLogic {
     if (before < this.goal && this.harvested >= this.goal && !this.rewardShown) { this.rewardShown = true; this.rewardOn = true; }
   }
 
+  inSeason() { return HUILA_MONTHS.indexOf(new Date().getMonth() + 1) > -1; }
+
   /* ---------- simulation ---------- */
   tick(dt) {
-    const d = dt * (this.props.speed ?? 1), grow = d * (HUILA_MONTHS.indexOf(new Date().getMonth() + 1) > -1 ? 1.5 : 1);
+    const sp = this.props.speed ?? 1, d = dt * sp, grow = d * (this.inSeason() ? 1.5 : 1);
+    this.minutes += d * 2.5; if (this.minutes >= 1440) { this.minutes -= 1440; this.day += 1; }
+    this.heartT += d; if (this.heartT >= 6) { this.heartT = 0; if (this.hearts < MAX_HEARTS) this.hearts += 1; }
     const full = this.cherries >= this.cap;
     this.shrubs.forEach((s) => { if (s.p < 1) s.p = Math.min(1, s.p + grow / s.g); });
     this.workers.forEach((w) => {
       if (w.state === 'seek') {
         let best = null, bd = 1e9;
-        if (w.carry < 9) this.shrubs.forEach((s) => { if (s.p >= 1 && !s.claim) { const dd = Math.abs(s.x + 8 - w.x) + Math.abs(s.y + 17 - w.y); if (dd < bd) { bd = dd; best = s; } } });
-        if (best && !full) { best.claim = w; w.target = best; w.path = this.route(w, { x: best.x + 8, y: best.y + 17 }); w.state = 'walk'; w.next = 'pick'; }
+        if (w.carry < 9) this.shrubs.forEach((s) => { if (s.p >= 1 && !s.claim) { const dd = Math.abs(s.x + 9 - w.x) + Math.abs(s.y + 21 - w.y); if (dd < bd) { bd = dd; best = s; } } });
+        if (best && !full) { best.claim = w; w.target = best; w.path = this.route(w, { x: best.x + 9, y: best.y + 21 }); w.state = 'walk'; w.next = 'pick'; }
         else if (w.carry) { w.path = this.route(w, DROP); w.state = 'walk'; w.next = 'deposit'; }
-        else { w.idle -= d; if (w.idle <= 0) { w.idle = 2 + this.rnd() * 3; w.path = [{ x: 88 + this.rnd() * 16, y: 62 + this.rnd() * 12 }]; w.state = 'walk'; w.next = 'seek'; } }
+        else { w.idle -= d; if (w.idle <= 0) { w.idle = 2 + this.rnd() * 3; w.path = this.route(w, { x: 136 + this.rnd() * 26, y: 80 + this.rnd() * 14 }); w.state = 'walk'; w.next = 'seek'; } }
       } else if (w.state === 'walk') {
         const p = w.path[0];
         if (!p) { w.state = w.next; w.t = 0; return; }
@@ -210,10 +207,16 @@ class Component extends DCLogic {
         if (this.cherries >= this.cap) return;   /* baskets full: wait by the basket */
         const kg = Math.min(w.carry, this.cap - this.cherries);
         this.gain(kg); w.carry -= kg;
-        this.floats.push({ x: DROP.x - 10, y: 50, text: '+' + kg, t: 0 });
+        this.floats.push({ x: DROP.x, y: 74, text: '+' + kg, t: 0 });
         if (!w.carry) w.state = 'seek';
       }
     });
+    /* the shiba potters about between the pond, the path and the drying beds */
+    const g = this.dog;
+    g.t -= d;
+    if (g.t <= 0) { g.t = 2 + this.rnd() * 4; const spots = [[72, 104], [44, 104], [110, 100], [150, 96], [40, 66], [100, 76]]; const s = spots[Math.floor(this.rnd() * spots.length)]; g.tx = s[0]; g.ty = s[1]; }
+    const ddx = g.tx - g.x, ddy = g.ty - g.y, dd = Math.hypot(ddx, ddy);
+    if (dd > 1) { const v = Math.min(dd, 20 * d); g.x += ddx / dd * v; g.y += ddy / dd * v; g.walk += d; if (Math.abs(ddx) > 0.3) g.flip = ddx > 0; g.moving = true; } else g.moving = false;
     this.floats.forEach((f) => { f.t += dt; }); this.floats = this.floats.filter((f) => f.t < 1.1);
     this.uiT += dt; if (this.uiT > 0.25) { this.uiT = 0; this.forceUpdate(); }
   }
@@ -222,76 +225,89 @@ class Component extends DCLogic {
   draw(time) {
     const f = this.fx, c = this.ctx; if (!c) return;
     f.imageSmoothingEnabled = false;
-    f.drawImage(this.bg, 0, 0);
-    /* koi circling the pond */
-    const a = time * 0.5, kx = 164 + Math.cos(a) * 12, ky = 40 + Math.sin(a) * 6;
-    f.fillStyle = '#F08838'; f.fillRect(Math.round(kx), Math.round(ky), 4, 2); f.fillStyle = '#FFFFFF'; f.fillRect(Math.round(kx) + (Math.cos(a + 1.6) > 0 ? 3 : 0), Math.round(ky), 1, 1);
-    if (this.cherries > 0) f.drawImage(this.sprite('cherrypile'), 64, 48);
-    f.drawImage(this.sprite('basket'), 64, 48);
-    if (this.cherries >= this.cap && Math.floor(time * 2) % 2 === 0) f.drawImage(this.sprite('bubble_full'), 64, 34);
-    const things = this.shrubs.map((s) => ({ y: s.y + 15, s })).concat(this.workers.map((w) => ({ y: w.y, w })));
+    if (this.bg.complete && this.bg.naturalWidth) f.drawImage(this.bg, 0, 0); else { f.fillStyle = '#8FA445'; f.fillRect(0, 0, W, H); }
+    const a = time * 0.6, kx = 24 + Math.cos(a) * 9, ky = 86 + Math.sin(a) * 4;
+    f.fillStyle = '#F08838'; f.fillRect(Math.round(kx), Math.round(ky), 4, 2); f.fillStyle = '#FFFFFF'; f.fillRect(Math.round(kx) + (Math.sin(a) > 0 ? 0 : 3), Math.round(ky), 1, 1);
+    f.drawImage(this.sprite('sign'), 134, 168);
+    if (this.cherries > 0) f.drawImage(this.sprite('cherrypile'), 120, 78);
+    f.drawImage(this.sprite('basket'), 120, 81);
+    if (this.cherries >= this.cap && Math.floor(time * 2) % 2 === 0) f.drawImage(this.sprite('bubble_full'), 120, 64);
+    const things = this.shrubs.map((s) => ({ y: s.y + 20, s })).concat(this.workers.map((w) => ({ y: w.y, w })), [{ y: this.dog.y, dog: true }]);
     things.sort((p, q) => p.y - q.y);
     things.forEach((o) => {
       if (o.s) {
         const s = o.s;
         f.drawImage(this.sprite(s.p < 0.3 ? 'sprout' : s.p < 0.55 ? 'bush_young' : s.p < 0.8 ? 'bush_flower' : s.p < 1 ? 'bush_green' : 'bush_ripe'), s.x, s.y);
-        if (s.p >= 1 && Math.floor(time * 3 + s.x / 16 + s.y / 16) % 6 === 0) f.drawImage(this.sprite('sparkle'), s.x + 9, s.y - 3);
+        if (s.p >= 1 && Math.floor(time * 3 + s.x / 18 + s.y / 17) % 6 === 0) f.drawImage(this.sprite('sparkle'), s.x + 11, s.y - 1);
+      } else if (o.dog) {
+        const g = this.dog, spr = this.sprite('shiba_' + (g.moving ? Math.floor(g.walk * 8) % 2 : 0)), X = Math.round(g.x) - 8, Y = Math.round(g.y) - 11;
+        f.fillStyle = 'rgba(42,42,8,0.28)'; f.beginPath(); f.ellipse(X + 8, Y + 11, 6, 1.5, 0, 0, 7); f.fill();
+        if (g.flip) { f.save(); f.translate(X + 16, Y); f.scale(-1, 1); f.drawImage(spr, 0, 0); f.restore(); } else f.drawImage(spr, X, Y);
       } else {
         const w = o.w, moving = w.state === 'walk';
         let fr = 0;
         if (moving) fr = w.dir === 'side' ? Math.floor(w.walk * 7) % 2 : WALK[Math.floor(w.walk * 7) % 4];
         else if (w.state === 'pick') fr = Math.floor(w.t * 4) % 2 ? 1 : 2;
         if (w.dir === 'side') fr = Math.min(fr, 1);
-        const spr = this.sprite('worker_' + w.dir + '_' + fr, w.shirt);
-        const X = Math.round(w.x) - 8, Y = Math.round(w.y) - 23;
-        f.fillStyle = 'rgba(42,26,16,0.3)'; f.beginPath(); f.ellipse(X + 8, Y + 23, 5, 1.6, 0, 0, 7); f.fill();
-        if (w.dir === 'side' && w.flip) { f.save(); f.translate(X + 16, Y); f.scale(-1, 1); f.drawImage(spr, 0, 0); f.restore(); }
-        else f.drawImage(spr, X, Y);
+        const spr = this.sprite('worker_' + w.dir + '_' + fr, w.shirt), X = Math.round(w.x) - 8, Y = Math.round(w.y) - 23;
+        f.fillStyle = 'rgba(42,42,8,0.3)'; f.beginPath(); f.ellipse(X + 8, Y + 23, 5, 1.6, 0, 0, 7); f.fill();
+        if (w.dir === 'side' && w.flip) { f.save(); f.translate(X + 16, Y); f.scale(-1, 1); f.drawImage(spr, 0, 0); f.restore(); } else f.drawImage(spr, X, Y);
         if (w.carry && w.dir !== 'up') f.drawImage(this.sprite('sack'), w.flip ? X - 3 : X + 11, Y + 12);
       }
     });
+    /* time of day: warm dusk, blue night, soft dawn */
+    const hr = this.minutes / 60;
+    const tint = hr >= 20 || hr < 5 ? 'rgba(30,40,110,0.38)' : hr >= 17.5 ? 'rgba(240,120,40,' + (0.08 + (hr - 17.5) * 0.06).toFixed(2) + ')' : hr < 7 ? 'rgba(240,150,170,0.14)' : null;
+    if (tint) { f.fillStyle = tint; f.fillRect(0, 0, W, H); }
     c.imageSmoothingEnabled = false;
     c.drawImage(this.frame, 0, 0, W * 2, H * 2);
-    c.font = '600 15px "Pixelify Sans", monospace'; c.textAlign = 'center';
-    c.fillStyle = '#4A3020'; c.fillText('HUILA', 122 * 2, 59 * 2); c.fillText('EXPAND', 144 * 2, 163 * 2);
-    c.font = '600 18px "Pixelify Sans", monospace';
+    c.textAlign = 'center';
+    c.font = '700 13px "Pixelify Sans", monospace'; c.fillStyle = '#4A2E18'; c.fillText('EXPAND', 142 * 2, 173 * 2);
+    c.font = '700 18px "Pixelify Sans", monospace';
     this.floats.forEach((t) => {
       const y = (t.y - t.t * 12) * 2;
       c.globalAlpha = Math.max(0, 1 - t.t);
-      c.fillStyle = '#303840'; c.fillText(t.text, t.x * 2 + 2, y + 2); c.fillStyle = '#FFFFFF'; c.fillText(t.text, t.x * 2, y);
+      c.fillStyle = '#3E2A1C'; c.fillText(t.text, t.x * 2 + 2, y + 2); c.fillStyle = '#FFF4DE'; c.fillText(t.text, t.x * 2, y);
     });
     c.globalAlpha = 1;
   }
 
   pick(s) {
-    if (this.cherries >= this.cap) { this.floats.push({ x: s.x + 8, y: s.y, text: 'FULL', t: 0 }); return; }
+    if (this.hearts <= 0) { this.floats.push({ x: s.x + 9, y: s.y, text: 'tired', t: 0 }); return; }
+    if (this.cherries >= this.cap) { this.floats.push({ x: s.x + 9, y: s.y, text: 'full', t: 0 }); return; }
     if (s.claim) { const w = s.claim; w.target = null; if (w.state === 'pick' || w.state === 'walk') w.state = 'seek'; }
-    s.p = 0; s.claim = null; this.taps += 1;
+    s.p = 0; s.claim = null; this.taps += 1; this.hearts -= 1;
     const kg = Math.min(3, this.cap - this.cherries); this.gain(kg);
-    this.floats.push({ x: s.x + 8, y: s.y, text: '+' + kg, t: 0 });
+    this.floats.push({ x: s.x + 9, y: s.y, text: '+' + kg, t: 0 });
     if (this.step === 0) this.step = 1;
     this.forceUpdate();
   }
 
   renderVals() {
-    const C = { page: '#283848', ink: '#303840', muted: '#687078', bar: '#58C058', btnInk: '#303840', on: '#F8D048', off: '#B8C8D8', seasonBg: '#E85048', seasonInk: '#FFFFFF', hire: '#F8D048', ship: '#88C8F8', dim: '#C8C8C0' };
     const workers = this.workers || [];
     const n = workers.length, cost = Math.round(400 * Math.pow(1.7, Math.max(0, n - 2))), coins = this.coins ?? 2400, can = n < 8 && coins >= cost;
     const cherries = this.cherries ?? 340, cap = this.cap ?? 500, harvested = this.harvested ?? 640, goal = this.goal ?? 1000;
-    const now = new Date().getMonth() + 1, inSeason = HUILA_MONTHS.indexOf(now) > -1;
-    let nextM = now; for (let i = 1; i <= 12; i++) { const m = ((now - 1 + i) % 12) + 1; if (HUILA_MONTHS.indexOf(m) > -1) { nextM = m; break; } }
-    const step = this.step ?? 0;
+    const month = new Date().getMonth() + 1, inSeason = HUILA_MONTHS.indexOf(month) > -1;
+    let nextM = month; for (let i = 1; i <= 12; i++) { const m = ((month - 1 + i) % 12) + 1; if (HUILA_MONTHS.indexOf(m) > -1) { nextM = m; break; } }
+    const step = this.step ?? 0, hearts = this.hearts ?? MAX_HEARTS;
+    const mins = Math.floor(this.minutes ?? 785), hr = mins / 60, night = hr >= 19 || hr < 6;
     return {
       cv: (el) => this.setup(el),
-      page: C.page, paper: '#F8F8F8', ink: C.ink, muted: C.muted, bar: C.bar, btnInk: C.btnInk, navOn: C.on, navOff: C.off,
+      hearts: Array.from({ length: MAX_HEARTS }, (_, i) => ({ fill: i < hearts ? '#F07A3A' : '#5A3A2C', shine: i < hearts ? '#FFD0A0' : '#5A3A2C' })),
+      heartsLabel: hearts + ' of ' + MAX_HEARTS + ' hearts',
+      clock: String(Math.floor(hr)).padStart(2, '0') + ':' + String(mins % 60).padStart(2, '0'),
+      skyBg: night ? '#2C3470' : hr >= 17 ? '#F0A060' : '#7EC8F0',
+      skyIcon: night ? '#F4F0D0' : '#FFD84A',
+      skyGlow: night ? 'inset -3px 0 0 #2C3470' : '0 0 0 2px rgba(255,240,160,0.5)',
+      day: this.day ?? 3,
       coins: coins.toLocaleString('en-US'),
       store: cherries + '/' + cap + ' kg',
-      storeInk: cherries >= cap ? '#D83030' : C.ink,
-      goalText: harvested >= goal ? 'Huila harvest done!' : 'Huila harvest ' + harvested + '/' + goal + ' kg',
+      storeInk: cherries >= cap ? '#FF9A8A' : '#FFF4DE',
+      goalText: harvested >= goal ? 'Huila harvest complete!' : 'Huila harvest ' + harvested + ' / ' + goal + ' kg',
       goalPct: Math.round(harvested / goal * 100),
       goalReward: harvested >= goal ? 'Free 100 g Colombia Pink Whiskey on your next order' : 'Reach 1,000 kg: free 100 g Colombia Pink Whiskey with your next order',
-      season: inSeason ? 'MAIN CROP ×1.5' : 'NEXT CROP ' + MONTHS[nextM - 1],
-      seasonBg: inSeason ? C.seasonBg : C.dim, seasonInk: inSeason ? C.seasonInk : C.ink,
+      season: inSeason ? 'Main crop ×1.5' : 'Next crop ' + MONTHS[nextM - 1],
+      seasonBg: inSeason ? '#D85A3A' : '#E2C894', seasonInk: inSeason ? '#FFFFFF' : '#3E2A1C',
       talking: step < 3 && !this.rewardOn,
       line: LINES[Math.min(step, 2)],
       nextLine: () => { this.step = step + 1; this.forceUpdate(); },
@@ -300,22 +316,23 @@ class Component extends DCLogic {
       tap: (e) => {
         if (!this.cv) return;
         const r = this.cv.getBoundingClientRect(), lx = (e.clientX - r.left) / r.width * W, ly = (e.clientY - r.top) / r.height * H;
-        const s = this.shrubs.find((x) => lx >= x.x && lx < x.x + 16 && ly >= x.y && ly < x.y + 16);
+        const s = this.shrubs.find((x) => lx >= x.x && lx < x.x + 18 && ly >= x.y && ly < x.y + 20);
         if (s && s.p >= 1) this.pick(s);
-        else if (s) this.floats.push({ x: s.x + 8, y: s.y, text: s.p < 0.8 ? 'growing' : 'soon', t: 0 });
-        else if (lx > 112 && lx < 176 && ly > 144 && ly < 192) this.floats.push({ x: 144, y: 150, text: '800 pts', t: 0 });
+        else if (s) this.floats.push({ x: s.x + 9, y: s.y, text: s.p < 0.8 ? 'growing' : 'soon', t: 0 });
+        else if (lx > 104 && lx < 182 && ly > 160 && ly < 200) this.floats.push({ x: 142, y: 164, text: '800 pts', t: 0 });
+        else if (Math.hypot(lx - this.dog.x, ly - this.dog.y + 5) < 9) this.floats.push({ x: this.dog.x, y: this.dog.y - 14, text: 'woof!', t: 0 });
       },
       workerCount: n,
       workerRate: Math.round(n * 9 / 16 * 60 * (this.props.speed ?? 1)),
-      hireLabel: n >= 8 ? 'FULL' : 'HIRE',
-      hireCost: n >= 8 ? '8/8' : cost + ' c',
-      hireBg: can ? C.hire : C.dim,
+      hireLabel: n >= 8 ? 'Full' : 'Hire',
+      hireCost: n >= 8 ? '8/8' : cost + ' coins',
+      hireBg: can ? '#F2C04A' : '#D8C8A8',
       hire: () => { if (!can) return; this.coins = coins - cost; this.addWorker(); if (this.step === 1) this.step = 2; this.forceUpdate(); },
       shipSub: cherries + ' kg',
-      shipBg: cherries > 0 ? C.ship : C.dim,
+      shipBg: cherries > 0 ? '#9CC860' : '#D8C8A8',
       ship: () => {
         if (!cherries) return;
-        this.coins = coins + cherries * 4; this.floats.push({ x: 72, y: 46, text: '+' + cherries * 4 + 'c', t: 0 }); this.cherries = 0;
+        this.coins = coins + cherries * 4; this.floats.push({ x: 128, y: 70, text: '+' + cherries * 4, t: 0 }); this.cherries = 0;
         if (this.step === 2) this.step = 3;
         this.forceUpdate();
       }
