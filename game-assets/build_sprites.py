@@ -1257,6 +1257,202 @@ LOCATIONS = {
 }
 
 
+# ---------------- farm buildings (28x26, standing on the hedge line), cosmetics, contracts board ----------------
+def ground_shadow(p, w, h, cy=None):
+    cy = h - 2 if cy is None else cy
+    for y in range(h):
+        for x in range(w):
+            if ((x - w / 2 + 0.5) / (w / 2 - 1)) ** 2 + ((y - cy) / 2.0) ** 2 <= 1:
+                p(x, y, "#2A2A0850")
+
+
+def b_housing(p):
+    ground_shadow(p, 28, 26)
+    rect(p, 3, 12, 22, 13, OUT); rect(p, 4, 13, 20, 11, WOOD[1])
+    for y in range(13, 24, 3):
+        for x in range(4, 24):
+            p(x, y, WOOD[2])
+    rect(p, 11, 16, 6, 8, OUT); rect(p, 12, 17, 4, 7, WOOD[3]); p(15, 20, WOOD[0])
+    for wx in (5, 19):
+        rect(p, wx, 15, 4, 4, OUT); rect(p, wx + 1, 16, 2, 2, "#F8E8A0")
+    for y in range(2, 13):
+        half = 3 + (y - 2) * 1.25
+        for x in range(int(14 - half), int(14 + half) + 1):
+            edge = abs(x - 14) >= int(half) or y == 12
+            p(x, y, OUT if edge else THATCH[1] if (x + y) % 4 else THATCH[3])
+    for x in range(10, 19):
+        p(x, 3, THATCH[0])
+    rect(p, 18, 0, 3, 5, STONE[2]); p(19, 0, STONE[0])
+
+
+def b_wetmill(p):
+    ground_shadow(p, 28, 26)
+    for x in (3, 24):
+        rect(p, x, 6, 1, 12, WOOD[3])
+    for y in range(3, 7):
+        for x in range(1 + (6 - y), 27 - (6 - y)):
+            p(x, y, OUT if y == 3 or x in (1 + (6 - y), 26 - (6 - y)) else "#A8B8C4" if x % 3 else "#7A8A96")
+    rect(p, 2, 15, 24, 10, OUT); rect(p, 3, 16, 22, 8, CONCRETE[1])
+    rect(p, 4, 17, 20, 5, WATER[2])
+    for x in range(5, 23, 4):
+        p(x, 18, "#FFFFFF"); p(x + 1, 20, WATER[0])
+    for (x, y) in [(7, 20), (12, 19), (17, 21), (20, 19)]:
+        p(x, y, "#E83A30")
+    for k in range(6):
+        p(20 + k % 2, 9 + k, WATER[1])
+    rect(p, 18, 7, 6, 2, STONE[3])
+
+
+def b_drybeds(p):
+    ground_shadow(p, 28, 26)
+    for (ty, cols) in [(9, ("#9A3A2E", "#C8483A", "#E8B060")), (16, ("#7A3A24", "#A85A34", "#C8A870"))]:
+        for x in (3, 13, 24):
+            rect(p, x, ty + 3, 1, 7, WOOD[3])
+        rect(p, 1, ty, 26, 4, OUT); rect(p, 2, ty + 1, 24, 2, "#D8D2C4")
+        for x in range(2, 26):
+            p(x, ty + 1, cols[x % 3]); p(x, ty + 2, cols[(x + 1) % 3] if x % 2 else "#D8D2C4")
+
+
+def b_compost(p):
+    ground_shadow(p, 28, 26)
+    for bx in (2, 15):
+        rect(p, bx, 12, 11, 12, OUT); rect(p, bx + 1, 13, 9, 10, WOOD[2])
+        for y in range(14, 23, 3):
+            for x in range(bx + 1, bx + 10):
+                p(x, y, WOOD[1])
+        for y in range(9, 14):
+            for x in range(bx + 1 + (13 - y) // 2, bx + 10 - (13 - y) // 2):
+                p(x, y, SOIL[3] if (x * 3 + y) % 5 else SOIL[1])
+    for (x, y) in [(5, 10), (8, 11), (18, 10), (21, 11), (19, 12)]:
+        p(x, y, LEAF[1]); p(x + 1, y, LEAF[3])
+    for y in range(4, 18):
+        p(14, y, WOOD[3])
+    for x in (12, 14, 16):
+        p(x, 3, "#8A9AA6"); p(x, 4, "#8A9AA6")
+    rect(p, 12, 4, 5, 1, "#8A9AA6")
+
+
+def b_shade(p):
+    ground_shadow(p, 28, 26)
+    rect(p, 13, 14, 3, 11, WOOD[3]); p(13, 14, WOOD[2]); p(12, 24, WOOD[3]); p(16, 24, WOOD[3])
+    cluster(14, 9, 13, 8, LUSH, 41, blobs=22, br=(3, 5), target=p)
+    for (x, y) in [(6, 8), (20, 6), (12, 4), (17, 12)]:
+        p(x, y, "#F4F0C8"); p(x + 1, y, "#E8D890")
+
+
+def b_sorter(p):
+    ground_shadow(p, 28, 26)
+    for x in (3, 24):
+        rect(p, x, 7, 1, 17, WOOD[3])
+    for y in range(2, 7):
+        for x in range(1, 27):
+            p(x, y, OUT if y in (2, 6) and 0 < x < 27 else "#F4ECDC" if (x // 3) % 2 else "#2D6A46")
+    for x in range(1, 27, 3):
+        p(x, 7, "#2D6A46" if (x // 3) % 2 == 0 else "#F4ECDC")
+    rect(p, 4, 15, 20, 4, OUT); rect(p, 5, 16, 18, 2, WOOD[1])
+    for x in (6, 22):
+        rect(p, x, 19, 1, 5, WOOD[3])
+    for (tx, c) in [(6, "#C8A870"), (12, "#8A6A3A"), (18, "#5A3A22")]:
+        rect(p, tx, 13, 5, 3, OUT); rect(p, tx + 1, 14, 3, 1, c)
+
+
+BUILDINGS = {
+    "housing": {"name": "Picker housing", "sprite": "build_housing"},
+    "wetmill": {"name": "Wet mill", "sprite": "build_wetmill"},
+    "drybeds": {"name": "Raised drying beds", "sprite": "build_drybeds"},
+    "compost": {"name": "Compost shed", "sprite": "build_compost"},
+    "shade": {"name": "Shade trees", "sprite": "build_shade"},
+    "sorter": {"name": "Sorting table", "sprite": "build_sorter"},
+}
+for k, fn in [("housing", b_housing), ("wetmill", b_wetmill), ("drybeds", b_drybeds), ("compost", b_compost), ("shade", b_shade), ("sorter", b_sorter)]:
+    add_layer("build_" + k, 28, 26, fn)
+
+
+def d_bench(p):
+    for x in range(1, 15):
+        p(x, 9, "#2A2A0850")
+    rect(p, 1, 1, 14, 2, OUT); rect(p, 2, 1, 12, 1, WOOD[0])
+    rect(p, 1, 4, 14, 3, OUT); rect(p, 2, 5, 12, 1, WOOD[1])
+    for x in (2, 13):
+        rect(p, x, 3, 1, 6, WOOD[4])
+
+
+def d_lantern(p):
+    p(3, 13, "#2A2A0850"); p(4, 13, "#2A2A0850"); p(2, 13, "#2A2A0850")
+    rect(p, 3, 9, 1, 4, OUT)
+    rect(p, 1, 1, 5, 1, OUT); rect(p, 0, 2, 7, 6, OUT); rect(p, 1, 3, 5, 4, "#E84A3A")
+    rect(p, 2, 3, 3, 4, "#F8C870"); p(3, 4, "#FFF4C0")
+    rect(p, 1, 8, 5, 1, OUT)
+
+
+def d_flag(p):
+    rect(p, 1, 0, 1, 22, OUT); p(1, 0, "#F2C04A")
+    rect(p, 2, 2, 10, 8, OUT); rect(p, 2, 3, 9, 6, "#2D6A46")
+    for (x, y) in [(5, 5), (6, 4), (7, 5), (8, 4), (6, 6), (7, 6), (6, 7)]:
+        p(x, y, "#F8F4EC")
+    for x in range(0, 4):
+        p(x, 21, "#2A2A0850")
+
+
+def d_bunting(p):
+    cols = ["#D8302C", "#F2C04A", "#2D6A46", "#4A8AB8"]
+    for x in range(24):
+        p(x, 1 + (1 if 6 <= x % 12 < 12 else 0) * 0, OUT)
+    for i in range(4):
+        c = cols[i]
+        for y in range(5):
+            for x in range(i * 6 + y // 2 + 1, i * 6 + 6 - y // 2):
+                p(x, 2 + y, c)
+
+
+def d_planter(p):
+    for x in range(2, 10):
+        p(x, 11, "#2A2A0850")
+    rect(p, 2, 6, 8, 5, OUT); rect(p, 3, 7, 6, 3, "#C8603A"); rect(p, 3, 7, 6, 1, "#E07C50")
+    for (x, y, c) in [(3, 3, "#F06A98"), (6, 2, "#F2C42C"), (8, 4, "#F8F4EC"), (5, 4, "#E83A30")]:
+        p(x, y, c); p(x + 1, y, c); p(x, y + 1, c)
+    for (x, y) in [(4, 5), (6, 5), (7, 4), (8, 5), (5, 3)]:
+        p(x, y, LUSH[2])
+
+
+def d_cart(p):
+    for x in range(1, 21):
+        p(x, 15, "#2A2A0850")
+    rect(p, 10, 2, 1, 7, OUT)
+    for y in range(0, 3):
+        for x in range(4 - y * 2 + 3, 17 + y * 2 - 3):
+            p(x, y, OUT if y == 2 or x in (4 - y * 2 + 3, 16 + y * 2 - 3) else "#D8302C" if (x // 2) % 2 else "#F8F4EC")
+    rect(p, 2, 7, 17, 6, OUT); rect(p, 3, 8, 15, 4, WOOD[1]); rect(p, 3, 8, 15, 1, "#2D6A46")
+    for (x, c) in [(5, "#F8F4EC"), (8, "#F8F4EC"), (13, "#8A5A30")]:
+        rect(p, x, 5, 2, 3, OUT); p(x, 6, c); p(x + 1, 6, c)
+    for wx in (4, 15):
+        rect(p, wx, 12, 3, 3, OUT); p(wx + 1, 13, "#8A9AA6")
+
+
+def d_bandana(p):
+    rect(p, 2, 3, 8, 3, OUT); rect(p, 3, 4, 6, 1, "#D8302C")
+    for y in range(6, 9):
+        for x in range(4 + (y - 6), 8 - (y - 6)):
+            p(x, y, "#D8302C")
+    p(5, 4, "#F8F4EC"); p(7, 4, "#F8F4EC")
+
+
+for k, fn, w, h in [("bench", d_bench, 16, 10), ("lantern", d_lantern, 7, 14), ("flag", d_flag, 12, 22), ("bunting", d_bunting, 24, 8),
+                    ("planter", d_planter, 12, 12), ("cart", d_cart, 22, 16), ("bandana", d_bandana, 12, 10)]:
+    add_layer("deco_" + k, w, h, fn)
+
+
+def board(p):
+    for x in (4, 19):
+        rect(p, x, 14, 2, 9, WOOD[3])
+    rect(p, 1, 2, 22, 14, OUT); rect(p, 2, 3, 20, 12, WOOD[1])
+    for (x, y, c) in [(3, 4, "#F8F4EC"), (10, 5, "#FFF0B0"), (16, 4, "#F8F4EC")]:
+        rect(p, x, y, 5, 7, OUT); rect(p, x + 1, y + 1, 3, 5, c); p(x + 2, y, "#D8302C")
+        p(x + 1, y + 2, "#9A8A70"); p(x + 2, y + 2, "#9A8A70"); p(x + 1, y + 4, "#9A8A70")
+
+
+icon("board", board)
+
 def render(s, shirt=None):
     pal = dict(s["pal"])
     if shirt:
@@ -1271,7 +1467,7 @@ def render(s, shirt=None):
 
 SHRUBS = [(bx + 6 + c * 18, by + r * 17) for (bx, by) in BEDS[:3] for r in range(2) for c in range(4)]
 with open(os.path.join(HERE, "sprites.json"), "w") as f:
-    json.dump({"sprites": S, "shirts": SHIRTS, "shrubs": SHRUBS, "locations": LOCATIONS, "storage": STORAGE, "carry": CARRY, "hats": HATS, "stampColors": STAMP_COLORS, "beds": BEDS,
+    json.dump({"sprites": S, "shirts": SHIRTS, "shrubs": SHRUBS, "locations": LOCATIONS, "storage": STORAGE, "carry": CARRY, "hats": HATS, "buildings": BUILDINGS, "stampColors": STAMP_COLORS, "beds": BEDS,
                "varieties": {k: v[0] for k, v in VARIETIES.items()}}, f, separators=(",", ":"))
 
 # sheet of non-shrub sprites

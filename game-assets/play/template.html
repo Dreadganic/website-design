@@ -72,7 +72,8 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-
 .modal { position: fixed; inset: 0; background: rgba(20,12,6,0.6); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 20; }
 .modal[hidden] { display: none; }
 .subtabs { position: sticky; top: 0; z-index: 2; }
-.subtabs button { flex: 1; }
+.subtabs button { flex: 1; position: relative; padding: 0 4px; }
+.subtabs .dot { position: absolute; top: 3px; right: 3px; margin: 0; }
 .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #D8302C; vertical-align: middle; margin-left: 2px; }
 .modal .card { max-width: 360px; width: 100%; padding: 18px 16px; display: flex; flex-direction: column; gap: 10px; text-align: center; align-items: center; }
 .modal h2 { margin: 0; font-size: 22px; }
@@ -145,8 +146,42 @@ const VAR = {
   heirloom: { cost: 30000, kg: 3, speed: 0.9, value: 1.8, cup: { washed: 2 }, perk: 'Floral: sells ×1.8, +2 cup score washed.' },
   geisha: { cost: 60000, kg: 2, speed: 0.6, value: 3, cup: { washed: 3, natural: 3, honey: 3 }, perk: 'Rare: sells ×3 and cups high, but 2 kg a pick and slow. Free with the Osaka garden.' }
 };
+/* farm buildings: per farm, three levels each, bought with coins; they stand in the lots along the fence */
+const BUILD = {
+  housing: { base: 600, sub: (n) => '+' + (2 * n) + ' picker places here (' + (6 + 2 * n) + ' in all)' },
+  compost: { base: 900, sub: (n) => '+' + (10 * n) + '% growth on this farm' },
+  wetmill: { base: 1200, sub: (n) => 'Washed lots dry ' + (10 * n) + '% faster (adds up across farms, up to 60%)' },
+  drybeds: { base: 2000, sub: (n) => '+' + n + ' drying racks in the mill' },
+  shade: { base: 2500, sub: (n) => '+' + (0.4 * n).toFixed(1) + ' cup score on every lot (adds up across farms, up to +4)' },
+  sorter: { base: 3500, sub: (n) => (3 * n) + '% chance a lot sorts out as a peaberry lot worth double' }
+};
+const BUILD_ORDER = ['housing', 'wetmill', 'drybeds', 'compost', 'shade', 'sorter'];
+const SLOTS = [3, 34, 65, 99, 130, 161];
+const farmMult = (loc) => 1 + 0.6 * LOCS.indexOf(loc);
+const buildCost = (loc, k) => Math.round(BUILD[k].base * Math.pow(3, (S.farms[loc].build[k] || 0)) * farmMult(loc) / 10) * 10;
+const sumBuild = (k) => LOCS.reduce((a, l) => a + (S.farms[l].unlocked ? (S.farms[l].build[k] || 0) : 0), 0);
+const maxPickers = (f) => 6 + 2 * (f.build.housing || 0);
+const racks = () => S.lv.racks + sumBuild('drybeds');
+const shadeCup = () => Math.min(4, 0.4 * sumBuild('shade'));
+/* managers */
+const MANAGER_COST = (loc) => Math.round(4000 * farmMult(loc) / 10) * 10;
+const FOREMAN_COST = 6000, AGENT_COST = 15000;
+const MGR_LOOK = { shirt: ['#F4F0E4', '#D8D0BC', '#A89C84'], hat: ['#3E5A48', '#2D4A3A', '#1E3428'] };
+/* cosmetics: bought once with coins, shown on every farm */
+const DECOR = {
+  bandana: { name: 'Shiba bandana', cost: 1500, sub: 'A red bandana for the farm dog' },
+  bench: { name: 'Garden bench', cost: 2000, sub: 'A place for pickers to rest' },
+  planter: { name: 'Flower planter', cost: 3000, sub: 'Bright flowers by the path' },
+  lantern: { name: 'Paper lanterns', cost: 6000, sub: 'Two lanterns that glow at night' },
+  flag: { name: 'Beju flag', cost: 10000, sub: 'Fly the crane over your farm' },
+  bunting: { name: 'Festival bunting', cost: 15000, sub: 'Flags strung across the farm' },
+  cart: { name: 'Coffee cart', cost: 25000, sub: 'A little Beju cart serving the pickers' }
+};
+const DECOR_AT = { bench: [[138, 96]], planter: [[179, 104]], lantern: [[91, 140], [91, 186]], flag: [[2, 86]], cart: [[154, 92]] };
+/* contracts */
+const BUYERS = ['Kissa Hoshi, Osaka', 'Mame Lab, Kyoto', 'Blue Door Café, Melbourne', 'Nordlys Roasters, Oslo', 'Café Solar, Bogotá', 'Little Crane Bakery', 'Hanami Coffee Stand', 'Beju Roastery', 'Beju Roastery'];
 const NATIVE_BOOST = 1.2;   /* a variety grows 20% faster on a farm where it is native */
-const varGrowth = (f, v) => (VAR[v].allSeason ? 1.5 : growth(f.loc)) * VAR[v].speed * (ART.locations[f.loc].beds.includes(v) ? NATIVE_BOOST : 1);
+const varGrowth = (f, v) => (VAR[v].allSeason ? 1.5 : growth(f.loc)) * VAR[v].speed * (ART.locations[f.loc].beds.includes(v) ? NATIVE_BOOST : 1) * (1 + 0.1 * ((f.build && f.build.compost) || 0));
 const METHODS = {
   washed: { name: 'Washed', time: 60, mult: 1.0, cup: 84, art: 'proc_washed', unlock: 'Unlocked' },
   natural: { name: 'Natural', time: 90, mult: 1.3, cup: 85.5, art: 'proc_natural', unlock: 'Unlocked' },
@@ -209,13 +244,13 @@ const icon = (name, alt) => '<img class="ic" src="' + url(name) + '" alt="' + (a
 let seed = 7;
 const rnd = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
 function newFarm(loc) {
-  return { loc, unlocked: loc === START, field: loc === 'osaka', beds: ['caturra', 'caturra', 'caturra', 'caturra'], shrubs: [], workers: [], harvested: 0, goal: 1000, rewarded: false, dog: { x: 80, y: 104, tx: 80, ty: 104, t: 1, walk: 0 } };
+  return { loc, unlocked: loc === START, field: loc === 'osaka', beds: ['caturra', 'caturra', 'caturra', 'caturra'], build: {}, manager: null, shrubs: [], workers: [], harvested: 0, goal: 1000, rewarded: false, dog: { x: 80, y: 104, tx: 80, ty: 104, t: 1, walk: 0 } };
 }
 function fresh() {
   const st = {
     v: 1, loc: START, coins: 1500, points: 300, xp: 0, cranes: 20, hearts: 10, heartT: 0,
     lv: { storage: 1, carry: 1, speed: 1, racks: 1, hearts: 1 },
-    methods: { washed: true, natural: true }, vars: { caturra: true }, hat: 'straw', hats: { straw: true }, stamps: {},
+    methods: { washed: true, natural: true }, vars: { caturra: true }, staff: { foreman: false, agent: false, rule: 'best' }, decor: {}, contracts: [], nextContract: 0, hat: 'straw', hats: { straw: true }, stamps: {},
     cherries: {}, lots: [], boosts: {}, minutes: 7 * 60 + 30, day: 1, taps: 0, year: 1, bonus: 0,
     tasks: null, weekly: { mine: 0, team: 1800, target: 4000, start: 1, claimed: false }, rewards: [], stats: { picked: 0, sold: 0, lotsSold: 0 },
     farms: {}, intro: 0, seasonPick: 'auto', speed: 1, last: Date.now()
@@ -224,6 +259,11 @@ function fresh() {
   return st;
 }
 let S = load() || fresh();
+(function migrate() {   /* fields added after a save was made */
+  const d = fresh();
+  ['staff', 'decor', 'contracts', 'nextContract'].forEach((k) => { if (S[k] === undefined) S[k] = d[k]; });
+  LOCS.forEach((l) => { const f = S.farms[l]; if (!f.build) f.build = {}; if (f.manager === undefined) f.manager = null; });
+})();
 LOCS.forEach((l) => { const f = S.farms[l]; if (!f.shrubs.length) plant(f); f.workers.forEach((w) => { w.state = 'seek'; w.path = []; w.target = null; }); });
 if (!S.farms[START].workers.length) { addWorker(S.farms[START]); addWorker(S.farms[START]); }
 if (!S.tasks) newTasks();
@@ -307,7 +347,7 @@ function store(f, v, kg) {
 function tickFarm(f, d, visible) {
   const g = d * (S.boosts.grow > S.minutesTotal ? 2 : 1);
   f.shrubs.forEach((s) => { if (s.p < 1) s.p = Math.min(1, s.p + g * varGrowth(f, s.v) / s.g); });
-  const full = stored() >= cap(), pm = pickerMult(), carry = carryKg();
+  const full = stored() >= cap(), pm = pickerMult() * (f.manager ? 1.25 : 1), carry = carryKg();
   f.workers.forEach((w) => {
     if (w.state === 'seek') {
       let best = null, bd = 1e9;
@@ -337,6 +377,12 @@ function tickFarm(f, d, visible) {
       if (!w.carry) w.state = 'seek';
     }
   });
+  if (f.manager) {   /* the manager strolls the rows with a clipboard */
+    const mg = f.manager; mg.t -= d;
+    if (mg.t <= 0) { mg.t = 3 + rnd() * 4; const sp = [[50, 108], [140, 108], [96, 130], [96, 156], [60, 156], [130, 204], [150, 94]][Math.floor(rnd() * 7)]; mg.tx = sp[0]; mg.ty = sp[1]; }
+    const mx = mg.tx - mg.x, my = mg.ty - mg.y, md = Math.hypot(mx, my);
+    if (md > 1) { const v = Math.min(md, 16 * d); mg.x += mx / md * v; mg.y += my / md * v; mg.walk += d; mg.dir = Math.abs(mx) > Math.abs(my) ? 'side' : my < 0 ? 'up' : 'down'; mg.flip = mx < 0; mg.moving = true; } else { mg.moving = false; mg.dir = 'down'; }
+  }
   const dg = f.dog; dg.t -= d;
   if (dg.t <= 0) { dg.t = 2 + rnd() * 4; const sp = [[72, 104], [44, 104], [110, 100], [150, 96], [140, 100], [100, 92]][Math.floor(rnd() * 6)]; dg.tx = sp[0]; dg.ty = sp[1]; }
   const ddx = dg.tx - dg.x, ddy = dg.ty - dg.y, dd = Math.hypot(ddx, ddy);
@@ -352,6 +398,8 @@ function tick(dt) {
   S.heartT += d; if (S.heartT >= 6) { S.heartT = 0; if (S.hearts < maxHearts()) S.hearts += 1; }
   S.lots.forEach((l) => { if (l.left > 0) l.left = Math.max(0, l.left - d); });
   LOCS.forEach((l) => { const f = S.farms[l]; if (f.unlocked) tickFarm(f, d, l === S.loc); });
+  contractsTick();
+  S.staffT = (S.staffT || 0) + d; if (S.staffT >= 1) { S.staffT = 0; staffTick(); }
   floats.forEach((t) => { t.t += dt; }); while (floats.length && floats[0].t > 1.1) floats.shift();
   bursts.forEach((b) => { b.t += dt; b.x += b.vx * dt; b.y += b.vy * dt; b.vy += 120 * dt; });
   for (let i = bursts.length - 1; i >= 0; i--) if (bursts[i].t > 0.6) bursts.splice(i, 1);
@@ -361,11 +409,18 @@ function draw(time) {
   fx.imageSmoothingEnabled = false;
   if (b.complete && b.naturalWidth) fx.drawImage(b, 0, 0); else { fx.fillStyle = '#7A9A3A'; fx.fillRect(0, 0, W, H); }
   if (S.loc === 'osaka' && sea !== 'winter') { const a = time * 0.6, kx = 24 + Math.cos(a) * 9, ky = 86 + Math.sin(a) * 4; fx.fillStyle = '#F08838'; fx.fillRect(Math.round(kx), Math.round(ky), 4, 2); }
+  if (S.decor.bunting) for (let x = 8; x < 184; x += 24) fx.drawImage(sprite('deco_bunting'), x, 103);
+  BUILD_ORDER.forEach((k, i) => {
+    const n = f.build[k] || 0; if (!n) return;
+    fx.drawImage(sprite('build_' + k), SLOTS[i], 197);
+    fx.fillStyle = '#F2C04A'; for (let j = 0; j < n; j++) fx.fillRect(SLOTS[i] + 22 - j * 3, 221, 2, 2);
+  });
+  Object.keys(DECOR_AT).forEach((k) => { if (S.decor[k]) DECOR_AT[k].forEach(([x, y]) => fx.drawImage(sprite('deco_' + k), x, y)); });
   if (f.field && S.loc !== 'osaka') fx.drawImage(sprite('bed_open'), 104, 160);
   if (!f.field) fx.drawImage(sprite('sign'), 134, 168);
   fx.drawImage(sprite('storage_' + S.lv.storage), STORE_AT.x, STORE_AT.y);
   if (stored() >= cap() && Math.floor(time * 2) % 2 === 0) fx.drawImage(sprite('bubble_full'), STORE_AT.x + 12, STORE_AT.y - 8);
-  const things = f.shrubs.map((s) => ({ y: s.y + 22, s })).concat(f.workers.map((w) => ({ y: w.y, w })), [{ y: f.dog.y, dog: f.dog }]);
+  const things = f.shrubs.map((s) => ({ y: s.y + 22, s })).concat(f.workers.map((w) => ({ y: w.y, w })), [{ y: f.dog.y, dog: f.dog }], f.manager ? [{ y: f.manager.y, mg: f.manager }] : []);
   things.sort((p, q) => p.y - q.y);
   const hat = ART.hats[S.hat];
   things.forEach((o) => {
@@ -377,6 +432,13 @@ function draw(time) {
       const g = o.dog, spr = sprite('shiba_' + (g.moving ? Math.floor(g.walk * 8) % 2 : 0)), X = Math.round(g.x) - 8, Y = Math.round(g.y) - 11;
       fx.fillStyle = 'rgba(42,42,8,0.28)'; fx.beginPath(); fx.ellipse(X + 8, Y + 11, 6, 1.5, 0, 0, 7); fx.fill();
       if (g.flip) { fx.save(); fx.translate(X + 16, Y); fx.scale(-1, 1); fx.drawImage(spr, 0, 0); fx.restore(); } else fx.drawImage(spr, X, Y);
+      if (S.decor.bandana) { fx.fillStyle = '#D8302C'; const bx = g.flip ? X + 9 : X + 5; fx.fillRect(bx, Y + 6, 2, 2); fx.fillRect(bx + (g.flip ? 1 : 0), Y + 8, 1, 1); }
+    } else if (o.mg) {
+      const g = o.mg, fr = g.moving ? (g.dir === 'side' ? Math.floor(g.walk * 6) % 2 : WALK[Math.floor(g.walk * 6) % 4]) : 0;
+      const spr = sprite('worker_' + (g.dir || 'down') + '_' + (g.dir === 'side' ? Math.min(fr, 1) : fr), MGR_LOOK), X = Math.round(g.x) - 8, Y = Math.round(g.y) - 23;
+      fx.fillStyle = 'rgba(42,42,8,0.3)'; fx.beginPath(); fx.ellipse(X + 8, Y + 23, 5, 1.6, 0, 0, 7); fx.fill();
+      if (g.dir === 'side' && g.flip) { fx.save(); fx.translate(X + 16, Y); fx.scale(-1, 1); fx.drawImage(spr, 0, 0); fx.restore(); } else fx.drawImage(spr, X, Y);
+      if (g.dir !== 'up') { fx.fillStyle = '#3E2A1C'; fx.fillRect(X + 11, Y + 14, 4, 5); fx.fillStyle = '#F8F4EC'; fx.fillRect(X + 12, Y + 15, 2, 3); }
     } else {
       const w = o.w, moving = w.state === 'walk';
       let fr = 0;
@@ -408,6 +470,7 @@ function draw(time) {
   const hr = S.minutes / 60;
   const tint = hr >= 20 || hr < 5 ? 'rgba(30,40,110,0.38)' : hr >= 17.5 ? 'rgba(240,120,40,' + (0.08 + (hr - 17.5) * 0.06).toFixed(2) + ')' : hr < 7 ? 'rgba(240,150,170,0.14)' : null;
   if (tint) { fx.fillStyle = tint; fx.fillRect(0, 0, W, H); }
+  if (S.decor.lantern && (hr >= 18 || hr < 6)) DECOR_AT.lantern.forEach(([x, y]) => { const gl = fx.createRadialGradient(x + 3, y + 5, 1, x + 3, y + 5, 16); gl.addColorStop(0, 'rgba(255,200,110,0.55)'); gl.addColorStop(1, 'rgba(255,200,110,0)'); fx.fillStyle = gl; fx.fillRect(x - 14, y - 12, 34, 34); });
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(frame, 0, 0, W * 2, H * 2);
   ctx.textAlign = 'center';
@@ -468,24 +531,87 @@ function buyUpgrade(key) {
   toast(u.name + ' upgraded');
   if (key === 'storage') showModal('<h2>' + ART.storage[S.lv.storage - 1].name + '!</h2><img src="' + url('storage_' + S.lv.storage) + '" alt="" style="width:160px;image-rendering:pixelated"><p class="note">Storage now holds ' + fmt(cap()) + ' kg, so your pickers keep working longer while you’re away.</p><button class="btn green" data-act="close">Great</button>');
 }
-function startLot(v, method) {
+function startLot(v, method, quiet) {
   const busy = S.lots.length, kg = S.cherries[v] || 0;
-  if (busy >= S.lv.racks || kg <= 0 || !S.methods[method]) return;
-  const m = METHODS[method];
+  if (busy >= racks() || kg <= 0 || !S.methods[method]) return false;
+  const m = METHODS[method], time = m.time * (method === 'washed' ? 1 - Math.min(0.6, 0.1 * sumBuild('wetmill')) : 1);
   S.cherries[v] = 0;
-  S.lots.push({ v, kg, method, left: m.time, total: m.time });
+  S.lots.push({ v, kg, method, left: time, total: time });
   task('store', 0);
-  toast(fmt(kg) + ' kg of ' + ART.varieties[v] + ' on the ' + m.name.toLowerCase() + ' racks');
+  if (!quiet) toast(fmt(kg) + ' kg of ' + ART.varieties[v] + ' on the ' + m.name.toLowerCase() + ' racks');
+  return true;
 }
-function sellLot(i) {
+const cupFor = (v, method) => { const vr = VAR[v]; return Math.min(95, METHODS[method].cup + (vr.value - 1) * 2 + ((vr.cup || {})[method] || 0) + S.bonus * 10 + shadeCup()); };
+function saleFor(v, method, green) {
+  const bonus = 1 + S.bonus, cup = cupFor(v, method);
+  return { cup, coins: Math.round(green * 22 * VAR[v].value * METHODS[method].mult * bonus), points: Math.round(green * (3 + Math.max(0, cup - 80)) * 0.8 * bonus) };
+}
+function sellLot(i, quiet) {
   const l = S.lots[i]; if (!l || l.left > 0) return;
-  const m = METHODS[l.method], green = l.kg * 0.2, bonus = 1 + S.bonus;
-  const vr = VAR[l.v], coins = Math.round(green * 22 * vr.value * m.mult * bonus), cup = Math.min(95, m.cup + (vr.value - 1) * 2 + ((vr.cup || {})[l.method] || 0) + S.bonus * 10), points = Math.round(green * (3 + Math.max(0, cup - 80)) * 0.8 * bonus);
-  earn({ coins, points });
+  const m = METHODS[l.method], green = l.kg * 0.2, r = saleFor(l.v, l.method, green);
+  const pea = rnd() < 0.03 * sumBuild('sorter');   /* the sorting table finds a peaberry lot */
+  if (pea) { r.coins *= 2; r.points *= 2; }
+  earn({ coins: r.coins, points: r.points });
   if (l.method === 'washed') S.weekly.mine += green;
   S.lots.splice(i, 1);
   S.stats.sold += green; S.stats.lotsSold += 1; task('sell', 1);
-  showModal('<img src="' + url('green_sack') + '" alt="" style="width:72px;image-rendering:pixelated"><h2>Sold to the Osaka roastery</h2><p class="note">' + fmt(green) + ' kg of ' + m.name.toLowerCase() + ' ' + ART.varieties[l.v] + ', cup score ' + cup.toFixed(1) + '.</p><div class="stats"><div><small>Coins</small><b>+' + fmt(coins) + '</b></div><div><small>Points</small><b>+' + fmt(points) + '</b></div><div><small>Cup</small><b>' + cup.toFixed(1) + '</b></div></div><button class="btn green" data-act="close">Nice</button>');
+  if (quiet) return r;
+  showModal('<img src="' + url('green_sack') + '" alt="" style="width:72px;image-rendering:pixelated"><h2>' + (pea ? 'Peaberry lot!' : 'Sold to the Osaka roastery') + '</h2><p class="note">' + fmt(green) + ' kg of ' + m.name.toLowerCase() + ' ' + ART.varieties[l.v] + ', cup score ' + r.cup.toFixed(1) + '.' + (pea ? ' Your sorting table picked out the round peaberries: double coins and points.' : '') + '</p><div class="stats"><div><small>Coins</small><b>+' + fmt(r.coins) + '</b></div><div><small>Points</small><b>+' + fmt(r.points) + '</b></div><div><small>Cup</small><b>' + r.cup.toFixed(1) + '</b></div></div><button class="btn green" data-act="close">Nice</button>');
+  return r;
+}
+const contractSlots = () => 3 + (S.staff.agent ? 1 : 0);
+function newContract() {
+  const vs = VAR_ORDER.filter((v) => S.vars[v]), ms = Object.keys(METHODS).filter((k) => S.methods[k]);
+  const buyer = BUYERS[Math.floor(rnd() * BUYERS.length)];
+  const v = rnd() < 0.7 ? vs[Math.floor(rnd() * vs.length)] : null, method = rnd() < 0.75 ? ms[Math.floor(rnd() * ms.length)] : null;
+  const cupV = v || vs.reduce((a, x) => (VAR[x].value > VAR[a].value ? x : a), vs[0]), cupM = method || 'washed';
+  const minCup = Math.floor((cupFor(cupV, cupM) - rnd() * 1.2) * 2) / 2;
+  const kg = Math.max(4, Math.round(cap() * 0.2 * (0.25 + rnd() * 0.5)));
+  const base = saleFor(cupV, cupM, kg), mult = 1.8 + rnd() * 0.6 + (v ? 0.2 : 0) + (method ? 0.2 : 0);
+  const home = v && LOCS.find((l) => l !== 'osaka' && ART.locations[l].beds.includes(v));
+  const note = buyer === 'Beju Roastery' && home ? 'For the ' + ART.locations[home].reward : '';
+  return { id: Math.floor(rnd() * 1e9), buyer, note, v, method, minCup, kg, have: 0, coins: Math.round(base.coins * mult), points: Math.round(base.points * mult), due: S.minutesTotal + 1440 * (0.75 + rnd()) };
+}
+const fits = (c, l) => (!c.v || c.v === l.v) && (!c.method || c.method === l.method) && cupFor(l.v, l.method) >= c.minCup && c.have < c.kg;
+function contractsTick() {
+  const before = S.contracts.length;
+  S.contracts = S.contracts.filter((c) => c.due > S.minutesTotal);
+  if (S.contracts.length < before) toast('A contract ran out of time');
+  if (!S.nextContract) { while (S.contracts.length < 3) S.contracts.push(newContract()); }   /* a full board on a new save */
+  if (S.contracts.length < contractSlots() && S.minutesTotal >= S.nextContract) { S.contracts.push(newContract()); S.nextContract = S.minutesTotal + 20; }
+}
+function deliver(i, id, quiet) {
+  const l = S.lots[i], c = S.contracts.find((x) => x.id === id);
+  if (!l || l.left > 0 || !c || !fits(c, l)) return;
+  const green = l.kg * 0.2, use = Math.min(green, c.kg - c.have), spare = green - use;
+  c.have += use;
+  if (l.method === 'washed') S.weekly.mine += green;
+  S.lots.splice(i, 1); S.stats.lotsSold += 1; task('sell', 1);
+  let extra = { coins: 0, points: 0 };
+  if (spare > 0.05) { extra = saleFor(l.v, l.method, spare); earn(extra); }
+  if (c.have >= c.kg - 0.01) {
+    S.contracts = S.contracts.filter((x) => x !== c); S.nextContract = Math.min(S.nextContract, S.minutesTotal + 10);
+    earn({ coins: c.coins, points: c.points }); S.stats.contracts = (S.stats.contracts || 0) + 1;
+    if (quiet) { toast('Contract for ' + c.buyer + ' complete: +' + fmt(c.coins) + ' coins'); return; }
+    showModal(img('board', 64) + '<h2>Contract complete!</h2><p class="note">' + c.buyer + ' received ' + fmt(c.kg) + ' kg' + (c.note ? ' (' + c.note.toLowerCase() + ')' : '') + '.' + (spare > 0.05 ? ' The spare ' + fmt(spare) + ' kg went to the roastery.' : '') + '</p><div class="stats"><div><small>Coins</small><b>+' + fmt(c.coins + extra.coins) + '</b></div><div><small>Points</small><b>+' + fmt(c.points + extra.points) + '</b></div></div><button class="btn green" data-act="close">Great</button>');
+  } else if (!quiet) toast(fmt(use) + ' kg delivered to ' + c.buyer + ' (' + fmt(c.have) + ' / ' + fmt(c.kg) + ' kg)');
+}
+function staffTick() {
+  if (!S.staff.foreman) return;
+  for (let i = S.lots.length - 1; i >= 0; i--) {
+    const l = S.lots[i]; if (l.left > 0) continue;
+    const c = S.staff.agent && S.contracts.find((x) => fits(x, l));
+    if (c) deliver(i, c.id, true); else sellLot(i, true);
+  }
+  let guard = 0;
+  while (S.lots.length < racks() && stored() > 0 && guard++ < 8) {
+    const v = Object.keys(S.cherries).filter((x) => S.cherries[x] > 0).sort((a, b) => S.cherries[b] - S.cherries[a])[0];
+    if (S.cherries[v] < Math.max(10, cap() * 0.25) && stored() < cap() * 0.9) break;   /* wait for a worthwhile lot */
+    const want = S.staff.agent && S.contracts.find((c) => (!c.v || c.v === v) && c.method && S.methods[c.method] && c.have < c.kg);
+    const best = Object.keys(METHODS).filter((k) => S.methods[k]).sort((a, b) => METHODS[b].mult - METHODS[a].mult)[0];
+    const method = want ? want.method : S.staff.rule !== 'best' && S.methods[S.staff.rule] ? S.staff.rule : best;
+    if (!startLot(v, method, true)) break;
+  }
 }
 function sellRaw() {
   const kg = stored(); if (!kg) return;
@@ -512,14 +638,14 @@ function unlockFarm(loc) {
 }
 function prestige() {
   if (level() < 10) return;
-  const keep = { methods: S.methods, hats: S.hats, hat: S.hat, stamps: S.stamps, rewards: S.rewards, year: S.year + 1, bonus: S.bonus + 0.1, cranes: S.cranes, seasonPick: S.seasonPick, speed: S.speed, vars: S.vars, unlocked: LOCS.filter((l) => S.farms[l].unlocked), beds: LOCS.map((l) => S.farms[l].beds) };
+  const keep = { methods: S.methods, hats: S.hats, hat: S.hat, stamps: S.stamps, rewards: S.rewards, year: S.year + 1, bonus: S.bonus + 0.1, cranes: S.cranes, seasonPick: S.seasonPick, speed: S.speed, vars: S.vars, decor: S.decor, unlocked: LOCS.filter((l) => S.farms[l].unlocked), beds: LOCS.map((l) => S.farms[l].beds) };
   S = fresh(); Object.assign(S, keep);
   keep.unlocked.forEach((l) => { S.farms[l].unlocked = true; });
   LOCS.forEach((l, i) => { S.farms[l].beds = keep.beds[i]; });
   delete S.beds;
   LOCS.forEach((l) => plant(S.farms[l])); addWorker(S.farms[START]); addWorker(S.farms[START]);
   keep.unlocked.forEach((l) => { if (l !== START) addWorker(S.farms[l]); }); newTasks();
-  showModal('<h2>Harvest year ' + S.year + '</h2><p class="note">Your farms start fresh, but you keep every farm, variety, process, hat and stamp. Roaster’s Knowledge: +' + Math.round(S.bonus * 100) + '% to cup scores and sale prices, forever.</p><button class="btn green" data-act="close">Begin</button>');
+  showModal('<h2>Harvest year ' + S.year + '</h2><p class="note">Your farms start fresh, but you keep every farm, variety, process, hat, stamp and decoration; buildings and staff start again. Roaster’s Knowledge: +' + Math.round(S.bonus * 100) + '% to cup scores and sale prices, forever.</p><button class="btn green" data-act="close">Begin</button>');
 }
 function away(hours) {
   const mins = hours * 60, before = stored(), byFarm = [];
@@ -528,7 +654,8 @@ function away(hours) {
     const f = S.farms[l]; if (!f.unlocked || !f.workers.length) return;
     const perWorkerMin = carryKg() / ((2.4 * carryKg() / 3 + 8) / pickerMult()) * 60 / 60 * 0.5;   /* kg a picker brings in per game minute, walking included */
     const fk = f.workers.length * perWorkerMin * mins * f.beds.slice(0, 3).reduce((a, v) => a + varGrowth(f, v) * VAR[v].kg / 3, 0) / 3 / 1.2;
-    kg += fk; byFarm.push([f, fk]);
+    const fkm = fk * (f.manager ? 1.5 : 1);
+    kg += fkm; byFarm.push([f, fkm]);
     f.shrubs.forEach((s) => { s.p = 1; });
   });
   const room = cap() - before, got = Math.min(room, Math.round(kg));
@@ -545,7 +672,7 @@ function away(hours) {
 
 /* ---------- interface ---------- */
 let tab = 'farm', toastT = 0;
-const TABS = [['farm', 'Farm', 'i_worker'], ['mill', 'Mill', 'green_sack'], ['upgrades', 'Upgrade', 'storage_4'], ['orders', 'Orders', 'i_points'], ['shop', 'Cranes', 'i_crane'], ['test', 'Test', 'i_box']];
+const TABS = [['farm', 'Farm', 'i_worker'], ['mill', 'Mill', 'green_sack'], ['upgrades', 'Upgrade', 'storage_4'], ['orders', 'Orders', 'i_points'], ['shop', 'Shop', 'i_crane'], ['test', 'Test', 'i_box']];
 function setTab(t) { tab = t; renderTabs(); renderPanel(); }
 function renderTabs() {
   const dot = { orders: S.tasks.some((t) => t.have >= t.goal && !t.done) || (S.weekly.team + S.weekly.mine >= S.weekly.target && !S.weekly.claimed), mill: S.lots.some((l) => l.left <= 0) };
@@ -553,6 +680,10 @@ function renderTabs() {
 }
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; toastT = 2.6; }
 function showModal(html) { $('modalCard').innerHTML = html; $('modal').hidden = false; }
+function shopTabs() {
+  const st = S.shopTab || 'cranes', dot = Object.keys(DECOR).some((k) => S.decor[k] === undefined && S.coins >= DECOR[k].cost);
+  return '<div class="seg subtabs">' + [['cranes', 'Cranes'], ['decor', 'Decor']].map(([k, t]) => '<button type="button" data-act="shoptab:' + k + '" aria-pressed="' + (st === k) + '">' + t + (k === 'decor' && dot ? ' <i class="dot" aria-label="something to buy"></i>' : '') + '</button>').join('') + '</div>';
+}
 function row(art, title, sub, button) { return '<div class="row"><div class="art">' + art + '</div><div class="grow"><b>' + title + '</b><span>' + sub + '</span></div>' + button + '</div>'; }
 function btn(label, sub, act, enabled, cls) { return '<button class="btn ' + (cls || '') + '" type="button" data-act="' + act + '"' + (enabled ? '' : ' disabled') + '>' + label + (sub ? '<small>' + sub + '</small>' : '') + '</button>'; }
 const img = (n, w) => '<img src="' + url(n) + '" alt="" style="width:' + (w || 40) + 'px">';
@@ -571,7 +702,7 @@ function renderPanel() {
       if (S.loc !== 'osaka') {
         h += '<div><div style="display:flex;justify-content:space-between;align-items:baseline"><h3>Harvest ' + fmt(f.harvested) + ' / 1,000 kg</h3><span class="note">' + (f.rewarded ? 'Reward earned' : 'Reward: free 100 g') + '</span></div><div class="bar"><i style="width:' + Math.round(f.harvested / f.goal * 100) + '%"></i></div><p class="note">' + (f.rewarded ? 'Free 100 g ' + L.reward + ' is on your next order.' : 'Reach 1,000 kg for a free 100 g ' + L.reward + ' with your next bejucoffee.com order.') + '</p></div>';
       } else h += '<p class="note">The Osaka roastery garden: rare varieties all year round, through four Japanese seasons.</p>';
-      h += row(img('worker_down_0', 22), 'Pickers here: ' + f.workers.length + '/6', 'Carrying ' + ART.carry[S.lv.carry - 1].name.toLowerCase() + ' (' + carryKg() + ' kg). You pick 3× faster, but pickers never tire.', btn('Hire', fmt(hireCost()) + ' coins', 'hire', S.coins >= hireCost() && f.workers.length < 6));
+      h += row(img('worker_down_0', 22), 'Pickers here: ' + f.workers.length + '/' + maxPickers(f), 'Carrying ' + ART.carry[S.lv.carry - 1].name.toLowerCase() + ' (' + carryKg() + ' kg). You pick 3× faster, but pickers never tire.', btn('Hire', fmt(hireCost()) + ' coins', 'hire', S.coins >= hireCost() && f.workers.length < maxPickers(f)));
       h += row(img('storage_' + S.lv.storage, 44), ART.storage[S.lv.storage - 1].name + ': ' + fmt(stored()) + ' / ' + fmt(cap()) + ' kg', stored() >= cap() ? 'Full! Pickers have stopped. Process or sell cherries.' : 'Cherries from every farm come here.', btn('Mill', 'process', 'tab:mill', true, 'blue'));
       h += '<h3>Fields</h3>' + f.beds.slice(0, f.field ? 4 : 3).map((v, b) => row(img('bush_' + v + '_ripe', 30), 'Field ' + (b + 1) + ': ' + ART.varieties[v] + (ART.locations[f.loc].beds.includes(v) ? ' · native' : ''), VAR[v].kg + ' kg a pick · ' + VAR[v].perk, btn('Replant', '', 'bed:' + b, true, 'blue'))).join('');
       h += row(img('i_cherry', 28), 'Sell fresh cherries', 'Quick coins, 2 per kg. Processing pays far more.', btn('Sell all', fmt(stored() * 2) + ' coins', 'sellraw', stored() > 0));
@@ -579,12 +710,14 @@ function renderPanel() {
   } else if (tab === 'mill') {
     const vs = Object.keys(S.cherries).filter((v) => S.cherries[v] > 0);
     h += '<h2>Mill</h2><p class="note">Choose a lot and a process. Lots dry on your racks in real time, then sell to the Osaka roastery. About 5 kg of cherries make 1 kg of green coffee.</p>';
-    h += '<h3>Drying racks ' + S.lots.length + ' / ' + S.lv.racks + '</h3>';
+    h += '<h3>Drying racks ' + S.lots.length + ' / ' + racks() + '</h3>';
     S.lots.forEach((l, i) => {
       const m = METHODS[l.method], done = l.left <= 0;
       h += row(img(m.art, 36), fmt(l.kg) + ' kg ' + ART.varieties[l.v] + ', ' + m.name.toLowerCase(), done ? 'Dry and ready to sell' : '<span class="bar" style="display:block"><i style="width:' + Math.round((1 - l.left / l.total) * 100) + '%"></i></span> ' + Math.ceil(l.left / 2.5) + ' min left', btn('Sell', done ? 'ready' : 'drying', 'sell:' + i, done, 'green'));
+      if (done) S.contracts.filter((c) => fits(c, l)).forEach((c) => { h += '<div class="seg" style="margin:-4px 0 6px 52px">' + btn('Deliver to ' + c.buyer.split(',')[0], fmt(Math.min(l.kg * 0.2, c.kg - c.have)) + ' kg · contract', 'deliver:' + i + '.' + c.id, true, 'blue') + '</div>'; });
     });
     if (!S.lots.length) h += '<p class="note">No lots drying yet.</p>';
+    if (S.staff.foreman) h += '<p class="note">Your mill foreman starts and sells lots for you' + (S.staff.agent ? ', and your contracts agent delivers to matching contracts first' : '') + '.</p>';
     h += '<h3>Start a lot</h3>';
     if (!vs.length) h += '<p class="note">Storage is empty. Pick some cherries first.</p>';
     else {
@@ -593,19 +726,21 @@ function renderPanel() {
       h += '<div class="grid2">' + Object.keys(METHODS).map((k) => {
         const m = METHODS[k], ok = S.methods[k];
         return '<div class="tile"><div style="display:flex;gap:6px;align-items:center">' + img(m.art, 32) + '<div><b>' + m.name + '</b><br><span>×' + m.mult.toFixed(1) + ' · ' + Math.round(m.time / 2.5) + ' min</span></div></div>' +
-          (ok ? btn('Process', '', 'lot:' + k, S.lots.length < S.lv.racks, 'green') : '<span>' + m.unlock + '</span>' + (m.cost ? btn('Unlock', fmt(m.cost) + ' pts', 'method:' + k, S.points >= m.cost) : '')) + '</div>';
+          (ok ? btn('Process', '', 'lot:' + k, S.lots.length < racks(), 'green') : '<span>' + m.unlock + '</span>' + (m.cost ? btn('Unlock', fmt(m.cost) + ' pts', 'method:' + k, S.points >= m.cost) : '')) + '</div>';
       }).join('') + '</div>';
-      if (S.lots.length >= S.lv.racks) h += '<p class="note">All racks are busy. Add racks in Upgrades.</p>';
+      if (S.lots.length >= racks()) h += '<p class="note">All racks are busy. Add racks in Upgrades, or build raised drying beds.</p>';
     }
   } else if (tab === 'upgrades') {
     const ut = S.upTab || 'farm', nextVar = VAR_ORDER.find((v) => !S.vars[v]), nextFarm = LOCS.find((l) => canOpen(l));
     const ready = {   /* a dot on a sub-tab when something in it is affordable */
       farm: ['storage', 'carry'].some((k) => S.lv[k] < UP[k].max && S.coins >= UP[k].cost(S.lv[k])) || ['speed', 'racks', 'hearts'].some((k) => S.lv[k] < UP[k].max && S.points >= UP[k].cost(S.lv[k])),
       vars: !!nextVar && S.points >= VAR[nextVar].cost,
-      farms: (!!nextFarm && S.points >= FARM_COST[nextFarm]) || (!S.farms.osaka.unlocked && S.cranes >= OSAKA_CRANES)
+      farms: (!!nextFarm && S.points >= FARM_COST[nextFarm]) || (!S.farms.osaka.unlocked && S.cranes >= OSAKA_CRANES),
+      build: f.unlocked && BUILD_ORDER.some((k) => (f.build[k] || 0) < 3 && S.coins >= buildCost(S.loc, k)),
+      staff: (f.unlocked && !f.manager && S.coins >= MANAGER_COST(S.loc)) || (!S.staff.foreman && S.coins >= FOREMAN_COST) || (S.staff.foreman && !S.staff.agent && S.coins >= AGENT_COST)
     };
     h += '<h2>Upgrades</h2><p class="note">' + icon('i_coin') + ' ' + fmt(S.coins) + ' coins · ' + icon('i_points') + ' ' + fmt(S.points) + ' points</p>';
-    h += '<div class="seg subtabs">' + [['farm', 'Farm'], ['vars', 'Varieties'], ['farms', 'Farms']].map(([k, t]) => '<button type="button" data-act="uptab:' + k + '" aria-pressed="' + (ut === k) + '">' + t + (ready[k] ? ' <i class="dot" aria-label="something to buy"></i>' : '') + '</button>').join('') + '</div>';
+    h += '<div class="seg subtabs">' + [['farm', 'Farm'], ['build', 'Build'], ['staff', 'Staff'], ['vars', 'Seeds'], ['farms', 'Farms']].map(([k, t]) => '<button type="button" data-act="uptab:' + k + '" aria-pressed="' + (ut === k) + '">' + t + (ready[k] ? ' <i class="dot" aria-label="something to buy"></i>' : '') + '</button>').join('') + '</div>';
     if (ut === 'farm') {
     const st = S.lv.storage, nextS = ART.storage[st];
     h += row(img('storage_' + Math.min(5, st + (st < 5 ? 1 : 0)), 44), 'Storage: ' + ART.storage[st - 1].name, st < 5 ? 'Next: ' + nextS.name + ', holds ' + fmt(nextS.cap) + ' kg (now ' + fmt(cap()) + ')' : 'The Beju barn holds ' + fmt(cap()) + ' kg', btn(st < 5 ? 'Build' : 'Max', st < 5 ? fmt(UP.storage.cost(st)) + ' coins' : '', 'up:storage', st < 5 && S.coins >= UP.storage.cost(st)));
@@ -616,6 +751,22 @@ function renderPanel() {
       h += row(img(a, k === 'hearts' ? 28 : 36), t, sub, btn(max ? 'Max' : 'Up', max ? '' : fmt(u.cost(lv)) + ' pts', 'up:' + k, !max && S.points >= u.cost(lv)));
     });
     if (S.loc !== 'osaka') h += row(img('bed_open', 44), 'Fourth field at ' + L.name.split(',')[0], f.field ? 'Cleared and planted' : '8 more shrubs in the overgrown bed', btn(f.field ? 'Done' : 'Clear', f.field ? '' : fmt(UP.field.cost()) + ' pts', 'up:field', !f.field && S.points >= UP.field.cost() && f.unlocked));
+    } else if (ut === 'build') {
+    const nm = L.name.split(',')[0];
+    h += '<h3>Buildings at ' + nm + '</h3><p class="note">Each farm has six building lots along the fence. Costs grow with each level and on later farms.</p>';
+    if (!f.unlocked) h += '<p class="note">Open this farm first.</p>';
+    else BUILD_ORDER.forEach((k) => {
+      const n = f.build[k] || 0, max = n >= 3, c = buildCost(S.loc, k);
+      h += row(img('build_' + k, 40), ART.buildings[k].name + (n ? ' · level ' + n : ''), n ? BUILD[k].sub(n) + (max ? '' : '. Next: ' + BUILD[k].sub(n + 1).toLowerCase()) : BUILD[k].sub(1), btn(max ? 'Max' : n ? 'Upgrade' : 'Build', max ? '' : fmt(c) + ' coins', 'build:' + k, !max && S.coins >= c));
+    });
+    } else if (ut === 'staff') {
+    h += '<h3>Farm manager · ' + L.name.split(',')[0] + '</h3>';
+    h += row('<img src="' + url('worker_down_0', MGR_LOOK) + '" alt="" style="width:26px">', f.manager ? 'Manager on duty' : 'Hire a farm manager', 'Pickers here work 25% faster, and this farm brings in 50% more while you’re away.', f.manager ? btn('Hired', '', 'noop', false, 'blue') : btn('Hire', fmt(MANAGER_COST(S.loc)) + ' coins', 'mgr', f.unlocked && S.coins >= MANAGER_COST(S.loc)));
+    h += '<h3>Mill staff</h3>';
+    h += row(img('green_sack', 34), 'Mill foreman', 'Starts lots on free racks and sells them when they’re dry, even while you’re on another tab.', S.staff.foreman ? btn('Hired', '', 'noop', false, 'blue') : btn('Hire', fmt(FOREMAN_COST) + ' coins', 'foreman', S.coins >= FOREMAN_COST));
+    if (S.staff.foreman) h += '<p class="note">Foreman’s process:</p><div class="seg">' + ['best'].concat(Object.keys(METHODS).filter((k) => S.methods[k])).map((k) => '<button type="button" data-act="rule:' + k + '" aria-pressed="' + (S.staff.rule === k) + '">' + (k === 'best' ? 'Best paying' : METHODS[k].name) + '</button>').join('') + '</div>';
+    h += row(img('board', 34), 'Contracts agent', 'Delivers finished lots to matching contracts first, tells the foreman which process buyers want, and adds a fourth contract slot.', S.staff.agent ? btn('Hired', '', 'noop', false, 'blue') : btn('Hire', fmt(AGENT_COST) + ' coins', 'agent', S.staff.foreman && S.coins >= AGENT_COST));
+    if (!S.staff.foreman) h += '<p class="note">Hire the mill foreman before the contracts agent.</p>';
     } else if (ut === 'vars') {
     h += '<h3>Coffee varieties</h3><p class="note">Unlock in order with points, then replant any field from the Farm tab. Native varieties grow 20% faster at home.</p>' + VAR_ORDER.map((v) => {
       const have = S.vars[v], isNext = v === nextVar, vr = VAR[v];
@@ -631,6 +782,12 @@ function renderPanel() {
     }).join('');
     }
   } else if (tab === 'orders') {
+    h += '<h2>Contracts board</h2><p class="note">Buyers pay about twice the roastery price. Finish a lot that matches, then deliver it from the Mill. New requests arrive as you complete them.</p>';
+    if (!S.contracts.length) h += '<p class="note">No contracts right now. A new one arrives shortly.</p>';
+    S.contracts.forEach((c) => {
+      const what = (c.method ? METHODS[c.method].name.toLowerCase() + ' ' : '') + (c.v ? ART.varieties[c.v] : 'coffee of any variety'), hrs = Math.max(0, (c.due - S.minutesTotal) / 60);
+      h += row(img(c.v ? 'bush_' + c.v + '_ripe' : 'board', 34), c.buyer, fmt(c.kg) + ' kg green ' + what + ', cup ' + c.minCup.toFixed(1) + '+' + (c.note ? ' · ' + c.note : '') + '<br>' + icon('i_coin') + fmt(c.coins) + ' · ' + icon('i_points') + fmt(c.points) + ' · ' + (hrs >= 1 ? Math.floor(hrs) + ' h' : Math.ceil(hrs * 60) + ' min') + ' left' + '<span class="bar" style="display:block;margin-top:3px"><i style="width:' + Math.round(c.have / c.kg * 100) + '%"></i></span>', btn('Skip', '', 'skip:' + c.id, true));
+    });
     h += '<h2>Daily tasks</h2><p class="note">New tasks every in-game day (day ' + S.day + ').</p>';
     S.tasks.forEach((t, i) => {
       const r = t.reward, rl = r.coins ? r.coins + ' coins' : r.points ? r.points + ' pts' : r.cranes + ' cranes';
@@ -642,7 +799,15 @@ function renderPanel() {
     h += btn(wk.claimed ? 'Claimed' : 'Claim 30 cranes', '', 'weekly', tot >= wk.target && !wk.claimed && wk.mine > 0, 'green');
     h += '<h2>New harvest year</h2><p class="note">At farm level 10, start a new year: coins, pickers and upgrades reset; you keep farms, varieties, processes, hats and stamps, and gain +10% to cup scores and prices forever. You are level ' + level() + '.</p>' + btn('Start year ' + (S.year + 1), level() >= 10 ? 'ready' : 'level 10', 'prestige', level() >= 10);
     h += '<h2>Real coffee rewards</h2>' + (S.rewards.length ? S.rewards.map((r) => row(img('green_sack', 28), r.text, 'From ' + r.from + ', day ' + r.day + '. Added to your next bejucoffee.com order.', '')).join('') : '<p class="note">Finish a farm’s 1,000 kg harvest to earn free coffee.</p>');
+  } else if (tab === 'shop' && (S.shopTab || 'cranes') === 'decor') {
+    h += shopTabs();
+    h += '<h2>Decor</h2><p class="note">' + icon('i_coin') + ' ' + fmt(S.coins) + ' coins. Buy once and it shows on every farm. Tap again to hide or show it.</p>';
+    Object.keys(DECOR).forEach((k) => {
+      const d = DECOR[k], own = S.decor[k] !== undefined;
+      h += row(img('deco_' + k, k === 'bunting' || k === 'cart' ? 40 : 30), d.name, d.sub, own ? btn(S.decor[k] ? 'Shown' : 'Hidden', 'tap to switch', 'decor:' + k, true, S.decor[k] ? 'blue' : '') : btn('Buy', fmt(d.cost) + ' coins', 'decor:' + k, S.coins >= d.cost));
+    });
   } else if (tab === 'shop') {
+    h += shopTabs();
     h += '<h2>Crane shop</h2><p class="note">' + icon('i_crane') + ' ' + S.cranes + ' cranes. Earn 1 crane per ¥100 spent on bejucoffee.com and 20 for each new passport stamp (try it in the Test tab).</p>' + (S.farms.osaka.unlocked ? '' : row(img('stamp_osaka', 30), 'Osaka roastery garden', 'Rare varieties all year, four seasons. Cranes only.', btn('Open', OSAKA_CRANES + ' cranes', 'farm:osaka', S.cranes >= OSAKA_CRANES)));
     [['grow', 'Growth ×2 for 30 min', 'Every farm grows twice as fast', 5, 'sparkle'], ['pick', 'Pickers ×2 for 30 min', 'Every picker works twice as fast', 5, 'worker_side_1'], ['hearts', 'Refill hearts', 'Back to full stamina', 2, 'i_heart'], ['points', '+500 points', 'For upgrades and unlocks', 10, 'i_points'], ['dry', 'Instant drying', 'Every lot on the racks finishes now', 6, 'proc_natural']].forEach(([k, t, sub, c, a]) => {
       const active = (k === 'grow' || k === 'pick') && S.boosts[k] > S.minutesTotal;
@@ -657,7 +822,7 @@ function renderPanel() {
     h += '<h2>Test tools</h2><p class="note">For playtesting: everything here stands in for something that will come from real orders or real time.</p>';
     h += '<h3>Simulate a bejucoffee.com order</h3><div class="seg">' + Object.keys(COFFEES).map((k) => '<button type="button" data-act="order:' + k + '">' + COFFEES[k].name + '</button>').join('') + '</div>';
     h += '<div class="stamps">' + LOCS.map((l) => '<img src="' + url('stamp_' + l) + '" alt="' + ART.locations[l].name + (S.stamps[l] ? ', stamped' : ', not yet') + '" class="' + (S.stamps[l] ? '' : 'off') + '">').join('') + '</div>';
-    h += '<h3>Resources</h3><div class="seg"><button type="button" data-act="add:coins">+1,000 coins</button><button type="button" data-act="add:points">+2,000 points</button><button type="button" data-act="add:cranes">+50 cranes</button><button type="button" data-act="add:vars">All varieties</button><button type="button" data-act="add:xp">+1 level</button><button type="button" data-act="add:cherries">Fill storage</button></div>';
+    h += '<h3>Resources</h3><div class="seg"><button type="button" data-act="add:coins">+1,000 coins</button><button type="button" data-act="add:bigcoins">+25,000 coins</button><button type="button" data-act="add:contracts">New contracts</button><button type="button" data-act="add:points">+2,000 points</button><button type="button" data-act="add:cranes">+50 cranes</button><button type="button" data-act="add:vars">All varieties</button><button type="button" data-act="add:xp">+1 level</button><button type="button" data-act="add:cherries">Fill storage</button></div>';
     h += '<h3>Time</h3><div class="seg"><button type="button" data-act="away:1">Away 1 h</button><button type="button" data-act="away:4">Away 4 h</button><button type="button" data-act="away:12">Away 12 h</button><button type="button" data-act="day">Next day</button></div>';
     h += '<h3>Game speed</h3><div class="seg">' + [1, 3, 10].map((x) => '<button type="button" data-act="speed:' + x + '" aria-pressed="' + (S.speed === x) + '">×' + x + '</button>').join('') + '</div>';
     h += '<h3>Season</h3><div class="seg">' + ['auto', 'harvest', 'rainy', 'spring', 'summer', 'autumn', 'winter'].map((x) => '<button type="button" data-act="season:' + x + '" aria-pressed="' + (S.seasonPick === x) + '">' + x + '</button>').join('') + '</div><p class="note">Harvest and rainy apply to the coffee farms; spring to winter apply to Osaka.</p>';
@@ -671,7 +836,7 @@ document.addEventListener('click', (e) => {
   const [a, v] = b.dataset.act.split(':');
   const f = S.farms[S.loc];
   if (a === 'close') { $('modal').hidden = true; return; }
-  if (a === 'hire') { if (f.workers.length < 6 && spend('coins', hireCost())) { addWorker(f); toast('A new picker joins you'); } }
+  if (a === 'hire') { if (f.workers.length < maxPickers(f) && spend('coins', hireCost())) { addWorker(f); toast('A new picker joins you'); } }
   else if (a === 'tab') setTab(v);
   else if (a === 'sellraw') sellRaw();
   else if (a === 'mv') S.millV = v;
@@ -681,6 +846,15 @@ document.addEventListener('click', (e) => {
   else if (a === 'up') buyUpgrade(v);
   else if (a === 'farm') unlockFarm(v);
   else if (a === 'uptab') S.upTab = v;
+  else if (a === 'shoptab') S.shopTab = v;
+  else if (a === 'build') { const n = f.build[v] || 0; if (n < 3 && spend('coins', buildCost(S.loc, v))) { f.build[v] = n + 1; toast(ART.buildings[v].name + (n ? ' upgraded to level ' + (n + 1) : ' built')); } }
+  else if (a === 'mgr') { if (!f.manager && spend('coins', MANAGER_COST(S.loc))) { f.manager = { x: 150, y: 94, tx: 150, ty: 94, t: 0, walk: 0, dir: 'down' }; toast('Your manager takes over at ' + ART.locations[S.loc].name.split(',')[0]); } }
+  else if (a === 'foreman') { if (!S.staff.foreman && spend('coins', FOREMAN_COST)) { S.staff.foreman = true; toast('The mill foreman starts work'); } }
+  else if (a === 'agent') { if (S.staff.foreman && !S.staff.agent && spend('coins', AGENT_COST)) { S.staff.agent = true; toast('The contracts agent joins the mill'); } }
+  else if (a === 'rule') S.staff.rule = v;
+  else if (a === 'skip') { S.contracts = S.contracts.filter((c) => String(c.id) !== v); S.nextContract = Math.max(S.nextContract, S.minutesTotal + 20); toast('Contract skipped. A new one comes soon.'); }
+  else if (a === 'deliver') { const [i, id] = v.split('.'); deliver(+i, +id); }
+  else if (a === 'decor') { if (S.decor[v] !== undefined) S.decor[v] = !S.decor[v]; else if (spend('coins', DECOR[v].cost)) { S.decor[v] = true; toast(DECOR[v].name + ' added to your farms'); } }
   else if (a === 'go') { S.loc = v; setTab('farm'); }
   else if (a === 'bed') {
     const b = +v, cur = f.beds[b];
@@ -705,8 +879,8 @@ document.addEventListener('click', (e) => {
   else if (a === 'hat') S.hat = v;
   else if (a === 'order') realOrder(v);
   else if (a === 'add') {
-    if (v === 'coins') S.coins += 1000; if (v === 'points') earn({ points: 2000 }); if (v === 'cranes') S.cranes += 50; if (v === 'vars') VAR_ORDER.forEach((x) => { S.vars[x] = true; });
-    if (v === 'xp') { const l = level(); S.xp = 120 * l * l; }
+    if (v === 'coins') S.coins += 1000; if (v === 'bigcoins') S.coins += 25000; if (v === 'contracts') { S.contracts = []; for (let k = 0; k < contractSlots(); k++) S.contracts.push(newContract()); } if (v === 'points') earn({ points: 2000 }); if (v === 'cranes') S.cranes += 50; if (v === 'vars') VAR_ORDER.forEach((x) => { S.vars[x] = true; });
+    if (v === 'xp') S.xp = XP_AT(level() + 1);
     if (v === 'cherries') { const vv = S.farms[S.loc].beds[0]; S.cherries[vv] = (S.cherries[vv] || 0) + (cap() - stored()); }
   }
   else if (a === 'away') away(+v);

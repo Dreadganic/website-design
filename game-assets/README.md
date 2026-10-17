@@ -54,3 +54,9 @@ New art used by it (all in `sprites.json`):
 - `green_sack`, `i_*` icons, `stamp_<loc>` passport stamps
 
 Pacing: costs start cheap and climb steeply (pickers ×1.5 each from 150 coins, picker speed ×2.1 per level up to 10, levels need 100·(level−1)^2.4 XP). A scripted test player reached level 10 (new harvest year) after about 50 minutes at normal speed.
+
+### Mid game
+- **Contracts board** (Orders tab): 3 buyer requests (4 with the contracts agent) for a set amount of green coffee, optionally a variety and process, with a minimum cup score. They pay about 2× the roastery price. Deliver ready lots from the Mill. Some requests come from Beju itself, named after real products.
+- **Buildings** (Upgrade → Build): six lots per farm along the fence, three levels each, paid in coins (base × 3^level × farm multiplier). Picker housing (+2 picker places a level), wet mill (faster washed drying), raised drying beds (+1 rack), compost shed (+10% growth), shade trees (+0.4 cup), sorting table (peaberry lots at double value). Sprites: `build_<key>`.
+- **Staff** (Upgrade → Staff): farm manager per farm (+25% picker speed, +50% away earnings, walks the farm), mill foreman (starts and sells lots automatically, with a process rule), contracts agent (delivers to matching contracts, steers the foreman, +1 contract slot).
+- **Decor** (Shop → Decor): bandana, bench, planter, lanterns (glow at night), Beju flag, bunting and coffee cart, bought once with coins and shown on every farm. Sprites: `deco_<key>`.
