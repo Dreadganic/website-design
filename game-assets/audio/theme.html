@@ -45,6 +45,8 @@ p { margin: 0; line-height: 1.6; font-size: 14px; max-width: 65ch; }
 .notes { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: 13px; }
 .notes dt { font: 600 13px var(--display); color: var(--muted); }
 .notes dd { margin: 0; }
+.hint { font-size: 12px; color: var(--muted); font-weight: 700; line-height: 1.5; }
+.hint span { font-family: var(--display); color: var(--green); }
 button:focus-visible { outline: 3px solid var(--green); outline-offset: 2px; }
 @media (max-width: 420px) { .lanes { grid-template-columns: 1fr; } h1 { font-size: 28px; } }
 </style>
@@ -71,6 +73,7 @@ button:focus-visible { outline: 3px solid var(--green); outline-offset: 2px; }
       <canvas id="roll" width="512" height="168" aria-label="Notes playing on each channel"></canvas>
       <div class="pos"><span id="where">Press play</span><span id="clock">0:00</span></div>
     </div>
+    <p class="hint"><span id="astate">Audio: not started</span>. No sound on an iPhone? Flip the Ring/Silent switch to ring, turn the volume up, then press Play again.</p>
     <div class="map" id="map" aria-label="Song sections"></div>
     <div class="lanes" id="lanes"></div>
   </section>
@@ -229,13 +232,35 @@ function schedule() {
     if (step >= SCORE.total) step = SCORE.loopStep;
   }
 }
+/* iPhone: web audio follows the Ring/Silent switch unless the page asks for media playback, and must be unlocked inside the tap itself */
+let unlockEl = null;
+function silentWavUrl() {
+  const n = 4000, b = new Uint8Array(44 + n), dv = new DataView(b.buffer), w = (o, s) => { for (let i = 0; i < s.length; i++) b[o + i] = s.charCodeAt(i); };
+  w(0, 'RIFF'); dv.setUint32(4, 36 + n, true); w(8, 'WAVE'); w(12, 'fmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true);
+  dv.setUint32(24, 8000, true); dv.setUint32(28, 8000, true); dv.setUint16(32, 1, true); dv.setUint16(34, 8, true); w(36, 'data'); dv.setUint32(40, n, true); b.fill(128, 44);
+  return URL.createObjectURL(new Blob([b], { type: 'audio/wav' }));
+}
+function unlock() {
+  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { /* older iOS: the silent clip below does the same job */ }
+  try {
+    if (!unlockEl) { unlockEl = new Audio(silentWavUrl()); unlockEl.loop = true; unlockEl.setAttribute('playsinline', ''); }
+    const pr = unlockEl.play(); if (pr && pr.catch) pr.catch(() => {});
+  } catch (e) { /* no media element support: carry on with web audio alone */ }
+  const buf = ac.createBuffer(1, 1, ac.sampleRate), src = ac.createBufferSource(); src.buffer = buf; src.connect(ac.destination); src.start(0);
+}
 function start() {
   if (!ac) setup();
-  ac.resume(); applyArr();
-  step = 0; nextT = ac.currentTime + 0.08; startedAt = nextT; placed.length = 0;
-  timer = setInterval(schedule, 25); schedule(); playing = true;
+  unlock();
+  playing = true;
+  const go = () => {
+    if (!playing || timer) return;
+    applyArr();
+    step = 0; nextT = ac.currentTime + 0.08; startedAt = nextT; placed.length = 0;
+    timer = setInterval(schedule, 25); schedule();
+  };
+  if (ac.state !== 'running') ac.resume().then(go, go); else go();
 }
-function stop() { clearInterval(timer); timer = null; playing = false; if (ac) master.gain.setTargetAtTime(0, ac.currentTime, 0.03); }
+function stop() { clearInterval(timer); timer = null; playing = false; if (ac) master.gain.setTargetAtTime(0, ac.currentTime, 0.03); if (unlockEl) unlockEl.pause(); }
 
 /* ---------------- interface ---------------- */
 const $ = (id) => document.getElementById(id);
@@ -282,7 +307,8 @@ function draw() {
   cx.globalAlpha = 1; cx.fillStyle = 'rgba(255,246,216,0.35)'; cx.fillRect(Math.round(WIN / 3 * PX), 0, 2, CH);
   let si = 0; SCORE.marks.forEach((m) => { if (Math.floor(cur) >= m.step) si = m.si; });
   document.querySelectorAll('#map div').forEach((d) => d.classList.toggle('on', playing && +d.dataset.i === si));
-  if (playing) {
+  if (ac) $('astate').textContent = 'Audio: ' + ac.state + ' · ' + Math.round(ac.sampleRate / 100) / 10 + ' kHz';
+  if (playing && timer) {
     const bar = Math.floor(cur / 16) + 1, secs = ac.currentTime - startedAt;
     $('where').textContent = 'Bar ' + bar + ' · ' + SECTIONS[FORM[si]].name;
     $('clock').textContent = Math.floor(secs / 60) + ':' + String(Math.floor(secs % 60)).padStart(2, '0');
