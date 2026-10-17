@@ -103,8 +103,7 @@ button:focus-visible { outline: 3px solid var(--green); outline-offset: 2px; }
 'use strict';
 /* ================= the songs =================
    Grid: one step is a 16th note. 4/4 bars have 16 steps, 6/8 bars have 12.
-   Lead tokens are NOTE:steps ("-" rests). "S<n>" is a slendro degree: five equal steps to the octave, counted up from D4.
-   Chords drive the arpeggio and bass patterns; "S<n>" chords give the gamelan patterns their centre note. */
+   Lead tokens are NOTE:steps ("-" rests). Chords drive the arpeggio and bass patterns. */
 const SONGS = [
   { id: 'main', farm: 'Main theme', title: 'Finca Morning', blurb: 'Game Boy town theme · F major',
     about: 'The calm home theme for menus and the first farm, written like the gentle town tunes of the early Game Boy RPGs: a simple whistled melody, broken chords and a walking bass.',
@@ -158,17 +157,17 @@ const SONGS = [
         lead: ['B5:6 A5:4 F#5:2', 'E5:6 F#5:2 A5:4', 'D6:4 B5:2 A5:2 F#5:4', 'A5:9 -:3', 'F#5:4 A5:2 B5:4 A5:2', 'E5:6 B4:2 E5:4', 'E5:2 F#5:2 A5:2 E5:2 F#5:2 E5:2', 'D5:12'] }
     }, form: ['intro', 'A', 'B', 'A'] },
 
-  { id: 'toba', farm: 'Lake Toba, Sumatra', title: 'Danau Toba', blurb: 'Gondang & gamelan · slendro tuning',
-    about: 'Around Lake Toba the Batak play gondang, and across Indonesia gamelan rings out in slendro, a scale of five near-equal steps that fall between piano keys. The notes here are tuned to slendro, with a reedy sarune-style lead over interlocking bell patterns and a gong that marks every cycle.',
-    parts: ['Reedy sarune-style lead, tuned to slendro', 'Interlocking kotekan bell pattern', 'Big gong every cycle, smaller gong between', 'Kempli ticks and kendang drum'],
-    bpm: 72, beat: 4, bar: 16, lead: { duty: 0.25, decay: 6, floor: 0.6, vib: 16, vibRate: 5, gain: 0.13 }, arp: { style: 'kotekan', duty: 0.125, decay: 1, floor: 0.1, gain: 0.07 }, bass: { style: 'gong', gain: 0.24 }, noise: { style: 'gamelan', gain: 0.045 },
+  { id: 'toba', farm: 'Lake Toba, Sumatra', title: 'Danau Toba', blurb: 'Batak folk ballad · D pentatonic',
+    about: 'Evening on the lake. The Batak people around Lake Toba are known for slow, singing folk ballads, accompanied by the hasapi, a small two-string boat lute. A soft suling bamboo flute carries the tune over a gently plucked hasapi pattern, with a low gong marking every two bars and just a whisper of percussion.',
+    parts: ['Suling-style bamboo flute', 'Plucked hasapi lute pattern', 'Low gong every two bars', 'A soft shaker and the odd kendang tap'],
+    bpm: 66, beat: 4, bar: 16, lead: { duty: 0.5, decay: 8, floor: 0.65, vib: 10, vibRate: 4.5, gain: 0.13 }, arp: { style: 'hasapi', duty: 0.25, decay: 2, floor: 0.2, gain: 0.06 }, bass: { style: 'lake', gain: 0.17 }, noise: { style: 'lake', gain: 0.03 },
     sections: {
-      intro: { name: 'Intro', chords: [['S5'], ['S5']], lead: ['-:16', '-:16'] },
-      A: { name: 'A', chords: [['S6'], ['S5'], ['S7'], ['S6'], ['S8'], ['S7'], ['S6'], ['S5']],
-        lead: ['S7:4 S8:4 S7:4 S6:4', 'S7:4 S6:4 S5:8', 'S8:4 S9:4 S8:4 S7:4', 'S8:4 S7:4 S6:8', 'S9:4 S10:4 S9:4 S8:4', 'S9:2 S8:2 S7:4 S8:8', 'S7:4 S6:4 S5:4 S6:4', 'S5:16'] },
-      B: { name: 'B', chords: [['S8'], ['S7'], ['S6'], ['S7'], ['S9'], ['S8'], ['S6'], ['S5']],
-        lead: ['S10:8 S9:4 S8:4', 'S9:8 S8:4 S7:4', 'S8:4 S7:2 S6:2 S5:8', 'S6:4 S7:4 S8:8', 'S10:4 S11:4 S10:4 S9:4', 'S9:4 S8:4 S7:8', 'S7:2 S8:2 S7:2 S6:2 S5:4 S6:4', 'S5:12 -:4'] }
-    }, form: ['intro', 'A', 'B'] },
+      intro: { name: 'Intro', chords: [['D'], ['A']], lead: ['-:16', '-:8 A4:4 B4:4'] },
+      A: { name: 'A', chords: [['D'], ['Bm'], ['G'], ['A'], ['D'], ['Bm'], ['G', 'A'], ['D']],
+        lead: ['D5:6 E5:2 F#5:8', 'B4:4 D5:4 F#5:4 E5:4', 'D5:6 B4:2 A4:8', 'A4:4 B4:2 D5:2 E5:8', 'F#5:6 A5:2 B5:4 A5:4', 'F#5:4 E5:4 D5:4 B4:4', 'B4:4 D5:4 E5:4 F#5:2 E5:2', 'D5:12 -:4'] },
+      B: { name: 'B', chords: [['G'], ['D'], ['Bm'], ['A'], ['G'], ['D'], ['Em'], ['A']],
+        lead: ['B5:8 A5:4 F#5:4', 'A5:8 F#5:4 D5:4', 'F#5:6 E5:2 D5:4 B4:4', 'E5:12 -:4', 'D5:4 E5:4 B5:6 A5:2', 'F#5:8 E5:4 D5:4', 'E5:4 F#5:2 E5:2 B4:4 D5:4', 'E5:8 D5:4 A4:4'] }
+    }, form: ['intro', 'A', 'B', 'A'] },
 
   { id: 'turrialba', farm: 'Turrialba, Costa Rica', title: 'Marimba del Volcán', blurb: 'Guanacaste marimba · 6/8 and 3/4',
     about: 'The marimba is Costa Rica’s national instrument, and Guanacaste music sways between 6/8 and 3/4, a feel called sesquiáltera. Long notes shimmer with marimba tremolo rolls, and the bass flips between the two metres from bar to bar.',
@@ -197,16 +196,13 @@ const SONGS = [
 
 /* ================= score building ================= */
 const NOTE = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
-const SLENDRO = (deg) => 62 + 2.4 * deg;
 function midi(n) {
-  if (n[0] === 'S') return SLENDRO(+n.slice(1));
   const m = /^([A-G])(b|#)?(\d)$/.exec(n); if (!m) throw new Error('bad note ' + n);
   return 12 * (+m[3] + 1) + NOTE[m[1]] + (m[2] === 'b' ? -1 : m[2] === '#' ? 1 : 0);
 }
 const hz = (m) => 440 * Math.pow(2, (m - 69) / 12);
 const QUAL = { '': [0, 4, 7], m: [0, 3, 7], '7': [0, 4, 7, 10], maj7: [0, 4, 7, 11], m7: [0, 3, 7, 10], m6: [0, 3, 7, 9], '6': [0, 4, 7, 9], '5': [0, 7, 12], sus4: [0, 5, 7] };
 function chord(name) {
-  if (name[0] === 'S') return { slendro: +name.slice(1) };
   const m = /^([A-G])(b|#)?(.*)$/.exec(name); let r = NOTE[m[1]] + (m[2] === 'b' ? -1 : m[2] === '#' ? 1 : 0);
   r = ((r % 12) + 12) % 12; let root = 48 + r; if (root < 55) root += 12;
   const iv = QUAL[m[3]]; if (!iv) throw new Error('bad chord ' + name);
@@ -250,7 +246,7 @@ const ARP = {
   bossa(o, c, s0, part) { const hits = part === 16 ? [0, 3, 6, 10, 12] : [0, 3, 6]; hits.forEach((h) => o.push({ s: s0 + h, d: 2, ms: c.tones.slice(1, 4).map((t) => t + 12) })); },
   cumbia(o, c, s0, part) { for (let h = 2; h < part; h += 4) o.push({ s: s0 + h, d: 1, ms: c.tones.slice(0, 3).map((t) => t + 12) }); },
   six(o, c, s0, part) { const pat = part === 12 ? [0, 2, 1, 2, 3, 2] : [0, 2, 1]; pat.forEach((k, i) => push(o, s0 + i * 2, 2, c.tones[k])); },
-  kotekan(o, c, s0, part) { const d = c.slendro, pat = [1, 0, 1, 2, 1, 0, -1, 0]; for (let i = 0; i < part; i++) push(o, s0 + i, 1, SLENDRO(d + pat[i % 8])); },
+  hasapi(o, c, s0, part) { const pat = part === 16 ? [0, 2, 3, 2, 1, 2, 3, 2] : [0, 2, 3, 2]; pat.forEach((k, i) => push(o, s0 + i * 2, 2, c.tones[k] + 12)); },
   koto(o, c, s0, part) { const roll = [c.tones[0], c.tones[1], c.tones[2], c.tones[0] + 12]; for (let h = 0; h < part; h += 8) roll.forEach((t, i) => push(o, s0 + h + i, 4 - i, t)); }
 };
 const BASS = {
@@ -259,7 +255,7 @@ const BASS = {
   cumbia(o, c, s0, part) { const bp = part === 16 ? [[c.low, 3], [0, 3], [c.low, 2], [c.fifth, 4], [c.fifth, 2], [c.low, 2]] : [[c.low, 4], [c.fifth, 4]]; let q = s0; bp.forEach(([m, d]) => { if (m) push(o, q, d, m); q += d; }); },
   six(o, c, s0, part) { const bp = part === 12 ? [[c.low, 3], [0, 1], [c.low, 2], [c.fifth, 3], [0, 1], [c.low, 2]] : [[c.low, 4], [c.fifth, 2]]; let q = s0; bp.forEach(([m, d]) => { if (m) push(o, q, d, m); q += d; }); },
   sesqui(o, c, s0, part, whole, bar) { const bp = part !== 12 ? [[c.low, 4], [c.fifth, 2]] : bar % 2 ? [[c.low, 4], [c.fifth, 4], [c.oct, 4]] : [[c.low, 6], [c.fifth, 6]]; let q = s0; bp.forEach(([m, d]) => { push(o, q, d, m); q += d; }); },
-  gong(o, c, s0, part, whole, bar) { if (bar % 2 === 0) push(o, s0, part * 2, SLENDRO(0) - 24, { gong: true }); else push(o, s0 + part / 2, part, SLENDRO(c.slendro) - 24, { gong: true }); },
+  lake(o, c, s0, part, whole, bar) { if (s0 % 16 !== 0) return; if (bar % 2 === 0) push(o, s0, 32, 38, { gong: true }); else push(o, s0 + 8, 8, c.low, { gong: true }); },
   drone(o, c, s0, part) { push(o, s0, Math.min(part, 12), c.low); }
 };
 const N = (o, s, kind, d) => o.push({ s, d: d || 1, kind });
@@ -268,8 +264,8 @@ const NOISE = {
   bossa(o, t0, B, bar, silent) { if (silent) return; for (let k = 0; k < 16; k += 2) N(o, t0 + k, 'shaker'); (bar % 2 ? [0, 10] : [6, 12]).forEach((k) => N(o, t0 + k, 'rim')); },
   cumbia(o, t0, B, bar, silent) { if (silent) return; for (let k = 0; k < 16; k += 4) { N(o, t0 + k, 'scrape', 2); N(o, t0 + k + 2, 'hat'); N(o, t0 + k + 3, 'hat'); } },
   kebero(o, t0, B, bar, silent) { if (silent) return; [0, 6].forEach((k) => N(o, t0 + k, 'tom', 2)); [3, 9].forEach((k) => N(o, t0 + k, 'rim')); [2, 5, 8, 11].forEach((k) => N(o, t0 + k, 'shaker')); },
-  gamelan(o, t0, B, bar, silent) { [2, 6, 10, 14].forEach((k) => N(o, t0 + k, 'rim')); if (!silent) (bar % 2 ? [6, 10, 14] : [6, 14]).forEach((k) => N(o, t0 + k, 'tom', 2)); },
   marimba(o, t0, B, bar, silent) { if (silent) return; for (let k = 0; k < 12; k += 2) N(o, t0 + k, 'shaker'); (bar % 2 ? [0, 4, 8] : [0, 6]).forEach((k) => N(o, t0 + k, 'rim')); },
+  lake(o, t0, B, bar, silent) { if (silent) return; [4, 12].forEach((k) => N(o, t0 + k, 'shaker')); if (bar % 2 === 1) N(o, t0 + 14, 'tom', 2); },
   osaka(o, t0, B, bar, silent) { if (silent) return; N(o, t0, 'rim'); if (bar % 4 === 3) N(o, t0 + 12, 'rim'); }
 };
 SONGS.forEach((s) => { s.score = buildScore(s); });
