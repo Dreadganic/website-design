@@ -198,6 +198,7 @@
   function pinAria(o) { return lang === "ja" ? tr(o.country) + "、" + tr(o.region) + "。詳細を表示" : o.country + ", " + o.region + ". Show details"; }
   function walk(root) {
     fixLinks(root);
+    if (PATHMODE && lang !== "ja") return;   /* live English pages never switch language in place: nothing to translate */
     var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null), n, list = [];
     while ((n = w.nextNode())) list.push(n);
     list.forEach(function (n) {
@@ -665,11 +666,6 @@
 
   /* ---------- Map ---------- */
   var NS = "http://www.w3.org/2000/svg";
-  var LAND_D = (function () {
-    var s = [];
-    LAND.forEach(function (runs, j) { runs.forEach(function (r) { for (var i = r[0]; i <= r[1]; i++) s.push("M" + (i * 10 + 5) + " " + (j * 10 + 5) + "h0"); }); });
-    return s.join("");
-  })();
   var px = function (lon) { return (lon + 180) * 5; };
   var py = function (lat) { return (88 - lat) * 5; };
   function el(name, attrs, parent) {
@@ -860,16 +856,20 @@
     }
     /* Place one bean at fraction f of its route (scroll-driven); hides the others. */
     self.beanAt = function (id, f) {
-      cancelAnimationFrame(beanRaf);
+      cancelAnimationFrame(beanRaf); beanIds = null;
       Object.keys(beanEls).forEach(function (k) { if (k !== id) beanEls[k].style.display = "none"; });
       var a = pointAt(id, Math.max(0, Math.min(1, f))), g = beanEls[id];
       g.style.display = ""; g.style.opacity = "1";
       g.setAttribute("transform", "translate(" + a.x + " " + a.y + ") rotate(" + a.ang + ") scale(" + curK + ")");
     };
     /* A view framing the whole route (farm to Osaka), leaving room for the card. */
+    var boxes = {};
+    function routeBox(id) {
+      if (!boxes[id]) { var b = boxes[id] = { x0: 1e9, x1: -1e9, y0: 1e9, y1: -1e9 }; sampleRoute(id).forEach(function (q) { b.x0 = Math.min(b.x0, q[0]); b.x1 = Math.max(b.x1, q[0]); b.y0 = Math.min(b.y0, q[1]); b.y1 = Math.max(b.y1, q[1]); }); }
+      return boxes[id];
+    }
     function routeView(id) {
-      var R = sampleRoute(id), x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
-      R.forEach(function (q) { x0 = Math.min(x0, q[0]); x1 = Math.max(x1, q[0]); y0 = Math.min(y0, q[1]); y1 = Math.max(y1, q[1]); });
+      var B = routeBox(id), x0 = B.x0, x1 = B.x1, y0 = B.y0, y1 = B.y1;
       var cw = size.w, ch = size.h, m = mode(), bw = x1 - x0, bh = y1 - y0, v;
       if (m === "right") { var w = Math.max(700, bw / 0.56, (bh / 0.72) * cw / ch); v = { cx: (x0 + x1) / 2 + 0.19 * w, cy: (y0 + y1) / 2, w: w }; }
       else if (m === "bottom") {
@@ -881,13 +881,21 @@
       return v;
     }
     self.routeView = routeView;
+    /* The looping beans only animate while the map is on screen; they restart when it scrolls back in. */
+    var beanIds = null, onScreen = true;
+    if (window.IntersectionObserver) new IntersectionObserver(function (es) {
+      var was = onScreen; onScreen = es[0].isIntersecting;
+      if (onScreen && !was && beanIds) self.beans(beanIds);
+    }).observe(svg);
     self.beans = function (ids) {
-      cancelAnimationFrame(beanRaf);
+      cancelAnimationFrame(beanRaf); beanIds = null;
       Object.keys(beanEls).forEach(function (id) { beanEls[id].style.display = "none"; });
-      if (!ids || !ids.length || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      if (!ids || !ids.length || REDUCED.matches) return;
+      beanIds = ids;
       var t0 = performance.now();
       ids.forEach(sampleRoute);
       (function loop(now) {
+        if (!onScreen) return;
         ids.forEach(function (id, i) {
           var ph = (((now - t0) / 6400) + i * 0.23) % 1.3, g = beanEls[id];
           if (ph > 1) { g.style.display = "none"; return; }
@@ -1317,7 +1325,7 @@
     var hv = $("#view-home");
     if (!heroMap || !hv || hv.hidden || KF.length < 2 || document.hidden) return;
     var dt = camLast ? Math.min(0.05, (now - camLast) / 1000) : 1 / 60; camLast = now;
-    var tg = camTarget(now).v;
+    var ct = camTarget(now), tg = ct.v;
     computeStep();
     if (!cam) { cam = { cx: tg.cx, cy: tg.cy, lw: tg.lw }; vel = { cx: 0, cy: 0, lw: 0 }; }
     else {
@@ -1337,7 +1345,10 @@
     var cxC = Math.max(-250, Math.min(2050, px0)), cyC = Math.max(-60, Math.min(820, py0)); pan.x += cxC - px0; pan.y += cyC - py0;
     heroMap.camera({ cx: cxC, cy: cyC, w: mc });
     if (DIAG.on) DIAG.cam(cam, tg, now);
-    if (journeyOn) camRaf = requestAnimationFrame(camLoop); else camLast = 0;
+    /* once the camera has settled, stop until a scroll, drag, resize or route change kicks it again */
+    var moving = ct.drifting || pan.dragging || pan.easing || pan.glideX || pan.glideY ||
+      Math.abs(tg.cx - cam.cx) + Math.abs(tg.cy - cam.cy) + Math.abs(vel.cx) + Math.abs(vel.cy) > 0.05 || Math.abs(tg.lw - cam.lw) + Math.abs(vel.lw) > 1e-4;
+    if (journeyOn && moving) camRaf = requestAnimationFrame(camLoop); else camLast = 0;
   }
   /* Dragging the home map: an offset on top of the scroll-driven camera. It stays while you look around,
      and eases away once you scroll on (or tap a pin, which scrolls to that region). */
@@ -2032,10 +2043,6 @@
     if (v === "journal" && !curSub) graph.push({ "@type": "Blog", name: m.t, url: url, inLanguage: lang, blogPost: JOURNAL.map(function (a) { return { "@type": "BlogPosting", headline: L(a.title), url: SITE + urlFor("journal", lang, a.slug), datePublished: JOURNAL_DATE }; }) });
     if (v === "wholesale") COURSES.forEach(function (c) { graph.push({ "@type": "Course", name: L(c.t), description: (lang === "ja" ? c.lj : c.l).join(" / "), inLanguage: lang, provider: { "@id": SITE + "/#business" } }); });
     if (v === "shop") PRODUCTS.forEach(function (p) { graph.push(productLd(p, url)); });
-    if (false) PRODUCTS.forEach(function (p) {
-      graph.push({ "@type": "Product", "@id": url + "#" + p.id, name: tr(p.name), description: tr(p.blurb), brand: { "@type": "Brand", name: "Beju" }, image: SITE + "/images/" + p.id + ".png", sku: "BEJU-" + p.id.toUpperCase() + "-" + parseInt(p.weight, 10) + "G", weight: { "@type": "QuantitativeValue", value: parseInt(p.weight, 10), unitCode: "GRM" },
-        offers: { "@type": "Offer", price: String(p.price), priceCurrency: "JPY", availability: "https://schema.org/InStock", url: url, seller: { "@id": SITE + "/#business" } } });
-    });
     return { "@context": "https://schema.org", "@graph": graph };
   }
   function metaFor(v, sub, l) {
