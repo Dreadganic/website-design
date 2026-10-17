@@ -44,7 +44,7 @@ If the game later needs more general art, these CC0 packs can be used commercial
 
 ## Playable build (`play/`)
 
-`python3 play/build.py <out.html>` inlines `sprites.json` and the scene PNGs into `play/template.html`, giving one self-contained page. It saves to localStorage (`beju-farm-save-v1`).
+`python3 play/build.py <out.html>` inlines `sprites.json` and the scene PNGs into `play/template.html`, giving one self-contained page. It saves to localStorage (`beju-farm-save-v2`). You start in Mogiana, Brazil; points open Huila (1,500), Gedeo (3,000), Toba (5,000) and Turrialba (8,000) in that order; the Osaka garden costs 60 cranes and has no points price.
 
 New art used by it (all in `sprites.json`):
 - `storage_1..5`: basket → basket stack → crate pile → storage shed → Beju barn (100 / 250 / 500 / 1,200 / 3,000 kg)

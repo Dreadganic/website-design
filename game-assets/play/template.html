@@ -89,7 +89,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-
 <div class="app">
   <div class="card top">
     <button class="arrow" id="prevLoc" type="button" aria-label="Previous farm">◀</button>
-    <div class="name"><b id="locName">Huila, Colombia</b><span id="locBeds">Pink Bourbon · Caturra · Castillo</span></div>
+    <div class="name"><b id="locName">Mogiana, Brazil</b><span id="locBeds">Yellow Bourbon · Mundo Novo · Catuaí</span></div>
     <span class="chip" id="seasonChip">Harvest</span>
     <button class="arrow" id="nextLoc" type="button" aria-label="Next farm">▶</button>
   </div>
@@ -123,7 +123,9 @@ const BGS = __BGS__;
 (function () {
 'use strict';
 const W = 192, H = 240, LANE_X = 97, HOME = { x: 150, y: 80 }, DROP = { x: 120, y: 106 }, STORE_AT = { x: 98, y: 68 };
-const LOCS = ['huila', 'mogiana', 'gedeo', 'toba', 'turrialba', 'osaka'];
+const LOCS = ['mogiana', 'huila', 'gedeo', 'toba', 'turrialba', 'osaka'];
+const START = 'mogiana';
+const OSAKA_CRANES = 60;   /* the Osaka garden is only sold for cranes, which come from real orders */
 const STAGES = ['sprout', 'young', 'flower', 'green', 'ripe'];
 const WALK = [1, 0, 2, 0];
 const VALUE = { caturra: 1, castillo: 1, pinkbourbon: 1.4, yellowbourbon: 1.3, mundonovo: 1, catuai: 1.1, catimor: 0.9, heirloom: 1.8, geisha: 3 };
@@ -143,7 +145,10 @@ const COFFEES = {
   yirgacheffe: { name: 'Ethiopia Yirgacheffe', price: 2800, stamps: ['gedeo'] },
   strawberry: { name: 'Sumatra Strawberry', price: 3800, stamps: ['toba'], method: 'strawberry' }
 };
-const FARM_COST = { huila: 0, mogiana: 2000, gedeo: 2500, toba: 3000, turrialba: 3500, osaka: 0 };
+/* farms open in order with points earned by playing; Osaka is cranes only */
+const FARM_COST = { mogiana: 0, huila: 1500, gedeo: 3000, toba: 5000, turrialba: 8000 };
+const prevFarm = (loc) => LOCS[LOCS.indexOf(loc) - 1];
+const canOpen = (loc) => loc !== 'osaka' && !S.farms[loc].unlocked && S.farms[prevFarm(loc)].unlocked;
 const UP = {
   storage: { name: 'Storage', max: 5, cost: (l) => [0, 600, 1800, 5000, 14000][l], cur: 'coins' },
   carry: { name: 'Carrying gear', max: 3, cost: (l) => [0, 900, 3500][l], cur: 'coins' },
@@ -152,7 +157,7 @@ const UP = {
   hearts: { name: 'Stamina', max: 4, cost: (l) => [0, 200, 600, 1500][l], cur: 'points' },
   field: { name: 'Clear the fourth field', max: 2, cost: () => 800, cur: 'points' }
 };
-const SAVE_KEY = 'beju-farm-save-v1';
+const SAVE_KEY = 'beju-farm-save-v2';
 const $ = (id) => document.getElementById(id);
 const fmt = (n) => Math.floor(n).toLocaleString('en-US');
 
@@ -185,13 +190,13 @@ const icon = (name, alt) => '<img class="ic" src="' + url(name) + '" alt="' + (a
 let seed = 7;
 const rnd = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
 function newFarm(loc) {
-  return { loc, unlocked: loc === 'huila' || loc === 'osaka', field: loc === 'osaka', shrubs: [], workers: [], harvested: 0, goal: 1000, rewarded: false, dog: { x: 80, y: 104, tx: 80, ty: 104, t: 1, walk: 0 } };
+  return { loc, unlocked: loc === START, field: loc === 'osaka', shrubs: [], workers: [], harvested: 0, goal: 1000, rewarded: false, dog: { x: 80, y: 104, tx: 80, ty: 104, t: 1, walk: 0 } };
 }
 function fresh() {
   const st = {
-    v: 1, loc: 'huila', coins: 1500, points: 300, xp: 0, cranes: 20, hearts: 10, heartT: 0,
+    v: 1, loc: START, coins: 1500, points: 300, xp: 0, cranes: 20, hearts: 10, heartT: 0,
     lv: { storage: 1, carry: 1, speed: 1, racks: 1, hearts: 1 },
-    methods: { washed: true, natural: true }, hat: 'straw', hats: { straw: true }, stamps: { huila: true, osaka: true },
+    methods: { washed: true, natural: true }, hat: 'straw', hats: { straw: true }, stamps: {},
     cherries: {}, lots: [], boosts: {}, minutes: 7 * 60 + 30, day: 1, taps: 0, year: 1, bonus: 0,
     tasks: null, weekly: { mine: 0, team: 1800, target: 4000, start: 1, claimed: false }, rewards: [], stats: { picked: 0, sold: 0, lotsSold: 0 },
     farms: {}, intro: 0, seasonPick: 'auto', speed: 1, last: Date.now()
@@ -201,7 +206,7 @@ function fresh() {
 }
 let S = load() || fresh();
 LOCS.forEach((l) => { const f = S.farms[l]; if (!f.shrubs.length) plant(f); f.workers.forEach((w) => { w.state = 'seek'; w.path = []; w.target = null; }); });
-if (!S.farms.huila.workers.length) { addWorker(S.farms.huila); addWorker(S.farms.huila); }
+if (!S.farms[START].workers.length) { addWorker(S.farms[START]); addWorker(S.farms[START]); }
 if (!S.tasks) newTasks();
 
 function load() { try { const t = localStorage.getItem(SAVE_KEY); return t ? JSON.parse(t) : null; } catch (e) { return null; } }
@@ -470,17 +475,22 @@ function realOrder(id) {
   S.cranes += cranes;
   const next = c.stamps.find((s) => !S.stamps[s]) || null;   /* one stamp per order line; a blend stamps its next origin by share */
   let msg = '+' + cranes + ' cranes';
-  if (next) { S.stamps[next] = true; S.cranes += 20; msg += ', +20 for a new stamp: ' + ART.locations[next].name; S.farms[next].unlocked = true; if (!S.farms[next].workers.length) addWorker(S.farms[next]); }
+  if (next) { S.stamps[next] = true; S.cranes += 20; msg += ', +20 for a new stamp: ' + ART.locations[next].name; }
   if (c.method && !S.methods[c.method]) { S.methods[c.method] = true; msg += ', and ' + METHODS[c.method].name.toLowerCase() + ' processing unlocked'; }
   showModal('<h2>Order delivered</h2><p class="note">' + c.name + ' arrived from bejucoffee.com: ' + msg + '.</p>' + (next ? '<img src="' + url('stamp_' + next) + '" alt="" style="width:72px;image-rendering:pixelated">' : '') + '<button class="btn green" data-act="close">Collect</button>');
 }
-function unlockFarm(loc) { const f = S.farms[loc]; if (f.unlocked || !spend('points', FARM_COST[loc])) return; f.unlocked = true; addWorker(f); toast(ART.locations[loc].name + ' is open'); }
+function unlockFarm(loc) {
+  const f = S.farms[loc];
+  if (loc === 'osaka') { if (f.unlocked || !spend('cranes', OSAKA_CRANES)) return; }
+  else if (!canOpen(loc) || !spend('points', FARM_COST[loc])) return;
+  f.unlocked = true; addWorker(f); toast(ART.locations[loc].name + ' is open'); }
 function prestige() {
   if (level() < 10) return;
   const keep = { methods: S.methods, hats: S.hats, hat: S.hat, stamps: S.stamps, rewards: S.rewards, year: S.year + 1, bonus: S.bonus + 0.1, cranes: S.cranes, seasonPick: S.seasonPick, speed: S.speed, unlocked: LOCS.filter((l) => S.farms[l].unlocked) };
   S = fresh(); Object.assign(S, keep);
   keep.unlocked.forEach((l) => { S.farms[l].unlocked = true; });
-  LOCS.forEach((l) => plant(S.farms[l])); addWorker(S.farms.huila); addWorker(S.farms.huila); newTasks();
+  LOCS.forEach((l) => plant(S.farms[l])); addWorker(S.farms[START]); addWorker(S.farms[START]);
+  keep.unlocked.forEach((l) => { if (l !== START) addWorker(S.farms[l]); }); newTasks();
   showModal('<h2>Harvest year ' + S.year + '</h2><p class="note">Your farms start fresh, but you keep every farm, process, hat and stamp. Roaster’s Knowledge: +' + Math.round(S.bonus * 100) + '% to cup scores and sale prices, forever.</p><button class="btn green" data-act="close">Begin</button>');
 }
 function away(hours) {
@@ -526,7 +536,9 @@ function renderPanel() {
     const [frac, lvl] = levelSpan();
     h += '<div class="level"><b>Farm level ' + lvl + '</b><div class="bar"><i style="width:' + Math.round(frac * 100) + '%"></i></div><span class="note">Year ' + S.year + '</span></div>';
     if (!f.unlocked) {
-      h += '<h2>' + L.name + '</h2><p class="note">This farm opens with its passport stamp: order ' + ({ mogiana: 'the Casablanca Blend', gedeo: 'Ethiopia Yirgacheffe', toba: 'Sumatra Strawberry', turrialba: 'the Casablanca Blend (its third origin)' }[S.loc] || 'its coffee') + ' on bejucoffee.com. Or open it with points.</p>' + btn('Open farm', fmt(FARM_COST[S.loc]) + ' points', 'farm:' + S.loc, S.points >= FARM_COST[S.loc], 'green');
+      if (S.loc === 'osaka') h += '<h2>' + L.name + '</h2><p class="note">The Osaka roastery garden grows Geisha, Pink Bourbon and Yellow Bourbon all year round. It can only be opened with cranes, which you earn from real bejucoffee.com orders.</p>' + btn('Open garden', OSAKA_CRANES + ' cranes', 'farm:osaka', S.cranes >= OSAKA_CRANES, 'green');
+      else if (!S.farms[prevFarm(S.loc)].unlocked) h += '<h2>' + L.name + '</h2><p class="note">Locked. Open ' + ART.locations[prevFarm(S.loc)].name + ' first, then this farm costs ' + fmt(FARM_COST[S.loc]) + ' points.</p>' + btn('Locked', '', 'noop', false);
+      else h += '<h2>' + L.name + '</h2><p class="note">Your next farm. Earn points by processing and selling lots in the Mill.</p>' + btn('Open farm', fmt(FARM_COST[S.loc]) + ' points', 'farm:' + S.loc, S.points >= FARM_COST[S.loc], 'green');
     } else {
       if (S.loc !== 'osaka') {
         h += '<div><div style="display:flex;justify-content:space-between;align-items:baseline"><h3>Harvest ' + fmt(f.harvested) + ' / 1,000 kg</h3><span class="note">' + (f.rewarded ? 'Reward earned' : 'Reward: free 100 g') + '</span></div><div class="bar"><i style="width:' + Math.round(f.harvested / f.goal * 100) + '%"></i></div><p class="note">' + (f.rewarded ? 'Free 100 g ' + L.reward + ' is on your next order.' : 'Reach 1,000 kg for a free 100 g ' + L.reward + ' with your next bejucoffee.com order.') + '</p></div>';
@@ -567,7 +579,13 @@ function renderPanel() {
       h += row(img(a, k === 'hearts' ? 28 : 36), t, sub, btn(max ? 'Max' : 'Up', max ? '' : fmt(u.cost(lv)) + ' pts', 'up:' + k, !max && S.points >= u.cost(lv)));
     });
     if (S.loc !== 'osaka') h += row(img('bed_open', 44), 'Fourth field at ' + L.name.split(',')[0], f.field ? 'Cleared and planted' : '8 more shrubs in the overgrown bed', btn(f.field ? 'Done' : 'Clear', f.field ? '' : '800 pts', 'up:field', !f.field && S.points >= 800 && f.unlocked));
-    h += '<h3>Farms</h3>' + LOCS.filter((l) => l !== 'osaka').map((l) => row(img('stamp_' + l, 36), ART.locations[l].name, S.farms[l].unlocked ? 'Open' : 'Free with its passport stamp, or with points', S.farms[l].unlocked ? btn('Visit', '', 'go:' + l, true, 'blue') : btn('Open', fmt(FARM_COST[l]) + ' pts', 'farm:' + l, S.points >= FARM_COST[l]))).join('');
+    h += '<h3>Farms</h3>' + LOCS.map((l) => {
+      const f2 = S.farms[l], nm = ART.locations[l].name;
+      if (f2.unlocked) return row(img('stamp_' + l, 36), nm, l === START ? 'Your first farm' : 'Open', btn('Visit', '', 'go:' + l, true, 'blue'));
+      if (l === 'osaka') return row(img('stamp_' + l, 36), nm, 'Cranes only: earned from real coffee orders', btn('Open', OSAKA_CRANES + ' cranes', 'farm:osaka', S.cranes >= OSAKA_CRANES));
+      if (!canOpen(l)) return row(img('stamp_' + l, 36), nm, 'Open ' + ART.locations[prevFarm(l)].name.split(',')[0] + ' first', btn('Locked', fmt(FARM_COST[l]) + ' pts', 'noop', false));
+      return row(img('stamp_' + l, 36), nm, 'Next farm: open with points', btn('Open', fmt(FARM_COST[l]) + ' pts', 'farm:' + l, S.points >= FARM_COST[l]));
+    }).join('');
   } else if (tab === 'orders') {
     h += '<h2>Daily tasks</h2><p class="note">New tasks every in-game day (day ' + S.day + ').</p>';
     S.tasks.forEach((t, i) => {
@@ -581,7 +599,7 @@ function renderPanel() {
     h += '<h2>New harvest year</h2><p class="note">At farm level 10, start a new year: coins, pickers and upgrades reset; you keep farms, processes, hats and stamps, and gain +10% to cup scores and prices forever. You are level ' + level() + '.</p>' + btn('Start year ' + (S.year + 1), level() >= 10 ? 'ready' : 'level 10', 'prestige', level() >= 10);
     h += '<h2>Real coffee rewards</h2>' + (S.rewards.length ? S.rewards.map((r) => row(img('green_sack', 28), r.text, 'From ' + r.from + ', day ' + r.day + '. Added to your next bejucoffee.com order.', '')).join('') : '<p class="note">Finish a farm’s 1,000 kg harvest to earn free coffee.</p>');
   } else if (tab === 'shop') {
-    h += '<h2>Crane shop</h2><p class="note">' + icon('i_crane') + ' ' + S.cranes + ' cranes. Earn 1 crane per ¥100 spent on bejucoffee.com and 20 for each new passport stamp (try it in the Test tab).</p>';
+    h += '<h2>Crane shop</h2><p class="note">' + icon('i_crane') + ' ' + S.cranes + ' cranes. Earn 1 crane per ¥100 spent on bejucoffee.com and 20 for each new passport stamp (try it in the Test tab).</p>' + (S.farms.osaka.unlocked ? '' : row(img('stamp_osaka', 30), 'Osaka roastery garden', 'Rare varieties all year, four seasons. Cranes only.', btn('Open', OSAKA_CRANES + ' cranes', 'farm:osaka', S.cranes >= OSAKA_CRANES)));
     [['grow', 'Growth ×2 for 30 min', 'Every farm grows twice as fast', 5, 'sparkle'], ['pick', 'Pickers ×2 for 30 min', 'Every picker works twice as fast', 5, 'worker_side_1'], ['hearts', 'Refill hearts', 'Back to full stamina', 2, 'i_heart'], ['points', '+500 points', 'For upgrades and unlocks', 10, 'i_points'], ['dry', 'Instant drying', 'Every lot on the racks finishes now', 6, 'proc_natural']].forEach(([k, t, sub, c, a]) => {
       const active = (k === 'grow' || k === 'pick') && S.boosts[k] > S.minutesTotal;
       h += row(img(a, 30), t, active ? 'Active: ' + Math.ceil((S.boosts[k] - S.minutesTotal)) + ' game min left' : sub, btn('Use', c + ' cranes', 'boost:' + k, S.cranes >= c));
@@ -595,7 +613,7 @@ function renderPanel() {
     h += '<h2>Test tools</h2><p class="note">For playtesting: everything here stands in for something that will come from real orders or real time.</p>';
     h += '<h3>Simulate a bejucoffee.com order</h3><div class="seg">' + Object.keys(COFFEES).map((k) => '<button type="button" data-act="order:' + k + '">' + COFFEES[k].name + '</button>').join('') + '</div>';
     h += '<div class="stamps">' + LOCS.map((l) => '<img src="' + url('stamp_' + l) + '" alt="' + ART.locations[l].name + (S.stamps[l] ? ', stamped' : ', not yet') + '" class="' + (S.stamps[l] ? '' : 'off') + '">').join('') + '</div>';
-    h += '<h3>Resources</h3><div class="seg"><button type="button" data-act="add:coins">+1,000 coins</button><button type="button" data-act="add:points">+500 points</button><button type="button" data-act="add:cranes">+50 cranes</button><button type="button" data-act="add:xp">+1 level</button><button type="button" data-act="add:cherries">Fill storage</button></div>';
+    h += '<h3>Resources</h3><div class="seg"><button type="button" data-act="add:coins">+1,000 coins</button><button type="button" data-act="add:points">+2,000 points</button><button type="button" data-act="add:cranes">+50 cranes</button><button type="button" data-act="add:xp">+1 level</button><button type="button" data-act="add:cherries">Fill storage</button></div>';
     h += '<h3>Time</h3><div class="seg"><button type="button" data-act="away:1">Away 1 h</button><button type="button" data-act="away:4">Away 4 h</button><button type="button" data-act="away:12">Away 12 h</button><button type="button" data-act="day">Next day</button></div>';
     h += '<h3>Game speed</h3><div class="seg">' + [1, 3, 10].map((x) => '<button type="button" data-act="speed:' + x + '" aria-pressed="' + (S.speed === x) + '">×' + x + '</button>').join('') + '</div>';
     h += '<h3>Season</h3><div class="seg">' + ['auto', 'harvest', 'rainy', 'spring', 'summer', 'autumn', 'winter'].map((x) => '<button type="button" data-act="season:' + x + '" aria-pressed="' + (S.seasonPick === x) + '">' + x + '</button>').join('') + '</div><p class="note">Harvest and rainy apply to the coffee farms; spring to winter apply to Osaka.</p>';
@@ -635,7 +653,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'hat') S.hat = v;
   else if (a === 'order') realOrder(v);
   else if (a === 'add') {
-    if (v === 'coins') S.coins += 1000; if (v === 'points') earn({ points: 500 }); if (v === 'cranes') S.cranes += 50;
+    if (v === 'coins') S.coins += 1000; if (v === 'points') earn({ points: 2000 }); if (v === 'cranes') S.cranes += 50;
     if (v === 'xp') { const l = level(); S.xp = 120 * l * l; }
     if (v === 'cherries') { const vv = ART.locations[S.loc].beds[0]; S.cherries[vv] = (S.cherries[vv] || 0) + (cap() - stored()); }
   }
@@ -643,7 +661,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'day') { S.minutes = 1439.9; }
   else if (a === 'speed') S.speed = +v;
   else if (a === 'season') S.seasonPick = v;
-  else if (a === 'reset') { if (b.dataset.sure) { try { localStorage.removeItem(SAVE_KEY); } catch (er) { /* nothing saved */ } S = fresh(); LOCS.forEach((l) => plant(S.farms[l])); addWorker(S.farms.huila); addWorker(S.farms.huila); newTasks(); toast('New game started'); } else { b.dataset.sure = '1'; b.textContent = 'Tap again to reset'; return; } }
+  else if (a === 'reset') { if (b.dataset.sure) { try { localStorage.removeItem(SAVE_KEY); } catch (er) { /* nothing saved */ } S = fresh(); LOCS.forEach((l) => plant(S.farms[l])); addWorker(S.farms[START]); addWorker(S.farms[START]); newTasks(); toast('New game started'); } else { b.dataset.sure = '1'; b.textContent = 'Tap again to reset'; return; } }
   refreshAll();
 });
 
@@ -673,7 +691,7 @@ function refreshAll() { refreshHud(); renderTabs(); renderPanel(); }
 const awayMs = Date.now() - (S.last || Date.now());
 refreshAll();
 if (awayMs > 5 * 60 * 1000) away(Math.min(12, Math.round(awayMs / 3600000 * 10) / 10 || 0.1));
-else if (S.intro === 0) showModal('<img src="' + url('worker_down_0', { shirt: ART.shirts[0] }) + '" alt="" style="width:48px;image-rendering:pixelated"><h2>Welcome to Beju Farm</h2><p class="note">Tap shrubs with ripe cherries to pick them; each pick uses a heart. Pickers work on every farm you own, even while you’re away. Process cherries in the Mill, sell to the roastery, and spend coins and points on upgrades. The Test tab lets you try everything quickly.</p><button class="btn green" data-act="close">Start farming</button>');
+else if (S.intro === 0) showModal('<img src="' + url('worker_down_0', { shirt: ART.shirts[0] }) + '" alt="" style="width:48px;image-rendering:pixelated"><h2>Welcome to Beju Farm</h2><p class="note">Tap shrubs with ripe cherries to pick them; each pick uses a heart. Pickers work on every farm you own, even while you’re away. Process cherries in the Mill, sell to the roastery, and spend coins and points on upgrades. You start in Brazil: points open Colombia, Ethiopia, Sumatra and Costa Rica in turn, and the Osaka garden is cranes only. The Test tab lets you try everything quickly.</p><button class="btn green" data-act="close">Start farming</button>');
 let last = performance.now(), uiT = 0, saveT = 0;
 function loop(t) {
   const dt = Math.min(0.05, (t - last) / 1000); last = t;
