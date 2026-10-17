@@ -43,13 +43,15 @@ test("saves: versions stop an old device overwriting newer progress", async () =
 
 test("scores: honest progress is accepted and ranked", async () => {
   const a = await newPlayer(), b = await newPlayer();
-  const s = (p, sp, pts) => ({ name: "Farmer", prestige: p, seasonP: sp, level: G.levelFor(pts), points: pts, look: { plate: p, border: p, skin: p } });
+  const s = (p, sp, pts) => ({ name: "Farmer", prestige: p, seasonP: sp, level: G.levelFor(pts), points: pts, look: { crest: p + 3, skin: p, bg: "huila" } });
   assert.equal((await call(score, "POST", s(0, 0, 500), a)).status, 200);
   assert.equal((await call(score, "POST", s(0, 0, 100), b)).status, 200);
   clock += 60000;
   assert.equal((await call(score, "POST", s(0, 0, 2400), a)).status, 200);
   const board = await call(score, "GET", undefined, b, { mode: "season" });
   assert.equal(board.body.top[0].points, 2400); assert.equal(board.body.me.rank, 2);
+  assert.deepEqual(board.body.top[0].look, { crest: 0, skin: 0, bg: "huila" }, "crest is capped at the prestige tier");
+  assert.deepEqual(G.cleanLook({ plate: 3, border: 3, skin: 2, bg: "<script>" }), { crest: 3, skin: 2, bg: "none" }, "old looks still read");
 });
 
 test("scores: impossible jumps are rejected", async () => {

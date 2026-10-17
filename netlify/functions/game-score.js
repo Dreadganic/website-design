@@ -33,7 +33,7 @@ exports.handler = async (event) => {
   const next = { prestige: b.prestige | 0, seasonP: nextSeasonP, level: b.level | 0, points: Math.floor(Number(b.points) || 0) };
   const problem = G.checkScore(prev && Object.assign({}, prev, { seasonP: prev.season === season ? prev.seasonP : 0 }), next, now);
   if (problem) return G.json(422, { error: problem });
-  const row = Object.assign(next, { id: me.id, name, look: G.cleanLook(b.look), season, at: now, prestigeAt: !prev || next.prestige > prev.prestige ? now : prev.prestigeAt });
+  const row = Object.assign(next, { id: me.id, name, look: G.cleanLook(b.look, next.prestige), season, at: now, prestigeAt: !prev || next.prestige > prev.prestige ? now : prev.prestigeAt });
   await store.set(key, row);
   const list = await boardFor(store, "season", season);
   return G.json(200, { ok: true, rank: list.findIndex((r) => r.id === me.id) + 1, players: list.length });

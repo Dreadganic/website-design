@@ -74,7 +74,10 @@ Pacing: costs start cheap and climb steeply (pickers ×1.5 each from 150 coins, 
 ## Prestige and leaderboard (Ranks tab)
 - **Ranking:** prestige first, then level, then points (this run's XP). One more prestige always beats any level or points total, so banking points never helps.
 - **Prestige** at level 10. Kept: coins, cranes, upgrades, buildings, staff, varieties, processes, decor, hats and looks. Lost: level, unspent points. Farms other than Mogiana and Osaka go dormant (no growth or picking) and reopen at level 3 (Huila), 5 (Gedeo), 7 (Toba) and 9 (Turrialba). Prestige gives no gameplay bonus (the old +10% "harvest year" perk is gone; old harvest years were converted to prestiges).
-- **Tiers:** Seedling, Bronze Bean, Silver Leaf, Gold Cherry, Jade Highland, Sakura, Obsidian Ember, Golden Crane, then a star per extra prestige. Each unlocks a nameplate (CSS), an avatar border (animated from Gold up) and a regional farmer outfit (palette swap of the worker sprite; the top four add an aura of leaves, petals, embers or gold). Any unlocked piece can be mixed and matched.
+- **Tiers:** Seedling, Bronze Bean, Silver Leaf, Gold Cherry, Jade Highland, Sakura, Obsidian Ember, Golden Crane, then a star per extra prestige. Each prestige gives one reward, the tier's **crest**: a nameplate (CSS) and matching avatar border (animated from Gold up), put on automatically. Any crest reached can be worn again.
+- **Outfits** are optional: each prestige makes that tier's regional outfit available to buy for cranes (20, 30, 40, 50, 60, 80, 100 for tiers 1–7). They are palette swaps of the worker sprite; the top four add an aura of leaves, petals, embers or gold. Outfits earned under the old rules stay owned.
+- **Backgrounds** sit behind the farmer in every avatar and come from the passport: each origin stamp unlocks that farm's scene, opening Osaka unlocks the garden, and all five origin stamps unlock the gold Beju backdrop. The test tab has a "Next passport stamp" button.
+- The server stores a look as `{crest, skin, bg}`, caps the crest and outfit at the player's prestige tier, and still reads old `{plate, border, skin}` looks.
 - **Your farmer** walks the farm wearing your outfit, with a name tag in your tier's colour. Tap them to open Ranks.
 - The other 30 players on the board are simulated until the app has a server.
 
