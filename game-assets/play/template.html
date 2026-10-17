@@ -1169,7 +1169,9 @@ function renderPanel() {
     h += '<h3>Music volume</h3><div class="seg">' + [['0.25', 'Quiet'], ['0.45', 'Normal'], ['0.7', 'Loud']].map(([v, t]) => '<button type="button" data-act="mvol:' + v + '" aria-pressed="' + (S.musicVol === +v) + '">' + t + '</button>').join('') + '</div><p class="note">Each farm has its own theme. Night versions play from 7 pm to 6 am on the farm clock. Use the buttons at the bottom left of the farm to turn music or sounds off.</p>';
     h += '<h3>Save</h3><div class="seg"><button type="button" data-act="reset">Reset the game</button></div><p class="note">Progress saves in this browser every few seconds.</p>';
   }
+  const strips = [...P.querySelectorAll('.ccards')].map((x) => x.scrollLeft);
   P.innerHTML = h;
+  P.querySelectorAll('.ccards').forEach((x, i) => { if (strips[i]) x.scrollLeft = strips[i]; });
 }
 document.addEventListener('click', (e) => {
   const t = e.target.closest('[data-tab]'); if (t) { setTab(t.dataset.tab); return; }
@@ -1271,6 +1273,12 @@ function refreshHud() {
   $('sky').style.background = night ? '#2C3470' : hr >= 17 ? '#F0A060' : '#7EC8F0';
   $('sun').style.background = night ? '#F4F0D0' : '#FFD84A';
 }
+let touchDown = false, lastSwipe = 0;
+const panelBusy = () => touchDown || performance.now() - lastSwipe < 900;
+$('panel').addEventListener('pointerdown', () => { touchDown = true; });
+window.addEventListener('pointerup', () => { touchDown = false; });
+window.addEventListener('pointercancel', () => { touchDown = false; });
+$('panel').addEventListener('scroll', () => { lastSwipe = performance.now(); }, true);   /* catches the strip's scrolling too */
 function refreshAll() { seasonTick(); refreshHud(); renderTabs(); renderPanel(); renderGuide(); }
 
 /* ---------- start: offline earnings, intro, loop ---------- */
@@ -1284,7 +1292,7 @@ function loop(t) {
   tick(dt); draw(t / 1000);
   uiT += dt; saveT += dt;
   if (toastT > 0) { toastT -= dt; if (toastT <= 0) $('toast').hidden = true; }
-  if (uiT > 0.5) { uiT = 0; refreshHud(); syncMusic(); if ((!$('panel').matches(':hover') || tab === 'mill') && !(document.activeElement && document.activeElement.id === 'nameIn')) renderPanel(); checkTabs(); renderTabs(); renderGuide(); }
+  if (uiT > 0.5) { uiT = 0; refreshHud(); syncMusic(); if (!panelBusy() && (!$('panel').matches(':hover') || tab === 'mill') && !(document.activeElement && document.activeElement.id === 'nameIn')) renderPanel(); checkTabs(); renderTabs(); renderGuide(); }
   if (saveT > 5) { saveT = 0; save(); }
   requestAnimationFrame(loop);
 }
