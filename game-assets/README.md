@@ -77,3 +77,13 @@ Pacing: costs start cheap and climb steeply (pickers ×1.5 each from 150 coins, 
 - **Tiers:** Seedling, Bronze Bean, Silver Leaf, Gold Cherry, Jade Highland, Sakura, Obsidian Ember, Golden Crane, then a star per extra prestige. Each unlocks a nameplate (CSS), an avatar border (animated from Gold up) and a regional farmer outfit (palette swap of the worker sprite; the top four add an aura of leaves, petals, embers or gold). Any unlocked piece can be mixed and matched.
 - **Your farmer** walks the farm wearing your outfit, with a name tag in your tier's colour. Tap them to open Ranks.
 - The other 30 players on the board are simulated until the app has a server.
+
+## First session and daily loop (from the design review)
+- **One rule for currencies:** coins build and hire (storage, pickers, racks, stamina, fields, buildings, staff, decor); know-how (the old "points") unlocks varieties, farms and processes; cranes buy boosts, hats and the Osaka garden. Level is reputation and is never spent.
+- **Pickers** is one upgrade line (speed every level, back basket at 4, wheelbarrow at 8), replacing picker speed and carrying gear.
+- **Hearts:** 30 to start (+6 a stamina level), refill every 2 s; the HUD shows ten hearts and the number.
+- **Guided first harvest:** six goals (pick 5, open the Mill, process, sell, hire, build storage) with the target highlighted and a reward each; a new farm starts with a ripe bed so goal one works in any season. Skippable.
+- **Progressive tabs:** Farm and Mill at first; Upgrade after the first sale, Shop at level 2, Orders at level 3, Ranks at level 5. Once shown they stay.
+- **Daily brew check-in:** once per real day, a 7-day reward cycle and streak freezes (start with 1, earn 1 per completed week, hold up to 2).
+- **Market board:** one process pays ×1.4 each farm day, shown in the Mill.
+- Test tab: "Next real day" (check-in) and "Restart guide".
