@@ -1340,6 +1340,10 @@ function tick(dt) {
   if (S.minutes >= 1440) { S.minutes -= 1440; S.day += 1; }
   if (S.taskDay !== dayKey(new Date())) { const first = !S.taskDay; S.taskDay = dayKey(new Date()); newTasks(); if (!first) toast('New daily tasks'); }   /* daily means a real day */
   const rday = Math.floor(Date.now() / 864e5);   /* the weekly order runs for a real week; the other farmers deliver steadily through it */
+  const wk0 = S.weekly || (S.weekly = {});   /* repair an order whose numbers went missing, so it can always be finished and claimed */
+  if (!Number.isFinite(wk0.target) || wk0.target <= 0) wk0.target = 4000;
+  if (!Number.isFinite(wk0.mine)) wk0.mine = 0;
+  if (typeof wk0.claimed !== 'boolean') wk0.claimed = false;
   if (!(S.weekly.start > 10000)) S.weekly.start = rday;
   if (rday - S.weekly.start >= 7) { S.weekly = { mine: 0, team: 1500, target: 4000, start: rday, claimed: false }; toast('A new weekly roastery order is in'); }
   S.weekly.team = 1500 + 2200 * Math.min(1, (Date.now() / 864e5 - S.weekly.start) / 7);
