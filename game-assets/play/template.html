@@ -673,7 +673,10 @@ function draw(time) {
   const hr = S.minutes / 60;
   const tint = hr >= 20 || hr < 5 ? 'rgba(30,40,110,0.38)' : hr >= 17.5 ? 'rgba(240,120,40,' + (0.08 + (hr - 17.5) * 0.06).toFixed(2) + ')' : hr < 7 ? 'rgba(240,150,170,0.14)' : null;
   if (tint) { fx.fillStyle = tint; fx.fillRect(0, 0, W, H); }
-  if (asleep) { fx.fillStyle = 'rgba(40,36,48,0.45)'; fx.fillRect(0, 0, W, H); }
+  if (asleep) {   /* drain the colour, then warm it: a resting farm, not weather */
+    fx.save(); fx.globalCompositeOperation = 'saturation'; fx.fillStyle = '#808080'; fx.fillRect(0, 0, W, H);
+    fx.globalCompositeOperation = 'multiply'; fx.fillStyle = '#E8D2AA'; fx.fillRect(0, 0, W, H); fx.restore();
+  }
   if (S.decor.lantern && (hr >= 18 || hr < 6)) DECOR_AT.lantern.forEach(([x, y]) => { const gl = fx.createRadialGradient(x + 3, y + 5, 1, x + 3, y + 5, 16); gl.addColorStop(0, 'rgba(255,200,110,0.55)'); gl.addColorStop(1, 'rgba(255,200,110,0)'); fx.fillStyle = gl; fx.fillRect(x - 14, y - 12, 34, 34); });
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(frame, 0, 0, W * 2, H * 2);
@@ -684,7 +687,12 @@ function draw(time) {
     const tx = Math.round(me.x) * 2, ty = (Math.round(me.y) - 27) * 2, w = ctx.measureText(label).width + 10;
     ctx.fillStyle = 'rgba(30,20,12,0.72)'; ctx.fillRect(tx - w / 2, ty - 11, w, 15); ctx.fillStyle = TAG_COLOR[tierOf(S.prestige)]; ctx.fillText(label, tx, ty);
   }
-  if (asleep) { ctx.font = '700 22px "Pixelify Sans", monospace'; ctx.fillStyle = '#FFF4DE'; ctx.fillText('DORMANT · LEVEL ' + S.dormant[S.loc], W, 236); }
+  if (asleep) {   /* a wooden sign in the middle of the farm */
+    const tx = 'DORMANT · REOPENS AT LEVEL ' + S.dormant[S.loc];
+    ctx.font = '700 18px "Pixelify Sans", monospace'; const w = ctx.measureText(tx).width + 28;
+    ctx.fillStyle = '#3E2A1C'; ctx.fillRect(W - w / 2 - 3, 205, w + 6, 44); ctx.fillStyle = '#C08C50'; ctx.fillRect(W - w / 2, 208, w, 38);
+    ctx.fillStyle = '#9C6C3C'; ctx.fillRect(W - w / 2, 226, w, 2); ctx.fillStyle = '#FFF4DE'; ctx.fillText(tx, W, 233);
+  }
   if (!f.field) { ctx.font = '700 13px "Pixelify Sans", monospace'; ctx.fillStyle = '#4A2E18'; ctx.fillText('EXPAND', 142 * 2, 173 * 2); }
   ctx.font = '700 18px "Pixelify Sans", monospace';
   floats.forEach((t) => {
@@ -1259,7 +1267,7 @@ function refreshHud() {
   const fb = S.farms[S.loc].beds.slice(0, S.farms[S.loc].field ? 4 : 3);
   $('locBeds').textContent = S.farms[S.loc].unlocked ? fb.filter((v, i) => fb.indexOf(v) === i).map((v) => ART.varieties[v]).join(' · ') : 'Native: ' + L.beds.filter((v, i) => L.beds.indexOf(v) === i).map((v) => ART.varieties[v]).join(' · ');
   const SEA = { harvest: ['Harvest ×1.5', '#D85A3A'], rainy: ['Rainy · flowering', '#4A8AB8'], spring: ['Spring', '#E688A8'], summer: ['Summer ×1.25', '#6CA442'], autumn: ['Autumn', '#D2702C'], winter: ['Winter ×0.5', '#8CA8C8'] }[sea];
-  $('seasonChip').textContent = SEA[0]; $('seasonChip').style.background = SEA[1];
+  $('seasonChip').textContent = SEA[0] + (S.seasonPick !== 'auto' && sea === S.seasonPick ? ' (test)' : ''); $('seasonChip').style.background = SEA[1];
   const mh = maxHearts();
   const hshow = Math.min(mh, 10);   /* ten hearts drawn, the rest as a number */
   $('hearts').innerHTML = Array.from({ length: hshow }, (_, i) => '<svg width="14" height="12" viewBox="0 0 7 6" shape-rendering="crispEdges" aria-hidden="true" style="filter:drop-shadow(1px 1px 0 #3E2A1C)"><g fill="' + (i < Math.ceil(S.hearts / mh * hshow) ? '#F07A3A' : '#5A3A2C') + '"><rect x="1" y="0" width="2" height="1"/><rect x="4" y="0" width="2" height="1"/><rect x="0" y="1" width="7" height="2"/><rect x="1" y="3" width="5" height="1"/><rect x="2" y="4" width="3" height="1"/><rect x="3" y="5" width="1" height="1"/></g></svg>').join('') + '<b class="hn">' + S.hearts + '</b>';
