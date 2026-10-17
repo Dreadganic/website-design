@@ -63,8 +63,10 @@ Pacing: costs start cheap and climb steeply (pickers ×1.5 each from 150 coins, 
 
 ## Sound
 - `audio/music.js`: the music engine and every farm theme (four-channel chiptune, day and night arrangements). `Music.init(SFX.context())`, `Music.play(farmId)` (crossfades), `Music.setNight()`, `Music.setVolume()`, `Music.setEnabled()`, `Music.duck()`, `Music.pause()/resume()`.
-- `audio/theme.html`: the farm jukebox; publish it with `sfx.js` and `music.js` alongside.
+- `audio/cozy.js`: the cozy, Minecraft-style versions the game now plays (felt piano, pads, plucked strings, long reverb). Reads the songs from `music.js`, same controls (`Cozy.play(farmId)` and so on).
+- `audio/theme.html`: the chiptune jukebox; publish it with `sfx.js` and `music.js` alongside.
+- `audio/cozy.html`: the cozy jukebox with a Cozy/Chiptune switch; publish it with `sfx.js`, `music.js` and `cozy.js`.
 - `audio/sfx.js`: game sound effects, synthesised live with the Web Audio API (no files). Soft and natural with a small random pitch on every play. `SFX.play(name)`, `SFX.unlock()` inside the first tap (iPhone), `SFX.setEnabled()`, `SFX.setVolume()`. `play/build.py` inlines it into the game.
 - `audio/soundboard.html`: plays every effect; publish it with `sfx.js` alongside.
 - In the game: harvest, brush, knock (storage full), nope (no hearts), thud (picker drop-off), woof, dig (replant), pour/splash (start a lot), ding (lot dry), coins/xp (sales), click/tick (tabs), page/close (windows), buy, build, hire, stamp/contract, crane, achieve, levelup. A speaker button on the farm view turns them off.
-- Music in the game: each farm plays its own theme, open or not, night versions from 7 pm to 6 am on the farm clock, a dip under big sound effects, pause when the page is hidden, a music button beside the sound button and a volume choice in the Test tab. `play/build.py` inlines `music.js` too.
+- Music in the game: each farm plays its own theme, open or not, night versions from 7 pm to 6 am on the farm clock, a dip under big sound effects, pause when the page is hidden, a music button beside the sound button and a volume choice in the Test tab. `play/build.py` inlines `music.js` and `cozy.js`; the game plays the cozy versions.

@@ -12,6 +12,7 @@ for f in sorted(os.listdir(os.path.join(ROOT, "bg"))):
 t = open(os.path.join(HERE, "template.html")).read()
 sfx = open(os.path.join(ROOT, "audio", "sfx.js")).read()
 music = open(os.path.join(ROOT, "audio", "music.js")).read()
-t = t.replace("__SFX__", sfx).replace("__MUSIC__", music).replace("__ART__", json.dumps(art, separators=(",", ":"))).replace("__BGS__", json.dumps(bgs, separators=(",", ":")))
+cozy = open(os.path.join(ROOT, "audio", "cozy.js")).read()
+t = t.replace("__SFX__", sfx).replace("__MUSIC__", music).replace("__COZY__", cozy).replace("__ART__", json.dumps(art, separators=(",", ":"))).replace("__BGS__", json.dumps(bgs, separators=(",", ":")))
 open(sys.argv[1], "w").write(t)
 print(sys.argv[1], len(t) // 1024, "KB")

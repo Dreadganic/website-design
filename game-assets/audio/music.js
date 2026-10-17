@@ -271,7 +271,7 @@ const PLAY = { lead: playLead, arp: playArp, bass: playBass, noise: playNoise };
 SONGS.forEach((s) => { s.score = buildScore(s); });
 
 /* ================= scheduler ================= */
-let playing = false, paused = false, step = 0, nextT = 0, timer = null, startedAt = 0;
+let playing = false, paused = false, step = 0, nextT = 0, timer = null, startedAt = 0, pending = null, swapT = null;
 const placed = [];
 function schedule() {
   const sc = song.score;
@@ -287,25 +287,25 @@ const byId = (id) => SONGS.find((s) => s.id === id) || SONGS[0];
 function play(id) {
   if (!ac) return;
   const next = byId(id);
-  if (playing && next === song) return;
+  if (playing && next === (pending || song)) return;
   if (playing) {   /* fade the old tune out, then start the new one from its intro */
-    master.gain.setTargetAtTime(0, ac.currentTime, 0.12);
-    clearInterval(timer); timer = null;
-    setTimeout(() => { song = next; if (playing && !paused) { run(0); applyMix(); } }, 450);
+    pending = next; clearTimeout(swapT);
+    master.gain.setTargetAtTime(0, ac.currentTime, 0.12); clearInterval(timer); timer = null;
+    swapT = setTimeout(() => { song = pending; pending = null; if (playing && !paused && enabled) { run(0); applyMix(); } }, 450);
     return;
   }
   song = next; playing = true;
   if (!enabled || paused) return;
   run(0); applyMix();
 }
-function stop() { playing = false; clearInterval(timer); timer = null; if (ac) applyMix(); }
+function stop() { playing = false; pending = null; clearTimeout(swapT); clearInterval(timer); timer = null; if (ac) applyMix(); }
 return {
   songs: SONGS,
   util: { chord, midi, hz },
   init(ctx) { if (!ac && ctx) setup(ctx); return !!ac; },
   play, stop,
   restart() { if (ac && playing) run(0); },
-  current: () => (playing ? song.id : null),
+  current: () => (playing ? (pending || song).id : null),
   song: () => song,
   select(id) { song = byId(id); },
   isPlaying: () => playing && !!timer,

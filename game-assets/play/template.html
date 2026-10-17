@@ -132,6 +132,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-
 <script>
 __SFX__
 __MUSIC__
+__COZY__
 </script>
 <script>
 const ART = __ART__;
@@ -962,24 +963,24 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) save(
 let soundReady = false;
 function audioStart() {   /* browsers only allow sound after a tap, so everything starts on the first one */
   if (soundReady) return; soundReady = true;
-  SFX.unlock(); Music.init(SFX.context()); syncMusic();
+  SFX.unlock(); Cozy.init(SFX.context()); syncMusic();
 }
 document.addEventListener('pointerdown', audioStart, true);
 const trackFor = () => S.loc;   /* every farm plays its own theme, open or not */
 function syncMusic() {
-  Music.setVolume(S.musicVol); Music.setEnabled(S.music);
-  const hr = S.minutes / 60; Music.setNight(hr >= 19 || hr < 6);
-  if (soundReady && Music.current() !== trackFor()) Music.play(trackFor());
+  Cozy.setVolume(S.musicVol); Cozy.setEnabled(S.music);
+  const hr = S.minutes / 60; Cozy.setNight(hr >= 19 || hr < 6);
+  if (soundReady && Cozy.current() !== trackFor()) Cozy.play(trackFor());
 }
 const BIG = new Set(['coins', 'levelup', 'achieve', 'contract', 'build', 'crane']);
-SFX.onPlay = (n) => { if (BIG.has(n)) Music.duck(); };
+SFX.onPlay = (n) => { if (BIG.has(n)) Cozy.duck(); };
 function syncSound() {
   SFX.setEnabled(S.sfx); $('sfxBtn').setAttribute('aria-pressed', String(S.sfx)); $('sfxBtn').setAttribute('aria-label', S.sfx ? 'Sound effects on' : 'Sound effects off');
   $('musicBtn').setAttribute('aria-pressed', String(S.music)); $('musicBtn').setAttribute('aria-label', S.music ? 'Music on' : 'Music off');
 }
 $('sfxBtn').addEventListener('click', () => { S.sfx = !S.sfx; syncSound(); if (S.sfx) SFX.play('tick'); });
 $('musicBtn').addEventListener('click', () => { S.music = !S.music; syncSound(); syncMusic(); });
-document.addEventListener('visibilitychange', () => { if (document.hidden) Music.pause(); else Music.resume(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) Cozy.pause(); else Cozy.resume(); });
 syncSound();
 window.addEventListener('pagehide', save);
 })();
