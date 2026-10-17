@@ -4,7 +4,7 @@ import base64, json, os, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 d = json.load(open(os.path.join(ROOT, "sprites.json")))
-art = {k: d[k] for k in ("sprites", "shirts", "shrubs", "locations", "varieties", "storage", "carry", "hats", "buildings")}
+art = {k: d[k] for k in ("sprites", "shirts", "shrubs", "locations", "varieties", "storage", "carry", "hats", "buildings", "chars", "bskins")}
 bgs = {}
 for f in sorted(os.listdir(os.path.join(ROOT, "bg"))):
     if f.endswith(".png"):

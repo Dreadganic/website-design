@@ -170,7 +170,10 @@ canvas.hint { transform: none !important; }
 .lb-s b { font-size: 14px; color: var(--ink); }
 #nameIn { flex: 1; min-width: 0; min-height: 36px; border: 2px solid var(--edge); border-radius: 6px; padding: 0 8px; font: 600 15px inherit; background: #FFFDF6; color: var(--ink); }
 .subtabs { position: sticky; top: 0; z-index: 2; }
-.subtabs button { flex: 1; position: relative; padding: 0 4px; }
+.subtabs button { flex: 1 1 0; position: relative; padding: 0 4px; min-width: 0; }
+.subtabs.five { flex-wrap: wrap; }
+.subtabs.five button { flex: 1 1 30%; }
+.tile .fr { align-self: center; }
 .subtabs .dot { position: absolute; top: 3px; right: 3px; margin: 0; }
 .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #D8302C; vertical-align: middle; margin-left: 2px; }
 .modal .card { max-width: 360px; width: 100%; padding: 18px 16px; display: flex; flex-direction: column; gap: 10px; text-align: center; align-items: center; }
@@ -315,7 +318,11 @@ const BG_LIST = ['none'].concat(LOCS, ['beju']);
 const bgOpen = (id) => id === 'none' || (id === 'beju' ? ORIGINS.every((l) => S.stamps[l]) : id === 'osaka' ? S.farms.osaka.unlocked : !!S.stamps[id]);
 const bgName = (id) => id === 'none' ? 'Plain' : id === 'beju' ? 'Beju gold' : ART.locations[id].name.split(',')[0];
 const bgHow = (id) => id === 'beju' ? 'All 5 stamps' : id === 'osaka' ? 'Open Osaka' : bgName(id) + ' stamp';
-const normLook = (l) => { l = l || {}; const n = (x) => Math.max(0, Math.min(7, Math.floor(Number(x) || 0))); return { crest: n(l.crest !== undefined ? l.crest : l.plate), skin: n(l.skin), bg: BG_LIST.indexOf(l.bg) > -1 ? l.bg : 'none' }; };
+const normLook = (l) => { l = l || {}; const n = (x) => Math.max(0, Math.min(7, Math.floor(Number(x) || 0))); return { crest: n(l.crest !== undefined ? l.crest : l.plate), skin: n(l.skin), bg: BG_LIST.indexOf(l.bg) > -1 ? l.bg : 'none', char: ART.chars[l.char] ? l.char : 'none' }; };
+/* character models replace the farmer's body; the outfit colours still go on top */
+const bodyOf = (look) => (look && ART.chars[look.char] ? 'chr_' + look.char + '_' : 'worker_');
+const CHAR_IDS = Object.keys(ART.chars).sort((a, b) => ART.chars[a].cost - ART.chars[b].cost);
+const BSKIN_IDS = Object.keys(ART.bskins).sort((a, b) => ART.bskins[a].cost - ART.bskins[b].cost);
 const BG_THUMB = {};   /* an 80 px square cut from each farm scene, made once, so avatars stay light and work everywhere an <img> does */
 LOCS.forEach((l) => {
   const im = new Image();
@@ -333,7 +340,8 @@ function bots() {
     let lv = 1; while (xp >= XP_AT(lv + 1)) lv++;
     const seasonP = Math.floor(sp * sp * 5 * new Date().getDate() / 31);   /* prestiges so far this month */
     const tr = tierOf(prestige), skin = prestige ? Math.floor(r() * SKINS.length) : 0, bgs = BG_LIST.slice(0, 1 + Math.min(7, prestige + 2));
-    return { name, prestige, seasonP, level: lv, points: Math.round(xp), look: { crest: tr, skin, bg: bgs[Math.floor(r() * bgs.length)] } };
+    const bg = bgs[Math.floor(r() * bgs.length)], ch = r() < 0.45 ? CHAR_IDS[Math.floor(r() * CHAR_IDS.length)] : 'none';
+    return { name, prestige, seasonP, level: lv, points: Math.round(xp), look: { crest: tr, skin, bg, char: ch } };
   });
 }
 function board(mode) {
@@ -453,7 +461,7 @@ function fresh() {
     methods: { washed: true, natural: true }, vars: { caturra: true }, staff: { foreman: false, agent: false, rule: 'best' }, decor: {}, contracts: [], nextContract: 0, hat: 'straw', hats: { straw: true }, stamps: {},
     cherries: {}, lots: [], boosts: {}, minutes: 7 * 60 + 30, minutesTotal: 0, day: 1, taps: 0, year: 1, bonus: 0,
     tasks: null, weekly: { mine: 0, team: 1800, target: 4000, start: 1, claimed: false }, rewards: [], stats: { picked: 0, sold: 0, lotsSold: 0 },
-    farms: {}, intro: 0, seasonPick: 'auto', speed: 1, sfx: true, music: true, musicVol: 0.45, guide: 0, guideN: 0, tabs: { upgrades: false, orders: false, ranks: false, shop: false }, newTab: null, checkin: { last: '', streak: 0, freezes: 1 }, season: { key: seasonKey(), prestige: 0 }, badges: [], event: null, prestige: 0, name: 'You', look: { crest: 0, skin: 0, bg: 'none' }, skins: { 0: true }, skinPicks: 0, dormant: {}, last: Date.now()
+    farms: {}, intro: 0, seasonPick: 'auto', speed: 1, sfx: true, music: true, musicVol: 0.45, guide: 0, guideN: 0, tabs: { upgrades: false, orders: false, ranks: false, shop: false }, newTab: null, checkin: { last: '', streak: 0, freezes: 1 }, season: { key: seasonKey(), prestige: 0 }, badges: [], event: null, prestige: 0, name: 'You', look: { crest: 0, skin: 0, bg: 'none', char: 'none' }, skins: { 0: true }, chars: {}, bskins: {}, skinPicks: 0, dormant: {}, last: Date.now()
   };
   LOCS.forEach((l) => { st.farms[l] = newFarm(l); });
   return st;
@@ -469,10 +477,11 @@ let S = load() || fresh();
     S.skins = {}; for (let i = 0; i <= tierOf(S.prestige || 0); i++) S.skins[i] = true;
     S.look = { crest: tierOf(S.look.plate || 0), skin: S.look.skin || 0, bg: 'none' };
   }
-  ['staff', 'decor', 'contracts', 'nextContract', 'sfx', 'music', 'musicVol', 'name', 'look', 'skins', 'skinPicks', 'dormant', 'guide', 'guideN', 'tabs', 'newTab', 'checkin', 'season', 'badges', 'event'].forEach((k) => { if (S[k] === undefined) S[k] = JSON.parse(JSON.stringify(d[k])); });
+  ['staff', 'decor', 'contracts', 'nextContract', 'sfx', 'music', 'musicVol', 'name', 'look', 'skins', 'skinPicks', 'chars', 'bskins', 'dormant', 'guide', 'guideN', 'tabs', 'newTab', 'checkin', 'season', 'badges', 'event'].forEach((k) => { if (S[k] === undefined) S[k] = JSON.parse(JSON.stringify(d[k])); });
   if (veteran) { S.guide = 6; S.tabs = { upgrades: true, orders: true, ranks: true, shop: true }; }   /* existing players skip the guide */
   if (!S.lv.pickers) { S.lv.pickers = Math.max(S.lv.speed || 1, S.lv.carry >= 3 ? 8 : S.lv.carry >= 2 ? 4 : 1); S.lv.speed = S.lv.pickers; }
   S.hearts = Math.min(S.hearts, 24 + S.lv.hearts * 6);
+  if (S.look && !S.look.char) S.look.char = 'none';
   LOCS.forEach((l) => { const f = S.farms[l]; if (!f.build) f.build = {}; if (f.manager === undefined) f.manager = null; });
 })();
 LOCS.forEach((l) => { const f = S.farms[l]; if (!f.shrubs.length) plant(f); f.workers.forEach((w) => { w.state = 'seek'; w.path = []; w.target = null; }); });
@@ -639,7 +648,7 @@ function draw(time) {
   if (S.decor.bunting) for (let x = 8; x < 184; x += 24) fx.drawImage(sprite('deco_bunting'), x, 103);
   BUILD_ORDER.forEach((k, i) => {
     const n = f.build[k] || 0; if (!n) return;
-    fx.drawImage(sprite('build_' + k), SLOTS[i], 197);
+    fx.drawImage(sprite('build_' + k + (ART.bskins[f.skin] ? '_' + f.skin : '')), SLOTS[i], 197);
     fx.fillStyle = '#F2C04A'; for (let j = 0; j < n; j++) fx.fillRect(SLOTS[i] + 22 - j * 3, 221, 2, 2);
   });
   Object.keys(DECOR_AT).forEach((k) => { if (S.decor[k]) DECOR_AT[k].forEach(([x, y]) => fx.drawImage(sprite('deco_' + k), x, y)); });
@@ -663,7 +672,7 @@ function draw(time) {
       if (S.decor.bandana) { fx.fillStyle = '#D8302C'; const bx = g.flip ? X + 9 : X + 5; fx.fillRect(bx, Y + 6, 2, 2); fx.fillRect(bx + (g.flip ? 1 : 0), Y + 8, 1, 1); }
     } else if (o.me) {
       const fr = me.moving ? (me.dir === 'side' ? Math.floor(me.walk * 7) % 2 : WALK[Math.floor(me.walk * 7) % 4]) : 0;
-      const spr = sprite('worker_' + me.dir + '_' + (me.dir === 'side' ? Math.min(fr, 1) : fr), skinLook(S.look.skin)), X = Math.round(me.x) - 8, Y = Math.round(me.y) - 23;
+      const spr = sprite(bodyOf(S.look) + me.dir + '_' + (me.dir === 'side' ? Math.min(fr, 1) : fr), skinLook(S.look.skin)), X = Math.round(me.x) - 8, Y = Math.round(me.y) - 23;
       fx.fillStyle = 'rgba(42,42,8,0.3)'; fx.beginPath(); fx.ellipse(X + 8, Y + 23, 5, 1.6, 0, 0, 7); fx.fill();
       if (me.dir === 'side' && me.flip) { fx.save(); fx.translate(X + 16, Y); fx.scale(-1, 1); fx.drawImage(spr, 0, 0); fx.restore(); } else fx.drawImage(spr, X, Y);
     } else if (o.mg) {
@@ -1033,9 +1042,9 @@ function showModal(html, replace) {   /* a second window waits its turn instead 
 }
 function shopTabs() {
   const st = S.shopTab || 'cranes', dot = Object.keys(DECOR).some((k) => S.decor[k] === undefined && S.coins >= DECOR[k].cost);
-  return '<div class="seg subtabs">' + [['cranes', 'Cranes'], ['decor', 'Decor'], ['beju', 'Real coffee']].map(([k, t]) => '<button type="button" data-act="shoptab:' + k + '" aria-pressed="' + (st === k) + '">' + t + (k === 'decor' && dot ? ' <i class="dot" aria-label="something to buy"></i>' : '') + '</button>').join('') + '</div>';
+  return '<div class="seg subtabs five">' + [['cranes', 'Cranes'], ['chars', 'Characters'], ['bskin', 'Buildings'], ['decor', 'Decor'], ['beju', 'Real coffee']].map(([k, t]) => '<button type="button" data-act="shoptab:' + k + '" aria-pressed="' + (st === k) + '">' + t + (k === 'decor' && dot ? ' <i class="dot" aria-label="something to buy"></i>' : '') + '</button>').join('') + '</div>';
 }
-function avatar(look, size) { look = normLook(look); return '<span class="fr b-' + PLATES[look.crest] + (look.bg === 'beju' ? ' bg-beju' : '') + '" style="width:' + size + 'px;height:' + size + 'px">' + (BG_THUMB[look.bg] ? '<img class="fbg" src="' + BG_THUMB[look.bg] + '" alt="">' : '') + '<img src="' + url('worker_down_0', skinLook(look.skin)) + '" alt="" style="height:' + Math.round(size * 0.78) + 'px"></span>'; }
+function avatar(look, size) { look = normLook(look); return '<span class="fr b-' + PLATES[look.crest] + (look.bg === 'beju' ? ' bg-beju' : '') + '" style="width:' + size + 'px;height:' + size + 'px">' + (BG_THUMB[look.bg] ? '<img class="fbg" src="' + BG_THUMB[look.bg] + '" alt="">' : '') + '<img src="' + url(bodyOf(look) + 'down_0', skinLook(look.skin)) + '" alt=""" style="height:' + Math.round(size * 0.78) + 'px"></span>'; }
 function plate(name, i, stars) { return '<span class="plate p-' + PLATES[i] + '">' + name + (stars ? ' ' + '★'.repeat(Math.min(5, stars)) : '') + '</span>'; }
 const starsFor = (p) => (p >= TIERS.length ? p - TIERS.length + 1 : 0);
 function bottleneck() {   /* name the one thing slowing the farm down right now */
@@ -1199,6 +1208,7 @@ function renderPanel() {
       const own = !!S.skins[i], can = !own && S.skinPicks > 0;
       return '<button type="button" class="look' + (can ? ' pick' : '') + '" data-act="' + (own ? 'skin:' : 'pickskin:') + i + '" aria-pressed="' + (S.look.skin === i) + '"' + (own || can ? '' : ' disabled') + '>' + avatar({ crest: 0, skin: i }, 40) + '<small>' + (can ? 'Pick ' + sk.name : sk.name) + '</small></button>';
     }).join('') + '</div>';
+    h += '<h3>Character</h3><p class="note">Characters are bought with cranes in the Shop.</p><div class="looks">' + ['none'].concat(CHAR_IDS.filter((id) => S.chars[id])).map((id) => '<button type="button" class="look" data-act="char:' + id + '" aria-pressed="' + (S.look.char === id) + '">' + avatar({ crest: 0, skin: S.look.skin, char: id }, 40) + '<small>' + (ART.chars[id] ? ART.chars[id].name : 'Farmer') + '</small></button>').join('') + '<button type="button" class="look" data-act="shopchars"><span style="font-size:22px;line-height:40px">+</span><small>Shop</small></button></div>';
     h += '<h3>Background</h3><p class="note">Passport stamps unlock scenes behind your farmer: ' + has() + ' of 5 origin stamps collected. Real orders on bejucoffee.com stamp the passport.</p><div class="looks">' + BG_LIST.map((id) => {
       const open = bgOpen(id);
       return '<button type="button" class="look" data-act="bg:' + id + '" aria-pressed="' + (S.look.bg === id) + '"' + (open ? '' : ' disabled') + '>' + avatar({ crest: S.look.crest, skin: S.look.skin, bg: id }, 40) + '<small>' + (open ? bgName(id) : bgHow(id)) + '</small></button>';
@@ -1216,6 +1226,23 @@ function renderPanel() {
     h += '<h3>Passport</h3><div class="stamps">' + LOCS.map((l) => '<img src="' + url('stamp_' + l) + '" alt="' + ART.locations[l].name + (S.stamps[l] ? ', stamped' : ', not yet') + '" class="' + (S.stamps[l] ? '' : 'off') + '">').join('') + '</div>';
     h += '<h3>What each coffee gives</h3>' + Object.keys(COFFEES).map((k) => { const c = COFFEES[k], next = c.stamps.find((x) => !S.stamps[x]); return row(img(next ? 'stamp_' + next : 'i_crane', 30), c.name, '¥' + fmt(c.price) + ' · ' + Math.round(c.price / 100) + ' cranes' + (next ? ' · stamp: ' + ART.locations[next].name.split(',')[0] : ' · all stamps collected') + (c.method ? ' · unlocks ' + METHODS[c.method].name.toLowerCase() + ' processing' : ''), ''); }).join('');
     h += '<h3>Free coffee earned</h3>' + (S.rewards.length ? S.rewards.map((r) => row(img('green_sack', 28), r.text, 'From ' + r.from + ', day ' + r.day + '. Added to your next order.', '')).join('') : '<p class="note">None yet. Finish a farm\'s 1,000 kg harvest to earn a free 100 g bag.</p>');
+  } else if (tab === 'shop' && S.shopTab === 'chars') {
+    h += shopTabs();
+    h += '<h2>Characters</h2><p class="note">' + icon('i_crane') + ' ' + S.cranes + ' cranes. Farm as someone else. Your outfit, crest and background go on top, and other players see your character on the leaderboard.</p>';
+    h += '<div class="grid2">' + ['none'].concat(CHAR_IDS).map((id) => {
+      const c = ART.chars[id], own = id === 'none' || S.chars[id], on = S.look.char === id;
+      return '<div class="tile" aria-pressed="' + on + '">' + avatar({ crest: S.look.crest, skin: S.look.skin, bg: S.look.bg, char: id }, 56) + '<b>' + (c ? c.name : 'Farmer') + '</b><span>' + (c ? 'From ' + c.from : 'The farmer you started with') + '</span>' +
+        (own ? btn(on ? 'Playing' : 'Play as', '', 'char:' + id, !on, 'blue') : btn('Buy', c.cost + ' cranes', 'buychar:' + id, S.cranes >= c.cost)) + '</div>';
+    }).join('') + '</div>';
+  } else if (tab === 'shop' && S.shopTab === 'bskin') {
+    h += shopTabs();
+    const f = S.farms[S.loc], here = ART.locations[S.loc].name.split(',')[0], cur = ART.bskins[f.skin] ? f.skin : 'classic';
+    h += '<h2>Building styles</h2><p class="note">' + icon('i_crane') + ' ' + S.cranes + ' cranes. Buy a style once and use it on any farm. Showing ' + here + '; switch farms with the arrows above to style another.</p>';
+    h += '<div class="grid2">' + ['classic'].concat(BSKIN_IDS).map((id) => {
+      const s = ART.bskins[id], own = id === 'classic' || S.bskins[id], on = cur === id, sfx = id === 'classic' ? '' : '_' + id;
+      return '<div class="tile" aria-pressed="' + on + '"><div style="display:flex;justify-content:center;gap:2px">' + ['housing', 'wetmill', 'sorter'].map((k) => '<img src="' + url('build_' + k + sfx) + '" alt="" style="width:40px;image-rendering:pixelated">').join('') + '</div><b>' + (s ? s.name : 'Classic') + '</b><span>' + (s ? s.note : 'The original farm buildings') + '</span>' +
+        (own ? btn(on ? 'On ' + here : 'Use at ' + here, '', 'bskin:' + id, !on, 'blue') + (id !== 'classic' ? '<button type="button" class="btn" data-act="bskinall:' + id + '">Use on every farm</button>' : '') : btn('Buy', s.cost + ' cranes', 'buybskin:' + id, S.cranes >= s.cost)) + '</div>';
+    }).join('') + '</div>';
   } else if (tab === 'shop' && (S.shopTab || 'cranes') === 'decor') {
     h += shopTabs();
     h += '<h2>Decor</h2><p class="note">' + icon('i_coin') + ' ' + fmt(S.coins) + ' coins. Buy once and it shows on every farm. Tap again to hide or show it.</p>';
@@ -1260,8 +1287,8 @@ document.addEventListener('click', (e) => {
   const wallet = S.coins + S.points + S.cranes, decorOwned = S.decor[v] !== undefined;
   setTimeout(() => {   /* sound for the action, once its effect is known */
     const spent = S.coins + S.points + S.cranes < wallet;
-    const BUY = { hire: 'hire', up: 'buy', build: 'build', mgr: 'hire', foreman: 'hire', agent: 'hire', var: 'achieve', farm: 'achieve', method: 'achieve', buyhat: 'achieve', boost: 'crane', decor: 'achieve' };
-    const ALWAYS = { ranktab: 'tick', crest: 'tick', skin: 'tick', bg: 'tick', rename: 'tick', mvol: 'tick', uptab: 'tick', shoptab: 'tick', hat: 'tick', rule: 'tick', mv: 'tick', speed: 'tick', season: 'tick', go: 'click', bed: 'click', skip: 'page', plant: 'dig', task: 'coins', weekly: 'crane', order: 'crane', sellraw: 'coins', add: 'xp' };
+    const BUY = { hire: 'hire', up: 'buy', build: 'build', mgr: 'hire', foreman: 'hire', agent: 'hire', var: 'achieve', farm: 'achieve', method: 'achieve', buyhat: 'achieve', buychar: 'achieve', buybskin: 'achieve', boost: 'crane', decor: 'achieve' };
+    const ALWAYS = { ranktab: 'tick', crest: 'tick', skin: 'tick', bg: 'tick', char: 'tick', bskin: 'build', bskinall: 'build', rename: 'tick', mvol: 'tick', uptab: 'tick', shoptab: 'tick', hat: 'tick', rule: 'tick', mv: 'tick', speed: 'tick', season: 'tick', go: 'click', bed: 'click', skip: 'page', plant: 'dig', task: 'coins', weekly: 'crane', order: 'crane', sellraw: 'coins', add: 'xp' };
     if (BUY[a] && spent) SFX.play(BUY[a]); else if (a === 'decor' && decorOwned) SFX.play('tick'); else if (ALWAYS[a]) SFX.play(ALWAYS[a]);
   }, 0);
   if (a === 'hire') { if (f.workers.length < maxPickers(f) && spend('coins', hireCost())) { addWorker(f); guideStep('hire'); toast('A new picker joins you'); } }
@@ -1306,6 +1333,12 @@ document.addEventListener('click', (e) => {
   else if (a === 'skin') { if (S.skins[+v]) S.look.skin = +v; }
   else if (a === 'pickskin') { const i = +v; if (!S.skins[i] && S.skinPicks > 0) { S.skinPicks -= 1; S.skins[i] = true; S.look.skin = i; toast(SKINS[i].name + ' outfit is yours'); SFX.play('achieve'); if (!$('modal').hidden && $('modalCard').querySelector('[data-act^="pickskin"]')) closeModal(); } }
   else if (a === 'bg') { if (bgOpen(v)) S.look.bg = v; }
+  else if (a === 'buychar') { const c = ART.chars[v]; if (c && !S.chars[v] && spend('cranes', c.cost)) { S.chars[v] = true; S.look.char = v; toast('Now farming as the ' + c.name); } }
+  else if (a === 'shopchars') { S.shopTab = 'chars'; setTab('shop'); }
+  else if (a === 'char') { if (v === 'none' || S.chars[v]) S.look.char = v; }
+  else if (a === 'buybskin') { const s = ART.bskins[v]; if (s && !S.bskins[v] && spend('cranes', s.cost)) { S.bskins[v] = true; f.skin = v; toast(s.name + ' style on ' + ART.locations[S.loc].name.split(',')[0]); } }
+  else if (a === 'bskin') { if (v === 'classic' || S.bskins[v]) f.skin = v; }
+  else if (a === 'bskinall') { if (S.bskins[v]) { LOCS.forEach((l) => { S.farms[l].skin = v; }); toast(ART.bskins[v].name + ' style on every farm'); } }
   else if (a === 'rename') { const nv = ($('nameIn').value || '').trim().slice(0, 16); if (nv) { S.name = nv; toast('Name saved'); } }
   else if (a === 'boost') {
     const cost = { grow: 5, pick: 5, hearts: 2, points: 10, dry: 6 }[v];

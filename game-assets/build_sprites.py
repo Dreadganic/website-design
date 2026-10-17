@@ -1367,6 +1367,41 @@ BUILDINGS = {
 for k, fn in [("housing", b_housing), ("wetmill", b_wetmill), ("drybeds", b_drybeds), ("compost", b_compost), ("shade", b_shade), ("sorter", b_sorter)]:
     add_layer("build_" + k, 28, 26, fn)
 
+# building skins: the same six buildings redrawn in a themed palette, bought with cranes and chosen per farm
+BUILD_SKINS = {
+    "kyoto":   {"name": "Kyoto", "cost": 40, "note": "Cedar walls, slate tiles, maple shade and an indigo awning",
+                "ramps": {"WOOD": ["#8A6448", "#6E4C36", "#563A28", "#3E2A1E", "#2A1C14"], "THATCH": ["#8A94A4", "#747E8E", "#5E6878", "#4C5462", "#3C424E", "#2C3038"],
+                          "LUSH": ["#F6B070", "#E8823E", "#CC5A2C", "#A43C22", "#7A2A18", "#521A10"]},
+                "map": {"#2D6A46": "#2A3A6A", "#A8B8C4": "#6E9A86", "#7A8A96": "#4E7666"}},
+    "fazenda": {"name": "Fazenda", "cost": 30, "note": "Whitewashed walls, terracotta roofs and a green and gold awning",
+                "ramps": {"WOOD": ["#FFFFFF", "#F2EEE4", "#DCD4C4", "#9C8A70", "#6A5A44"], "THATCH": ["#F2A878", "#DA7C54", "#C0603E", "#9E4630", "#76321F", "#5A2616"]},
+                "map": {"#2D6A46": "#2D7A3A", "#F4ECDC": "#F2D23A", "#A8B8C4": "#DA7C54", "#7A8A96": "#9E4630"}},
+    "bamboo":  {"name": "Bamboo", "cost": 30, "note": "Bamboo frames, palm thatch and a batik awning",
+                "ramps": {"WOOD": ["#ECE4A4", "#CCC474", "#A4A452", "#7A823A", "#525A2A"], "THATCH": ["#DCCC7C", "#C0AC5C", "#A49046", "#867436", "#685A2A", "#4A4220"]},
+                "map": {"#2D6A46": "#A8283A", "#F4ECDC": "#E8B830", "#A8B8C4": "#C0AC5C", "#7A8A96": "#867436"}},
+    "snow":    {"name": "Snowfall", "cost": 50, "note": "Every roof under fresh snow", "snow": True, "ramps": {}, "map": {}},
+    "gold":    {"name": "Beju gold", "cost": 80, "note": "Cream and gold trim, fit for the crane", "ramps": {
+                "WOOD": ["#FFF6DA", "#F2DEA0", "#E2C070", "#B88E34", "#7A5C1C"], "THATCH": ["#FFF2A8", "#F4D466", "#E8BC34", "#CC9C22", "#A87C18", "#7A5A10"]},
+                "map": {"#2D6A46": "#E8B830", "#F4ECDC": "#FFFFFF", "#A8B8C4": "#F4D466", "#7A8A96": "#CC9C22"}},
+}
+_SHADOW = "#2A2A0850"
+for sk, spec in BUILD_SKINS.items():
+    saved = {k: globals()[k] for k in spec["ramps"]}
+    globals().update(spec["ramps"])
+    for k, fn in [("housing", b_housing), ("wetmill", b_wetmill), ("drybeds", b_drybeds), ("compost", b_compost), ("shade", b_shade), ("sorter", b_sorter)]:
+        canvas = {}
+        fn(lambda x, y, c: canvas.__setitem__((int(x), int(y)), spec["map"].get(c, c)) if 0 <= int(x) < 28 and 0 <= int(y) < 26 else None)
+        if spec.get("snow"):   # a white cap on the first solid pixel of each column
+            for x in range(28):
+                ys = [y for y in range(20) if canvas.get((x, y)) not in (None, _SHADOW)]
+                if ys:
+                    canvas[(x, ys[0])] = "#FFFFFF"
+                    if (x, ys[0] + 1) in canvas and k != "drybeds":
+                        canvas[(x, ys[0] + 1)] = "#E4EEF6"
+        add_layer("build_%s_%s" % (k, sk), 28, 26, lambda p, cv=canvas: [p(x, y, c) for (x, y), c in cv.items()])
+    globals().update(saved)
+BSKIN_INFO = {k: {"name": v["name"], "cost": v["cost"], "note": v["note"]} for k, v in BUILD_SKINS.items()}
+
 
 def d_bench(p):
     for x in range(1, 15):
@@ -1467,9 +1502,252 @@ def render(s, shirt=None):
     return im
 
 
+# ---------------- character models: non-human farmers bought with cranes ----------------
+# Each one is a drawn head on the farmer's body, so outfits (shirt and trousers colours) still apply on top.
+# Head keys: f fur, F fur shade, l fur light, m muzzle/face, n nose, e eye, w shine, x/y/z accents. Body keys follow WORK.
+def _outline(px, w, h):
+    out = dict(px)
+    for (x, y) in list(px):
+        for (dx, dy) in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            q = (x + dx, y + dy)
+            if 0 <= q[0] < w and 0 <= q[1] < h and q not in px:
+                out[q] = "O"
+    return out
+
+
+def _ell(px, cx, cy, rx, ry, k, only=None):
+    for y in range(12):
+        for x in range(16):
+            if ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1 and (only is None or (x, y) in only):
+                px[(x, y)] = k
+
+
+def char_head(sp, view):
+    px = {}
+    side = view == "side"
+    cx = 7 if side else 7.5
+    rx, ry = (4.3, 3.9) if side else (sp.get("rx", 4.6), 3.9)
+    ears = sp.get("ears")
+    # ears first, so the head paints over their base
+    if ears in ("point", "tall"):
+        tall = ears == "tall"
+        for ex, d in ([(5, -1)] if side else [(3, 1), (12, -1)]):
+            top = 0 if tall else 1
+            for y in range(top, 4):
+                span = (y - top) // (1 if tall else 2)
+                for i in range(span + 1):
+                    px[(ex + d * i, y)] = "f"
+            px[(ex + d, 3)] = sp.get("inner", "m")
+            if tall:
+                px[(ex + d, 2)] = sp.get("inner", "m")
+            if sp.get("tips"):
+                px[(ex, top)] = sp["tips"]
+    elif ears == "round":
+        for (ex, ey) in ([(5, 3)] if side else [(3.6, 3.4), (11.4, 3.4)]):
+            _ell(px, ex, ey, 1.6, 1.5, "F")
+            px[(int(round(ex)), int(round(ey)))] = sp.get("inner", "F")
+    elif ears == "tiny":
+        for ex in ([5] if side else [4, 11]):
+            px[(ex, 3)] = "F"; px[(ex, 2)] = "F"
+    if sp.get("mane"):   # a ruff of fur framing the face
+        _ell(px, cx, 7.4, rx + 1.4, 4.4, "F")
+    _ell(px, cx, 7, rx, ry, "f")
+    shape = sp.get("shape")
+    if shape == "box":   # flatter, squarer head
+        for y in range(4, 11):
+            for x in range(int(cx - rx + 0.5), int(cx + rx + 0.5) + 1):
+                px[(x, y)] = "f"
+    if shape == "dome":   # robot: a rounded box with an antenna
+        for y in range(3, 11):
+            for x in range(3, 13) if not side else range(3, 12):
+                px[(x, y)] = "f"
+        ax = 7 if not side else 6
+        px[(ax, 1)] = "y"; px[(ax, 2)] = "F"
+    for (x, y) in list(px):   # shade the lower right of the head
+        if px[(x, y)] == "f" and (x >= cx + rx - 1.2 or y >= 10):
+            px[(x, y)] = "F"
+    for (x, y) in [(int(cx - 2), 4), (int(cx - 1), 4)]:
+        if px.get((x, y)) == "f":
+            px[(x, y)] = "l"
+    if sp.get("crown") and view != "up":
+        for x in range(int(cx) - 1, int(cx) + 2):
+            px[(x, 3)] = "y"; px[(x, 4)] = "y"
+    if sp.get("crown") and view == "up":
+        for x in range(int(cx) - 1, int(cx) + 2):
+            px[(x, 3)] = "y"
+    if view == "up":
+        if sp.get("back"):
+            sp["back"](px)
+        return _rows(_outline(px, 16, 12))
+    m = sp.get("muzzle")
+    if side:
+        e = (9, 7)
+        if m in ("mid", "long", "blunt", "flat", "beak"):
+            reach = {"long": 3, "mid": 2, "blunt": 2, "flat": 1, "beak": 3}[m]
+            for x in range(10, 11 + reach):
+                for y in range(8, 11 if m != "beak" else 10):
+                    if m == "long" and y == 10 and x > 11:
+                        continue
+                    px[(x, y)] = "x" if m == "beak" else "m"
+            if m != "beak":
+                px[(10 + reach, 8)] = "n"
+            if m == "blunt":
+                for y in range(7, 11):
+                    px[(12, y)] = "m"
+                px[(12, 8)] = "n"
+        if sp.get("face"):
+            for y in range(6, 11):
+                for x in range(8, 12):
+                    if (x, y) in px and px[(x, y)] in "fFl":
+                        px[(x, y)] = "m"
+        if m == "visor":
+            for x in range(8, 12):
+                px[(x, 6)] = "x"; px[(x, 7)] = "x"
+            px[(10, 7)] = "y"; e = None
+        if e:
+            px[e] = "e"
+        if sp.get("mark") == "mask" and e:
+            px[(8, 7)] = "z"; px[(8, 6)] = "z"
+        if sp.get("mark") == "stripe" and e:
+            px[(8, 8)] = "z"; px[(8, 7)] = "z"
+        if sp.get("mark") == "spect" and e:
+            px[(10, 6)] = "m"; px[(8, 7)] = "m"
+        if sp.get("mark") == "flick":
+            px[(10, 6)] = "x"; px[(11, 6)] = "x"
+        if sp.get("cheeks"):
+            for y in range(6, 10):
+                px[(4, y)] = "F"
+        return _rows(_outline(px, 16, 12))
+    # facing the viewer
+    eyes = [(5, 7), (10, 7)]
+    if sp.get("face"):   # a lighter face disc (sloth, orangutan, gelada)
+        _ell(px, 7.5, 7.6, 3.2, 2.9, "m", only=set(px))
+    if m == "mid":
+        _ell(px, 7.5, 9.4, 2.6, 1.5, "m")
+        px[(7, 8)] = "n"; px[(8, 8)] = "n"
+    elif m == "long":
+        for (x, y) in [(6, 9), (7, 9), (8, 9), (9, 9), (7, 10), (8, 10)]:
+            px[(x, y)] = "m"
+        for x in (3, 4, 11, 12):
+            px[(x, 9)] = "m"
+        px[(7, 9)] = "n"; px[(8, 9)] = "n"
+    elif m == "blunt":
+        for y in (8, 9, 10):
+            for x in range(5, 11):
+                px[(x, y)] = "m"
+        for x in (6, 9):
+            px[(x, 8)] = "n"
+    elif m == "flat":
+        _ell(px, 7.5, 9.3, 1.8, 1.2, "m")
+        px[(7, 9)] = "n"; px[(8, 9)] = "n"
+    elif m == "beak":   # a short olive beak over a black throat
+        for (x, y) in [(5, 10), (6, 10), (9, 10), (10, 10), (6, 9), (9, 9)]:
+            px[(x, y)] = "z"
+        for (x, y) in [(7, 8), (8, 8), (7, 9), (8, 9), (7, 10), (8, 10)]:
+            px[(x, y)] = "x"
+    elif m == "visor":
+        for x in range(4, 12):
+            px[(x, 6)] = "x"; px[(x, 7)] = "x"
+        eyes = []
+        px[(5, 7)] = "y"; px[(10, 7)] = "y"; px[(6, 7)] = "y"; px[(9, 7)] = "y"
+        for x in (6, 7, 8, 9):
+            px[(x, 9)] = "z"
+    mk = sp.get("mark")
+    if mk == "mask":
+        for x in range(3, 13):
+            if px.get((x, 7)) in ("f", "F", "l"):
+                px[(x, 7)] = "z"
+        for (x, y) in [(4, 8), (11, 8)]:
+            px[(x, y)] = "z"
+    if mk == "spect":   # cream rings arching over the eyes
+        for (ex, ey) in eyes:
+            for (dx, dy) in ((-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0)):
+                px[(ex + dx, ey + dy)] = "m"
+    if mk == "stripe":
+        for (ex, ey), d in zip(eyes, (-1, 1)):
+            px[(ex + d, ey)] = "z"; px[(ex + d, ey + 1)] = "z"; px[(ex + 2 * d, ey + 1)] = "z"
+    if mk == "flick":
+        for (ex, ey), d in zip(eyes, (-1, 1)):
+            px[(ex + d, ey - 1)] = "x"; px[(ex + 2 * d, ey - 1)] = "x"
+    if sp.get("cheeks"):   # orangutan cheek pads
+        for y in range(6, 10):
+            px[(2, y)] = "F"; px[(13, y)] = "F"
+    for (ex, ey) in eyes:
+        px[(ex, ey)] = "e"
+    if sp.get("blush"):
+        px[(4, 9)] = sp["blush"]; px[(11, 9)] = sp["blush"]
+    return _rows(_outline(px, 16, 12))
+
+
+def _rows(px):
+    return ["".join(px.get((x, y), ".") for x in range(16)) for y in range(12)]
+
+
+def _tail(rows, kind):
+    """Add a tail to a side-view frame (the farmer faces right, so it goes on the left)."""
+    if not kind:
+        return rows
+    g = {(x, y): ch for y, r in enumerate(rows) for x, ch in enumerate(r) if ch != "."}
+    add = {}
+    shapes = {
+        "curl": [(3, 14), (2, 14), (2, 13), (3, 12), (4, 12), (2, 15), (3, 15)],
+        "bushy": [(3, 15), (2, 15), (3, 16), (2, 16), (1, 16), (2, 17), (1, 17), (0, 17), (1, 18), (2, 18), (0, 18), (1, 19)],
+        "ring": [(3, 16), (2, 16), (2, 17), (1, 17), (1, 18), (2, 18), (1, 19)],
+        "thin": [(3, 17), (2, 18), (2, 19), (1, 20), (1, 21)],
+    }
+    for i, q in enumerate(shapes[kind]):
+        if q not in g:
+            add[q] = "t" if not (kind == "ring" and i % 2) and not (kind == "bushy" and i >= 10) else "u"
+    merged = dict(g); merged.update(add)
+    for (x, y) in list(add):
+        for (dx, dy) in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            q = (x + dx, y + dy)
+            if 0 <= q[0] < 16 and 0 <= q[1] < len(rows) and q not in merged:
+                merged[q] = "O"
+    return ["".join(merged.get((x, y), ".") for x in range(16)) for y in range(len(rows))]
+
+
+CHARS = {
+    # id: name, home, crane price, head spec, palette (fur, shade, light, muzzle, nose, eye, accents), hands, feet, tail
+    "shiba":    ("Shiba", "the farm", 40, {"ears": "point", "muzzle": "mid", "inner": "m", "blush": None},
+                 {"f": "#E89048", "F": "#C46C30", "l": "#F8B070", "m": "#FFF4E4", "n": "#2E1E18", "e": "#2E1E18"}, ("#FFF4E4", "#E8D6BC"), "#C46C30", "curl", "#E89048", "#FFF4E4"),
+    "capybara": ("Capybara", "Brazil", 40, {"ears": "tiny", "muzzle": "blunt", "shape": "box", "rx": 4.8},
+                 {"f": "#B07A4C", "F": "#8A5A34", "l": "#C8966A", "m": "#9A6840", "n": "#3A2618", "e": "#2E1E18"}, ("#9A6840", "#8A5A34"), "#5A3A22", None, "#B07A4C", "#8A5A34"),
+    "bear":     ("Spectacled bear", "Colombia", 50, {"ears": "round", "muzzle": "flat", "mark": "spect"},
+                 {"f": "#3A2E2A", "F": "#241C1A", "l": "#54443E", "m": "#E8D2A0", "n": "#140E0C", "e": "#140E0C"}, ("#3A2E2A", "#241C1A"), "#241C1A", None, "#3A2E2A", "#241C1A"),
+    "gelada":   ("Gelada", "Ethiopia", 50, {"ears": None, "muzzle": "flat", "mane": True, "face": True},
+                 {"f": "#A87A4C", "F": "#7A5434", "l": "#C49A6A", "m": "#4A3428", "n": "#2A1C14", "e": "#F2C42C"}, ("#4A3428", "#3A281E"), "#3A281E", "thin", "#A87A4C", "#7A5434"),
+    "orangutan": ("Orangutan", "Sumatra", 60, {"ears": None, "muzzle": "flat", "face": True, "cheeks": True},
+                 {"f": "#D8662C", "F": "#A84A1C", "l": "#F08A44", "m": "#8A5A3A", "n": "#3A2216", "e": "#1E120C"}, ("#D8662C", "#A84A1C"), "#8A5A3A", None, "#D8662C", "#A84A1C"),
+    "sloth":    ("Sloth", "Costa Rica", 60, {"ears": None, "muzzle": "flat", "face": True, "mark": "stripe"},
+                 {"f": "#9A8466", "F": "#76644C", "l": "#B8A484", "m": "#EADCC0", "n": "#2E241C", "e": "#2E241C", "z": "#4A3A2C"}, ("#9A8466", "#76644C"), "#4A3A2C", None, "#9A8466", "#76644C"),
+    "tanuki":   ("Tanuki", "Japan", 80, {"ears": "round", "muzzle": "mid", "mark": "mask"},
+                 {"f": "#9A7A5A", "F": "#6E5440", "l": "#B8987A", "m": "#F2E6D2", "n": "#1E1612", "e": "#F8F0E0", "z": "#2E241E"}, ("#2E241E", "#1E1612"), "#2E241E", "ring", "#9A7A5A", "#2E241E"),
+    "kitsune":  ("Kitsune", "Osaka", 100, {"ears": "tall", "muzzle": "long", "mark": "flick", "inner": "x", "tips": "x"},
+                 {"f": "#FBF6EA", "F": "#DCD2BE", "l": "#FFFFFF", "m": "#FFFFFF", "n": "#2E1E18", "e": "#B8202C", "x": "#D8302C"}, ("#FBF6EA", "#DCD2BE"), "#D8302C", "bushy", "#FBF6EA", "#D8302C"),
+    "robot":    ("Brew-bot", "the roastery", 120, {"ears": None, "muzzle": "visor", "shape": "dome"},
+                 {"f": "#B8C4CC", "F": "#8A98A4", "l": "#E4ECF0", "m": "#B8C4CC", "n": "#2E3A44", "e": "#2E3A44", "x": "#2E3A44", "y": "#7AE8F0", "z": "#5A6874"}, ("#8A98A4", "#5A6874"), "#5A6874", None, "#B8C4CC", "#8A98A4"),
+    "crane":    ("Tsuru", "Beju", 200, {"ears": None, "muzzle": "beak", "crown": True},
+                 {"f": "#FFFFFF", "F": "#DCD8D0", "l": "#FFFFFF", "m": "#FFFFFF", "n": "#2E2A28", "e": "#1E1A18", "x": "#A8A878", "y": "#D8302C", "z": "#2E2A28"}, ("#2E2A28", "#1E1A18"), "#2E2A28", None, "#FFFFFF", "#DCD8D0"),
+}
+CHAR_INFO = {}
+for cid, (name, home, cost, sp, hp, hands, feet, tail, tcol, tcol2) in CHARS.items():
+    pal = dict(WORK)
+    pal.update({"f": hp["f"], "F": hp["F"], "l": hp["l"], "m": hp["m"], "n": hp["n"], "e": hp["e"], "w": "#FFFFFF",
+                "x": hp.get("x", hp["F"]), "y": hp.get("y", hp["F"]), "z": hp.get("z", hp["F"]), "t": tcol, "u": tcol2,
+                "s": hands[0], "S": hands[1], "b": feet})
+    down, up, sd = char_head(sp, "down"), char_head(sp, "up"), char_head(sp, "side")
+    for f in range(3):
+        add_grid("chr_%s_down_%d" % (cid, f), down + BODY + LEGS[f], pal)
+        add_grid("chr_%s_up_%d" % (cid, f), up + BODY + LEGS[f], pal)
+    for f in range(2):
+        add_grid("chr_%s_side_%d" % (cid, f), _tail(sd + SIDE_BODY + SIDE_LEGS[f], tail), pal)
+    CHAR_INFO[cid] = {"name": name, "from": home, "cost": cost, "aura": None}
+
+
 SHRUBS = [(bx + 6 + c * 18, by + r * 17) for (bx, by) in BEDS[:3] for r in range(2) for c in range(4)]
 with open(os.path.join(HERE, "sprites.json"), "w") as f:
-    json.dump({"sprites": S, "shirts": SHIRTS, "shrubs": SHRUBS, "locations": LOCATIONS, "storage": STORAGE, "carry": CARRY, "hats": HATS, "buildings": BUILDINGS, "stampColors": STAMP_COLORS, "beds": BEDS,
+    json.dump({"sprites": S, "shirts": SHIRTS, "shrubs": SHRUBS, "locations": LOCATIONS, "storage": STORAGE, "carry": CARRY, "hats": HATS, "buildings": BUILDINGS, "chars": CHAR_INFO, "bskins": BSKIN_INFO, "stampColors": STAMP_COLORS, "beds": BEDS,
                "varieties": {k: v[0] for k, v in VARIETIES.items()}}, f, separators=(",", ":"))
 
 # sheet of non-shrub sprites
