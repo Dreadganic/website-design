@@ -90,6 +90,23 @@ const SFX = (function () {
       [0, 4, 7, 12, 16, 19, 24].forEach((s, i) => harp(t + 1.26 + i * 0.055, n(s + 12), 0.07));
       bell(t + 1.7, n(36), 0.05, 0.9);
     },
+    prestige(t) {   /* the prestige anthem: a drum roll and cymbal swell, a full horn chord, a heroic climb and a big bVI-bVII-I finish */
+      const n = (s) => 261.63 * Math.pow(2, s / 12);
+      for (let i = 0; i < 16; i++) timpani(t + i * 0.07, 0.05 + i * 0.016);
+      hiss(t, { type: 'highpass', f: 5000, gain: 0.2, dur: 1.25, attack: 1.15 });
+      const hit = t + 1.15;
+      [-12, 0, 4, 7, 12].forEach((s) => brass(hit, n(s), 0.55, s === 12 ? 0.07 : 0.05)); timpani(hit, 0.35);
+      hiss(hit, { type: 'highpass', f: 3500, gain: 0.3, dur: 1.6, verb: true });
+      [[7, 0.6, 0.14], [12, 0.76, 0.14], [16, 0.92, 0.14], [19, 1.08, 0.5], [21, 1.62, 0.14], [19, 1.78, 0.14], [16, 1.94, 0.45]].forEach(([s, d, len]) => brass(hit + d, n(s), len, 0.075));
+      const cad = hit + 2.5;
+      [[[-4, 0, 3, 8], 0], [[-2, 2, 5, 10], 0.42]].forEach(([ch, d]) => { ch.forEach((s) => brass(cad + d, n(s), 0.4, 0.045)); timpani(cad + d, 0.25); });
+      const fin = cad + 0.84;
+      [-12, -5, 0, 4, 7, 12, 16, 24].forEach((s) => brass(fin, n(s), 1.8, s >= 12 ? 0.06 : 0.045));
+      [0, 0.07, 0.14, 0.21].forEach((d) => timpani(fin + d, 0.3));
+      hiss(fin, { type: 'highpass', f: 3000, gain: 0.32, dur: 2.4, verb: true });
+      [0, 4, 7, 12, 16, 19, 24, 28, 31, 36].forEach((s, i) => harp(fin + 0.05 + i * 0.045, n(s + 12), 0.06));
+      [36, 43, 48].forEach((s, i) => bell(fin + 0.5 + i * 0.22, n(s), 0.05, 1.4));
+    },
     coins(t, p, n) { for (let i = 0; i < (n || 5); i++) S.xp(t + i * R(0.055, 0.09), p * R(0.97, 1.03)); },
     levelup(t, p) { [1046, 1318, 1568, 2093].forEach((f, i) => bell(t + i * 0.1, f * p, 0.14, 0.7)); [0.45, 0.55].forEach((d) => bell(t + d, 2637 * p, 0.06, 0.6)); },
     achieve(t, p) { bell(t, 1318 * p, 0.12, 0.6); bell(t + 0.12, 1975 * p, 0.12, 0.9); tone(t, { f: 659 * p, gain: 0.05, dur: 1.0, attack: 0.08, verb: true }); },

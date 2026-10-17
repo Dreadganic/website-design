@@ -222,7 +222,7 @@ return {
   setEnabled(v) { enabled = !!v; if (!ac) return; if (!enabled) { clearInterval(timer); timer = null; } else if (playing && !paused && !timer) run(step); applyMix(); },
   pause() { paused = true; if (timer) { clearInterval(timer); timer = null; } applyMix(); },
   resume() { paused = false; if (ac && playing && enabled && !timer) run(step); applyMix(); },
-  duck() { if (!ac || !enabled || !playing) return; const t = ac.currentTime; master.gain.cancelScheduledValues(t); master.gain.setValueAtTime(master.gain.value, t); master.gain.linearRampToValueAtTime(volume * 0.5, t + 0.06); master.gain.setValueAtTime(volume * 0.5, t + 0.5); master.gain.linearRampToValueAtTime(volume, t + 1.3); },
+  duck(hold, depth) { if (!ac || !enabled || !playing) return; hold = hold || 0.5; depth = depth || 0.5; const t = ac.currentTime; master.gain.cancelScheduledValues(t); master.gain.setValueAtTime(master.gain.value, t); master.gain.linearRampToValueAtTime(volume * depth, t + 0.06); master.gain.setValueAtTime(volume * depth, t + hold); master.gain.linearRampToValueAtTime(volume, t + hold + 0.8); },   /* lower the music under a big sound for `hold` seconds */
   bpm, placed,
   startedAt: () => startedAt,
   time: () => (ac ? ac.currentTime : 0),

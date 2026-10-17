@@ -111,6 +111,30 @@ button, a.btn, [data-act], [data-tab] { touch-action: manipulation; -webkit-tap-
 .gstep { font: 700 12px 'Pixelify Sans', monospace; background: #F2C04A; color: #3E2A1C; border-radius: 6px; padding: 1px 6px; flex: none; }
 .gtext { flex: 1; min-width: 0; }
 .gskip { border: 0; background: transparent; color: #CDE8D6; font: inherit; font-size: 12px; text-decoration: underline; cursor: pointer; flex: none; }
+/* the prestige ceremony: a full-screen moment, timed to the anthem */
+.pcer { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; overflow: hidden; background: radial-gradient(circle at 50% 42%, #4A3418 0%, #1E140A 70%); color: #FFF4DE; text-align: center; padding: env(safe-area-inset-top, 0px) max(16px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(16px, env(safe-area-inset-left, 0px)); }
+.pcer canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.pc-rays { position: absolute; left: 50%; top: 42%; width: 220vmax; height: 220vmax; margin: -110vmax 0 0 -110vmax; background: repeating-conic-gradient(from 0deg, rgba(255,226,122,0.16) 0 6deg, transparent 6deg 18deg); opacity: 0; animation: pcfade 0.6s 1.1s forwards, pcspin 24s linear infinite; }
+.pc-flash { position: absolute; inset: 0; background: #FFFFFF; opacity: 0; animation: pcflash 0.9s 1.12s ease-out; pointer-events: none; }
+.pc-body { position: relative; display: flex; flex-direction: column; align-items: center; gap: 10px; max-width: 360px; }
+.pc-kicker { font: 700 13px/1 "Pixelify Sans", monospace; letter-spacing: 0.3em; color: #F2C04A; opacity: 0; animation: pcfade 0.5s 0.2s forwards; }
+.pc-num { font: 700 64px/1 "Pixelify Sans", monospace; color: #FFE27A; text-shadow: 0 0 18px rgba(242,192,74,0.9), 0 4px 0 #6A4A10; opacity: 0; transform: scale(0.2); animation: pcslam 0.5s 1.15s cubic-bezier(.2,1.6,.4,1) forwards; }
+.pc-crest { opacity: 0; transform: scale(0) rotate(-200deg); animation: pccrest 0.9s 1.3s cubic-bezier(.2,1.3,.4,1) forwards; filter: drop-shadow(0 0 16px rgba(255,226,122,0.9)); }
+.pc-tier { font: 700 26px/1.1 "Pixelify Sans", monospace; letter-spacing: 0.04em; opacity: 0; animation: pcup 0.6s 2.0s forwards; }
+.pc-plate { opacity: 0; animation: pcup 0.6s 2.3s forwards; }
+.pc-plate .plate { font-size: 16px; padding: 4px 12px; }
+.pc-sub { font-size: 14px; color: #E8D8B8; opacity: 0; animation: pcup 0.6s 2.7s forwards; }
+.pc-sub b { color: #FFE27A; }
+.pc-go { opacity: 0; animation: pcup 0.5s 3.4s forwards; margin-top: 6px; }
+.shake { animation: pcshake 0.5s 1.15s; }
+@keyframes pcfade { to { opacity: 1; } }
+@keyframes pcspin { to { transform: rotate(360deg); } }
+@keyframes pcflash { 0% { opacity: 0.95; } 100% { opacity: 0; } }
+@keyframes pcslam { to { opacity: 1; transform: scale(1); } }
+@keyframes pccrest { to { opacity: 1; transform: scale(1) rotate(0deg); } }
+@keyframes pcup { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes pcshake { 0%, 100% { transform: none; } 20% { transform: translate(-6px, 3px); } 40% { transform: translate(5px, -4px); } 60% { transform: translate(-4px, 2px); } 80% { transform: translate(3px, -1px); } }
+@media (prefers-reduced-motion: reduce) { .pc-rays, .pc-flash, .shake { animation: none !important; } .pc-rays { opacity: 1; } .pc-kicker, .pc-num, .pc-crest, .pc-tier, .pc-plate, .pc-sub, .pc-go { animation: none !important; opacity: 1; transform: none; } }
 .garrow { position: fixed; z-index: 30; width: 22px; height: 22px; pointer-events: none; background: #F2C04A; clip-path: polygon(0 0, 100% 0, 50% 100%); filter: drop-shadow(0 0 2px #3E2A1C) drop-shadow(0 2px 0 #3E2A1C); animation: gbob 0.8s ease-in-out infinite; }
 @keyframes gbob { 50% { transform: translateY(6px); } }
 .coach { display: flex; gap: 10px; align-items: flex-start; text-align: left; }
@@ -239,6 +263,7 @@ canvas.hint { transform: none !important; }
   </div>
   <div class="guide" id="guide" hidden></div>
   <div class="garrow" id="garrow" hidden aria-hidden="true"></div>
+  <div class="pcer" id="pcer" hidden role="dialog" aria-modal="true" aria-label="Prestige"></div>
 
   <div class="tabs" role="tablist" id="tabs"></div>
   <div class="card panel" id="panel"></div>
@@ -705,7 +730,7 @@ function tick(dt) {
   tickMe(d);
   if (fireworks > 0) {   /* level-up fireworks: coloured bursts popping over your farmer */
     fireworks -= dt; fwT -= dt;
-    if (fwT <= 0) { fwT = 0.22; const cx = me.x + (rnd() - 0.5) * 30, cy = me.y - 34 - rnd() * 16, col = ['#F2C04A', '#E83A30', '#7ED0A8', '#F8B8CC', '#7890E0', '#FFFFFF'][Math.floor(rnd() * 6)];
+    if (fwT <= 0) { fwT = fireworks > 2 ? 0.1 : 0.22; const cx = me.x + (rnd() - 0.5) * 30, cy = me.y - 34 - rnd() * 16, col = ['#F2C04A', '#E83A30', '#7ED0A8', '#F8B8CC', '#7890E0', '#FFFFFF'][Math.floor(rnd() * 6)];
       for (let i = 0; i < 14; i++) { const a = i / 14 * 6.283, v = 30 + rnd() * 20; bursts.push({ x: cx, y: cy, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 20, t: 0, c: i % 3 ? col : '#FFF4B0' }); } }
   }
   contractsTick();
@@ -1060,6 +1085,29 @@ function prestige() {
   const asleep = Object.keys(S.dormant);
   showModal(avatar(S.look, 64) + '<h2>Prestige ' + S.prestige + '</h2>' + plate(S.name, S.look.crest, starsFor(S.prestige)) + '<p class="note">' + (S.prestige < TIERS.length ? 'New crest: <b>' + TIERS[t] + '</b>. Its nameplate and border are yours and already on.' : 'You are past the top tier: every prestige adds a star to your name.') + '</p>' + skinPicker() +
     (asleep.length ? '<p class="note">' + asleep.map((l) => ART.locations[l].name.split(',')[0] + ' wakes at level ' + S.dormant[l]).join(', ') + '. Brazil and Osaka stay open.</p>' : '') + '<button class="btn green" data-act="close">Back to the farm</button>');
+}
+function prestigeCeremony(rankBefore, rankAfter, players) {
+  const t = tierOf(S.prestige), el = $('pcer'), top = S.prestige >= TIERS.length;
+  const above = Math.max(0, rankBefore - rankAfter);
+  el.innerHTML = '<div class="pc-rays"></div><canvas id="pcconf"></canvas><div class="pc-flash"></div><div class="pc-body shake"><span class="pc-kicker">PRESTIGE</span><span class="pc-num">' + S.prestige + '</span>' +
+    '<span class="pc-crest">' + avatar(S.look, 128) + '</span><span class="pc-tier" style="color:' + TAG_COLOR[t] + '">' + (top ? TIERS[t] + ' ' + '★'.repeat(Math.min(5, starsFor(S.prestige))) : TIERS[t]) + '</span>' +
+    '<span class="pc-plate">' + plate(S.name, S.look.crest, starsFor(S.prestige)) + '</span>' +
+    '<span class="pc-sub">' + (top ? 'Another star on your name.' : 'New crest unlocked and already on.') + (above > 0 ? '<br>You climbed <b>' + above + ' place' + (above === 1 ? '' : 's') + '</b> to <b>#' + rankAfter + '</b> of ' + players + ' on the all-time board.' : '<br>You are <b>#' + rankAfter + '</b> of ' + players + ' on the all-time board.') + '</span>' +
+    '<button class="btn green pc-go" data-act="pcer">' + (S.skinPicks ? 'Choose your new outfit' : 'Back to the farm') + '</button></div>';
+  el.hidden = false;
+  SFX.play('prestige'); Cozy.duck(5.5, 0.1); fireworks = 6;
+  const cv2 = $('pcconf'), cx = cv2.getContext('2d'), cols = ['#F2C04A', '#FFE27A', '#FFFFFF', TAG_COLOR[t], '#E83A30', '#7ED0A8'];
+  cv2.width = innerWidth; cv2.height = innerHeight;
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const bits = [], start = performance.now();
+  (function frame(now) {
+    if (el.hidden) return;
+    const e = (now - start) / 1000;
+    if (e > 1.15 && e < 6) for (let i = 0; i < (e < 1.6 ? 14 : 4); i++) bits.push({ x: Math.random() * cv2.width, y: e < 1.6 ? cv2.height * 0.42 : -10, vx: (Math.random() - 0.5) * (e < 1.6 ? 900 : 60), vy: e < 1.6 ? -300 - Math.random() * 500 : 60 + Math.random() * 90, r: Math.random() * 6.3, s: 3 + Math.random() * 4, c: cols[Math.floor(Math.random() * cols.length)] });
+    cx.clearRect(0, 0, cv2.width, cv2.height);
+    for (let i = bits.length - 1; i >= 0; i--) { const b = bits[i]; b.vy += 420 / 60; b.vx *= 0.985; b.x += b.vx / 60; b.y += b.vy / 60; b.r += 0.1; if (b.y > cv2.height + 20) { bits.splice(i, 1); continue; } cx.fillStyle = b.c; cx.fillRect(b.x, b.y, b.s, b.s * Math.abs(Math.cos(b.r))); }
+    if (e < 9 || bits.length) requestAnimationFrame(frame);
+  })(start);
 }
 function wakeFarms() {
   Object.keys(S.dormant).forEach((l) => { if (level() >= S.dormant[l]) { delete S.dormant[l]; toast(ART.locations[l].name + ' is open again'); SFX.play('achieve'); } });
@@ -1424,6 +1472,7 @@ document.addEventListener('click', (e) => {
   const [a, v] = b.dataset.act.split(':');
   const f = S.farms[S.loc];
   if (a === 'close') { SFX.play('close'); closeModal(); return; }
+  if (a === 'pcer') { SFX.play('page'); $('pcer').hidden = true; return; }
   const wallet = S.coins + S.points + S.cranes, decorOwned = S.decor[v] !== undefined;
   setTimeout(() => {   /* sound for the action, once its effect is known */
     const spent = S.coins + S.points + S.cranes < wallet;
@@ -1472,7 +1521,7 @@ document.addEventListener('click', (e) => {
     showModal('<h2>Prestige ' + (S.prestige + 1) + '?</h2><p class="note"><b>You keep</b> coins, cranes, every upgrade, building, manager, variety, process, decoration, hat, outfit and background.</p><p class="note"><b>You lose</b> your level and ' + fmt(S.points) + ' unspent know-how' + (asleep.length ? ', and ' + asleep.map((l) => ART.locations[l].name.split(',')[0]).join(', ') + (asleep.length > 1 ? ' go' : ' goes') + ' dormant until you level back up' : '') + '.</p><p class="note">You gain ' + (S.prestige + 1 < TIERS.length ? 'the ' + TIERS[S.prestige + 1] + ' crest (nameplate and border)' : 'a star on your name') + (SKINS.some((sk, i) => !S.skins[i]) ? ', you pick one new outfit' : '') + ', and you jump above everyone on prestige ' + S.prestige + '.</p>' + btn('Prestige now', '', 'prestige', true, 'green') + '<button class="btn" data-act="close">Not yet</button>');
     return;
   }
-  else if (a === 'prestige') { $('modal').hidden = true; prestige(); SFX.play('levelup'); SFX.play('achieve'); setTimeout(() => { NET.lastScore = ''; submitScore(); cloudSync(true); }, 500); }
+  else if (a === 'prestige') { $('modal').hidden = true; const allB = board('all'), rb = allB.findIndex((x) => x.you) + 1; prestige(); const allA = board('all'), ra = allA.findIndex((x) => x.you) + 1; prestigeCeremony(rb, ra, allA.length); setTimeout(() => { NET.lastScore = ''; submitScore(); cloudSync(true); }, 500); }
   else if (a === 'cloudLoad') { if (NET.pending) { S = NET.pending; NET.pending = null; save(); location.reload(); } }
   else if (a === 'crest') { if (+v <= tierOf(S.prestige)) S.look.crest = +v; }
   else if (a === 'skin') { if (S.skins[+v]) S.look.skin = +v; }
