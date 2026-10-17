@@ -70,3 +70,10 @@ Pacing: costs start cheap and climb steeply (pickers ×1.5 each from 150 coins, 
 - `audio/soundboard.html`: plays every effect; publish it with `sfx.js` alongside.
 - In the game: harvest, brush, knock (storage full), nope (no hearts), thud (picker drop-off), woof, dig (replant), pour/splash (start a lot), ding (lot dry), coins/xp (sales), click/tick (tabs), page/close (windows), buy, build, hire, stamp/contract, crane, achieve, levelup. A speaker button on the farm view turns them off.
 - Music in the game: each farm plays its own theme, open or not, night versions from 7 pm to 6 am on the farm clock, a dip under big sound effects, pause when the page is hidden, a music button beside the sound button and a volume choice in the Test tab. `play/build.py` inlines `music.js` and `cozy.js`; the game plays the cozy versions.
+
+## Prestige and leaderboard (Ranks tab)
+- **Ranking:** prestige first, then level, then points (this run's XP). One more prestige always beats any level or points total, so banking points never helps.
+- **Prestige** at level 10. Kept: coins, cranes, upgrades, buildings, staff, varieties, processes, decor, hats and looks. Lost: level, unspent points. Farms other than Mogiana and Osaka go dormant (no growth or picking) and reopen at level 3 (Huila), 5 (Gedeo), 7 (Toba) and 9 (Turrialba). Prestige gives no gameplay bonus (the old +10% "harvest year" perk is gone; old harvest years were converted to prestiges).
+- **Tiers:** Seedling, Bronze Bean, Silver Leaf, Gold Cherry, Jade Highland, Sakura, Obsidian Ember, Golden Crane, then a star per extra prestige. Each unlocks a nameplate (CSS), an avatar border (animated from Gold up) and a regional farmer outfit (palette swap of the worker sprite; the top four add an aura of leaves, petals, embers or gold). Any unlocked piece can be mixed and matched.
+- **Your farmer** walks the farm wearing your outfit, with a name tag in your tier's colour. Tap them to open Ranks.
+- The other 30 players on the board are simulated until the app has a server.

@@ -45,8 +45,8 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-
 .day { width: 38px; height: 38px; border-radius: 19px; background: var(--paper); border: 3px solid var(--edge); display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; box-shadow: 0 2px 0 var(--ink); }
 .day small { font-size: 8px; color: var(--muted); font-weight: 600; } .day b { font-size: 16px; }
 .toast { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); max-width: 92%; padding: 8px 12px; background: var(--paper); border: 3px solid var(--edge); border-radius: 10px; font-size: 15px; text-align: center; box-shadow: 0 3px 0 #1E140C; pointer-events: none; }
-.tabs { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
-.tab { height: 46px; border: 3px solid var(--edge); border-radius: 8px; background: var(--paper-2); color: var(--ink); font-size: 12px; font-weight: 700; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; position: relative; }
+.tabs { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
+.tab { height: 46px; border: 3px solid var(--edge); border-radius: 8px; background: var(--paper-2); color: var(--ink); font-size: 10.5px; letter-spacing: -0.02em; padding: 0 1px; min-width: 0; overflow: hidden; font-weight: 700; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; position: relative; }
 .tab[aria-pressed="true"] { background: var(--gold); }
 .tab img { width: 18px; height: 18px; image-rendering: pixelated; }
 .tab .dot { position: absolute; top: 3px; right: 4px; width: 8px; height: 8px; border-radius: 4px; background: var(--cherry); border: 1px solid var(--ink); }
@@ -77,6 +77,49 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-
 .stamps .off { opacity: 0.25; filter: grayscale(1); }
 .modal { position: fixed; inset: 0; background: rgba(20,12,6,0.6); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 20; }
 .modal[hidden] { display: none; }
+.plate { display: inline-block; padding: 2px 8px; border: 2px solid; border-radius: 6px; font: 700 13px var(--pixel, 'Pixelify Sans'), monospace; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.p-seed { background: #EEE2C6; color: #5A4630; border-color: #B89A6A; }
+.p-bronze { background: linear-gradient(#ECAE72, #B06A34); color: #3A1E0C; border-color: #7A4420; }
+.p-silver { background: linear-gradient(#F6F8FA, #B4BCC6); color: #262C34; border-color: #7A8490; }
+.p-gold { background: linear-gradient(110deg, #F2C84A 0%, #FFF4B0 42%, #E8B830 58%, #F2C84A 100%); background-size: 260% 100%; animation: shine 3.2s linear infinite; color: #4A3208; border-color: #A87818; }
+.p-jade { background: linear-gradient(#8ED8B4, #2E8A64); color: #06261A; border-color: #1E6A48; box-shadow: 0 0 6px rgba(126,208,168,0.8); }
+.p-sakura { background: radial-gradient(circle at 20% 30%, #FFF 0 1.5px, transparent 2px), radial-gradient(circle at 70% 70%, #FFF 0 1.5px, transparent 2px), linear-gradient(#FFE4EE, #F0A0BC); color: #6A1E3A; border-color: #C86C8E; }
+.p-ember { background: linear-gradient(#2E2428, #14100E); color: #FFB070; border-color: #E8602A; animation: ember 1.6s ease-in-out infinite alternate; }
+.p-crane { background: linear-gradient(110deg, #FFF6D0, #F2C04A, #FFFFFF, #F2C04A, #FFF6D0); background-size: 300% 100%; animation: shine 2.4s linear infinite; color: #4A3208; border-color: #E8B830; box-shadow: 0 0 10px rgba(242,192,74,0.75); }
+.fr { position: relative; display: inline-grid; place-items: center; flex: none; border-radius: 12px; background: #FBF1DC; border: 3px solid var(--edge); overflow: hidden; }
+.fr img { image-rendering: pixelated; position: relative; z-index: 1; }
+.b-bronze { border-color: #B06A34; box-shadow: inset 0 0 0 2px #ECAE72; }
+.b-silver { border-color: #8A949E; box-shadow: inset 0 0 0 2px #F6F8FA, 0 0 0 2px #C8D0D8; }
+.b-gold { border-color: #E8B830; box-shadow: inset 0 0 0 2px #FFF4B0; }
+.b-gold::before, .b-crane::before { content: ''; position: absolute; inset: -40%; background: linear-gradient(110deg, transparent 40%, rgba(255,255,255,0.75) 50%, transparent 60%); animation: sweep 2.6s linear infinite; }
+.b-jade { border-color: #2E8A64; animation: pulse 2s ease-in-out infinite; }
+.b-sakura { border-color: #E68EAC; background: #FFF0F5; }
+.b-sakura::before, .b-sakura::after { content: ''; position: absolute; width: 4px; height: 3px; background: #F2A0BC; top: -6px; left: 20%; animation: petal 3s linear infinite; }
+.b-sakura::after { left: 65%; animation-delay: 1.4s; }
+.b-ember { border-color: #E8602A; background: #2A2024; animation: ember 1.4s ease-in-out infinite alternate; }
+.b-crane { border-color: #F2C04A; background: #FFF8E0; box-shadow: 0 0 10px rgba(242,192,74,0.9), inset 0 0 0 2px #FFFFFF; }
+@keyframes shine { to { background-position: -260% 0; } }
+@keyframes sweep { from { transform: translateX(-60%); } to { transform: translateX(60%); } }
+@keyframes pulse { 50% { box-shadow: 0 0 10px rgba(126,208,168,0.95); } }
+@keyframes ember { from { box-shadow: 0 0 4px rgba(232,96,42,0.5); } to { box-shadow: 0 0 12px rgba(255,140,60,0.95); } }
+@keyframes petal { from { transform: translate(0, 0) rotate(0); } to { transform: translate(8px, 72px) rotate(200deg); } }
+@media (prefers-reduced-motion: reduce) { .plate, .fr, .fr::before, .fr::after { animation: none !important; } }
+.me { display: flex; gap: 12px; align-items: center; }
+.me-t { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.looks { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.look { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 4px; border: 2px solid var(--edge); border-radius: 8px; background: var(--paper-2); cursor: pointer; min-width: 0; font: inherit; color: var(--ink); }
+.look[aria-pressed="true"] { background: var(--gold); }
+.look:disabled { opacity: 0.4; cursor: default; }
+.look small { font-size: 10px; font-weight: 700; color: var(--muted); }
+.look .plate { font-size: 10px; padding: 1px 4px; }
+.lb { display: flex; flex-direction: column; gap: 5px; }
+.lb-row { display: grid; grid-template-columns: 24px 44px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 5px 8px; border: 2px solid var(--edge); border-radius: 8px; background: var(--paper-2); }
+.lb-row.you { background: #FFF1C4; border-color: #A87818; }
+.lb-row .rk { text-align: center; font-size: 15px; }
+.lb-n { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.lb-s { display: flex; flex-direction: column; align-items: flex-end; font-size: 11px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.lb-s b { font-size: 14px; color: var(--ink); }
+#nameIn { flex: 1; min-width: 0; min-height: 36px; border: 2px solid var(--edge); border-radius: 6px; padding: 0 8px; font: 600 15px inherit; background: #FFFDF6; color: var(--ink); }
 .subtabs { position: sticky; top: 0; z-index: 2; }
 .subtabs button { flex: 1; position: relative; padding: 0 4px; }
 .subtabs .dot { position: absolute; top: 3px; right: 3px; margin: 0; }
@@ -191,6 +234,40 @@ const DECOR = {
   cart: { name: 'Coffee cart', cost: 25000, sub: 'A little Beju cart serving the pickers' }
 };
 const DECOR_AT = { bench: [[138, 96]], planter: [[179, 104]], lantern: [[91, 140], [91, 186]], flag: [[2, 86]], cart: [[154, 92]] };
+/* prestige: purely for show. It ranks you above everyone on a lower prestige, unlocks a nameplate, border and farmer outfit per tier,
+   and costs you level, points and access to farms until you level back up. Coins, upgrades and cosmetics are never touched. */
+const PRESTIGE_LEVEL = 10;
+const FARM_LEVEL = { huila: 3, gedeo: 5, toba: 7, turrialba: 9 };   /* dormant farms reopen at these levels after a prestige */
+const TIERS = ['Seedling', 'Bronze Bean', 'Silver Leaf', 'Gold Cherry', 'Jade Highland', 'Sakura', 'Obsidian Ember', 'Golden Crane'];
+const PLATES = ['seed', 'bronze', 'silver', 'gold', 'jade', 'sakura', 'ember', 'crane'];
+const SKINS = [
+  { name: 'Picker', from: 'the farm', shirt: ['#7890E0', '#4860C0', '#304090'], hat: ['#F4DE9C', '#D8B868', '#A88440'], pants: ['#5A6A86', '#3E4A64'] },
+  { name: 'Ruana', from: 'Colombia', shirt: ['#E8603A', '#C0402C', '#8A2A20'], hat: ['#F4ECDC', '#2E241C', '#1E1610'], pants: ['#4A3A2A', '#2E241C'] },
+  { name: 'Fazendeiro', from: 'Brazil', shirt: ['#F4F0E4', '#D8D0BC', '#A89C84'], hat: ['#E8C878', '#C8A050', '#2D6A46'], pants: ['#6A5A3A', '#4A3E28'] },
+  { name: 'Gabi shawl', from: 'Ethiopia', shirt: ['#FBF6EA', '#E2D8C0', '#3E8A3A'], hat: ['#F2C42C', '#3E8A3A', '#C8302C'], pants: ['#E2D8C0', '#B8AC90'] },
+  { name: 'Ulos weave', from: 'Lake Toba', shirt: ['#A8283A', '#7A1A28', '#E8B830'], hat: ['#2A1A18', '#A8283A', '#E8B830'], pants: ['#2A1A18', '#1A1010'], aura: 'leaf' },
+  { name: 'Rōnin roaster', from: 'Osaka', shirt: ['#3A4A8A', '#2A346A', '#1A2248'], hat: ['#C8A870', '#8A6A3A', '#5A4220'], pants: ['#2A2A3A', '#1A1A28'], aura: 'petal' },
+  { name: 'Ember roaster', from: 'the roastery', shirt: ['#2A2228', '#1A1418', '#E8602A'], hat: ['#3A2E2A', '#E8602A', '#F2C04A'], pants: ['#1A1418', '#0E0A0C'], aura: 'ember' },
+  { name: 'Crane master', from: 'Beju', shirt: ['#FFFFFF', '#E8E2D0', '#E8B830'], hat: ['#F2D060', '#E8B830', '#A87818'], pants: ['#F4ECDC', '#C8B890'], aura: 'gold' }
+];
+const TAG_COLOR = ['#FFF4DE', '#F0B07A', '#E4EAF0', '#FFE27A', '#9EF0C8', '#FFC4D8', '#FF9A5A', '#FFF0A0'];
+const tierOf = (p) => Math.min(p, TIERS.length - 1);
+const skinLook = (i) => ({ shirt: SKINS[i].shirt, hat: SKINS[i].hat, pants: SKINS[i].pants });
+/* the other players on the board (simulated until the app has a server) */
+const BOT_NAMES = ['mika.brews', 'kenji_pourover', 'hana.at.home', 'cafe_lucia', 'bean_samurai', 'pourover_pedro', 'tomo_roasts', 'aroma.amara', 'v60_vince', 'geisha_gabi', 'yuki.drip', 'marco_moka', 'sol_de_huila', 'chemex_chloe', 'riku.ristretto', 'nyala_coffee', 'barista.ben', 'kiko_kettle', 'mogiana_mae', 'dripdrop.dan', 'ayumi_aeropress', 'felipe_finca', 'sakura_sips', 'ruby_roastery', 'ole_espresso', 'lena_latte', 'sumatra_sam', 'koa_cupper', 'ivy.infuser', 'toba_terrace'];
+function bots() {
+  return BOT_NAMES.map((name, i) => {
+    let z = (i + 1) * 9301 + 49297; const r = () => { z = (z * 233280 + 49297) % 2147483647; return z / 2147483647; };
+    const p0 = [9, 8, 7, 6, 6, 5, 5, 4, 4, 4, 3, 3, 3, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0][(i * 7) % 30], rp = r() * 0.12, x0 = r() * XP_AT(16), rx = 400 + r() * 2600;
+    const prestige = p0 + Math.floor(S.day * rp), xp = (x0 + S.day * rx) % XP_AT(15);
+    let lv = 1; while (xp >= XP_AT(lv + 1)) lv++;
+    return { name, prestige, level: lv, points: Math.round(xp), look: { plate: tierOf(prestige), border: tierOf(prestige), skin: tierOf(prestige) } };
+  });
+}
+function board() {
+  const me = { name: S.name, prestige: S.prestige, level: level(), points: Math.round(S.xp), look: S.look, you: true };
+  return bots().concat([me]).sort((a, b) => b.prestige - a.prestige || b.level - a.level || b.points - a.points);
+}
 /* contracts */
 const BUYERS = ['Kissa Hoshi, Osaka', 'Mame Lab, Kyoto', 'Blue Door Café, Melbourne', 'Nordlys Roasters, Oslo', 'Café Solar, Bogotá', 'Little Crane Bakery', 'Hanami Coffee Stand', 'Beju Roastery', 'Beju Roastery'];
 const NATIVE_BOOST = 1.2;   /* a variety grows 20% faster on a farm where it is native */
@@ -236,6 +313,7 @@ function sprite(name, opt) {
   const s = ART.sprites[name], pal = Object.assign({}, s.pal);
   if (opt && opt.shirt) { pal.c = opt.shirt[0]; pal.C = opt.shirt[1]; pal.D = opt.shirt[2]; }
   if (opt && opt.hat) { pal.h = opt.hat[0]; pal.H = opt.hat[1]; pal.k = opt.hat[2]; }
+  if (opt && opt.pants) { pal.p = opt.pants[0]; pal.P = opt.pants[1]; }
   const c = document.createElement('canvas'); c.width = s.w; c.height = s.h;
   const x = c.getContext('2d'), img = x.createImageData(s.w, s.h);
   s.rows.forEach((r, y) => {
@@ -266,7 +344,7 @@ function fresh() {
     methods: { washed: true, natural: true }, vars: { caturra: true }, staff: { foreman: false, agent: false, rule: 'best' }, decor: {}, contracts: [], nextContract: 0, hat: 'straw', hats: { straw: true }, stamps: {},
     cherries: {}, lots: [], boosts: {}, minutes: 7 * 60 + 30, day: 1, taps: 0, year: 1, bonus: 0,
     tasks: null, weekly: { mine: 0, team: 1800, target: 4000, start: 1, claimed: false }, rewards: [], stats: { picked: 0, sold: 0, lotsSold: 0 },
-    farms: {}, intro: 0, seasonPick: 'auto', speed: 1, sfx: true, music: true, musicVol: 0.45, last: Date.now()
+    farms: {}, intro: 0, seasonPick: 'auto', speed: 1, sfx: true, music: true, musicVol: 0.45, prestige: 0, name: 'You', look: { plate: 0, border: 0, skin: 0 }, dormant: {}, last: Date.now()
   };
   LOCS.forEach((l) => { st.farms[l] = newFarm(l); });
   return st;
@@ -274,7 +352,9 @@ function fresh() {
 let S = load() || fresh();
 (function migrate() {   /* fields added after a save was made */
   const d = fresh();
-  ['staff', 'decor', 'contracts', 'nextContract', 'sfx', 'music', 'musicVol'].forEach((k) => { if (S[k] === undefined) S[k] = d[k]; });
+  if (S.prestige === undefined) S.prestige = Math.max(0, (S.year || 1) - 1);   /* old harvest years count as prestiges */
+  S.bonus = 0;   /* prestige no longer gives a gameplay bonus */
+  ['staff', 'decor', 'contracts', 'nextContract', 'sfx', 'music', 'musicVol', 'name', 'look', 'dormant'].forEach((k) => { if (S[k] === undefined) S[k] = d[k]; });
   LOCS.forEach((l) => { const f = S.farms[l]; if (!f.build) f.build = {}; if (f.manager === undefined) f.manager = null; });
 })();
 LOCS.forEach((l) => { const f = S.farms[l]; if (!f.shrubs.length) plant(f); f.workers.forEach((w) => { w.state = 'seek'; w.path = []; w.target = null; }); });
@@ -401,6 +481,17 @@ function tickFarm(f, d, visible) {
   const ddx = dg.tx - dg.x, ddy = dg.ty - dg.y, dd = Math.hypot(ddx, ddy);
   if (dd > 1) { const v = Math.min(dd, 20 * d); dg.x += ddx / dd * v; dg.y += ddy / dd * v; dg.walk += d; if (Math.abs(ddx) > 0.3) dg.flip = ddx > 0; dg.moving = true; } else dg.moving = false;
 }
+const me = { x: 150, y: 96, tx: 150, ty: 96, t: 0, walk: 0, dir: 'down', flip: false, moving: false };
+const aura = [];
+function tickMe(d) {
+  me.t -= d;
+  if (me.t <= 0) { me.t = 2.5 + rnd() * 4; const sp = [[150, 96], [120, 104], [70, 108], [96, 140], [96, 186], [160, 104], [40, 106]][Math.floor(rnd() * 7)]; me.tx = sp[0]; me.ty = sp[1]; }
+  const mx = me.tx - me.x, my = me.ty - me.y, md = Math.hypot(mx, my);
+  if (md > 1) { const v = Math.min(md, 20 * d); me.x += mx / md * v; me.y += my / md * v; me.walk += d; me.dir = Math.abs(mx) > Math.abs(my) ? 'side' : my < 0 ? 'up' : 'down'; me.flip = mx < 0; me.moving = true; } else { me.moving = false; me.dir = 'down'; }
+  const kind = SKINS[S.look.skin].aura;
+  if (kind && rnd() < d * 6) aura.push({ x: me.x + (rnd() - 0.5) * 14, y: me.y - 10 - rnd() * 14, vx: (rnd() - 0.5) * 6, vy: kind === 'ember' || kind === 'gold' ? -8 - rnd() * 6 : 6 + rnd() * 4, t: 0, kind });
+  for (let i = aura.length - 1; i >= 0; i--) { const a = aura[i]; a.t += d; a.x += a.vx * d; a.y += a.vy * d; if (a.t > 1.6) aura.splice(i, 1); }
+}
 function tick(dt) {
   const d = dt * S.speed;
   S.minutesTotal += d * 2.5;
@@ -410,7 +501,8 @@ function tick(dt) {
   if (S.day - S.weekly.start >= 7) { S.weekly = { mine: 0, team: 1500, target: 4000, start: S.day, claimed: false }; toast('A new weekly roastery order is in'); }
   S.heartT += d; if (S.heartT >= 6) { S.heartT = 0; if (S.hearts < maxHearts()) S.hearts += 1; }
   S.lots.forEach((l) => { if (l.left > 0) { l.left = Math.max(0, l.left - d); if (!l.left && !S.staff.foreman) SFX.play('ding'); } });
-  LOCS.forEach((l) => { const f = S.farms[l]; if (f.unlocked) tickFarm(f, d, l === S.loc); });
+  LOCS.forEach((l) => { const f = S.farms[l]; if (f.unlocked && !S.dormant[l]) tickFarm(f, d, l === S.loc); });
+  tickMe(d);
   contractsTick();
   S.staffT = (S.staffT || 0) + d; if (S.staffT >= 1) { S.staffT = 0; staffTick(); }
   floats.forEach((t) => { t.t += dt; }); while (floats.length && floats[0].t > 1.1) floats.shift();
@@ -430,10 +522,11 @@ function draw(time) {
   });
   Object.keys(DECOR_AT).forEach((k) => { if (S.decor[k]) DECOR_AT[k].forEach(([x, y]) => fx.drawImage(sprite('deco_' + k), x, y)); });
   if (f.field && S.loc !== 'osaka') fx.drawImage(sprite('bed_open'), 104, 160);
+  const asleep = !!S.dormant[S.loc];
   if (!f.field) fx.drawImage(sprite('sign'), 134, 168);
   fx.drawImage(sprite('storage_' + S.lv.storage), STORE_AT.x, STORE_AT.y);
   if (stored() >= cap() && Math.floor(time * 2) % 2 === 0) fx.drawImage(sprite('bubble_full'), STORE_AT.x + 12, STORE_AT.y - 8);
-  const things = f.shrubs.map((s) => ({ y: s.y + 22, s })).concat(f.workers.map((w) => ({ y: w.y, w })), [{ y: f.dog.y, dog: f.dog }], f.manager ? [{ y: f.manager.y, mg: f.manager }] : []);
+  const things = f.shrubs.map((s) => ({ y: s.y + 22, s })).concat(f.workers.map((w) => ({ y: w.y, w })), [{ y: f.dog.y, dog: f.dog }], f.manager ? [{ y: f.manager.y, mg: f.manager }] : [], [{ y: me.y, me: true }]);
   things.sort((p, q) => p.y - q.y);
   const hat = ART.hats[S.hat];
   things.forEach((o) => {
@@ -446,6 +539,11 @@ function draw(time) {
       fx.fillStyle = 'rgba(42,42,8,0.28)'; fx.beginPath(); fx.ellipse(X + 8, Y + 11, 6, 1.5, 0, 0, 7); fx.fill();
       if (g.flip) { fx.save(); fx.translate(X + 16, Y); fx.scale(-1, 1); fx.drawImage(spr, 0, 0); fx.restore(); } else fx.drawImage(spr, X, Y);
       if (S.decor.bandana) { fx.fillStyle = '#D8302C'; const bx = g.flip ? X + 9 : X + 5; fx.fillRect(bx, Y + 6, 2, 2); fx.fillRect(bx + (g.flip ? 1 : 0), Y + 8, 1, 1); }
+    } else if (o.me) {
+      const fr = me.moving ? (me.dir === 'side' ? Math.floor(me.walk * 7) % 2 : WALK[Math.floor(me.walk * 7) % 4]) : 0;
+      const spr = sprite('worker_' + me.dir + '_' + (me.dir === 'side' ? Math.min(fr, 1) : fr), skinLook(S.look.skin)), X = Math.round(me.x) - 8, Y = Math.round(me.y) - 23;
+      fx.fillStyle = 'rgba(42,42,8,0.3)'; fx.beginPath(); fx.ellipse(X + 8, Y + 23, 5, 1.6, 0, 0, 7); fx.fill();
+      if (me.dir === 'side' && me.flip) { fx.save(); fx.translate(X + 16, Y); fx.scale(-1, 1); fx.drawImage(spr, 0, 0); fx.restore(); } else fx.drawImage(spr, X, Y);
     } else if (o.mg) {
       const g = o.mg, fr = g.moving ? (g.dir === 'side' ? Math.floor(g.walk * 6) % 2 : WALK[Math.floor(g.walk * 6) % 4]) : 0;
       const spr = sprite('worker_' + (g.dir || 'down') + '_' + (g.dir === 'side' ? Math.min(fr, 1) : fr), MGR_LOOK), X = Math.round(g.x) - 8, Y = Math.round(g.y) - 23;
@@ -467,6 +565,8 @@ function draw(time) {
       }
     }
   });
+  aura.forEach((a) => { fx.globalAlpha = Math.max(0, 1 - a.t / 1.6); fx.fillStyle = { leaf: '#7ED0A8', petal: '#F8B8CC', ember: a.t < 0.5 ? '#FFD070' : '#E8602A', gold: (Math.floor(a.t * 8) % 2) ? '#FFF4B0' : '#F2C04A' }[a.kind]; fx.fillRect(Math.round(a.x), Math.round(a.y), a.kind === 'petal' ? 2 : 1, 1); });
+  fx.globalAlpha = 1;
   bursts.forEach((p) => { fx.fillStyle = p.c; fx.fillRect(Math.round(p.x), Math.round(p.y), 1, 1); });
   const wx = { rainy: ['#C8E4F4', 'rain'], winter: ['#FFFFFF', 'snow'], spring: ['#F8C8D8', 'petal'], autumn: ['#E8803A', 'petal'] }[sea];
   if (wx) {
@@ -483,10 +583,18 @@ function draw(time) {
   const hr = S.minutes / 60;
   const tint = hr >= 20 || hr < 5 ? 'rgba(30,40,110,0.38)' : hr >= 17.5 ? 'rgba(240,120,40,' + (0.08 + (hr - 17.5) * 0.06).toFixed(2) + ')' : hr < 7 ? 'rgba(240,150,170,0.14)' : null;
   if (tint) { fx.fillStyle = tint; fx.fillRect(0, 0, W, H); }
+  if (asleep) { fx.fillStyle = 'rgba(40,36,48,0.45)'; fx.fillRect(0, 0, W, H); }
   if (S.decor.lantern && (hr >= 18 || hr < 6)) DECOR_AT.lantern.forEach(([x, y]) => { const gl = fx.createRadialGradient(x + 3, y + 5, 1, x + 3, y + 5, 16); gl.addColorStop(0, 'rgba(255,200,110,0.55)'); gl.addColorStop(1, 'rgba(255,200,110,0)'); fx.fillStyle = gl; fx.fillRect(x - 14, y - 12, 34, 34); });
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(frame, 0, 0, W * 2, H * 2);
   ctx.textAlign = 'center';
+  {   /* your name tag, in your tier's colour, with stars past the top tier */
+    const stars = S.prestige >= TIERS.length ? ' ' + '★'.repeat(Math.min(5, S.prestige - TIERS.length + 1)) : '', label = S.name + stars;
+    ctx.font = '700 12px "Pixelify Sans", monospace'; ctx.textAlign = 'center';
+    const tx = Math.round(me.x) * 2, ty = (Math.round(me.y) - 27) * 2, w = ctx.measureText(label).width + 10;
+    ctx.fillStyle = 'rgba(30,20,12,0.72)'; ctx.fillRect(tx - w / 2, ty - 11, w, 15); ctx.fillStyle = TAG_COLOR[tierOf(S.prestige)]; ctx.fillText(label, tx, ty);
+  }
+  if (asleep) { ctx.font = '700 22px "Pixelify Sans", monospace'; ctx.fillStyle = '#FFF4DE'; ctx.fillText('DORMANT · LEVEL ' + S.dormant[S.loc], W, 236); }
   if (!f.field) { ctx.font = '700 13px "Pixelify Sans", monospace'; ctx.fillStyle = '#4A2E18'; ctx.fillText('EXPAND', 142 * 2, 173 * 2); }
   ctx.font = '700 18px "Pixelify Sans", monospace';
   floats.forEach((t) => {
@@ -517,6 +625,7 @@ cv.addEventListener('click', (e) => {
   }
   if (!f.field && lx > 104 && lx < 182 && ly > 160 && ly < 200) { setTab('upgrades'); toast('Clear the fourth field in Upgrades'); return; }
   if (lx > STORE_AT.x && lx < STORE_AT.x + 40 && ly > STORE_AT.y && ly < STORE_AT.y + 38) { setTab('mill'); return; }
+  if (Math.abs(lx - me.x) < 8 && ly > me.y - 24 && ly < me.y + 2) { setTab('ranks'); return; }
   if (Math.hypot(lx - f.dog.x, ly - f.dog.y + 5) < 9) SFX.play('woof'), floats.push({ x: f.dog.x, y: f.dog.y - 14, text: 'woof!', t: 0 });
 });
 function travel(dir) {
@@ -532,7 +641,7 @@ function spend(cur, n) { if (S[cur] < n) return false; S[cur] -= n; return true;
 function earn(r) {
   const lv = level();
   if (r.coins) S.coins += r.coins; if (r.points) { S.points += r.points; S.xp += r.points; } if (r.cranes) S.cranes += r.cranes;
-  if (level() > lv) { SFX.play('levelup'); toast('Level ' + level() + '!'); }
+  if (level() > lv) { SFX.play('levelup'); toast('Level ' + level() + '!'); wakeFarms(); }
 }
 function buyUpgrade(key) {
   const u = UP[key];
@@ -657,21 +766,24 @@ function unlockFarm(loc) {
   addWorker(f); toast(ART.locations[loc].name + ' is open');
 }
 function prestige() {
-  if (level() < 10) return;
-  const keep = { methods: S.methods, hats: S.hats, hat: S.hat, stamps: S.stamps, rewards: S.rewards, year: S.year + 1, bonus: S.bonus + 0.1, cranes: S.cranes, seasonPick: S.seasonPick, speed: S.speed, vars: S.vars, decor: S.decor, unlocked: LOCS.filter((l) => S.farms[l].unlocked), beds: LOCS.map((l) => S.farms[l].beds) };
-  S = fresh(); Object.assign(S, keep);
-  keep.unlocked.forEach((l) => { S.farms[l].unlocked = true; });
-  LOCS.forEach((l, i) => { S.farms[l].beds = keep.beds[i]; });
-  delete S.beds;
-  LOCS.forEach((l) => plant(S.farms[l])); addWorker(S.farms[START]); addWorker(S.farms[START]);
-  keep.unlocked.forEach((l) => { if (l !== START) addWorker(S.farms[l]); }); newTasks();
-  showModal('<h2>Harvest year ' + S.year + '</h2><p class="note">Your farms start fresh, but you keep every farm, variety, process, hat, stamp and decoration; buildings and staff start again. Roaster’s Knowledge: +' + Math.round(S.bonus * 100) + '% to cup scores and sale prices, forever.</p><button class="btn green" data-act="close">Begin</button>');
+  if (level() < PRESTIGE_LEVEL) return;
+  S.prestige += 1;
+  const t = tierOf(S.prestige);
+  S.look = { plate: t, border: t, skin: t };   /* wear the newest look straight away */
+  S.xp = 0; S.points = 0;
+  LOCS.forEach((l) => { if (FARM_LEVEL[l] && S.farms[l].unlocked) S.dormant[l] = FARM_LEVEL[l]; });
+  const asleep = Object.keys(S.dormant);
+  showModal(avatar(S.look, 64) + '<h2>Prestige ' + S.prestige + '</h2>' + plate(S.name, S.look.plate) + '<p class="note">' + (S.prestige < TIERS.length ? 'New tier: <b>' + TIERS[t] + '</b>. Its nameplate, border and the ' + SKINS[t].name + ' outfit are yours and already on.' : 'You are past the top tier: every prestige adds a star to your name.') + '</p>' +
+    (asleep.length ? '<p class="note">' + asleep.map((l) => ART.locations[l].name.split(',')[0] + ' wakes at level ' + S.dormant[l]).join(', ') + '. Brazil and Osaka stay open.</p>' : '') + '<button class="btn green" data-act="close">Back to the farm</button>');
+}
+function wakeFarms() {
+  Object.keys(S.dormant).forEach((l) => { if (level() >= S.dormant[l]) { delete S.dormant[l]; toast(ART.locations[l].name + ' is open again'); SFX.play('achieve'); } });
 }
 function away(hours) {
   const mins = hours * 60, before = stored(), byFarm = [];
   let kg = 0;
   LOCS.forEach((l) => {
-    const f = S.farms[l]; if (!f.unlocked || !f.workers.length) return;
+    const f = S.farms[l]; if (!f.unlocked || !f.workers.length || S.dormant[l]) return;
     const perWorkerMin = carryKg() / ((2.4 * carryKg() / 3 + 8) / pickerMult()) * 60 / 60 * 0.5;   /* kg a picker brings in per game minute, walking included */
     const fk = f.workers.length * perWorkerMin * mins * f.beds.slice(0, 3).reduce((a, v) => a + varGrowth(f, v) * VAR[v].kg / 3, 0) / 3 / 1.2;
     const fkm = fk * (f.manager ? 1.5 : 1);
@@ -692,7 +804,7 @@ function away(hours) {
 
 /* ---------- interface ---------- */
 let tab = 'farm', toastT = 0;
-const TABS = [['farm', 'Farm', 'i_worker'], ['mill', 'Mill', 'green_sack'], ['upgrades', 'Upgrade', 'storage_4'], ['orders', 'Orders', 'i_points'], ['shop', 'Shop', 'i_crane'], ['test', 'Test', 'i_box']];
+const TABS = [['farm', 'Farm', 'i_worker'], ['mill', 'Mill', 'green_sack'], ['upgrades', 'Upgrade', 'storage_4'], ['orders', 'Orders', 'i_points'], ['ranks', 'Ranks', 'i_trophy'], ['shop', 'Shop', 'i_crane'], ['test', 'Test', 'i_box']];
 function setTab(t) { if (t !== tab) SFX.play('click'); tab = t; renderTabs(); renderPanel(); }
 function renderTabs() {
   const dot = { orders: S.tasks.some((t) => t.have >= t.goal && !t.done) || (S.weekly.team + S.weekly.mine >= S.weekly.target && !S.weekly.claimed), mill: S.lots.some((l) => l.left <= 0) };
@@ -704,6 +816,9 @@ function shopTabs() {
   const st = S.shopTab || 'cranes', dot = Object.keys(DECOR).some((k) => S.decor[k] === undefined && S.coins >= DECOR[k].cost);
   return '<div class="seg subtabs">' + [['cranes', 'Cranes'], ['decor', 'Decor']].map(([k, t]) => '<button type="button" data-act="shoptab:' + k + '" aria-pressed="' + (st === k) + '">' + t + (k === 'decor' && dot ? ' <i class="dot" aria-label="something to buy"></i>' : '') + '</button>').join('') + '</div>';
 }
+function avatar(look, size) { return '<span class="fr b-' + PLATES[look.border] + '" style="width:' + size + 'px;height:' + size + 'px"><img src="' + url('worker_down_0', skinLook(look.skin)) + '" alt="" style="height:' + Math.round(size * 0.78) + 'px"></span>'; }
+function plate(name, i, stars) { return '<span class="plate p-' + PLATES[i] + '">' + name + (stars ? ' ' + '★'.repeat(Math.min(5, stars)) : '') + '</span>'; }
+const starsFor = (p) => (p >= TIERS.length ? p - TIERS.length + 1 : 0);
 function row(art, title, sub, button) { return '<div class="row"><div class="art">' + art + '</div><div class="grow"><b>' + title + '</b><span>' + sub + '</span></div>' + button + '</div>'; }
 function btn(label, sub, act, enabled, cls) { return '<button class="btn ' + (cls || '') + '" type="button" data-act="' + act + '"' + (enabled ? '' : ' disabled') + '>' + label + (sub ? '<small>' + sub + '</small>' : '') + '</button>'; }
 const img = (n, w) => '<img src="' + url(n) + '" alt="" style="width:' + (w || 40) + 'px">';
@@ -713,8 +828,10 @@ function renderPanel() {
   let h = '';
   if (tab === 'farm') {
     const [frac, lvl] = levelSpan();
-    h += '<div class="level"><b>Farm level ' + lvl + '</b><div class="bar"><i style="width:' + Math.round(frac * 100) + '%"></i></div><span class="note">Year ' + S.year + '</span></div>';
-    if (!f.unlocked) {
+    h += '<div class="level"><b>Farm level ' + lvl + '</b><div class="bar"><i style="width:' + Math.round(frac * 100) + '%"></i></div><span class="note">Prestige ' + S.prestige + '</span></div>';
+    if (S.dormant[S.loc]) {
+      h += '<h2>' + L.name + ' is dormant</h2><p class="note">Since your last prestige this farm is resting. It reopens by itself at level ' + S.dormant[S.loc] + ', with every building, picker and field just as you left them.</p><div class="bar"><i style="width:' + Math.min(100, Math.round(level() / S.dormant[S.loc] * 100)) + '%"></i></div><p class="note">You are level ' + level() + '.</p>';
+    } else if (!f.unlocked) {
       if (S.loc === 'osaka') h += '<h2>' + L.name + '</h2><p class="note">The Osaka roastery garden grows all year round through four seasons, and comes with Geisha seeds for every farm. It can only be opened with cranes, which you earn from real bejucoffee.com orders.</p>' + btn('Open garden', OSAKA_CRANES + ' cranes', 'farm:osaka', S.cranes >= OSAKA_CRANES, 'green');
       else if (!S.farms[prevFarm(S.loc)].unlocked) h += '<h2>' + L.name + '</h2><p class="note">Locked. Open ' + ART.locations[prevFarm(S.loc)].name + ' first, then this farm costs ' + fmt(FARM_COST[S.loc]) + ' points.</p>' + btn('Locked', '', 'noop', false);
       else h += '<h2>' + L.name + '</h2><p class="note">Your next farm. Earn points by processing and selling lots in the Mill.</p>' + btn('Open farm', fmt(FARM_COST[S.loc]) + ' points', 'farm:' + S.loc, S.points >= FARM_COST[S.loc], 'green');
@@ -795,7 +912,7 @@ function renderPanel() {
     } else {
     h += '<h3>Farms</h3><p class="note">Farms open in order with points. The Osaka garden is cranes only.</p>' + LOCS.map((l) => {
       const f2 = S.farms[l], nm = ART.locations[l].name;
-      if (f2.unlocked) return row(img('stamp_' + l, 36), nm, l === START ? 'Your first farm' : 'Open', btn('Visit', '', 'go:' + l, true, 'blue'));
+      if (f2.unlocked) return row(img('stamp_' + l, 36), nm, S.dormant[l] ? 'Dormant until level ' + S.dormant[l] : l === START ? 'Your first farm' : 'Open', btn('Visit', '', 'go:' + l, true, 'blue'));
       if (l === 'osaka') return row(img('stamp_' + l, 36), nm, 'Cranes only: earned from real coffee orders', btn('Open', OSAKA_CRANES + ' cranes', 'farm:osaka', S.cranes >= OSAKA_CRANES));
       if (!canOpen(l)) return row(img('stamp_' + l, 36), nm, 'Open ' + ART.locations[prevFarm(l)].name.split(',')[0] + ' first', btn('Locked', fmt(FARM_COST[l]) + ' pts', 'noop', false));
       return row(img('stamp_' + l, 36), nm, 'Next farm: open with points', btn('Open', fmt(FARM_COST[l]) + ' pts', 'farm:' + l, S.points >= FARM_COST[l]));
@@ -817,8 +934,27 @@ function renderPanel() {
     h += '<h2>Weekly roastery order</h2><p class="note">Deliver ' + fmt(wk.target) + ' kg of washed green coffee as a team. Your washed lots count when you sell them. Ends in ' + Math.max(0, 7 - (S.day - wk.start)) + ' days.</p>';
     h += '<div class="bar"><i style="width:' + Math.round(tot / wk.target * 100) + '%"></i></div><p class="note">' + fmt(tot) + ' / ' + fmt(wk.target) + ' kg · you: ' + fmt(wk.mine) + ' kg · mika.brews, kenji_pourover and hana.at.home: ' + fmt(wk.team) + ' kg</p>';
     h += btn(wk.claimed ? 'Claimed' : 'Claim 30 cranes', '', 'weekly', tot >= wk.target && !wk.claimed && wk.mine > 0, 'green');
-    h += '<h2>New harvest year</h2><p class="note">At farm level 10, start a new year: coins, pickers and upgrades reset; you keep farms, varieties, processes, hats and stamps, and gain +10% to cup scores and prices forever. You are level ' + level() + '.</p>' + btn('Start year ' + (S.year + 1), level() >= 10 ? 'ready' : 'level 10', 'prestige', level() >= 10);
+    h += '<h2>Prestige</h2><p class="note">Prestige now lives in the Ranks tab, with the leaderboard and your nameplates, borders and outfits.</p>' + btn('Open Ranks', '', 'tab:ranks', true, 'blue');
     h += '<h2>Real coffee rewards</h2>' + (S.rewards.length ? S.rewards.map((r) => row(img('green_sack', 28), r.text, 'From ' + r.from + ', day ' + r.day + '. Added to your next bejucoffee.com order.', '')).join('') : '<p class="note">Finish a farm’s 1,000 kg harvest to earn free coffee.</p>');
+  } else if (tab === 'ranks') {
+    const list = board(), pos = list.findIndex((x) => x.you) + 1, t = tierOf(S.prestige), ready = level() >= PRESTIGE_LEVEL;
+    h += '<div class="me">' + avatar(S.look, 64) + '<div class="me-t">' + plate(S.name, S.look.plate, starsFor(S.prestige)) + '<span class="note">Prestige ' + S.prestige + ' · ' + TIERS[t] + '</span><span class="note">Level ' + level() + ' · ' + fmt(Math.round(S.xp)) + ' points · rank #' + pos + ' of ' + list.length + '</span></div></div>';
+    h += '<h3>Prestige</h3><p class="note">The board ranks by prestige first, then level, then points, so one more prestige always beats any amount of points. Points do not carry over, so spend them before you prestige.</p>';
+    h += '<div class="bar"><i style="width:' + Math.min(100, Math.round(levelSpan()[1] / PRESTIGE_LEVEL * 100)) + '%"></i></div>';
+    h += btn(ready ? 'Prestige to ' + (S.prestige + 1) : 'Prestige at level ' + PRESTIGE_LEVEL, ready ? (S.prestige + 1 < TIERS.length ? 'unlocks ' + TIERS[S.prestige + 1] : 'adds a star') : 'you are level ' + level(), 'prestigeAsk', ready, 'green');
+    h += '<h3>Your look</h3><p class="note">Every tier you reach stays yours. Mix and match.</p>';
+    [['plate', 'Nameplate'], ['border', 'Border'], ['skin', 'Farmer outfit']].forEach(([k, label]) => {
+      h += '<p class="note"><b>' + label + '</b></p><div class="looks">' + TIERS.map((nm, i) => {
+        const open = i <= t, on = S.look[k] === i;
+        const art = k === 'plate' ? plate(nm, i) : k === 'border' ? avatar({ plate: i, border: i, skin: S.look.skin }, 40) : avatar({ plate: 0, border: 0, skin: i }, 40);
+        return '<button type="button" class="look" data-act="look:' + k + '.' + i + '" aria-pressed="' + on + '"' + (open ? '' : ' disabled') + '>' + art + '<small>' + (open ? (k === 'skin' ? SKINS[i].name : 'P' + i) : 'Prestige ' + i) + '</small></button>';
+      }).join('') + '</div>';
+    });
+    h += '<h3>Leaderboard</h3><div class="lb">' + list.slice(0, 15).concat(pos > 15 ? [list[pos - 1]] : []).map((x) => {
+      const r = list.indexOf(x) + 1;
+      return '<div class="lb-row' + (x.you ? ' you' : '') + '"><b class="rk">' + r + '</b>' + avatar(x.look, 40) + '<div class="lb-n">' + plate(x.name, x.look.plate, starsFor(x.prestige)) + '<span class="note">' + TIERS[tierOf(x.prestige)] + '</span></div><div class="lb-s"><b>P' + x.prestige + '</b><span>Lv ' + x.level + '</span><span>' + fmt(x.points) + '</span></div></div>';
+    }).join('') + '</div>';
+    h += '<h3>Your name</h3><div class="seg"><input id="nameIn" maxlength="16" value="' + S.name.replace(/"/g, '') + '" aria-label="Your name on the leaderboard"><button type="button" data-act="rename">Save</button></div>';
   } else if (tab === 'shop' && (S.shopTab || 'cranes') === 'decor') {
     h += shopTabs();
     h += '<h2>Decor</h2><p class="note">' + icon('i_coin') + ' ' + fmt(S.coins) + ' coins. Buy once and it shows on every farm. Tap again to hide or show it.</p>';
@@ -861,7 +997,7 @@ document.addEventListener('click', (e) => {
   setTimeout(() => {   /* sound for the action, once its effect is known */
     const spent = S.coins + S.points + S.cranes < wallet;
     const BUY = { hire: 'hire', up: 'buy', build: 'build', mgr: 'hire', foreman: 'hire', agent: 'hire', var: 'achieve', farm: 'achieve', method: 'achieve', buyhat: 'achieve', boost: 'crane', decor: 'achieve' };
-    const ALWAYS = { mvol: 'tick', uptab: 'tick', shoptab: 'tick', hat: 'tick', rule: 'tick', mv: 'tick', speed: 'tick', season: 'tick', go: 'click', bed: 'click', skip: 'page', plant: 'dig', task: 'coins', weekly: 'crane', order: 'crane', sellraw: 'coins', add: 'xp' };
+    const ALWAYS = { look: 'tick', rename: 'tick', mvol: 'tick', uptab: 'tick', shoptab: 'tick', hat: 'tick', rule: 'tick', mv: 'tick', speed: 'tick', season: 'tick', go: 'click', bed: 'click', skip: 'page', plant: 'dig', task: 'coins', weekly: 'crane', order: 'crane', sellraw: 'coins', add: 'xp' };
     if (BUY[a] && spent) SFX.play(BUY[a]); else if (a === 'decor' && decorOwned) SFX.play('tick'); else if (ALWAYS[a]) SFX.play(ALWAYS[a]);
   }, 0);
   if (a === 'hire') { if (f.workers.length < maxPickers(f) && spend('coins', hireCost())) { addWorker(f); toast('A new picker joins you'); } }
@@ -893,7 +1029,14 @@ document.addEventListener('click', (e) => {
   else if (a === 'var') { const nx = VAR_ORDER.find((x) => !S.vars[x]); if (v === nx && spend('points', VAR[v].cost)) { S.vars[v] = true; showModal('<h2>' + ART.varieties[v] + ' unlocked</h2>' + img('bush_' + v + '_ripe', 54) + '<p class="note">' + VAR[v].perk + ' Replant a field in the Farm tab to start growing it.</p><button class="btn green" data-act="close">Plant it</button>'); } }
   else if (a === 'task') { const tk = S.tasks[+v]; if (tk.have >= tk.goal && !tk.done) { tk.done = true; earn(tk.reward); toast('Task complete!'); } }
   else if (a === 'weekly') { S.weekly.claimed = true; S.cranes += 30; showModal('<h2>Order delivered!</h2><p class="note">The team delivered ' + fmt(S.weekly.target) + ' kg of washed coffee to the roastery. +30 cranes and the Co-op Roaster badge.</p><button class="btn green" data-act="close">Hooray</button>'); }
-  else if (a === 'prestige') { prestige(); SFX.play('levelup'); }
+  else if (a === 'prestigeAsk') {
+    const asleep = LOCS.filter((l) => FARM_LEVEL[l] && S.farms[l].unlocked);
+    showModal('<h2>Prestige ' + (S.prestige + 1) + '?</h2><p class="note"><b>You keep</b> coins, cranes, every upgrade, building, manager, variety, process, decoration, hat and look.</p><p class="note"><b>You lose</b> your level and ' + fmt(S.points) + ' unspent points' + (asleep.length ? ', and ' + asleep.map((l) => ART.locations[l].name.split(',')[0]).join(', ') + (asleep.length > 1 ? ' go' : ' goes') + ' dormant until you level back up' : '') + '.</p><p class="note">You gain ' + (S.prestige + 1 < TIERS.length ? 'the ' + TIERS[S.prestige + 1] + ' nameplate, border and ' + SKINS[S.prestige + 1].name + ' outfit' : 'a star on your name') + ', and you jump above everyone on prestige ' + S.prestige + '.</p>' + btn('Prestige now', '', 'prestige', true, 'green') + '<button class="btn" data-act="close">Not yet</button>');
+    return;
+  }
+  else if (a === 'prestige') { $('modal').hidden = true; prestige(); SFX.play('levelup'); SFX.play('achieve'); }
+  else if (a === 'look') { const [k, i] = v.split('.'); if (+i <= tierOf(S.prestige)) S.look[k] = +i; }
+  else if (a === 'rename') { const nv = ($('nameIn').value || '').trim().slice(0, 16); if (nv) { S.name = nv; toast('Name saved'); } }
   else if (a === 'boost') {
     const cost = { grow: 5, pick: 5, hearts: 2, points: 10, dry: 6 }[v];
     if (!spend('cranes', cost)) return;
@@ -908,7 +1051,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'order') realOrder(v);
   else if (a === 'add') {
     if (v === 'coins') S.coins += 1000; if (v === 'bigcoins') S.coins += 25000; if (v === 'contracts') { S.contracts = []; for (let k = 0; k < contractSlots(); k++) S.contracts.push(newContract()); } if (v === 'points') earn({ points: 2000 }); if (v === 'cranes') S.cranes += 50; if (v === 'vars') VAR_ORDER.forEach((x) => { S.vars[x] = true; });
-    if (v === 'xp') S.xp = XP_AT(level() + 1);
+    if (v === 'xp') { S.xp = XP_AT(level() + 1); wakeFarms(); }
     if (v === 'cherries') { const vv = S.farms[S.loc].beds[0]; S.cherries[vv] = (S.cherries[vv] || 0) + (cap() - stored()); }
   }
   else if (a === 'away') away(+v);
@@ -954,7 +1097,7 @@ function loop(t) {
   tick(dt); draw(t / 1000);
   uiT += dt; saveT += dt;
   if (toastT > 0) { toastT -= dt; if (toastT <= 0) $('toast').hidden = true; }
-  if (uiT > 0.5) { uiT = 0; refreshHud(); syncMusic(); if (!$('panel').matches(':hover') || tab === 'mill') renderPanel(); renderTabs(); }
+  if (uiT > 0.5) { uiT = 0; refreshHud(); syncMusic(); if ((!$('panel').matches(':hover') || tab === 'mill') && !(document.activeElement && document.activeElement.id === 'nameIn')) renderPanel(); renderTabs(); }
   if (saveT > 5) { saveT = 0; save(); }
   requestAnimationFrame(loop);
 }

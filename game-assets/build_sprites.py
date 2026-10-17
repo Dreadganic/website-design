@@ -1452,6 +1452,8 @@ def board(p):
 
 
 icon("board", board)
+add_grid("i_trophy", ["............", "..oooooooo..", "ooyyyyyyyyoo", "o.oyyyywyo.o", "o.oyyyyyyo.o", ".ooyyyyyyoo.", "...oyyyyo...", "....oyyo....", ".....oo.....", "....oyyo....", "...oooooo...", "...obbbbo..."],
+         {"o": OUT, "y": "#F2C04A", "w": "#FFF4C0", "b": WOOD[2]})
 
 def render(s, shirt=None):
     pal = dict(s["pal"])
