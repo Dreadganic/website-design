@@ -2,7 +2,7 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&family=Zen+Kaku+Gothic+New:wght@500;700&display=swap">
 <style>
-/* Layout: one handheld-style console card on a dark wood ground: player controls, a four-lane note roll, the section map. One look in both themes (matches the game). */
+/* Layout: a handheld-style jukebox on a dark wood ground: track list, player with a four-lane note roll, then notes on the region. One look in both themes (matches the game). */
 :root {
   --wood: #3A2A1C; --wood-2: #2A1E14; --paper: #F4E6C6; --paper-2: #FBF1DC; --edge: #6E4624; --ink: #3E2A1C; --muted: #7A5A3A;
   --gold: #F2C04A; --green: #2D6A46; --lcd: #1E2A1C; --lcd-grid: #2A3A28;
@@ -17,11 +17,19 @@ body { color: var(--paper); font-family: var(--body); padding-left: max(16px, en
 h1 { font-family: var(--display); font-weight: 600; font-size: 34px; line-height: 1.1; margin: 4px 0 6px; text-wrap: balance; }
 .sub { font-size: 14px; color: #E2C894; margin: 0; font-weight: 500; }
 .card { background: var(--paper); color: var(--ink); border: 3px solid var(--edge); border-radius: 12px; box-shadow: inset 0 0 0 2px #E2C894, 0 4px 0 var(--wood-2); padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.tracks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.track { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border: 2px solid var(--edge); border-radius: 8px; background: var(--paper-2); color: var(--ink); text-align: left; cursor: pointer; font: inherit; min-width: 0; }
+.track b { font: 600 15px var(--display); }
+.track span { font-size: 11px; font-weight: 700; color: var(--muted); }
+.track[aria-pressed="true"] { background: var(--gold); }
+.track[aria-pressed="true"] span { color: var(--ink); }
 .controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 .play { width: 72px; height: 72px; border-radius: 50%; border: 4px solid var(--edge); background: var(--gold); color: var(--ink); font: 700 15px var(--display); cursor: pointer; box-shadow: 0 4px 0 var(--wood-2); flex: none; }
 .play:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--wood-2); }
 .play[aria-pressed="true"] { background: #F7D985; }
 .stack { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 200px; }
+.now b { font: 600 20px var(--display); display: block; }
+.now span { font-size: 12px; font-weight: 700; color: var(--muted); }
 .seg { display: flex; gap: 4px; }
 .seg button { flex: 1; min-height: 36px; border: 2px solid var(--edge); border-radius: 6px; background: var(--paper-2); color: var(--ink); font: 600 14px var(--display); cursor: pointer; }
 .seg button[aria-pressed="true"] { background: var(--gold); }
@@ -37,16 +45,16 @@ input[type=range] { flex: 1; accent-color: var(--green); }
 .lane span { font-size: 11px; color: var(--muted); font-weight: 700; }
 .lane[aria-pressed="false"] { opacity: 0.45; }
 .lane[aria-pressed="false"] i { background: transparent !important; }
-.map { display: flex; gap: 4px; }
-.map div { flex: 1; text-align: center; padding: 6px 0; border: 2px solid var(--edge); border-radius: 6px; font: 600 13px var(--display); background: var(--paper-2); color: var(--muted); }
+.map { display: flex; gap: 4px; flex-wrap: wrap; }
+.map div { flex: 1; min-width: 48px; text-align: center; padding: 6px 0; border: 2px solid var(--edge); border-radius: 6px; font: 600 13px var(--display); background: var(--paper-2); color: var(--muted); }
 .map div.on { background: var(--green); color: var(--paper-2); }
-h2 { font-family: var(--display); font-weight: 600; font-size: 18px; margin: 0; }
-p { margin: 0; line-height: 1.6; font-size: 14px; max-width: 65ch; }
-.notes { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: 13px; }
-.notes dt { font: 600 13px var(--display); color: var(--muted); }
-.notes dd { margin: 0; }
 .hint { font-size: 12px; color: var(--muted); font-weight: 700; line-height: 1.5; }
 .hint span { font-family: var(--display); color: var(--green); }
+h2 { font-family: var(--display); font-weight: 600; font-size: 18px; margin: 0; }
+p { margin: 0; line-height: 1.6; font-size: 14px; max-width: 65ch; }
+.notes { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: 13px; margin: 0; }
+.notes dt { font: 600 13px var(--display); color: var(--muted); }
+.notes dd { margin: 0; }
 button:focus-visible { outline: 3px solid var(--green); outline-offset: 2px; }
 @media (max-width: 420px) { .lanes { grid-template-columns: 1fr; } h1 { font-size: 28px; } }
 </style>
@@ -54,17 +62,22 @@ button:focus-visible { outline: 3px solid var(--green); outline-offset: 2px; }
 <div class="wrap">
   <header>
     <div class="eyebrow">Beju Farm · sound test</div>
-    <h1>Finca Morning</h1>
-    <p class="sub">Main farm theme · F major · four Game Boy channels · loops seamlessly</p>
+    <h1>Farm Jukebox</h1>
+    <p class="sub">One original theme for each farm, played live on four Game Boy channels</p>
   </header>
+
+  <section class="card" aria-label="Tracks">
+    <div class="tracks" id="tracks"></div>
+  </section>
 
   <section class="card" aria-label="Player">
     <div class="controls">
       <button class="play" id="play" type="button" aria-pressed="false">PLAY</button>
       <div class="stack">
+        <div class="now"><b id="nowTitle">Finca Morning</b><span id="nowSub"></span></div>
         <div class="seg" role="group" aria-label="Arrangement">
-          <button type="button" id="day" aria-pressed="true">Day · 92 BPM</button>
-          <button type="button" id="night" aria-pressed="false">Night · 76 BPM</button>
+          <button type="button" id="day" aria-pressed="true">Day</button>
+          <button type="button" id="night" aria-pressed="false">Night</button>
         </div>
         <label class="vol" for="vol">VOLUME <input id="vol" type="range" min="0" max="100" value="60"></label>
       </div>
@@ -79,243 +92,366 @@ button:focus-visible { outline: 3px solid var(--green); outline-offset: 2px; }
   </section>
 
   <section class="card">
-    <h2>How it's made</h2>
-    <p>Nothing here is a recording. The browser plays the notes live through the same four voices as the original handheld: two square-wave "pulse" channels, a 4-bit wave channel and a noise channel. Volumes fade in small steps, the way the old hardware did it, and long lead notes get a delayed vibrato.</p>
-    <dl class="notes">
-      <dt>Pulse 1</dt><dd>The melody, 50% duty by day and a thinner 12.5% at night.</dd>
-      <dt>Pulse 2</dt><dd>Broken-chord arpeggios under the tune.</dd>
-      <dt>Wave</dt><dd>A walking bass from a hand-drawn 32-step waveform.</dd>
-      <dt>Noise</dt><dd>Soft brushes on the off-beats. Night drops it to a hush.</dd>
-      <dt>Form</dt><dd>Intro, then A, A′, B and A on repeat (about 1 min 25 s by day).</dd>
-      <dt>Size</dt><dd>The whole score is a few kilobytes of text, so it costs the app almost nothing to ship.</dd>
-    </dl>
+    <h2 id="aboutTitle">About this theme</h2>
+    <p id="about"></p>
+    <dl class="notes" id="parts"></dl>
   </section>
 </div>
 
 <script>
 (function () {
 'use strict';
-/* ---------------- the score (16th-note grid, 16 steps a bar) ---------------- */
-const CHORDS = { F: [65, 4, 7], Dm: [62, 3, 7], Bb: [58, 4, 7], C: [60, 4, 7], Am: [57, 3, 7], Gm: [55, 3, 7], C7: [60, 4, 10] };
-const SECTIONS = {
-  intro: { name: 'Intro', chords: [['F'], ['C7']], lead: ['-:16', '-:12 C5:2 D5:2'] },
-  A: { name: 'A', chords: [['F'], ['Dm'], ['Bb'], ['C'], ['F'], ['Am'], ['Bb', 'C'], ['F']],
-       lead: ['C5:4 A4:2 C5:2 F5:6 E5:2', 'D5:4 C5:2 A4:2 D5:8', 'D5:4 F5:2 D5:2 Bb4:4 C5:2 D5:2', 'C5:6 Bb4:2 A4:2 G4:2 E4:4',
-              'C5:4 A4:2 C5:2 F5:4 G5:2 A5:2', 'G5:4 E5:2 C5:2 E5:4 D5:2 C5:2', 'D5:4 Bb4:4 C5:2 E5:2 G5:4', 'F5:12 -:4'] },
-  A2: { name: 'A′', chords: [['F'], ['Dm'], ['Gm'], ['C'], ['Am'], ['Dm'], ['Gm', 'C'], ['F']],
-       lead: ['A5:4 G5:2 F5:2 C5:6 A4:2', 'D5:4 E5:2 F5:2 A5:8', 'G5:4 F5:2 D5:2 Bb4:4 D5:4', 'C5:2 D5:2 E5:4 G5:6 -:2',
-              'E5:4 C5:2 A4:2 C5:4 E5:4', 'F5:4 E5:2 D5:2 A4:8', 'Bb4:4 D5:4 C5:2 Bb4:2 G4:4', 'F4:8 A4:4 C5:4'] },
-  B: { name: 'B', chords: [['Bb'], ['C'], ['Am'], ['Dm'], ['Gm'], ['C'], ['Bb'], ['C7']],
-       lead: ['D5:8 F5:4 D5:4', 'E5:8 C5:4 G4:4', 'C5:6 E5:2 A5:8', 'F5:6 E5:2 D5:8', 'Bb5:6 A5:2 G5:4 D5:4', 'E5:6 F5:2 G5:8', 'F5:4 D5:4 Bb4:4 D5:4', 'C5:4 E5:4 G5:4 Bb5:4'] }
-};
-const FORM = ['intro', 'A', 'A2', 'B', 'A'], LOOP_FROM = 1;
-const ARR = {
-  day: { bpm: 92, duty: 0.5, lead: 0.16, arp: 0.075, bass: 0.2, noise: 0.05, snare: true, cutoff: 6500 },
-  night: { bpm: 76, duty: 0.125, lead: 0.12, arp: 0.05, bass: 0.15, noise: 0.025, snare: false, cutoff: 2600 }
-};
-const NOTE = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
-const midi = (n) => { const m = /^([A-G])(b|#)?(\d)$/.exec(n); return 12 * (+m[3] + 1) + NOTE[m[1]] + (m[2] === 'b' ? -1 : m[2] === '#' ? 1 : 0); };
-const hz = (m) => 440 * Math.pow(2, (m - 69) / 12);
+/* ================= the songs =================
+   Grid: one step is a 16th note. 4/4 bars have 16 steps, 6/8 bars have 12.
+   Lead tokens are NOTE:steps ("-" rests). "S<n>" is a slendro degree: five equal steps to the octave, counted up from D4.
+   Chords drive the arpeggio and bass patterns; "S<n>" chords give the gamelan patterns their centre note. */
+const SONGS = [
+  { id: 'main', farm: 'Main theme', title: 'Finca Morning', blurb: 'Game Boy town theme · F major',
+    about: 'The calm home theme for menus and the first farm, written like the gentle town tunes of the early Game Boy RPGs: a simple whistled melody, broken chords and a walking bass.',
+    parts: ['Melody on a 50% square', 'Broken-chord arpeggios', 'Walking bass', 'Soft brushes on the off-beats'],
+    bpm: 92, beat: 4, bar: 16, lead: { duty: 0.5, decay: 4, floor: 0.55, vib: 14, gain: 0.16 }, arp: { style: 'broken', duty: 0.25, gain: 0.075 }, bass: { style: 'walk', gain: 0.2 }, noise: { style: 'brush', gain: 0.05 },
+    sections: {
+      intro: { name: 'Intro', chords: [['F'], ['C7']], lead: ['-:16', '-:12 C5:2 D5:2'] },
+      A: { name: 'A', chords: [['F'], ['Dm'], ['Bb'], ['C'], ['F'], ['Am'], ['Bb', 'C'], ['F']],
+        lead: ['C5:4 A4:2 C5:2 F5:6 E5:2', 'D5:4 C5:2 A4:2 D5:8', 'D5:4 F5:2 D5:2 Bb4:4 C5:2 D5:2', 'C5:6 Bb4:2 A4:2 G4:2 E4:4', 'C5:4 A4:2 C5:2 F5:4 G5:2 A5:2', 'G5:4 E5:2 C5:2 E5:4 D5:2 C5:2', 'D5:4 Bb4:4 C5:2 E5:2 G5:4', 'F5:12 -:4'] },
+      A2: { name: 'A′', chords: [['F'], ['Dm'], ['Gm'], ['C'], ['Am'], ['Dm'], ['Gm', 'C'], ['F']],
+        lead: ['A5:4 G5:2 F5:2 C5:6 A4:2', 'D5:4 E5:2 F5:2 A5:8', 'G5:4 F5:2 D5:2 Bb4:4 D5:4', 'C5:2 D5:2 E5:4 G5:6 -:2', 'E5:4 C5:2 A4:2 C5:4 E5:4', 'F5:4 E5:2 D5:2 A4:8', 'Bb4:4 D5:4 C5:2 Bb4:2 G4:4', 'F4:8 A4:4 C5:4'] },
+      B: { name: 'B', chords: [['Bb'], ['C'], ['Am'], ['Dm'], ['Gm'], ['C'], ['Bb'], ['C7']],
+        lead: ['D5:8 F5:4 D5:4', 'E5:8 C5:4 G4:4', 'C5:6 E5:2 A5:8', 'F5:6 E5:2 D5:8', 'Bb5:6 A5:2 G5:4 D5:4', 'E5:6 F5:2 G5:8', 'F5:4 D5:4 Bb4:4 D5:4', 'C5:4 E5:4 G5:4 Bb5:4'] }
+    }, form: ['intro', 'A', 'A2', 'B', 'A'] },
 
-function buildScore() {
-  const ev = { lead: [], arp: [], bass: [], noise: [] }, marks = [];
-  let step = 0;
-  FORM.forEach((key, si) => {
-    const sec = SECTIONS[key];
+  { id: 'mogiana', farm: 'Mogiana, Brazil', title: 'Café com Leite', blurb: 'Bossa nova · C major',
+    about: 'São Paulo’s coffee country meets Rio’s bossa nova: lazy syncopated chords with sevenths and ninths, the bossa bass that rocks between the root and the fifth below, a soft shaker and a breathy, flute-like tune.',
+    parts: ['Flute-like lead with slow vibrato', 'Guitar-style chord stabs in the bossa rhythm', 'Root and low fifth, the bossa bass', 'Shaker and rim clicks'],
+    bpm: 112, beat: 4, bar: 16, lead: { duty: 0.5, decay: 6, floor: 0.6, vib: 12, vibRate: 4.6, gain: 0.15 }, arp: { style: 'bossa', duty: 0.25, gain: 0.06 }, bass: { style: 'bossa', gain: 0.2 }, noise: { style: 'bossa', gain: 0.045 },
+    sections: {
+      intro: { name: 'Intro', chords: [['Cmaj7'], ['G7']], lead: ['-:16', '-:12 C5:2 D5:2'] },
+      A: { name: 'A', chords: [['Cmaj7'], ['Cmaj7'], ['Dm7'], ['G7'], ['Em7'], ['A7'], ['Dm7'], ['G7']],
+        lead: ['E5:6 D5:2 E5:4 G5:4', 'B4:10 -:2 A4:2 B4:2', 'C5:6 A4:2 F5:4 E5:2 D5:2', 'D5:10 -:2 B4:2 D5:2', 'G5:6 E5:2 B4:4 D5:4', 'C#5:10 -:2 E5:2 G5:2', 'F5:6 E5:2 D5:4 A4:4', 'B4:6 C5:2 D5:4 F5:4'] },
+      B: { name: 'B', chords: [['Fmaj7'], ['Fm6'], ['Em7'], ['A7'], ['Dm7'], ['G7'], ['Cmaj7'], ['G7']],
+        lead: ['E5:6 C5:2 A4:4 C5:4', 'D5:6 C5:2 Ab4:8', 'G5:6 E5:2 B4:4 D5:4', 'C#5:6 E5:2 A5:8', 'A5:6 F5:2 D5:4 C5:4', 'B4:6 D5:2 F5:4 A5:4', 'G5:8 E5:4 D5:4', 'B4:4 D5:4 G5:4 F5:4'] },
+      A2: { name: 'A′', chords: [['Cmaj7'], ['Cmaj7'], ['Dm7'], ['G7'], ['Em7'], ['A7'], ['Dm7', 'G7'], ['Cmaj7']],
+        lead: ['E5:4 G5:2 E5:2 D5:4 C5:4', 'B4:10 -:2 A4:2 B4:2', 'C5:6 A4:2 F5:4 E5:2 D5:2', 'D5:10 -:2 B4:2 D5:2', 'G5:6 E5:2 B4:4 D5:4', 'C#5:10 -:2 E5:2 G5:2', 'F5:4 D5:4 B4:4 D5:4', 'C5:12 -:4'] }
+    }, form: ['intro', 'A', 'B', 'A2'] },
+
+  { id: 'huila', farm: 'Huila, Colombia', title: 'Cumbia del Huila', blurb: 'Cumbia · A minor',
+    about: 'Colombian cumbia slowed to a stroll: an accordion-style lead with a wobbly double reed, piano-like chord chops on the off-beats, the swaying cumbia bass and the scratch of a güiro on every beat.',
+    parts: ['Accordion: two squares slightly out of tune', 'Off-beat chord chops', 'Cumbia bass on one and three', 'Güiro scrapes, long-short-short'],
+    bpm: 88, beat: 4, bar: 16, lead: { duty: 0.25, decay: 8, floor: 0.7, vib: 8, vibRate: 6.2, chorus: 9, gain: 0.13 }, arp: { style: 'cumbia', duty: 0.5, gain: 0.05 }, bass: { style: 'cumbia', gain: 0.2 }, noise: { style: 'cumbia', gain: 0.05 },
+    sections: {
+      intro: { name: 'Intro', chords: [['Am'], ['E7']], lead: ['-:16', '-:12 B4:2 D5:2'] },
+      A: { name: 'A', chords: [['Am'], ['Dm'], ['G'], ['C'], ['F'], ['Dm'], ['E7'], ['Am']],
+        lead: ['E5:2 E5:2 A5:4 G5:2 E5:2 C5:4', 'D5:2 F5:2 A5:4 G5:2 F5:2 D5:4', 'B4:2 D5:2 G5:4 F5:2 D5:2 B4:4', 'C5:2 E5:2 G5:6 -:2 E5:2 G5:2', 'A5:4 G5:2 F5:2 E5:4 D5:2 C5:2', 'D5:4 F5:2 A5:2 G5:4 F5:2 E5:2', 'G#5:4 B5:2 G#5:2 E5:4 D5:2 B4:2', 'A4:6 -:2 C5:2 E5:2 A5:4'] },
+      B: { name: 'B', chords: [['C'], ['G'], ['Am'], ['Em'], ['F'], ['C'], ['Dm', 'E7'], ['Am']],
+        lead: ['G5:6 E5:2 C5:4 E5:4', 'D5:6 B4:2 G4:4 B4:4', 'C5:2 E5:2 A5:6 G5:2 E5:4', 'B4:2 E5:2 G5:6 F#5:2 E5:4', 'A5:2 C6:2 A5:4 F5:4 C5:4', 'E5:2 G5:2 E5:4 C5:4 G4:4', 'F5:4 E5:2 D5:2 E5:4 G#5:4', 'A5:8 E5:4 C5:4'] }
+    }, form: ['intro', 'A', 'B'] },
+
+  { id: 'gedeo', farm: 'Gedeo, Ethiopia', title: 'Yirgacheffe Dawn', blurb: 'Tizita mode · 6/8',
+    about: 'Built on tizita, the wistful five-note Ethiopian mode, in the rolling 6/8 of highland songs. The lead plucks like a krar lyre with a little bend into each note, over a krar ostinato and a kebero drum pattern.',
+    parts: ['Krar-style pluck with a bend into each note', 'Repeating krar ostinato', 'Rolling 6/8 bass', 'Kebero drum, claps and shaker'],
+    bpm: 64, beat: 6, bar: 12, lead: { duty: 0.25, decay: 2, floor: 0.25, vib: 18, vibRate: 5.5, bend: 70, gain: 0.17 }, arp: { style: 'six', duty: 0.25, gain: 0.055 }, bass: { style: 'six', gain: 0.19 }, noise: { style: 'kebero', gain: 0.05 },
+    sections: {
+      intro: { name: 'Intro', chords: [['D'], ['D']], lead: ['-:12', '-:6 A4:2 D5:2 E5:2'] },
+      A: { name: 'A', chords: [['D'], ['D'], ['Bm'], ['Bm'], ['D'], ['A5'], ['Bm'], ['D']],
+        lead: ['F#5:4 E5:2 D5:4 E5:2', 'F#5:2 A5:2 B5:2 A5:6', 'F#5:4 E5:2 D5:2 B4:4', 'D5:2 E5:2 F#5:2 E5:6', 'A5:4 B5:2 A5:2 F#5:4', 'E5:4 F#5:2 E5:2 A4:4', 'B4:2 D5:2 E5:2 F#5:2 E5:2 D5:2', 'D5:9 -:3'] },
+      B: { name: 'B', chords: [['Bm'], ['A5'], ['D'], ['D'], ['Bm'], ['E5'], ['A5'], ['D']],
+        lead: ['B5:6 A5:4 F#5:2', 'E5:6 F#5:2 A5:4', 'D6:4 B5:2 A5:2 F#5:4', 'A5:9 -:3', 'F#5:4 A5:2 B5:4 A5:2', 'E5:6 B4:2 E5:4', 'E5:2 F#5:2 A5:2 E5:2 F#5:2 E5:2', 'D5:12'] }
+    }, form: ['intro', 'A', 'B', 'A'] },
+
+  { id: 'toba', farm: 'Lake Toba, Sumatra', title: 'Danau Toba', blurb: 'Gondang & gamelan · slendro tuning',
+    about: 'Around Lake Toba the Batak play gondang, and across Indonesia gamelan rings out in slendro, a scale of five near-equal steps that fall between piano keys. The notes here are tuned to slendro, with a reedy sarune-style lead over interlocking bell patterns and a gong that marks every cycle.',
+    parts: ['Reedy sarune-style lead, tuned to slendro', 'Interlocking kotekan bell pattern', 'Big gong every cycle, smaller gong between', 'Kempli ticks and kendang drum'],
+    bpm: 72, beat: 4, bar: 16, lead: { duty: 0.25, decay: 6, floor: 0.6, vib: 16, vibRate: 5, gain: 0.13 }, arp: { style: 'kotekan', duty: 0.125, decay: 1, floor: 0.1, gain: 0.07 }, bass: { style: 'gong', gain: 0.24 }, noise: { style: 'gamelan', gain: 0.045 },
+    sections: {
+      intro: { name: 'Intro', chords: [['S5'], ['S5']], lead: ['-:16', '-:16'] },
+      A: { name: 'A', chords: [['S6'], ['S5'], ['S7'], ['S6'], ['S8'], ['S7'], ['S6'], ['S5']],
+        lead: ['S7:4 S8:4 S7:4 S6:4', 'S7:4 S6:4 S5:8', 'S8:4 S9:4 S8:4 S7:4', 'S8:4 S7:4 S6:8', 'S9:4 S10:4 S9:4 S8:4', 'S9:2 S8:2 S7:4 S8:8', 'S7:4 S6:4 S5:4 S6:4', 'S5:16'] },
+      B: { name: 'B', chords: [['S8'], ['S7'], ['S6'], ['S7'], ['S9'], ['S8'], ['S6'], ['S5']],
+        lead: ['S10:8 S9:4 S8:4', 'S9:8 S8:4 S7:4', 'S8:4 S7:2 S6:2 S5:8', 'S6:4 S7:4 S8:8', 'S10:4 S11:4 S10:4 S9:4', 'S9:4 S8:4 S7:8', 'S7:2 S8:2 S7:2 S6:2 S5:4 S6:4', 'S5:12 -:4'] }
+    }, form: ['intro', 'A', 'B'] },
+
+  { id: 'turrialba', farm: 'Turrialba, Costa Rica', title: 'Marimba del Volcán', blurb: 'Guanacaste marimba · 6/8 and 3/4',
+    about: 'The marimba is Costa Rica’s national instrument, and Guanacaste music sways between 6/8 and 3/4, a feel called sesquiáltera. Long notes shimmer with marimba tremolo rolls, and the bass flips between the two metres from bar to bar.',
+    parts: ['Marimba lead with tremolo rolls', 'Lower marimba ostinato', 'Bass that alternates 6/8 and 3/4', 'Shaker and rim on the shifting beats'],
+    bpm: 72, beat: 6, bar: 12, lead: { duty: 0.25, decay: 1, floor: 0.2, roll: true, ping: 0.35, gain: 0.15 }, arp: { style: 'six', duty: 0.5, decay: 1, floor: 0.2, gain: 0.05 }, bass: { style: 'sesqui', gain: 0.19 }, noise: { style: 'marimba', gain: 0.04 },
+    sections: {
+      intro: { name: 'Intro', chords: [['G'], ['D7']], lead: ['-:12', '-:6 G4:2 B4:2 D5:2'] },
+      A: { name: 'A', chords: [['G'], ['D7'], ['G'], ['C'], ['G'], ['D7'], ['C', 'D7'], ['G']],
+        lead: ['B4:2 D5:2 G5:2 B5:4 A5:2', 'A5:2 F#5:2 D5:2 C5:4 A4:2', 'B4:2 D5:2 G5:2 D5:2 B4:2 G4:2', 'E5:6 G5:6', 'D5:2 G5:2 B5:2 D6:4 B5:2', 'C6:2 A5:2 F#5:2 D5:4 C5:2', 'E5:4 C5:4 F#5:4', 'G5:12'] },
+      B: { name: 'B', chords: [['C'], ['G'], ['D7'], ['G'], ['Em'], ['C'], ['D7'], ['G']],
+        lead: ['G5:4 E5:4 C5:4', 'D5:4 B4:4 G4:4', 'F#5:2 A5:2 C6:2 A5:2 F#5:2 D5:2', 'B5:6 G5:6', 'E5:2 G5:2 B5:2 E6:4 B5:2', 'C6:2 B5:2 A5:2 G5:2 E5:2 C5:2', 'D5:4 F#5:4 A5:4', 'G5:6 D5:2 B4:2 G4:2'] }
+    }, form: ['intro', 'A', 'B', 'A'] },
+
+  { id: 'osaka', farm: 'Osaka garden', title: 'Sakura Roastery', blurb: 'Miyako-bushi scale · koto',
+    about: 'The roastery garden uses miyako-bushi, the five-note scale behind many traditional Japanese songs, with its bittersweet half-steps. The lead plucks and bends like a koto, the middle voice rolls chords upward like a koto glissando, and a wood block marks the bar.',
+    parts: ['Koto-style pluck with pitch bends', 'Rolled koto chords', 'Low drone', 'Hyoshigi wood block'],
+    bpm: 66, beat: 4, bar: 16, lead: { duty: 0.25, decay: 2, floor: 0.2, vib: 10, vibRate: 5, bend: 90, gain: 0.17 }, arp: { style: 'koto', duty: 0.25, decay: 2, floor: 0.15, gain: 0.06 }, bass: { style: 'drone', gain: 0.16 }, noise: { style: 'osaka', gain: 0.05 },
+    sections: {
+      intro: { name: 'Intro', chords: [['Am'], ['E5']], lead: ['-:16', '-:8 E4:4 F4:4'] },
+      A: { name: 'A', chords: [['Am'], ['F'], ['E5'], ['E5'], ['Am'], ['Fmaj7'], ['E5'], ['E5']],
+        lead: ['A4:4 B4:4 C5:8', 'A4:4 B4:4 C5:4 B4:2 A4:2', 'B4:4 E5:4 F5:4 E5:2 C5:2', 'B4:6 C5:2 B4:2 A4:2 F4:4', 'E4:4 F4:4 A4:4 B4:4', 'C5:4 E5:4 F5:6 E5:2', 'C5:4 B4:2 A4:2 B4:4 C5:2 B4:2', 'E4:12 -:4'] },
+      B: { name: 'B', chords: [['F'], ['Am'], ['F'], ['E5'], ['F'], ['Am'], ['Fmaj7'], ['E5']],
+        lead: ['F5:8 E5:4 C5:4', 'E5:8 C5:4 A4:4', 'C5:4 E5:4 F5:4 A5:4', 'B5:12 -:4', 'A5:6 F5:2 E5:4 C5:4', 'E5:6 C5:2 B4:4 A4:4', 'C5:4 B4:2 A4:2 F4:4 A4:4', 'B4:16'] }
+    }, form: ['intro', 'A', 'B'] }
+];
+
+/* ================= score building ================= */
+const NOTE = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+const SLENDRO = (deg) => 62 + 2.4 * deg;
+function midi(n) {
+  if (n[0] === 'S') return SLENDRO(+n.slice(1));
+  const m = /^([A-G])(b|#)?(\d)$/.exec(n); if (!m) throw new Error('bad note ' + n);
+  return 12 * (+m[3] + 1) + NOTE[m[1]] + (m[2] === 'b' ? -1 : m[2] === '#' ? 1 : 0);
+}
+const hz = (m) => 440 * Math.pow(2, (m - 69) / 12);
+const QUAL = { '': [0, 4, 7], m: [0, 3, 7], '7': [0, 4, 7, 10], maj7: [0, 4, 7, 11], m7: [0, 3, 7, 10], m6: [0, 3, 7, 9], '6': [0, 4, 7, 9], '5': [0, 7, 12], sus4: [0, 5, 7] };
+function chord(name) {
+  if (name[0] === 'S') return { slendro: +name.slice(1) };
+  const m = /^([A-G])(b|#)?(.*)$/.exec(name); let r = NOTE[m[1]] + (m[2] === 'b' ? -1 : m[2] === '#' ? 1 : 0);
+  r = ((r % 12) + 12) % 12; let root = 48 + r; if (root < 55) root += 12;
+  const iv = QUAL[m[3]]; if (!iv) throw new Error('bad chord ' + name);
+  const tones = iv.map((i) => root + i); while (tones.length < 4) tones.push(tones[tones.length - 3] + 12);
+  let low = (root % 12) + 36; if (low < 43) low += 12;
+  return { root, tones, low, fifth: low + 7, fifthLow: low - 5 >= 36 ? low - 5 : low + 7, oct: low + 12 };
+}
+
+function buildScore(song) {
+  const ev = { lead: [], arp: [], bass: [], noise: [] }, marks = [], B = song.bar;
+  let step = 0, barNo = 0;
+  song.form.forEach((key, si) => {
+    const sec = song.sections[key];
     marks.push({ step, si, name: sec.name });
     sec.chords.forEach((bar, b) => {
-      const t0 = step + b * 16;
-      let p = t0;   /* melody */
+      const t0 = step + b * B, intro = key === 'intro';
+      let p = t0;
       sec.lead[b].split(' ').forEach((tok) => { const [n, d] = tok.split(':'); if (n !== '-') ev.lead.push({ s: p, d: +d, m: midi(n) }); p += +d; });
-      if (p - t0 !== 16) throw new Error(key + ' bar ' + (b + 1) + ' has ' + (p - t0) + ' steps');
-      const half = 16 / bar.length;
-      bar.forEach((c, ci) => {
-        const [r, third, top] = CHORDS[c], s0 = t0 + ci * half, tones = [r, r + third, r + top, r + 12];
-        const pat = bar.length === 1 ? [0, 1, 2, 3, 2, 1, 2, 1] : [0, 1, 2, 1];
-        pat.forEach((k, i) => ev.arp.push({ s: s0 + i * 2, d: 2, m: tones[k] }));
-        let low = (r % 12) + 36; if (low < 43) low += 12;
-        const fifth = low + 7, oct = low + 12;
-        const bp = bar.length === 1 ? [[low, 3], [null, 1], [low, 2], [fifth, 2], [oct, 3], [null, 1], [fifth, 2], [low, 2]] : [[low, 3], [null, 1], [fifth, 2], [low, 2]];
-        let q = s0; bp.forEach(([m, d]) => { if (m !== null && !(key === 'intro' && b === 0)) ev.bass.push({ s: q, d, m }); q += d; });
+      if (p - t0 !== B) throw new Error(song.id + ' ' + key + ' bar ' + (b + 1) + ' has ' + (p - t0) + ' steps');
+      const part = B / bar.length;
+      bar.forEach((name, ci) => {
+        const c = chord(name), s0 = t0 + ci * part, whole = bar.length === 1;
+        ARP[song.arp.style](ev.arp, c, s0, part, whole, barNo);
+        if (!(intro && b === 0)) BASS[song.bass.style](ev.bass, c, s0, part, whole, barNo);
       });
-      if (!(key === 'intro' && b === 0)) [2, 6, 10, 14].forEach((k) => ev.noise.push({ s: t0 + k, d: 1, kind: 'hat' }));
-      if (key !== 'intro') [4, 12].forEach((k) => ev.noise.push({ s: t0 + k, d: 2, kind: 'snare' }));
+      NOISE[song.noise.style](ev.noise, t0, B, barNo, intro && b === 0, intro);
+      barNo += 1;
     });
-    step += sec.chords.length * 16;
+    step += sec.chords.length * B;
   });
-  return { ev, marks, total: step, loopStep: marks[LOOP_FROM].step };
+  const loopStep = marks[1].step;
+  const by = {};
+  Object.keys(ev).forEach((ch) => ev[ch].forEach((e) => { (by[e.s] = by[e.s] || []).push([ch, e]); }));
+  const range = {};
+  ['lead', 'arp', 'bass'].forEach((ch) => { const ms = ev[ch].flatMap((e) => e.ms || [e.m]); range[ch] = [Math.min(...ms) - 1, Math.max(...ms) + 1]; });
+  return { ev, marks, total: step, loopStep, by, range };
 }
-const SCORE = buildScore();
-const BY_STEP = {};
-Object.keys(SCORE.ev).forEach((ch) => SCORE.ev[ch].forEach((e) => { (BY_STEP[e.s] = BY_STEP[e.s] || []).push([ch, e]); }));
+const push = (list, s, d, m, extra) => list.push(Object.assign({ s, d, m }, extra || {}));
+const ARP = {
+  broken(o, c, s0, part, whole) { const pat = part === 16 ? [0, 1, 2, 3, 2, 1, 2, 1] : part === 12 ? [0, 1, 2, 3, 2, 1] : part === 8 ? [0, 1, 2, 1] : [0, 1, 2]; pat.forEach((k, i) => push(o, s0 + i * 2, 2, c.tones[k])); },
+  bossa(o, c, s0, part) { const hits = part === 16 ? [0, 3, 6, 10, 12] : [0, 3, 6]; hits.forEach((h) => o.push({ s: s0 + h, d: 2, ms: c.tones.slice(1, 4).map((t) => t + 12) })); },
+  cumbia(o, c, s0, part) { for (let h = 2; h < part; h += 4) o.push({ s: s0 + h, d: 1, ms: c.tones.slice(0, 3).map((t) => t + 12) }); },
+  six(o, c, s0, part) { const pat = part === 12 ? [0, 2, 1, 2, 3, 2] : [0, 2, 1]; pat.forEach((k, i) => push(o, s0 + i * 2, 2, c.tones[k])); },
+  kotekan(o, c, s0, part) { const d = c.slendro, pat = [1, 0, 1, 2, 1, 0, -1, 0]; for (let i = 0; i < part; i++) push(o, s0 + i, 1, SLENDRO(d + pat[i % 8])); },
+  koto(o, c, s0, part) { const roll = [c.tones[0], c.tones[1], c.tones[2], c.tones[0] + 12]; for (let h = 0; h < part; h += 8) roll.forEach((t, i) => push(o, s0 + h + i, 4 - i, t)); }
+};
+const BASS = {
+  walk(o, c, s0, part) { const bp = part === 16 ? [[c.low, 3], [0, 1], [c.low, 2], [c.fifth, 2], [c.oct, 3], [0, 1], [c.fifth, 2], [c.low, 2]] : [[c.low, 3], [0, 1], [c.fifth, 2], [c.low, 2]]; let q = s0; bp.forEach(([m, d]) => { if (m) push(o, q, d, m); q += d; }); },
+  bossa(o, c, s0, part) { const bp = part === 16 ? [[c.low, 6], [c.fifthLow, 2], [c.fifthLow, 6], [c.low, 2]] : [[c.low, 6], [c.fifthLow, 2]]; let q = s0; bp.forEach(([m, d]) => { push(o, q, d, m); q += d; }); },
+  cumbia(o, c, s0, part) { const bp = part === 16 ? [[c.low, 3], [0, 3], [c.low, 2], [c.fifth, 4], [c.fifth, 2], [c.low, 2]] : [[c.low, 4], [c.fifth, 4]]; let q = s0; bp.forEach(([m, d]) => { if (m) push(o, q, d, m); q += d; }); },
+  six(o, c, s0, part) { const bp = part === 12 ? [[c.low, 3], [0, 1], [c.low, 2], [c.fifth, 3], [0, 1], [c.low, 2]] : [[c.low, 4], [c.fifth, 2]]; let q = s0; bp.forEach(([m, d]) => { if (m) push(o, q, d, m); q += d; }); },
+  sesqui(o, c, s0, part, whole, bar) { const bp = part !== 12 ? [[c.low, 4], [c.fifth, 2]] : bar % 2 ? [[c.low, 4], [c.fifth, 4], [c.oct, 4]] : [[c.low, 6], [c.fifth, 6]]; let q = s0; bp.forEach(([m, d]) => { push(o, q, d, m); q += d; }); },
+  gong(o, c, s0, part, whole, bar) { if (bar % 2 === 0) push(o, s0, part * 2, SLENDRO(0) - 24, { gong: true }); else push(o, s0 + part / 2, part, SLENDRO(c.slendro) - 24, { gong: true }); },
+  drone(o, c, s0, part) { push(o, s0, Math.min(part, 12), c.low); }
+};
+const N = (o, s, kind, d) => o.push({ s, d: d || 1, kind });
+const NOISE = {
+  brush(o, t0, B, bar, silent, intro) { if (silent) return; [2, 6, 10, 14].forEach((k) => N(o, t0 + k, 'hat')); if (!intro) [4, 12].forEach((k) => N(o, t0 + k, 'snare', 2)); },
+  bossa(o, t0, B, bar, silent) { if (silent) return; for (let k = 0; k < 16; k += 2) N(o, t0 + k, 'shaker'); (bar % 2 ? [0, 10] : [6, 12]).forEach((k) => N(o, t0 + k, 'rim')); },
+  cumbia(o, t0, B, bar, silent) { if (silent) return; for (let k = 0; k < 16; k += 4) { N(o, t0 + k, 'scrape', 2); N(o, t0 + k + 2, 'hat'); N(o, t0 + k + 3, 'hat'); } },
+  kebero(o, t0, B, bar, silent) { if (silent) return; [0, 6].forEach((k) => N(o, t0 + k, 'tom', 2)); [3, 9].forEach((k) => N(o, t0 + k, 'rim')); [2, 5, 8, 11].forEach((k) => N(o, t0 + k, 'shaker')); },
+  gamelan(o, t0, B, bar, silent) { [2, 6, 10, 14].forEach((k) => N(o, t0 + k, 'rim')); if (!silent) (bar % 2 ? [6, 10, 14] : [6, 14]).forEach((k) => N(o, t0 + k, 'tom', 2)); },
+  marimba(o, t0, B, bar, silent) { if (silent) return; for (let k = 0; k < 12; k += 2) N(o, t0 + k, 'shaker'); (bar % 2 ? [0, 4, 8] : [0, 6]).forEach((k) => N(o, t0 + k, 'rim')); },
+  osaka(o, t0, B, bar, silent) { if (silent) return; N(o, t0, 'rim'); if (bar % 4 === 3) N(o, t0 + 12, 'rim'); }
+};
+SONGS.forEach((s) => { s.score = buildScore(s); });
 
-/* ---------------- Game Boy-ish voices ---------------- */
-let ac = null, master, filter, waves = {}, noiseBuf = {}, arr = 'day';
+/* ================= Game Boy-ish voices ================= */
+let ac = null, master, filter, waves = {}, noiseBuf = {}, night = false, song = SONGS[0];
 const muted = { lead: false, arp: false, bass: false, noise: false };
-function pulseWave(duty) {
-  const n = 48, re = new Float32Array(n), im = new Float32Array(n);
-  for (let k = 1; k < n; k++) re[k] = (2 / (k * Math.PI)) * Math.sin(k * Math.PI * duty);
-  return ac.createPeriodicWave(re, im);
-}
+function pulseWave(duty) { const n = 48, re = new Float32Array(n), im = new Float32Array(n); for (let k = 1; k < n; k++) re[k] = (2 / (k * Math.PI)) * Math.sin(k * Math.PI * duty); return ac.createPeriodicWave(re, im); }
 function tableWave(table) {   /* 32 four-bit samples, like the wave channel's RAM */
-  const N = table.length, n = 16, re = new Float32Array(n), im = new Float32Array(n);
-  for (let k = 1; k < n; k++) for (let i = 0; i < N; i++) { const v = table[i] / 7.5 - 1, a = 2 * Math.PI * k * i / N; re[k] += v * Math.cos(a) * 2 / N; im[k] += v * Math.sin(a) * 2 / N; }
+  const L = table.length, n = 16, re = new Float32Array(n), im = new Float32Array(n);
+  for (let k = 1; k < n; k++) for (let i = 0; i < L; i++) { const v = table[i] / 7.5 - 1, a = 2 * Math.PI * k * i / L; re[k] += v * Math.cos(a) * 2 / L; im[k] += v * Math.sin(a) * 2 / L; }
   return ac.createPeriodicWave(re, im);
 }
 function lfsrNoise(short) {   /* the noise channel's shift register: 15-bit hiss or 7-bit metallic */
   const len = ac.sampleRate, buf = ac.createBuffer(1, len, ac.sampleRate), d = buf.getChannelData(0);
   let reg = 0x7fff, acc = 0; const rate = 32768 / ac.sampleRate * 8;
-  for (let i = 0; i < len; i++) {
-    acc += rate;
-    while (acc >= 1) { acc -= 1; const bit = (reg ^ (reg >> 1)) & 1; reg = (reg >> 1) | (bit << 14); if (short) reg = (reg & ~0x40) | (bit << 6); }
-    d[i] = (reg & 1) ? -0.6 : 0.6;
-  }
+  for (let i = 0; i < len; i++) { acc += rate; while (acc >= 1) { acc -= 1; const bit = (reg ^ (reg >> 1)) & 1; reg = (reg >> 1) | (bit << 14); if (short) reg = (reg & ~0x40) | (bit << 6); } d[i] = (reg & 1) ? -0.6 : 0.6; }
   return buf;
 }
 function setup() {
   ac = new (window.AudioContext || window.webkitAudioContext)();
   master = ac.createGain(); filter = ac.createBiquadFilter(); filter.type = 'lowpass'; filter.Q.value = 0.3;
   master.connect(filter); filter.connect(ac.destination);
-  waves.p50 = pulseWave(0.5); waves.p25 = pulseWave(0.25); waves.p12 = pulseWave(0.125);
+  waves[0.5] = pulseWave(0.5); waves[0.25] = pulseWave(0.25); waves[0.125] = pulseWave(0.125);
   waves.bass = tableWave([0, 2, 4, 6, 8, 10, 12, 13, 14, 15, 15, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 4, 3, 3, 2, 2, 1, 1, 0, 0]);
+  waves.gong = tableWave([8, 11, 13, 15, 15, 14, 12, 9, 7, 6, 6, 7, 9, 10, 10, 9, 7, 5, 3, 2, 2, 3, 5, 6, 6, 5, 3, 1, 0, 0, 2, 5]);
   noiseBuf.long = lfsrNoise(false); noiseBuf.short = lfsrNoise(true);
-  applyArr();
+  applyMix();
 }
-function applyArr() { if (!ac) return; const A = ARR[arr]; filter.frequency.setTargetAtTime(A.cutoff, ac.currentTime, 0.3); master.gain.setTargetAtTime(+document.getElementById('vol').value / 100, ac.currentTime, 0.05); }
+const bpm = () => song.bpm * (night ? 0.84 : 1);
+const sixteenth = () => 60 / bpm() / song.beat;
+function applyMix() { if (!ac) return; filter.frequency.setTargetAtTime(night ? 2600 : 6500, ac.currentTime, 0.3); master.gain.setTargetAtTime(+document.getElementById('vol').value / 100, ac.currentTime, 0.05); }
 function stepEnv(g, t, vol, len, decaySteps, floor) {   /* volume falls in 1/15 steps every n/64 s, then releases */
   g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.004);
   let v = vol, tt = t + 0.004; const dec = vol / 15;
   while (decaySteps && v - dec >= vol * floor && tt + decaySteps / 64 < t + len) { tt += decaySteps / 64; v -= dec; g.gain.setValueAtTime(v, tt); }
-  g.gain.setValueAtTime(v, t + len - 0.012); g.gain.linearRampToValueAtTime(0, t + len);
+  g.gain.setValueAtTime(v, Math.max(tt, t + len - 0.012)); g.gain.linearRampToValueAtTime(0, Math.max(tt, t + len - 0.012) + 0.012);
 }
-function voice(ch, e, t, sixteenth) {
-  const A = ARR[arr], len = e.d * sixteenth;
-  if (ch === 'noise') {
-    if (e.kind === 'snare' && !A.snare) return;
-    const src = ac.createBufferSource(), g = ac.createGain();
-    src.buffer = e.kind === 'hat' ? noiseBuf.short : noiseBuf.long;
-    src.playbackRate.value = e.kind === 'hat' ? 1.6 : 0.7;
-    const vol = A.noise * (e.kind === 'hat' ? 0.7 : 1.3), dur = e.kind === 'hat' ? 0.05 : 0.14;
-    stepEnv(g, t, vol, dur, 1, 0);
-    src.connect(g); g.connect(master); src.start(t, Math.random() * 0.5); src.stop(t + dur + 0.02);
-    return;
-  }
-  const o = ac.createOscillator(), g = ac.createGain(), pan = ac.createStereoPanner ? ac.createStereoPanner() : null;
-  o.frequency.value = hz(e.m);
-  if (ch === 'lead') {
-    o.setPeriodicWave(A.duty === 0.5 ? waves.p50 : waves.p12);
-    stepEnv(g, t, A.lead, len - 0.01, 4, 0.55);
-    if (len > 0.3) {   /* delayed vibrato on held notes */
-      const lfo = ac.createOscillator(), lg = ac.createGain(); lfo.frequency.value = 5.2;
-      lg.gain.setValueAtTime(0, t); lg.gain.setValueAtTime(0, t + 0.22); lg.gain.linearRampToValueAtTime(14, t + 0.4);
-      lfo.connect(lg); lg.connect(o.detune); lfo.start(t); lfo.stop(t + len);
+function osc(wave, f, t, end, out, detune) { const o = ac.createOscillator(); o.setPeriodicWave(wave); o.frequency.value = f; if (detune) o.detune.value = detune; o.connect(out); o.start(t); o.stop(end + 0.03); return o; }
+function chain(pan) { const g = ac.createGain(); if (ac.createStereoPanner) { const p = ac.createStereoPanner(); p.pan.value = pan; g.connect(p); p.connect(master); } else g.connect(master); return g; }
+function playLead(e, t) {
+  const L = song.lead, st = sixteenth(), len = e.d * st, vol = L.gain * (night ? 0.8 : 1), duty = night && L.duty === 0.5 ? 0.25 : L.duty;
+  const strikes = L.roll && e.d >= 4 ? Array.from({ length: e.d }, (_, i) => [t + i * st, st, i === 0 ? 1 : 0.62 + (i % 2) * 0.12]) : [[t, len, 1]];
+  strikes.forEach(([ts, ls, amp]) => {
+    const g = chain(0.15), o = osc(waves[duty], hz(e.m), ts, ts + ls, g);
+    stepEnv(g.gain ? g : g, ts, vol * amp, ls - 0.008, L.decay, L.floor);
+    if (L.chorus) { const g2 = chain(0.15); osc(waves[duty], hz(e.m), ts, ts + ls, g2, L.chorus); stepEnv(g2, ts, vol * amp * 0.6, ls - 0.008, L.decay, L.floor); }
+    if (L.ping) { const g3 = chain(0.15); osc(waves[0.5], hz(e.m) * 2, ts, ts + 0.12, g3); stepEnv(g3, ts, vol * amp * L.ping, 0.12, 1, 0); }
+    if (L.bend && amp === 1) { o.detune.setValueAtTime(-L.bend, ts); o.detune.linearRampToValueAtTime(0, ts + 0.07); }
+    if (L.vib && ls > 0.3) {
+      const lfo = ac.createOscillator(), lg = ac.createGain(); lfo.frequency.value = L.vibRate || 5.2;
+      lg.gain.setValueAtTime(0, ts); lg.gain.setValueAtTime(0, ts + 0.22); lg.gain.linearRampToValueAtTime(L.vib, ts + 0.4);
+      lfo.connect(lg); lg.connect(o.detune); lfo.start(ts); lfo.stop(ts + ls);
     }
-    if (pan) pan.pan.value = 0.15;
-  } else if (ch === 'arp') {
-    o.setPeriodicWave(waves.p25); stepEnv(g, t, A.arp, len, 2, 0.3); if (pan) pan.pan.value = -0.25;
-  } else {
-    o.setPeriodicWave(waves.bass); stepEnv(g, t, A.bass, len - 0.015, 0, 1);
-  }
-  o.connect(g); if (pan) { g.connect(pan); pan.connect(master); } else g.connect(master);
-  o.start(t); o.stop(t + len + 0.02);
+  });
 }
+function playArp(e, t) {
+  const A = song.arp, len = e.d * sixteenth(), g = chain(-0.25), vol = A.gain * (night ? 0.75 : 1);
+  if (e.ms) {   /* a chord on one channel: cycle its notes very fast, the classic handheld trick */
+    const o = osc(waves[A.duty], hz(e.ms[0]), t, t + len, g);
+    for (let k = 0, tt = t; tt < t + len; k++, tt += 1 / 50) o.frequency.setValueAtTime(hz(e.ms[k % e.ms.length]), tt);
+  } else osc(waves[A.duty], hz(e.m), t, t + len, g);
+  stepEnv(g, t, vol, len - 0.005, A.decay || 2, A.floor !== undefined ? A.floor : 0.3);
+}
+function playBass(e, t) {
+  const len = e.d * sixteenth(), g = chain(0), vol = song.bass.gain * (night ? 0.8 : 1);
+  if (e.gong) { const o = osc(waves.gong, hz(e.m), t, t + len, g); o.detune.setValueAtTime(0, t); const lfo = ac.createOscillator(), lg = ac.createGain(); lfo.frequency.value = 3.2; lg.gain.value = 9; lfo.connect(lg); lg.connect(o.detune); lfo.start(t); lfo.stop(t + len); stepEnv(g, t, vol * 1.2, len, 10, 0); return; }
+  osc(waves.bass, hz(e.m), t, t + len, g); stepEnv(g, t, vol, len - 0.015, 0, 1);
+}
+function playNoise(e, t) {
+  const vol = song.noise.gain * (night ? 0.4 : 1), g = chain(0.05);
+  if (e.kind === 'tom') { const o = ac.createOscillator(); o.type = 'triangle'; o.frequency.setValueAtTime(190, t); o.frequency.exponentialRampToValueAtTime(80, t + 0.14); o.connect(g); o.start(t); o.stop(t + 0.18); stepEnv(g, t, vol * 2.4, 0.16, 1, 0); return; }
+  const K = { hat: [noiseBuf.short, 1.6, 0.05, 0.7], snare: [noiseBuf.long, 0.7, 0.14, 1.3], shaker: [noiseBuf.long, 2.2, 0.05, 0.55], rim: [noiseBuf.short, 0.45, 0.035, 1.1], scrape: [noiseBuf.long, 1.1, 0.16, 0.9] }[e.kind];
+  if (e.kind === 'snare' && night) return;
+  const src = ac.createBufferSource(); src.buffer = K[0]; src.playbackRate.value = K[1]; src.connect(g);
+  if (e.kind === 'scrape') { g.gain.setValueAtTime(0, t); for (let k = 0, tt = t; tt < t + K[2]; k++, tt += 0.014) g.gain.setValueAtTime(vol * K[3] * (k % 2 ? 0.35 : 1), tt); g.gain.setValueAtTime(0, t + K[2]); }
+  else stepEnv(g, t, vol * K[3], K[2], 1, 0);
+  src.start(t, Math.random() * 0.5); src.stop(t + K[2] + 0.02);
+}
+const PLAY = { lead: playLead, arp: playArp, bass: playBass, noise: playNoise };
 
-/* ---------------- scheduler ---------------- */
-let playing = false, step = 0, nextT = 0, timer = null, startedAt = 0;
-const placed = [];   /* [time, step] for the display */
+/* ================= scheduler and iPhone unlock ================= */
+let playing = false, step = 0, nextT = 0, timer = null, startedAt = 0, unlockEl = null;
+const placed = [];
 function schedule() {
-  const sixteenth = 60 / ARR[arr].bpm / 4;
+  const sc = song.score;
   while (nextT < ac.currentTime + 0.15) {
-    (BY_STEP[step] || []).forEach(([ch, e]) => { if (!muted[ch]) voice(ch, e, nextT, sixteenth); });
+    (sc.by[step] || []).forEach(([ch, e]) => { if (!muted[ch]) PLAY[ch](e, nextT); });
     placed.push([nextT, step]); if (placed.length > 64) placed.shift();
-    nextT += sixteenth; step += 1;
-    if (step >= SCORE.total) step = SCORE.loopStep;
+    nextT += sixteenth(); step += 1;
+    if (step >= sc.total) step = sc.loopStep;
   }
 }
-/* iPhone: web audio follows the Ring/Silent switch unless the page asks for media playback, and must be unlocked inside the tap itself */
-let unlockEl = null;
 function silentWavUrl() {
   const n = 4000, b = new Uint8Array(44 + n), dv = new DataView(b.buffer), w = (o, s) => { for (let i = 0; i < s.length; i++) b[o + i] = s.charCodeAt(i); };
   w(0, 'RIFF'); dv.setUint32(4, 36 + n, true); w(8, 'WAVE'); w(12, 'fmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true);
   dv.setUint32(24, 8000, true); dv.setUint32(28, 8000, true); dv.setUint16(32, 1, true); dv.setUint16(34, 8, true); w(36, 'data'); dv.setUint32(40, n, true); b.fill(128, 44);
   return URL.createObjectURL(new Blob([b], { type: 'audio/wav' }));
 }
-function unlock() {
-  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { /* older iOS: the silent clip below does the same job */ }
-  try {
-    if (!unlockEl) { unlockEl = new Audio(silentWavUrl()); unlockEl.loop = true; unlockEl.setAttribute('playsinline', ''); }
-    const pr = unlockEl.play(); if (pr && pr.catch) pr.catch(() => {});
-  } catch (e) { /* no media element support: carry on with web audio alone */ }
+function unlock() {   /* iPhone: ask for media playback so the silent switch doesn't mute it, and unlock inside the tap */
+  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { /* older iOS: the silent clip does the same job */ }
+  try { if (!unlockEl) { unlockEl = new Audio(silentWavUrl()); unlockEl.loop = true; unlockEl.setAttribute('playsinline', ''); } const pr = unlockEl.play(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) { /* web audio alone */ }
   const buf = ac.createBuffer(1, 1, ac.sampleRate), src = ac.createBufferSource(); src.buffer = buf; src.connect(ac.destination); src.start(0);
 }
 function start() {
   if (!ac) setup();
-  unlock();
-  playing = true;
-  const go = () => {
-    if (!playing || timer) return;
-    applyArr();
-    step = 0; nextT = ac.currentTime + 0.08; startedAt = nextT; placed.length = 0;
-    timer = setInterval(schedule, 25); schedule();
-  };
+  unlock(); playing = true;
+  const go = () => { if (!playing || timer) return; applyMix(); step = 0; nextT = ac.currentTime + 0.08; startedAt = nextT; placed.length = 0; timer = setInterval(schedule, 25); schedule(); };
   if (ac.state !== 'running') ac.resume().then(go, go); else go();
 }
 function stop() { clearInterval(timer); timer = null; playing = false; if (ac) master.gain.setTargetAtTime(0, ac.currentTime, 0.03); if (unlockEl) unlockEl.pause(); }
 
-/* ---------------- interface ---------------- */
+/* ================= interface ================= */
 const $ = (id) => document.getElementById(id);
-const LANES = [['lead', 'Pulse 1', 'Melody', '--ch1'], ['arp', 'Pulse 2', 'Arpeggios', '--ch2'], ['bass', 'Wave', 'Bass', '--ch3'], ['noise', 'Noise', 'Brushes', '--ch4']];
+const LANES = [['lead', 'Pulse 1', '--ch1'], ['arp', 'Pulse 2', '--ch2'], ['bass', 'Wave', '--ch3'], ['noise', 'Noise', '--ch4']];
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-$('lanes').innerHTML = LANES.map(([k, a, b, c]) => '<button type="button" class="lane" data-ch="' + k + '" aria-pressed="true"><i style="background:var(' + c + ')"></i><div><b>' + a + '</b><span>' + b + '</span></div></button>').join('');
-$('map').innerHTML = FORM.map((k, i) => '<div data-i="' + i + '">' + SECTIONS[k].name + '</div>').join('');
+const loopSecs = (s) => (s.score.total - s.score.loopStep) * 60 / s.bpm / s.beat;
+const mmss = (x) => Math.floor(x / 60) + ':' + String(Math.round(x % 60)).padStart(2, '0');
+$('tracks').innerHTML = SONGS.map((s, i) => '<button type="button" class="track" data-i="' + i + '" aria-pressed="' + (i === 0) + '"><b>' + s.title + '</b><span>' + s.farm + ' · ' + s.blurb.split(' · ')[0] + '</span></button>').join('');
+function showSong() {
+  $('nowTitle').textContent = song.title;
+  $('nowSub').textContent = song.farm + ' · ' + song.blurb + ' · ' + Math.round(bpm()) + ' BPM · loop ' + mmss(loopSecs(song) / (night ? 0.84 : 1));
+  $('map').innerHTML = song.form.map((k, i) => '<div data-i="' + i + '">' + song.sections[k].name + '</div>').join('');
+  $('lanes').innerHTML = LANES.map(([k, a, c], i) => '<button type="button" class="lane" data-ch="' + k + '" aria-pressed="' + !muted[k] + '"><i style="background:var(' + c + ')"></i><div><b>' + a + '</b><span>' + song.parts[i] + '</span></div></button>').join('');
+  $('aboutTitle').textContent = 'About ' + song.title;
+  $('about').textContent = song.about;
+  $('parts').innerHTML = LANES.map(([k, a], i) => '<dt>' + a + '</dt><dd>' + song.parts[i] + '</dd>').join('') + '<dt>Form</dt><dd>' + song.form.map((k) => song.sections[k].name).join(', ') + ', then loops from ' + song.sections[song.form[1]].name + '.</dd>';
+}
+$('tracks').addEventListener('click', (e) => {
+  const b = e.target.closest('.track'); if (!b) return;
+  song = SONGS[+b.dataset.i];
+  document.querySelectorAll('.track').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+  showSong();
+  if (playing) { clearInterval(timer); timer = null; step = 0; nextT = ac.currentTime + 0.12; startedAt = nextT; placed.length = 0; timer = setInterval(schedule, 25); }
+  else { start(); setPlayLabel(); }
+});
 $('lanes').addEventListener('click', (e) => { const b = e.target.closest('.lane'); if (!b) return; const k = b.dataset.ch; muted[k] = !muted[k]; b.setAttribute('aria-pressed', String(!muted[k])); });
-$('play').addEventListener('click', () => { if (playing) stop(); else start(); $('play').textContent = playing ? 'STOP' : 'PLAY'; $('play').setAttribute('aria-pressed', String(playing)); });
-['day', 'night'].forEach((k) => $(k).addEventListener('click', () => { arr = k; $('day').setAttribute('aria-pressed', String(k === 'day')); $('night').setAttribute('aria-pressed', String(k === 'night')); applyArr(); }));
+function setPlayLabel() { $('play').textContent = playing ? 'STOP' : 'PLAY'; $('play').setAttribute('aria-pressed', String(playing)); }
+$('play').addEventListener('click', () => { if (playing) stop(); else start(); setPlayLabel(); });
+['day', 'night'].forEach((k) => $(k).addEventListener('click', () => { night = k === 'night'; $('day').setAttribute('aria-pressed', String(!night)); $('night').setAttribute('aria-pressed', String(night)); applyMix(); showSong(); }));
 $('vol').addEventListener('input', () => { if (ac && playing) master.gain.setTargetAtTime(+$('vol').value / 100, ac.currentTime, 0.05); });
+showSong();
 
 const cv = $('roll'), cx = cv.getContext('2d'), CW = cv.width, CH = cv.height, LH = CH / 4, WIN = 48, PX = CW / WIN;
-const RANGE = { lead: [62, 84], arp: [53, 74], bass: [41, 56] };
 function nowStep() {
-  if (!playing || !ac) return 0;
-  let s = placed.length ? placed[0][1] : 0, frac = 0;
-  for (let i = 0; i < placed.length; i++) { if (placed[i][0] <= ac.currentTime) { s = placed[i][1]; const nt = placed[i + 1] ? placed[i + 1][0] : placed[i][0] + 0.1; frac = (ac.currentTime - placed[i][0]) / (nt - placed[i][0]); } }
+  if (!playing || !ac || !placed.length) return 0;
+  let s = placed[0][1], frac = 0;
+  for (let i = 0; i < placed.length; i++) if (placed[i][0] <= ac.currentTime) { s = placed[i][1]; const nt = placed[i + 1] ? placed[i + 1][0] : placed[i][0] + 0.1; frac = (ac.currentTime - placed[i][0]) / (nt - placed[i][0]); }
   return s + Math.min(1, Math.max(0, frac));
 }
 function draw() {
-  const cur = nowStep(), cols = LANES.map((l) => css(l[3]));
+  const sc = song.score, cur = nowStep(), cols = LANES.map((l) => css(l[2])), loopLen = sc.total - sc.loopStep;
   cx.fillStyle = css('--lcd'); cx.fillRect(0, 0, CW, CH);
   cx.fillStyle = css('--lcd-grid');
-  for (let k = Math.ceil(cur - WIN / 3); k < cur + WIN; k++) if (k % 4 === 0) cx.fillRect(Math.round((k - cur + WIN / 3) * PX), 0, k % 16 === 0 ? 2 : 1, CH);
+  for (let k = Math.ceil(cur - WIN / 3); k < cur + WIN; k++) if (k % song.beat === 0) cx.fillRect(Math.round((k - cur + WIN / 3) * PX), 0, k % song.bar === 0 ? 2 : 1, CH);
   for (let l = 1; l < 4; l++) cx.fillRect(0, l * LH, CW, 1);
   LANES.forEach(([ch], li) => {
-    const list = SCORE.ev[ch], top = li * LH;
-    const visible = (s) => { const out = []; [s, s - (SCORE.total - SCORE.loopStep), s + (SCORE.total - SCORE.loopStep)].forEach((x) => out.push(x)); return out; };
-    list.forEach((e) => {
-      visible(e.s).forEach((s) => {
+    const top = li * LH;
+    sc.ev[ch].forEach((e) => {
+      [e.s, e.s + loopLen].forEach((s, rep) => {
+        if (rep && e.s < sc.loopStep) return;
         const x = (s - cur + WIN / 3) * PX; if (x > CW || x + e.d * PX < 0) return;
-        if (s < SCORE.loopStep && e.s >= SCORE.loopStep) return;
-        let y;
-        if (ch === 'noise') y = top + (e.kind === 'hat' ? LH * 0.3 : LH * 0.6);
-        else { const [lo, hi] = RANGE[ch]; y = top + LH - 6 - (e.m - lo) / (hi - lo) * (LH - 12); }
-        const on = cur >= s && cur < s + e.d && playing;
-        cx.globalAlpha = muted[ch] ? 0.2 : on ? 1 : 0.55;
-        cx.fillStyle = on ? '#FFF6D8' : cols[li];
-        cx.fillRect(Math.round(x) + 1, Math.round(y) - 2, Math.max(3, Math.round(e.d * PX) - 2), 4);
+        const on = playing && cur >= s && cur < s + e.d;
+        cx.globalAlpha = muted[ch] ? 0.2 : on ? 1 : 0.55; cx.fillStyle = on ? '#FFF6D8' : cols[li];
+        const notes = ch === 'noise' ? [null] : (e.ms || [e.m]);
+        notes.forEach((m) => {
+          let y;
+          if (ch === 'noise') y = top + LH * ({ hat: 0.25, shaker: 0.2, rim: 0.4, scrape: 0.55, snare: 0.65, tom: 0.8 }[e.kind] || 0.5);
+          else { const [lo, hi] = sc.range[ch]; y = top + LH - 6 - (m - lo) / (hi - lo) * (LH - 12); }
+          cx.fillRect(Math.round(x) + 1, Math.round(y) - 2, Math.max(3, Math.round(e.d * PX) - 2), e.ms ? 3 : 4);
+        });
       });
     });
   });
   cx.globalAlpha = 1; cx.fillStyle = 'rgba(255,246,216,0.35)'; cx.fillRect(Math.round(WIN / 3 * PX), 0, 2, CH);
-  let si = 0; SCORE.marks.forEach((m) => { if (Math.floor(cur) >= m.step) si = m.si; });
+  let si = 0; sc.marks.forEach((m) => { if (Math.floor(cur) >= m.step) si = m.si; });
   document.querySelectorAll('#map div').forEach((d) => d.classList.toggle('on', playing && +d.dataset.i === si));
   if (ac) $('astate').textContent = 'Audio: ' + ac.state + ' · ' + Math.round(ac.sampleRate / 100) / 10 + ' kHz';
-  if (playing && timer) {
-    const bar = Math.floor(cur / 16) + 1, secs = ac.currentTime - startedAt;
-    $('where').textContent = 'Bar ' + bar + ' · ' + SECTIONS[FORM[si]].name;
-    $('clock').textContent = Math.floor(secs / 60) + ':' + String(Math.floor(secs % 60)).padStart(2, '0');
-  }
+  if (playing && timer) { $('where').textContent = 'Bar ' + (Math.floor(cur / song.bar) + 1) + ' · ' + song.sections[song.form[si]].name; const secs = ac.currentTime - startedAt; $('clock').textContent = Math.floor(secs / 60) + ':' + String(Math.floor(secs % 60)).padStart(2, '0'); }
   requestAnimationFrame(draw);
 }
 requestAnimationFrame(draw);
-document.addEventListener('visibilitychange', () => { if (document.hidden && playing) { stop(); $('play').textContent = 'PLAY'; $('play').setAttribute('aria-pressed', 'false'); } });
+document.addEventListener('visibilitychange', () => { if (document.hidden && playing) { stop(); setPlayLabel(); } });
 })();
 </script>
