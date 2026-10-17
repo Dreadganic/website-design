@@ -1,0 +1,6 @@
+{
+  "about": "Drop events for Beju Farm. Add one per real product launch. starts/ends are ISO dates (Japan time shown with +09:00). variety and method must be game ids.",
+  "events": [
+    { "id": "pinknat", "name": "Huila Pink Bourbon Natural", "variety": "pinkbourbon", "method": "natural", "note": "A limited natural from Huila, as fruity as it gets.", "starts": "2026-11-01T10:00:00+09:00", "ends": "2026-11-08T10:00:00+09:00", "url": "https://bejucoffee.com/shop/" }
+  ]
+}

@@ -318,6 +318,14 @@ function bots() {
   });
 }
 function board(mode) {
+  const live = NET.board[mode === 'all' ? 'all' : 'season'];
+  if (live && NET.status === 'online') {
+    liveBoard(mode === 'all' ? 'all' : 'season');
+    const rows = live.top.map((r) => ({ name: r.name, prestige: r.prestige, seasonP: r.seasonP, level: r.level, points: r.points, look: r.look, you: live.me && r.rank === live.me.rank }));
+    if (live.me && !rows.some((r) => r.you)) rows.push(Object.assign({}, live.me, { you: true }));
+    return rows;
+  }
+  if (API && NET.status === 'online') liveBoard(mode === 'all' ? 'all' : 'season');
   const me = { name: S.name, prestige: S.prestige, seasonP: S.season.prestige, level: level(), points: Math.round(S.xp), look: S.look, you: true };
   const key = mode === 'all' ? 'prestige' : 'seasonP';
   return bots().concat([me]).sort((a, b) => b[key] - a[key] || b.level - a.level || b.points - a.points);
@@ -336,11 +344,11 @@ const DROPS = [
 ];
 const EVENT_MULT = 1.5;
 const eventOn = () => S.event && Date.now() < S.event.ends;
-const eventDrop = () => (eventOn() ? DROPS.find((d) => d.id === S.event.id) : null);
+const eventDrop = () => (eventOn() ? DROPS.find((d) => d.id === S.event.id) || S.event.drop || null : null);
 const eventDays = () => Math.max(1, Math.ceil((S.event.ends - Date.now()) / 86400000));
-function startDrop(id) {
-  const d = DROPS.find((x) => x.id === id) || DROPS[0];
-  S.event = { id: d.id, ends: Date.now() + 7 * 86400000, done: 0 };
+function startDrop(id, server) {
+  const d = server || DROPS.find((x) => x.id === id) || DROPS[0];
+  S.event = { id: d.id, ends: server ? Date.parse(server.ends) : Date.now() + 7 * 86400000, done: 0, drop: server ? { id: d.id, name: d.name, variety: d.variety, method: d.method, note: d.note } : null };
   S.contracts = S.contracts.filter((c) => !c.event);
   for (let k = 0; k < 3; k++) S.contracts.push(eventContract(d, k));
   showModal('<div class="push"><span class="push-app">BEJU · now</span><b>New drop: ' + d.name + '</b><span>' + d.note + ' Plant it free all week in Beju Farm.</span></div><h2>Drop event</h2><p class="note">For 7 days: ' + ART.varieties[d.variety] + ' seeds are free to plant, ' + d.method + ' and ' + ART.varieties[d.variety] + ' lots sell for ×' + EVENT_MULT + ', and Beju has three event contracts for you. Finish all three for the event badge and 10 cranes.</p><p class="note"><a href="https://bejucoffee.com" target="_blank" rel="noopener">See the real coffee on bejucoffee.com</a></p><button class="btn green" data-act="close">Let\'s grow it</button>');
@@ -449,7 +457,7 @@ if (!S.tasks) newTasks();
 if (S.guide === 0 && !S.taps) S.farms[START].shrubs.forEach((sh, i) => { if (i < 16) sh.p = 1; });   /* a new farm opens with a ripe crop to pick */
 
 function load() { try { const t = localStorage.getItem(SAVE_KEY); return t ? JSON.parse(t) : null; } catch (e) { return null; } }
-function save() {
+function save() {   /* saves to this device; online(), when available, also keeps a copy on the server */
   S.last = Date.now();
   const copy = JSON.parse(JSON.stringify(S, (k, v) => (k === 'target' || k === 'claim' || k === 'path') ? undefined : v));
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(copy)); } catch (e) { /* storage blocked: the game still runs, it just won't remember */ }
@@ -856,6 +864,19 @@ function sellRaw() {
   S.cherries = {}; earn({ coins });
   toast('Sold ' + fmt(kg) + ' kg of fresh cherries for ' + fmt(coins) + ' coins');
 }
+function applyCoffee(id) {   /* stamps and processes from one coffee; returns what happened */
+  const c = COFFEES[id]; if (!c) return [];
+  const out = [], next = c.stamps.find((x) => !S.stamps[x]) || null;
+  if (next) { S.stamps[next] = true; S.cranes += 20; out.push('a ' + ART.locations[next].name.split(',')[0] + ' stamp (+20 cranes)'); }
+  if (c.method && !S.methods[c.method]) { S.methods[c.method] = true; out.push(METHODS[c.method].name.toLowerCase() + ' processing'); }
+  return out;
+}
+function applyGrant(g) {   /* a real order, counted by the server */
+  S.cranes += g.cranes;
+  const got = [].concat(...g.coffees.map(applyCoffee));
+  showModal('<h2>Order linked!</h2><p class="note">Your bejucoffee.com order ' + g.order + ' is now part of your farm: <b>+' + g.cranes + ' cranes</b>' + (got.length ? ', plus ' + got.join(', ') : '') + '.</p><button class="btn green" data-act="close">Wonderful</button>');
+  SFX.play('crane');
+}
 function realOrder(id) {
   const c = COFFEES[id], cranes = Math.round(c.price / 100);
   S.cranes += cranes;
@@ -969,7 +990,12 @@ function renderTabs() {
   setHTML($('tabs'), shown.map(([id, label, ic]) => '<button class="tab' + (S.newTab === id ? ' fresh' : '') + '" role="tab" type="button" data-tab="' + id + '" aria-pressed="' + (tab === id) + '"><img src="' + url(ic) + '" alt="">' + label + (dot[id] ? '<i class="dot"></i>' : '') + '</button>').join(''));
 }
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; toastT = 2.6; }
-function showModal(html) { $('modalCard').innerHTML = html; if ($('modal').hidden) SFX.play('page'); $('modal').hidden = false; }
+const modalQueue = [];
+function closeModal() { if (modalQueue.length) $('modalCard').innerHTML = modalQueue.shift(); else $('modal').hidden = true; }
+function showModal(html, replace) {   /* a second window waits its turn instead of hiding the first */
+  if (!$('modal').hidden && !replace) { modalQueue.push(html); return; }
+  $('modalCard').innerHTML = html; if ($('modal').hidden) SFX.play('page'); $('modal').hidden = false;
+}
 function shopTabs() {
   const st = S.shopTab || 'cranes', dot = Object.keys(DECOR).some((k) => S.decor[k] === undefined && S.coins >= DECOR[k].cost);
   return '<div class="seg subtabs">' + [['cranes', 'Cranes'], ['decor', 'Decor'], ['beju', 'Real coffee']].map(([k, t]) => '<button type="button" data-act="shoptab:' + k + '" aria-pressed="' + (st === k) + '">' + t + (k === 'decor' && dot ? ' <i class="dot" aria-label="something to buy"></i>' : '') + '</button>').join('') + '</div>';
@@ -1141,6 +1167,7 @@ function renderPanel() {
       const r = list.indexOf(x) + 1;
       return '<div class="lb-row' + (x.you ? ' you' : '') + '"><b class="rk">' + r + '</b>' + avatar(x.look, 40) + '<div class="lb-n">' + plate(x.name, x.look.plate, starsFor(x.prestige)) + '<span class="note">' + TIERS[tierOf(x.prestige)] + '</span></div><div class="lb-s"><b>P' + (mode === 'all' ? x.prestige : x.seasonP) + '</b><span>Lv ' + x.level + '</span><span>' + fmt(x.points) + ' kh</span></div></div>';
     }).join('') + '</div>';
+    h += '<p class="note">' + (NET.status === 'online' && NET.board[mode] ? 'Live leaderboard · ' + NET.board[mode].players + ' farmer' + (NET.board[mode].players === 1 ? '' : 's') : 'Practice board: the live leaderboard appears when the game is played on bejucoffee.com.') + '</p>';
     h += '<h3>Your name</h3><div class="seg"><input id="nameIn" maxlength="16" value="' + S.name.replace(/"/g, '') + '" aria-label="Your name on the leaderboard"><button type="button" data-act="rename">Save</button></div>';
   } else if (tab === 'shop' && S.shopTab === 'beju') {
     h += shopTabs();
@@ -1177,6 +1204,7 @@ function renderPanel() {
     h += '<h3>Game speed</h3><div class="seg">' + [1, 3, 10].map((x) => '<button type="button" data-act="speed:' + x + '" aria-pressed="' + (S.speed === x) + '">×' + x + '</button>').join('') + '</div>';
     h += '<h3>Season</h3><div class="seg">' + ['auto', 'harvest', 'rainy', 'spring', 'summer', 'autumn', 'winter'].map((x) => '<button type="button" data-act="season:' + x + '" aria-pressed="' + (S.seasonPick === x) + '">' + x + '</button>').join('') + '</div><p class="note">Harvest and rainy apply to the coffee farms; spring to winter apply to Osaka.</p>';
     h += '<h3>Music volume</h3><div class="seg">' + [['0.25', 'Quiet'], ['0.45', 'Normal'], ['0.7', 'Loud']].map(([v, t]) => '<button type="button" data-act="mvol:' + v + '" aria-pressed="' + (S.musicVol === +v) + '">' + t + '</button>').join('') + '</div><p class="note">Each farm has its own theme. Night versions play from 7 pm to 6 am on the farm clock. Use the buttons at the bottom left of the farm to turn music or sounds off.</p>';
+    h += '<h3>Online</h3><p class="note">' + (API ? (NET.status === 'online' ? 'Connected as ' + NET.acct.player + ' · cloud save v' + NET.ver + (NET.rank ? ' · rank #' + NET.rank : '') + (NET.scoreError ? ' · last score refused: ' + NET.scoreError : '') : 'Connecting to bejucoffee.com…') : 'Offline prototype. Accounts, cloud saves, the live leaderboard and order links switch on when the game runs on bejucoffee.com.') + '</p>';
     h += '<h3>Save</h3><div class="seg"><button type="button" data-act="reset">Reset the game</button></div><p class="note">Progress saves in this browser every few seconds.</p>';
   }
   const strips = [...P.querySelectorAll('.ccards')].map((x) => x.scrollLeft);
@@ -1188,7 +1216,7 @@ document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
   const [a, v] = b.dataset.act.split(':');
   const f = S.farms[S.loc];
-  if (a === 'close') { SFX.play('close'); $('modal').hidden = true; return; }
+  if (a === 'close') { SFX.play('close'); closeModal(); return; }
   const wallet = S.coins + S.points + S.cranes, decorOwned = S.decor[v] !== undefined;
   setTimeout(() => {   /* sound for the action, once its effect is known */
     const spent = S.coins + S.points + S.cranes < wallet;
@@ -1223,7 +1251,7 @@ document.addEventListener('click', (e) => {
     showModal('<h2>Replant field ' + (b + 1) + '</h2><p class="note">Now growing ' + ART.varieties[cur] + '. Replanting starts the field again from sprouts.</p>' + VAR_ORDER.filter((x) => S.vars[x] || (eventDrop() && eventDrop().variety === x)).map((x) => row(img('bush_' + x + '_ripe', 30), ART.varieties[x] + (ART.locations[f.loc].beds.includes(x) ? ' · native' : ''), VAR[x].kg + ' kg a pick · ×' + VAR[x].value + ' price' + (wanted(x).length ? ' · <b>wanted by ' + [...new Set(wanted(x).map((c) => c.buyer.split(',')[0]))].join(', ') + '</b>' : ''), btn(x === cur ? 'Growing' : 'Plant', '', 'plant:' + b + '.' + x, x !== cur, 'green'))).join('') + '<button class="btn" data-act="close">Cancel</button>');
     return;
   }
-  else if (a === 'plant') { const [b, x] = v.split('.'); if (S.vars[x] || (eventDrop() && eventDrop().variety === x)) { replantBed(f, +b, x); $('modal').hidden = true; toast('Field ' + (+b + 1) + ' planted with ' + ART.varieties[x]); } }
+  else if (a === 'plant') { const [b, x] = v.split('.'); if (S.vars[x] || (eventDrop() && eventDrop().variety === x)) { replantBed(f, +b, x); closeModal(); toast('Field ' + (+b + 1) + ' planted with ' + ART.varieties[x]); } }
   else if (a === 'var') { const nx = VAR_ORDER.find((x) => !S.vars[x]); if (v === nx && spend('points', VAR[v].cost)) { S.vars[v] = true; showModal('<h2>' + ART.varieties[v] + ' unlocked</h2>' + img('bush_' + v + '_ripe', 54) + '<p class="note">' + VAR[v].perk + ' Replant a field in the Farm tab to start growing it.</p><button class="btn green" data-act="close">Plant it</button>'); } }
   else if (a === 'task') { const tk = S.tasks[+v]; if (tk.have >= tk.goal && !tk.done) { tk.done = true; earn(tk.reward); toast('Task complete!'); } }
   else if (a === 'weekly') { S.weekly.claimed = true; S.cranes += 30; showModal('<h2>Order delivered!</h2><p class="note">The team delivered ' + fmt(S.weekly.target) + ' kg of washed coffee to the roastery. +30 cranes and the Co-op Roaster badge.</p><button class="btn green" data-act="close">Hooray</button>'); }
@@ -1232,7 +1260,8 @@ document.addEventListener('click', (e) => {
     showModal('<h2>Prestige ' + (S.prestige + 1) + '?</h2><p class="note"><b>You keep</b> coins, cranes, every upgrade, building, manager, variety, process, decoration, hat and look.</p><p class="note"><b>You lose</b> your level and ' + fmt(S.points) + ' unspent know-how' + (asleep.length ? ', and ' + asleep.map((l) => ART.locations[l].name.split(',')[0]).join(', ') + (asleep.length > 1 ? ' go' : ' goes') + ' dormant until you level back up' : '') + '.</p><p class="note">You gain ' + (S.prestige + 1 < TIERS.length ? 'the ' + TIERS[S.prestige + 1] + ' nameplate, border and ' + SKINS[S.prestige + 1].name + ' outfit' : 'a star on your name') + ', and you jump above everyone on prestige ' + S.prestige + '.</p>' + btn('Prestige now', '', 'prestige', true, 'green') + '<button class="btn" data-act="close">Not yet</button>');
     return;
   }
-  else if (a === 'prestige') { $('modal').hidden = true; prestige(); SFX.play('levelup'); SFX.play('achieve'); }
+  else if (a === 'prestige') { $('modal').hidden = true; prestige(); SFX.play('levelup'); SFX.play('achieve'); setTimeout(() => { NET.lastScore = ''; submitScore(); cloudSync(true); }, 500); }
+  else if (a === 'cloudLoad') { if (NET.pending) { S = NET.pending; NET.pending = null; save(); location.reload(); } }
   else if (a === 'look') { const [k, i] = v.split('.'); if (+i <= tierOf(S.prestige)) S.look[k] = +i; }
   else if (a === 'rename') { const nv = ($('nameIn').value || '').trim().slice(0, 16); if (nv) { S.name = nv; toast('Name saved'); } }
   else if (a === 'boost') {
@@ -1291,6 +1320,61 @@ window.addEventListener('pointercancel', () => { touchDown = false; lastUp = per
 $('panel').addEventListener('scroll', () => { lastSwipe = performance.now(); }, true);   /* catches the strip's scrolling too */
 function refreshAll() { seasonTick(); refreshHud(); renderTabs(); renderPanel(); renderGuide(); }
 
+/* ---------- online: accounts, cloud save, live leaderboard, order links, drop events ----------
+   Only on bejucoffee.com (or a Netlify preview); the Claude preview has no network, so the game stays offline there. */
+const API = /(^|\.)bejucoffee\.com$|\.netlify\.app$|^localhost$/.test(location.hostname) ? '/.netlify/functions/' : '';
+const NET = { acct: null, ver: 0, board: {}, boardAt: {}, status: API ? 'connecting' : 'offline', lastSync: 0, lastScore: '' };
+try { NET.acct = JSON.parse(localStorage.getItem('beju-farm-account') || 'null'); } catch (e) { /* storage blocked */ }
+async function api(path, method, body) {
+  const r = await fetch(API + path, { method: method || 'GET', headers: Object.assign({ 'Content-Type': 'application/json' }, NET.acct ? { Authorization: 'Bearer ' + NET.acct.player + '.' + NET.acct.token } : {}), body: body ? JSON.stringify(body) : undefined });
+  let data = {}; try { data = await r.json(); } catch (e) { /* empty body */ }
+  return { status: r.status, data };
+}
+const keepAcct = () => { try { localStorage.setItem('beju-farm-account', JSON.stringify(NET.acct)); } catch (e) { /* storage blocked */ } };
+async function online() {
+  if (!API) return;
+  try {
+    if (!NET.acct) { const r = await api('game-account', 'POST', { name: S.name }); if (r.status !== 201) throw new Error('account'); NET.acct = { player: r.data.player, token: r.data.token, ver: 0 }; keepAcct(); }
+    NET.ver = NET.acct.ver || 0;
+    const sv = await api('game-save');
+    if (sv.status === 200 && !sv.data.none) {
+      NET.ver = sv.data.version;
+      if ((sv.data.data.last || 0) > (S.last || 0) + 60000) showModal('<h2>Newer save found</h2><p class="note">Your farm has newer progress from another device (' + new Date(sv.data.at).toLocaleString() + ').</p><button class="btn green" data-act="cloudLoad">Load it</button><button class="btn" data-act="close">Keep this one</button>'), NET.pending = sv.data.data;
+    }
+    const claim = new URLSearchParams(location.search).get('claim');
+    if (claim) { const r = await api('game-claim', 'POST', { session_id: claim }); if (r.status === 200 && !r.data.again) applyGrant(r.data); else if (r.status !== 200) toast(r.data.error === 'claimed_by_another_player' ? 'That order is linked to another farm' : 'Could not link that order yet'); history.replaceState(null, '', location.pathname); }
+    const ev = await api('game-events');
+    const live = ev.status === 200 && ev.data.events.find((x) => x.live);
+    if (live && (!S.event || S.event.id !== live.id)) startDrop(live.id, live);
+    NET.status = 'online'; cloudSync(); submitScore();
+  } catch (e) { NET.status = 'offline'; }
+}
+async function cloudSync(force) {
+  if (!API || !NET.acct || NET.status !== 'online') return;
+  if (!force && Date.now() - NET.lastSync < 60000) return;
+  NET.lastSync = Date.now(); save();
+  const data = JSON.parse(JSON.stringify(S, (k, v) => (k === 'target' || k === 'claim' || k === 'path') ? undefined : v));
+  const r = await api('game-save', 'PUT', { base: NET.ver, data }).catch(() => null);
+  if (r && r.status === 200) { NET.ver = r.data.version; NET.acct.ver = NET.ver; keepAcct(); }
+  else if (r && r.status === 409) { NET.ver = r.data.version; if ((r.data.data.last || 0) > (S.last || 0)) { NET.pending = r.data.data; showModal('<h2>Newer save found</h2><p class="note">Another device saved more recent progress.</p><button class="btn green" data-act="cloudLoad">Load it</button><button class="btn" data-act="close">Keep this one</button>'); } else cloudSync(true); }
+}
+async function submitScore() {
+  if (!API || !NET.acct || NET.status !== 'online') return;
+  const body = { name: S.name, prestige: S.prestige, seasonP: S.season.prestige, level: level(), points: Math.floor(S.xp), look: S.look }, sig = JSON.stringify(body);
+  if (sig === NET.lastScore) return;
+  const r = await api('game-score', 'POST', body).catch(() => null);
+  if (r && r.status === 200) { NET.lastScore = sig; NET.rank = r.data.rank; } else if (r && r.status === 422) NET.scoreError = r.data.error;
+}
+async function liveBoard(mode) {
+  if (!API || NET.status !== 'online') return null;
+  if (NET.board[mode] && Date.now() - NET.boardAt[mode] < 30000) return NET.board[mode];
+  NET.boardAt[mode] = Date.now();
+  const r = await api('game-score?mode=' + mode).catch(() => null);
+  if (r && r.status === 200) { NET.board[mode] = r.data; if (tab === 'ranks') renderPanel(); }
+  return NET.board[mode] || null;
+}
+setInterval(() => { cloudSync(); submitScore(); }, 30000);
+
 /* ---------- start: offline earnings, intro, loop ---------- */
 const awayMs = Date.now() - (S.last || Date.now());
 refreshAll();
@@ -1307,7 +1391,8 @@ function loop(t) {
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
-document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+online();
+document.addEventListener('visibilitychange', () => { if (document.hidden) { save(); cloudSync(true); } });
 let soundReady = false;
 function audioStart() {   /* browsers only allow sound after a tap, so everything starts on the first one */
   if (soundReady) return; soundReady = true;

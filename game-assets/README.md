@@ -101,3 +101,6 @@ Pacing: costs start cheap and climb steeply (pickers ×1.5 each from 150 coins, 
 - Each process tile shows what the selected cherries would earn (`lotValue`: the best fitting contract plus any spare at roastery price, or the roastery price with market and drop bonuses), which buyer it fits, and a "Best pay" marker on the top choice.
 - Variety chips are tagged "wanted" when a contract asks for them; drying lots that fit a contract say who they're for; the replant list says which buyers want each variety.
 - The Orders tab is now **Daily**: check-in streak, daily tasks, weekly order and the prestige link.
+
+## Online (backend)
+The game talks to Netlify Functions (`netlify/functions/game-*.js`, storage in Netlify Blobs) only when it runs on bejucoffee.com, a Netlify preview or localhost. It then creates an anonymous account, keeps a cloud save (offering to load newer progress from another device), submits scores and shows the live leaderboard, links an order from `?claim=cs_…` (rewards counted by the server), and starts drop events from `netlify/lib/game-events.json`. Windows now queue instead of replacing each other. Build the site copy with `python3 game-assets/play/build.py beju-site/farm/index.html --site`. See SETUP.md section 4.

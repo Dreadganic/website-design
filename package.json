@@ -1,0 +1,11 @@
+{
+  "name": "beju-site",
+  "private": true,
+  "description": "Beju Coffee website, payment functions and the Beju Farm game backend",
+  "scripts": {
+    "test": "node --test netlify/tests/*.test.js"
+  },
+  "dependencies": {
+    "@netlify/blobs": "10.7.13"
+  }
+}

@@ -15,3 +15,6 @@
   X-Robots-Tag: noindex
 /ja/thanks/*
   X-Robots-Tag: noindex
+/farm/*
+  X-Robots-Tag: noindex, nofollow
+  Cache-Control: public, max-age=300

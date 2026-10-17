@@ -103,3 +103,20 @@ Create a free form at **Formspree** (formspree.io) and paste its address into `c
 - A title and description for every page.
 - Structured data for search: your business (Osaka, Instagram), all five coffees with prices, and breadcrumbs.
 - A sitemap that lists both languages, a robots file, a social-sharing preview image, a favicon and a 404 page.
+
+## 4. Beju Farm game backend (first pieces)
+
+The game's server parts run as Netlify Functions next to the payment functions, and store their data in **Netlify Blobs** (built into Netlify; nothing to sign up for). `package.json` lists the one package this needs (`@netlify/blobs`), and Netlify installs it on deploy.
+
+| Function | What it does |
+| --- | --- |
+| `game-account` | Creates an anonymous player: an id and a secret token (only its hash is stored). |
+| `game-save` | Cloud save. Versioned, so an old phone can't overwrite newer progress. |
+| `game-score` | Live leaderboard (season and all time). Each score must be possible since the last one, so impossible jumps are refused. |
+| `game-claim` | Turns a paid order into game rewards, once: 1 crane per ¥100 and a passport stamp for each coffee, checked with Stripe on the server. |
+| `game-events` | Drop events, read from `netlify/lib/game-events.json`. Edit that file and push to schedule one. |
+
+- **The game page:** `bejucoffee.com/farm/` (built by `python3 game-assets/play/build.py beju-site/farm/index.html --site`). It is hidden from search engines and not linked from the shop. Online features switch on only there; the Claude preview stays offline.
+- **Linking an order:** send customers to `/farm/?claim=` followed by their Checkout session id (`cs_…`). The thank-you page already has that id; adding the button is one line when you're ready to launch.
+- **Tests:** `npm test` runs the backend tests with an in-memory store and a fake Stripe.
+- **Not built yet:** push notifications (needs an Apple Developer account and Firebase), Capacitor app wrapping, real co-ops, and a leaderboard that scales past a few thousand players (it currently reads every score; it should keep a running top list instead).
