@@ -301,6 +301,7 @@ function play(id) {
 function stop() { playing = false; clearInterval(timer); timer = null; if (ac) applyMix(); }
 return {
   songs: SONGS,
+  util: { chord, midi, hz },
   init(ctx) { if (!ac && ctx) setup(ctx); return !!ac; },
   play, stop,
   restart() { if (ac && playing) run(0); },

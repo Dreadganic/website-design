@@ -1,0 +1,177 @@
+<title>Beju Farm Cozy Jukebox</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&family=Zen+Kaku+Gothic+New:wght@500;700&display=swap">
+<style>
+/* Layout: a cozy jukebox on a dark wood ground: track list, player with a soft three-lane note roll and a Cozy/Chiptune switch, then notes on the track. One look in both themes (matches the game). */
+:root {
+  --wood: #3A2A1C; --wood-2: #2A1E14; --paper: #F4E6C6; --paper-2: #FBF1DC; --edge: #6E4624; --ink: #3E2A1C; --muted: #7A5A3A;
+  --gold: #F2C04A; --green: #2D6A46; --lcd: #1C2430; --lcd-grid: #283444;
+  --ch1: #F6D58A; --ch2: #9CCFE0; --ch3: #C8A6E0; --ch4: #B8B0D8;
+  --display: 'Pixelify Sans', 'Courier New', monospace; --body: 'Zen Kaku Gothic New', system-ui, sans-serif;
+  color-scheme: dark;
+}
+html, body { background: var(--wood); }
+body { color: var(--paper); font-family: var(--body); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 24px 40px; }
+.wrap { max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+.eyebrow { font-family: var(--display); font-size: 13px; letter-spacing: 0.12em; color: var(--gold); text-transform: uppercase; }
+h1 { font-family: var(--display); font-weight: 600; font-size: 34px; line-height: 1.1; margin: 4px 0 6px; text-wrap: balance; }
+.sub { font-size: 14px; color: #E2C894; margin: 0; font-weight: 500; }
+.card { background: var(--paper); color: var(--ink); border: 3px solid var(--edge); border-radius: 12px; box-shadow: inset 0 0 0 2px #E2C894, 0 4px 0 var(--wood-2); padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.tracks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.track { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border: 2px solid var(--edge); border-radius: 8px; background: var(--paper-2); color: var(--ink); text-align: left; cursor: pointer; font: inherit; min-width: 0; }
+.track b { font: 600 15px var(--display); }
+.track span { font-size: 11px; font-weight: 700; color: var(--muted); }
+.track[aria-pressed="true"] { background: var(--gold); }
+.track[aria-pressed="true"] span { color: var(--ink); }
+.controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.play { width: 72px; height: 72px; border-radius: 50%; border: 4px solid var(--edge); background: var(--gold); color: var(--ink); font: 700 15px var(--display); cursor: pointer; box-shadow: 0 4px 0 var(--wood-2); flex: none; }
+.play:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--wood-2); }
+.play[aria-pressed="true"] { background: #F7D985; }
+.stack { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 200px; }
+.now b { font: 600 20px var(--display); display: block; }
+.now span { font-size: 12px; font-weight: 700; color: var(--muted); }
+.seg { display: flex; gap: 4px; }
+.seg button { flex: 1; min-height: 36px; border: 2px solid var(--edge); border-radius: 6px; background: var(--paper-2); color: var(--ink); font: 600 14px var(--display); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--gold); }
+label.vol { display: flex; align-items: center; gap: 8px; font: 600 13px var(--display); color: var(--muted); }
+input[type=range] { flex: 1; accent-color: var(--green); }
+.lcd { background: var(--lcd); border: 3px solid var(--ink); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+.lcd canvas { width: 100%; height: 168px; display: block; image-rendering: pixelated; }
+.pos { display: flex; justify-content: space-between; font: 600 13px var(--display); color: #A8C8A0; font-variant-numeric: tabular-nums; }
+.lanes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.lane { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 4px 8px; border: 2px solid var(--edge); border-radius: 6px; background: var(--paper-2); color: var(--ink); cursor: pointer; text-align: left; font: inherit; }
+.lane i { width: 12px; height: 12px; border: 2px solid var(--ink); flex: none; }
+.lane b { font: 600 13px var(--display); display: block; }
+.lane span { font-size: 11px; color: var(--muted); font-weight: 700; }
+.lane[aria-pressed="false"] { opacity: 0.45; }
+.lane[aria-pressed="false"] i { background: transparent !important; }
+.map { display: flex; gap: 4px; flex-wrap: wrap; }
+.map div { flex: 1; min-width: 48px; text-align: center; padding: 6px 0; border: 2px solid var(--edge); border-radius: 6px; font: 600 13px var(--display); background: var(--paper-2); color: var(--muted); }
+.map div.on { background: var(--green); color: var(--paper-2); }
+.hint { font-size: 12px; color: var(--muted); font-weight: 700; line-height: 1.5; }
+.hint span { font-family: var(--display); color: var(--green); }
+h2 { font-family: var(--display); font-weight: 600; font-size: 18px; margin: 0; }
+p { margin: 0; line-height: 1.6; font-size: 14px; max-width: 65ch; }
+.notes { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: 13px; margin: 0; }
+.notes dt { font: 600 13px var(--display); color: var(--muted); }
+.notes dd { margin: 0; }
+button:focus-visible { outline: 3px solid var(--green); outline-offset: 2px; }
+@media (max-width: 420px) { .lanes { grid-template-columns: 1fr; } h1 { font-size: 28px; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Beju Farm · sound test</div>
+    <h1>Cozy Jukebox</h1>
+    <p class="sub">The farm themes re-imagined in a soft, spacious, Minecraft-like style. Same melodies and chords, new instruments.</p>
+  </header>
+
+  <section class="card" aria-label="Tracks">
+    <div class="tracks" id="tracks"></div>
+  </section>
+
+  <section class="card" aria-label="Player">
+    <div class="controls">
+      <button class="play" id="play" type="button" aria-pressed="false">PLAY</button>
+      <div class="stack">
+        <div class="now"><b id="nowTitle"></b><span id="nowSub"></span></div>
+        <div class="seg" role="group" aria-label="Version">
+          <button type="button" id="vCozy" aria-pressed="true">Cozy</button>
+          <button type="button" id="vChip" aria-pressed="false">Chiptune</button>
+        </div>
+        <div class="seg" role="group" aria-label="Arrangement">
+          <button type="button" id="day" aria-pressed="true">Day</button>
+          <button type="button" id="night" aria-pressed="false">Night</button>
+        </div>
+        <label class="vol" for="vol">VOLUME <input id="vol" type="range" min="0" max="100" value="65"></label>
+      </div>
+    </div>
+    <div class="lcd">
+      <canvas id="roll" width="512" height="150" aria-label="Notes playing"></canvas>
+      <div class="pos"><span id="where">Press play</span><span id="clock">0:00</span></div>
+    </div>
+    <p class="hint"><span id="astate">Audio: not started</span>. Headphones help: the cozy versions use a lot of stereo space and reverb. No sound on an iPhone? Flip the Ring/Silent switch to ring.</p>
+  </section>
+
+  <section class="card">
+    <h2 id="aboutTitle">About this theme</h2>
+    <p id="about"></p>
+    <p id="essence" class="hint"></p>
+  </section>
+</div>
+
+<script src="sfx.js"></script>
+<script src="music.js"></script>
+<script src="cozy.js"></script>
+<script>
+(function () {
+'use strict';
+const $ = (id) => document.getElementById(id);
+const SONGS = Cozy.songs;
+let cozy = true, night = false, sel = 0;
+const engine = () => (cozy ? Cozy : Music);
+const mmss = (x) => Math.floor(x / 60) + ':' + String(Math.floor(x % 60)).padStart(2, '0');
+$('tracks').innerHTML = SONGS.map((s, i) => '<button type="button" class="track" data-i="' + i + '" aria-pressed="' + (i === 0) + '"><b>' + s.title + '</b><span>' + s.farm + '</span></button>').join('');
+function showSong() {
+  const s = SONGS[sel], tempo = cozy ? s.cozy.tempo : 1, nm = night ? (cozy ? 0.86 : 0.84) : 1;
+  const loop = (s.cscore.total - s.cscore.loopStep) * 60 / (s.bpm * tempo * nm) / s.beat;
+  $('nowTitle').textContent = s.title;
+  $('nowSub').textContent = s.farm + ' · ' + (cozy ? 'cozy' : 'chiptune') + ' · ' + Math.round(s.bpm * tempo * nm) + ' BPM · loop ' + mmss(loop);
+  $('aboutTitle').textContent = s.title + (cozy ? ', cozy version' : ', chiptune version');
+  $('about').textContent = cozy ? s.cozy.about : s.about;
+  $('essence').textContent = cozy ? 'Kept from the original (' + s.blurb + '): the same melody, chords and form.' : 'The original four-channel version, for comparison.';
+}
+function start() {
+  SFX.unlock(); const ctx = SFX.context(); Music.init(ctx); Cozy.init(ctx);
+  Music.stop(); Cozy.stop();
+  const e = engine(); e.setVolume(+$('vol').value / 100 * (cozy ? 1 : 0.8)); e.setNight(night); e.play(SONGS[sel].id);
+}
+function playing() { return !!engine().current(); }
+function setPlayLabel() { const on = playing(); $('play').textContent = on ? 'STOP' : 'PLAY'; $('play').setAttribute('aria-pressed', String(on)); }
+$('tracks').addEventListener('click', (e) => {
+  const b = e.target.closest('.track'); if (!b) return;
+  sel = +b.dataset.i; document.querySelectorAll('.track').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+  showSong(); start(); setPlayLabel();
+});
+$('play').addEventListener('click', () => { if (playing()) { Music.stop(); Cozy.stop(); } else start(); setPlayLabel(); });
+[['vCozy', true], ['vChip', false]].forEach(([id, v]) => $(id).addEventListener('click', () => {
+  const was = playing(); cozy = v; $('vCozy').setAttribute('aria-pressed', String(cozy)); $('vChip').setAttribute('aria-pressed', String(!cozy)); showSong();
+  if (was) start(); setPlayLabel();
+}));
+['day', 'night'].forEach((k) => $(k).addEventListener('click', () => { night = k === 'night'; $('day').setAttribute('aria-pressed', String(!night)); $('night').setAttribute('aria-pressed', String(night)); Music.setNight(night); Cozy.setNight(night); showSong(); }));
+$('vol').addEventListener('input', () => { Cozy.setVolume(+$('vol').value / 100); Music.setVolume(+$('vol').value / 100 * 0.8); });
+showSong();
+
+const cv = $('roll'), cx = cv.getContext('2d'), CW = cv.width, CH = cv.height, LH = CH / 3, WIN = 40, PX = CW / WIN;
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+function nowStep() {
+  const e = engine(), placed = e.placed, now = e.time();
+  if (!playing() || !placed.length) return 0;
+  let s = placed[0][1], frac = 0;
+  for (let i = 0; i < placed.length; i++) if (placed[i][0] <= now) { s = placed[i][1]; const nt = placed[i + 1] ? placed[i + 1][0] : placed[i][0] + 0.1; frac = (now - placed[i][0]) / (nt - placed[i][0]); }
+  return s + Math.min(1, Math.max(0, frac));
+}
+function draw() {
+  const s = SONGS[sel], sc = s.cscore, cur = nowStep(), loopLen = sc.total - sc.loopStep, cols = [css('--ch1'), css('--ch2'), css('--ch3')];
+  cx.fillStyle = css('--lcd'); cx.fillRect(0, 0, CW, CH);
+  cx.fillStyle = css('--lcd-grid');
+  for (let k = Math.ceil(cur - WIN / 3); k < cur + WIN; k++) if (k % s.bar === 0) cx.fillRect(Math.round((k - cur + WIN / 3) * PX), 0, 1, CH);
+  [['lead', 0], ['comp', 1], ['bass', 2]].forEach(([ch, li]) => {
+    const list = sc.ev[ch], ms = list.flatMap((e) => e.ms || [e.m]), lo = Math.min(...ms) - 1, hi = Math.max(...ms) + 1, top = li * LH;
+    list.forEach((e) => [e.s, e.s + loopLen].forEach((st, rep) => {
+      if (rep && e.s < sc.loopStep) return;
+      const x = (st - cur + WIN / 3) * PX; if (x > CW || x + e.d * PX < 0) return;
+      const on = playing() && cur >= st && cur < st + e.d;
+      cx.globalAlpha = on ? 1 : 0.5; cx.fillStyle = on ? '#FFF8E8' : cols[li];
+      (e.ms || [e.m]).forEach((m) => { const y = top + LH - 8 - (m - lo) / (hi - lo) * (LH - 16), w = Math.max(6, e.d * PX - 3); cx.beginPath(); if (cx.roundRect) cx.roundRect(x + 1, y - 3, w, 6, 3); else cx.rect(x + 1, y - 3, w, 6); cx.fill(); });
+    }));
+  });
+  cx.globalAlpha = 1; cx.fillStyle = 'rgba(255,248,232,0.3)'; cx.fillRect(Math.round(WIN / 3 * PX), 0, 2, CH);
+  $('astate').textContent = 'Audio: ' + Cozy.state();
+  if (playing()) { const e = engine(); let si = 0; sc.marks.forEach((m) => { if (Math.floor(cur) >= m.step) si = m.si; }); $('where').textContent = 'Bar ' + (Math.floor(cur / s.bar) + 1) + ' · ' + s.sections[s.form[si]].name; $('clock').textContent = mmss(e.time() - e.startedAt()); }
+  requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+document.addEventListener('visibilitychange', () => { if (document.hidden && playing()) { Music.stop(); Cozy.stop(); setPlayLabel(); } });
+})();
+</script>
