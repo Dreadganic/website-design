@@ -1050,7 +1050,7 @@ const PRESTIGE_LEVEL = 10;
 /* monthly seasons: a fresh board each calendar month, ranked by know-how earned that month. Each lifetime prestige asks for 8 more levels */
 const seasonKey = (d) => { d = d || new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); };
 const seasonName = (k) => new Date(+k.slice(0, 4), +k.slice(5) - 1, 1).toLocaleString('en', { month: 'long', year: 'numeric' });
-const prestigeNeed = () => PRESTIGE_LEVEL + 8 * S.prestige;   /* 10, 18, 26, 34 ... and each level past 10 costs 1.18x the last */
+const prestigeNeed = () => PRESTIGE_LEVEL + 8 * S.prestige;   /* 10, 18, 26, 34 ... and each level past 10 costs 1.2x the last */
 const daysLeft = () => { const n = new Date(); return Math.ceil((new Date(n.getFullYear(), n.getMonth() + 1, 1) - n) / 86400000); };
 const BADGE = (rank) => (rank === 1 ? 'Champion' : rank <= 3 ? 'Top 3' : rank <= 10 ? 'Top 10' : 'Farmer');
 const FARM_LEVEL = { huila: 3, gedeo: 5, toba: 7, turrialba: 9 };   /* dormant farms reopen at these levels after a prestige */
@@ -1310,7 +1310,7 @@ const stored = () => Object.values(S.cherries).reduce((a, b) => a + b, 0);
 const carryKg = () => ART.carry[S.lv.carry - 1].kg;
 const maxHearts = () => 24 + S.lv.hearts * 6;
 const pickerMult = () => (1 + 0.18 * (S.lv.speed - 1)) * (S.boosts.pick > S.minutesTotal ? 2 : 1);
-const XP_AT = (l) => l <= 10 ? Math.round(100 * Math.pow(l - 1, 2.4)) : Math.round(100 * Math.pow(9, 2.4) * Math.pow(1.18, l - 10));   /* early levels come quickly, later ones take much longer */
+const XP_AT = (l) => l <= 10 ? Math.round(100 * Math.pow(l - 1, 2.4)) : Math.round(100 * Math.pow(9, 2.4) * Math.pow(1.2, l - 10));   /* early levels come quickly, later ones take much longer */
 const level = () => { let l = 1; while (S.xp >= XP_AT(l + 1)) l++; return l; };
 const levelSpan = () => { const l = level(), a = XP_AT(l), b = XP_AT(l + 1); return [(S.xp - a) / (b - a), l]; };
 if (!isFinite(S.minutesTotal)) S.minutesTotal = 0;   /* repair saves where the clock was lost */
@@ -1599,7 +1599,7 @@ function levelUp(from, to) {
   let coins = 0, cranes = 0, boost = false;
   for (let l = from + 1; l <= to; l++) {
     coins += levelCoins(l);
-    if (l % 5 === 0) { cranes += 3; boost = true; }
+    if (l % 5 === 0) { cranes += 1; boost = true; }
     Object.keys(TAB_LEVEL).forEach((k) => { if (TAB_LEVEL[k] === l && !S.tabs[k]) opened.push(['i_trophy', TAB_WHAT[k]]); });
     Object.keys(S.dormant).forEach((loc) => { if (S.dormant[loc] === l) opened.push(['stamp_' + loc, ART.locations[loc].name.split(',')[0] + ' wakes up and gets back to work']); });
     if (l === prestigeNeed()) opened.push(['i_trophy', 'Prestige ' + (S.prestige + 1) + ' is ready in Ranks']);
@@ -1608,7 +1608,7 @@ function levelUp(from, to) {
   if (boost) S.boosts.grow = Math.max(S.boosts.grow || 0, S.minutesTotal) + 10 * REAL_MIN;
   LV.coins += coins; LV.cranes += cranes; LV.boost = LV.boost || boost; from = LV.from;
   const got = [['i_coin', '+' + fmt(LV.coins) + ' coins'], ['i_heart', 'Stamina refilled']];
-  if (LV.cranes) got.push(['i_crane', '+' + LV.cranes + ' cranes for milestone levels']);
+  if (LV.cranes) got.push(['i_crane', '+' + LV.cranes + ' crane' + (LV.cranes > 1 ? 's' : '') + ' for milestone levels']);
   if (LV.boost) got.push(['sparkle', 'Growth ×2 for 10 minutes on every farm']);
   wakeFarms(); checkTabs();
   let next = null;   /* the next level with something new */
@@ -1616,7 +1616,7 @@ function levelUp(from, to) {
     if (Object.keys(TAB_LEVEL).some((k) => TAB_LEVEL[k] === l && !S.tabs[k])) next = [l, { shop: 'the Shop', orders: 'the Daily tab and buyer contracts', ranks: 'Ranks and the leaderboard' }[Object.keys(TAB_LEVEL).find((k) => TAB_LEVEL[k] === l)]];
     else if (Object.keys(S.dormant).some((loc) => S.dormant[loc] === l)) next = [l, ART.locations[Object.keys(S.dormant).find((loc) => S.dormant[loc] === l)].name.split(',')[0] + ' wakes'];
     else if (l === prestigeNeed()) next = [l, 'prestige ' + (S.prestige + 1)];
-    else if (l % 5 === 0) next = [l, 'milestone: 3 cranes and a growth boost'];
+    else if (l % 5 === 0) next = [l, 'milestone: a crane and a growth boost'];
   }
   fireworks = 1.6; SFX.play('fanfare');
   const rows = (list) => list.map(([ic, txt]) => '<div class="row"><div class="art">' + img(ic, 24) + '</div><div class="grow"><b>' + txt + '</b></div></div>').join('');
@@ -1647,7 +1647,7 @@ function startLot(v, method, quiet) {
   if (busy >= racks() || kg <= 0 || !S.methods[method]) return false;
   const tutorial = !quiet && S.guide < 4 && !S.stats.lotsSold;   /* the guide's first lot dries twice as fast */
   const m = METHODS[method], time = m.time * (method === 'washed' ? 1 - Math.min(0.6, 0.1 * sumBuild('wetmill')) : 1) * (tutorial ? 0.5 : 1);
-  S.cherries[v] = 0;
+  S.cherries[v] = 0; S.millT = S.minutesTotal;
   S.lots.push({ v, kg, method, left: time, total: time });
   task('store', 0);
   if (!quiet) guideStep('lot');
@@ -1729,14 +1729,21 @@ function staffTick() {
     const c = S.staff.agent && S.tabs.orders && S.contracts.find((x) => fits(x, l));
     if (c) deliver(i, c.id, true); else sellLot(i, true);
   }
+  /* when to start a lot: a big lot pays the same drying time as a small one, so the foreman normally waits for a quarter of the store.
+     He starts sooner when a buyer is waiting for that coffee (just enough to fill the contract), when half the racks stand empty,
+     or when a rack has sat empty for a minute */
+  const ok = Object.keys(METHODS).filter((k) => S.methods[k]), byPay = (a, b) => METHODS[b].mult - METHODS[a].mult;
+  const buyer = (v) => S.staff.agent && S.tabs.orders && S.contracts.find((c) => (!c.v || c.v === v) && c.have < c.kg && (!c.method || S.methods[c.method]) && ok.some((k) => (!c.method || c.method === k) && cupFor(v, k) >= c.minCup));
   let guard = 0;
   while (S.lots.length < racks() && stored() > 0 && guard++ < 8) {
-    const v = Object.keys(S.cherries).filter((x) => S.cherries[x] > 0).sort((a, b) => S.cherries[b] - S.cherries[a])[0];
-    if (S.cherries[v] < Math.max(10, cap() * 0.25) && stored() < cap() * 0.9) break;   /* wait for a worthwhile lot */
-    const want = S.staff.agent && S.contracts.find((c) => (!c.v || c.v === v) && c.method && S.methods[c.method] && c.have < c.kg);
-    const best = Object.keys(METHODS).filter((k) => S.methods[k]).sort((a, b) => METHODS[b].mult - METHODS[a].mult)[0];
-    const method = want ? want.method : S.staff.rule !== 'best' && S.methods[S.staff.rule] ? S.staff.rule : best;
-    if (!startLot(v, method, true)) break;
+    const free = racks() - S.lots.length, idle = S.minutesTotal - (S.millT || 0) > REAL_MIN, full = stored() >= cap() * 0.9;
+    const pick = Object.keys(S.cherries).filter((v) => S.cherries[v] >= 10).map((v) => ({ v, c: buyer(v) }))
+      .sort((a, b) => (!!b.c - !!a.c) || S.cherries[b.v] - S.cherries[a.v])
+      .find(({ v, c }) => full || S.cherries[v] >= (c ? Math.min(cap() * 0.25, Math.max(10, (c.kg - c.have) / 0.2)) : idle || free * 2 >= racks() ? Math.max(10, cap() * 0.05) : Math.max(10, cap() * 0.25)));
+    if (!pick) break;
+    let method = S.staff.rule !== 'best' && S.methods[S.staff.rule] ? S.staff.rule : ok.slice().sort(byPay)[0];
+    if (pick.c) method = pick.c.method || ok.filter((k) => cupFor(pick.v, k) >= pick.c.minCup).sort(byPay)[0] || method;
+    if (!startLot(pick.v, method, true)) break;
   }
 }
 function sellRaw() {
@@ -2001,6 +2008,7 @@ function renderPanel() {
     });
     if (!S.lots.length) h += '<p class="note">No lots drying yet.</p>';
     if (S.staff.foreman) h += '<p class="note">Your mill foreman starts and sells lots for you' + (S.staff.agent ? ', and your contracts agent delivers to matching contracts first' : '') + '.</p>';
+    if (S.staff.foreman && S.lots.length < racks() && stored() >= 10) h += '<p class="note">Free racks: your foreman starts a lot once one coffee reaches ' + fmt(Math.max(10, cap() * 0.25)) + ' kg, sooner when a buyer wants it, when half the racks are empty, or after a rack sits empty for a minute. Bigger lots dry in the same time, so waiting pays.</p>';
     h += '<h3>Start a lot</h3>';
     if (!vs.length) h += '<p class="note">Storage is empty. Pick some cherries first.</p>';
     else {

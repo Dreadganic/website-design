@@ -115,12 +115,12 @@ The game talks to Netlify Functions (`netlify/functions/game-*.js`, storage in N
 - **Daily tasks** reset each real day and the **weekly order** runs for a real week; the other farmers' share fills steadily over the week.
 - **Away time:** with a mill foreman, lots keep drying and selling while you are away (storage still caps what the pickers bring in). The welcome-back screen shows what the mill earned.
 - **Buildings** go to level 5. **Farm mastery** (Upgrades › Build, coins, needs the farm's manager) adds 10% picking per level, cost ×1.45 a level. **Cupping research** (Upgrades › Seeds, know-how) adds 0.3 cup score per level, cost ×1.4 a level.
-- **Prestige** needs level 10, 18, 26, 34 ... by lifetime prestige, and each level past 10 needs 1.18× the XP of the last. The season board ranks know-how earned this month; the all-time board stays prestige first. The server mirrors these rules.
-- Bot playtest on this build: prestige 5 at 8.3 h of active play, or 13.6 days of three 10-minute sessions a day (`game-assets/sim`).
+- **Prestige** needs level 10, 18, 26, 34 ... by lifetime prestige, and each level past 10 needs 1.2× the XP of the last. The season board ranks know-how earned this month; the all-time board stays prestige first. The server mirrors these rules.
+- Bot playtest (with level-up rewards and the smarter foreman): prestige 5 at 8.2 h of active play, or 14.6 days of three 10-minute sessions a day (`game-assets/sim`).
 
 ## Tabs and level ups
 - Every tab shows from the first minute. Locked tabs are greyed with a lock and say what opens them (Upgrade: first sale, Shop: level 2, Daily: level 3, Ranks: level 5); tapping one explains.
-- Each level up plays a horn fanfare (`SFX.play('fanfare')`), sets off fireworks over your farmer and opens a window with what the level unlocked (tabs, waking farms, prestige), its rewards and what comes next. Rewards: 50 × level^1.5 coins and a stamina refill; every 5th level adds 3 cranes and 10 minutes of double growth. Several quick level ups share one window.
+- Each level up plays a horn fanfare (`SFX.play('fanfare')`), sets off fireworks over your farmer and opens a window with what the level unlocked (tabs, waking farms, prestige), its rewards and what comes next. Rewards: 50 × level^1.5 coins and a stamina refill; every 5th level adds 1 crane and 10 minutes of double growth. Several quick level ups share one window.
 - Crane boosts now last the real 30 minutes they advertise (they ran on game minutes before, about 12 seconds).
 
 ## Tutorial and Ranks layout

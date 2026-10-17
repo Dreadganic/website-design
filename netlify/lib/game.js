@@ -36,7 +36,7 @@ async function authed(event, store) {
 }
 
 /* The game's own rules, mirrored so the server can check what a client claims */
-const XP_AT = (l) => l <= 10 ? Math.round(100 * Math.pow(l - 1, 2.4)) : Math.round(100 * Math.pow(9, 2.4) * Math.pow(1.18, l - 10));
+const XP_AT = (l) => l <= 10 ? Math.round(100 * Math.pow(l - 1, 2.4)) : Math.round(100 * Math.pow(9, 2.4) * Math.pow(1.2, l - 10));
 const levelFor = (xp) => { let l = 1; while (xp >= XP_AT(l + 1)) l++; return l; };
 const PRESTIGE_LEVEL = 10;
 const prestigeNeed = (p) => PRESTIGE_LEVEL + 8 * p;   /* by lifetime prestige: 10, 18, 26, 34 ... */
