@@ -408,7 +408,7 @@ function fresh() {
     v: 1, loc: START, coins: 1500, points: 300, xp: 0, cranes: 20, hearts: 30, heartT: 0,
     lv: { storage: 1, carry: 1, speed: 1, pickers: 1, racks: 1, hearts: 1 },
     methods: { washed: true, natural: true }, vars: { caturra: true }, staff: { foreman: false, agent: false, rule: 'best' }, decor: {}, contracts: [], nextContract: 0, hat: 'straw', hats: { straw: true }, stamps: {},
-    cherries: {}, lots: [], boosts: {}, minutes: 7 * 60 + 30, day: 1, taps: 0, year: 1, bonus: 0,
+    cherries: {}, lots: [], boosts: {}, minutes: 7 * 60 + 30, minutesTotal: 0, day: 1, taps: 0, year: 1, bonus: 0,
     tasks: null, weekly: { mine: 0, team: 1800, target: 4000, start: 1, claimed: false }, rewards: [], stats: { picked: 0, sold: 0, lotsSold: 0 },
     farms: {}, intro: 0, seasonPick: 'auto', speed: 1, sfx: true, music: true, musicVol: 0.45, guide: 0, guideN: 0, tabs: { upgrades: false, orders: false, ranks: false, shop: false }, newTab: null, checkin: { last: '', streak: 0, freezes: 1 }, season: { key: seasonKey(), prestige: 0 }, badges: [], event: null, prestige: 0, name: 'You', look: { plate: 0, border: 0, skin: 0 }, dormant: {}, last: Date.now()
   };
@@ -462,7 +462,10 @@ const pickerMult = () => (1 + 0.18 * (S.lv.speed - 1)) * (S.boosts.pick > S.minu
 const XP_AT = (l) => Math.round(100 * Math.pow(l - 1, 2.4));   /* early levels come quickly, later ones take much longer */
 const level = () => { let l = 1; while (S.xp >= XP_AT(l + 1)) l++; return l; };
 const levelSpan = () => { const l = level(), a = XP_AT(l), b = XP_AT(l + 1); return [(S.xp - a) / (b - a), l]; };
-S.minutesTotal = S.minutesTotal || 0;
+if (!isFinite(S.minutesTotal)) S.minutesTotal = 0;   /* repair saves where the clock was lost */
+if (!isFinite(S.nextContract)) S.nextContract = 0;
+S.contracts = (S.contracts || []).filter((c) => c.event || isFinite(c.due));
+Object.keys(S.boosts).forEach((k) => { if (!isFinite(S.boosts[k])) delete S.boosts[k]; });
 
 function season(loc) {
   const L = ART.locations[loc], m = new Date().getMonth() + 1, pick = S.seasonPick;
@@ -733,13 +736,15 @@ function buyUpgrade(key) {
 function startLot(v, method, quiet) {
   const busy = S.lots.length, kg = S.cherries[v] || 0;
   if (busy >= racks() || kg <= 0 || !S.methods[method]) return false;
-  const m = METHODS[method], time = m.time * (method === 'washed' ? 1 - Math.min(0.6, 0.1 * sumBuild('wetmill')) : 1);
+  const tutorial = !quiet && S.guide < 4 && !S.stats.lotsSold;   /* the guide's first lot dries twice as fast */
+  const m = METHODS[method], time = m.time * (method === 'washed' ? 1 - Math.min(0.6, 0.1 * sumBuild('wetmill')) : 1) * (tutorial ? 0.5 : 1);
   S.cherries[v] = 0;
   S.lots.push({ v, kg, method, left: time, total: time });
   task('store', 0);
   if (!quiet) guideStep('lot');
   if (!quiet) { SFX.play('pour'); if (method === 'washed') SFX.play('splash'); }
-  if (!quiet) toast(fmt(kg) + ' kg of ' + ART.varieties[v] + ' on the ' + m.name.toLowerCase() + ' racks');
+  if (tutorial) toast('Your first lot dries at double speed');
+  else if (!quiet) toast(fmt(kg) + ' kg of ' + ART.varieties[v] + ' on the ' + m.name.toLowerCase() + ' racks');
   return true;
 }
 const marketPick = () => { const ms = Object.keys(METHODS).filter((k) => S.methods[k]); return ms[(S.day * 7 + 3) % ms.length]; };
@@ -779,6 +784,7 @@ function newContract() {
 }
 const fits = (c, l) => (!c.v || c.v === l.v) && (!c.method || c.method === l.method) && cupFor(l.v, l.method) >= c.minCup && c.have < c.kg;
 function contractsTick() {
+  if (!S.tabs.orders) return;   /* no contracts until the Orders tab is open */
   const before = S.contracts.length;
   S.contracts = S.contracts.filter((c) => c.due > S.minutesTotal);
   if (S.contracts.length < before) toast('A contract ran out of time');
@@ -807,7 +813,7 @@ function staffTick() {
   if (!S.staff.foreman) return;
   for (let i = S.lots.length - 1; i >= 0; i--) {
     const l = S.lots[i]; if (l.left > 0) continue;
-    const c = S.staff.agent && S.contracts.find((x) => fits(x, l));
+    const c = S.staff.agent && S.tabs.orders && S.contracts.find((x) => fits(x, l));
     if (c) deliver(i, c.id, true); else sellLot(i, true);
   }
   let guard = 0;
@@ -929,7 +935,7 @@ function renderGuide() {
 }
 const TAB_OPEN = { upgrades: () => S.stats.lotsSold >= 1 || S.guide > 3, orders: () => level() >= 3, ranks: () => level() >= 5, shop: () => level() >= 2 };
 function checkTabs() {
-  Object.keys(TAB_OPEN).forEach((k) => { if (!S.tabs[k] && TAB_OPEN[k]()) { S.tabs[k] = true; S.newTab = k; toast('New tab: ' + TABS.find((x) => x[0] === k)[1]); SFX.play('achieve'); } });
+  Object.keys(TAB_OPEN).forEach((k) => { if (!S.tabs[k] && TAB_OPEN[k]()) { S.tabs[k] = true; if (k === 'orders') { S.contracts = S.contracts.filter((c) => c.event); S.nextContract = 0; } S.newTab = k; toast('New tab: ' + TABS.find((x) => x[0] === k)[1]); SFX.play('achieve'); } });
 }
 function renderTabs() {
   const dot = { orders: S.tasks.some((t) => t.have >= t.goal && !t.done) || (S.weekly.team + S.weekly.mine >= S.weekly.target && !S.weekly.claimed), mill: S.lots.some((l) => l.left <= 0) };
@@ -992,7 +998,7 @@ function renderPanel() {
     S.lots.forEach((l, i) => {
       const m = METHODS[l.method], done = l.left <= 0;
       h += row(img(m.art, 36), fmt(l.kg) + ' kg ' + ART.varieties[l.v] + ', ' + m.name.toLowerCase(), done ? 'Dry and ready to sell' : '<span class="bar" style="display:block"><i style="width:' + Math.round((1 - l.left / l.total) * 100) + '%"></i></span> ' + Math.ceil(l.left / 2.5) + ' min left', btn('Sell', done ? 'ready' : 'drying', 'sell:' + i, done, 'green'));
-      if (done) S.contracts.filter((c) => fits(c, l)).forEach((c) => { h += '<div class="seg" style="margin:-4px 0 6px 52px">' + btn('Deliver to ' + c.buyer.split(',')[0], fmt(Math.min(l.kg * 0.2, c.kg - c.have)) + ' kg · contract', 'deliver:' + i + '.' + c.id, true, 'blue') + '</div>'; });
+      if (done && S.tabs.orders) S.contracts.filter((c) => fits(c, l)).forEach((c) => { h += '<div class="seg" style="margin:-4px 0 6px 52px">' + btn('Deliver to ' + c.buyer.split(',')[0], fmt(Math.min(l.kg * 0.2, c.kg - c.have)) + ' kg · contract', 'deliver:' + i + '.' + c.id, true, 'blue') + '</div>'; });
     });
     if (!S.lots.length) h += '<p class="note">No lots drying yet.</p>';
     if (S.staff.foreman) h += '<p class="note">Your mill foreman starts and sells lots for you' + (S.staff.agent ? ', and your contracts agent delivers to matching contracts first' : '') + '.</p>';
