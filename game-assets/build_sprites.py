@@ -1635,6 +1635,19 @@ def crane_fly(f):
     return draw
 
 
+
+def charm_qgrader(p):   # the Q grader charm from the cupping notebook: a gold star on a cream tag
+    for y in range(9):
+        for x in range(9):
+            d = (x - 4) ** 2 + (y - 4) ** 2
+            if d <= 20:
+                p(x, y, OUT if d > 13 else "#FFF8EC")
+    for (x, y) in [(4, 1), (3, 3), (4, 3), (5, 3), (1, 3), (2, 3), (6, 3), (7, 3), (2, 4), (3, 4), (4, 4), (5, 4), (6, 4), (3, 5), (4, 5), (5, 5), (2, 6), (3, 6), (5, 6), (6, 6), (4, 2)]:
+        p(x, y, "#E8B830")
+    p(4, 4, "#FFF2A8")
+
+
+add_layer("charm_qgrader", 9, 9, charm_qgrader)
 add_layer("perk_sign", 20, 20, perk_sign)
 for _f in (0, 1):
     add_layer("crane_fly_%d" % _f, 13, 7, crane_fly(_f))

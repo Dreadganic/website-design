@@ -105,6 +105,7 @@ window.BOT = (function () {
   function active() {   /* only when cfg.active: cup every lot by hand and tap golden bushes */
     if (!B.cfg.active) return; const S = G.S;
     S.lots.forEach((l, i) => { if (!l.cupped && (!H() || rnd() < 0.15)) act('cup:' + i); });
+    if (S.request) { const i = S.lots.findIndex((l) => l.v === S.request.v && l.method === S.request.m); if (i > -1 && !S.lots[i].cupped) act('cup:' + i); act('reqfill'); closeAll(); }   /* fills a regular's request when the lot is ready */
     const g = G.golden; if (g && H() && !g.seen) { g.seen = true; g.miss = rnd() < 0.45; }
     if (g && !(H() && g.miss)) { if (S.loc !== g.loc) act('go:' + g.loc); const s = S.farms[S.loc].shrubs[g.i], r = cv.getBoundingClientRect(); cv.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: r.left + (s.x + 9) / G.W * r.width, clientY: r.top + (s.y + 11) / G.H * r.height })); }
   }

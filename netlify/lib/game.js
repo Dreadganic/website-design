@@ -102,8 +102,8 @@ const cleanLook = (l, prestige) => {
   const cap = prestige === undefined ? 7 : n(prestige, 7);
   const sid = (x) => String(x || "").replace(/^s_/, ""), now = seasonKey();
   return { crest: n(l.crest !== undefined ? l.crest : l.plate, cap), skin: cap > 0 ? n(l.skin, 7) : 0, bg: BGS.includes(l.bg) || (/^s_/.test(l.bg || "") && SEASON_IDS.includes(sid(l.bg))) ? l.bg : "none", char: CHARS.includes(l.char) ? l.char : "none",
-    hat: SEASON_IDS.includes(sid(l.hat)) ? "s_" + sid(l.hat) : "", charm: SEASON_IDS.includes(sid(l.charm)) ? sid(l.charm) : "",
-    title: /^\d{4}-\d{2}$/.test(l.title || "") && l.title <= now ? l.title : "" };   /* season track cosmetics; a title names a season that has started */
+    hat: SEASON_IDS.includes(sid(l.hat)) ? "s_" + sid(l.hat) : "", charm: l.charm === "qgrader" ? "qgrader" : SEASON_IDS.includes(sid(l.charm)) ? sid(l.charm) : "",
+    title: (/^\d{4}-\d{2}$/.test(l.title || "") && l.title <= now) || /^nbm?:[a-z]{3,16}$|^nbt:(cupper|head|q)$/.test(l.title || "") ? l.title : "" };   /* season titles, and cupping notebook titles */   /* season track cosmetics; a title names a season that has started */
 };
 
 /* Free coffee samples earned in the game. The server decides who has earned what, from its own records:

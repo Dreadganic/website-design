@@ -155,4 +155,7 @@ test("seasons: season cosmetics pass, made-up ones do not", () => {
   const bad = G.cleanLook({ hat: "s_<b>", charm: "gold", title: "2099-01", bg: "s_nope" }, 0);
   assert.deepEqual([bad.hat, bad.charm, bad.title, bad.bg], ["", "", "", "none"], "unknown themes and future titles are dropped");
   assert.equal(G.prevSeason("2027-01"), "2026-12");
+  const nb = G.cleanLook({ title: "nb:geisha", charm: "qgrader" }, 0);
+  assert.deepEqual([nb.title, nb.charm], ["nb:geisha", "qgrader"], "cupping notebook titles and the Q grader charm pass");
+  assert.equal(G.cleanLook({ title: "nbt:emperor" }, 0).title, "", "made-up notebook titles do not");
 });
