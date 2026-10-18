@@ -50,8 +50,8 @@ test("scores: honest progress is accepted and ranked", async () => {
   assert.equal((await call(score, "POST", s(0, 0, 2400), a)).status, 200);
   const board = await call(score, "GET", undefined, b, { mode: "season" });
   assert.equal(board.body.top[0].points, 2400); assert.equal(board.body.me.rank, 2);
-  assert.deepEqual(board.body.top[0].look, { crest: 0, skin: 0, bg: "huila", char: "kitsune", hat: "", charm: "", title: "" }, "crest is capped at the prestige tier");
-  assert.deepEqual(G.cleanLook({ plate: 3, border: 3, skin: 2, bg: "<script>" }), { crest: 3, skin: 2, bg: "none", char: "none", hat: "", charm: "", title: "" }, "old looks still read");
+  assert.deepEqual(board.body.top[0].look, { crest: 0, skin: 0, bg: "huila", char: "kitsune", hat: "", charm: "", roaster: "", title: "" }, "crest is capped at the prestige tier");
+  assert.deepEqual(G.cleanLook({ plate: 3, border: 3, skin: 2, bg: "<script>" }), { crest: 3, skin: 2, bg: "none", char: "none", hat: "", charm: "", roaster: "", title: "" }, "old looks still read");
 });
 
 test("scores: impossible jumps are rejected", async () => {
@@ -158,4 +158,11 @@ test("seasons: season cosmetics pass, made-up ones do not", () => {
   const nb = G.cleanLook({ title: "nb:geisha", charm: "qgrader" }, 0);
   assert.deepEqual([nb.title, nb.charm], ["nb:geisha", "qgrader"], "cupping notebook titles and the Q grader charm pass");
   assert.equal(G.cleanLook({ title: "nbt:emperor" }, 0).title, "", "made-up notebook titles do not");
+});
+
+test("roastery cosmetics: finishes, the crack master charm and title pass; made-up ones do not", () => {
+  const r = G.cleanLook({ roaster: "sakura", charm: "crack", title: "rr:crack" }, 0);
+  assert.deepEqual([r.roaster, r.charm, r.title], ["sakura", "crack", "rr:crack"]);
+  const bad = G.cleanLook({ roaster: "<img>", title: "rr:king" }, 0);
+  assert.deepEqual([bad.roaster, bad.title], ["", ""]);
 });

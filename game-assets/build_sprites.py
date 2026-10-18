@@ -896,34 +896,77 @@ def scene_mill():
     hedgerow_and_bank([LEAF, COFFEE, LUSH, OCHRE], DIRT["ochre"])
 
 
-def scene_roastery():
-    """Beju's roastery in Osaka: three roaster bays on terracotta tiles, shelves for finished bags, a shop counter and a noren door to the street."""
-    new_scene("#C89A64")
-    rnd = random.Random(41)
-    for y in range(60, 206):   # plank floor
+ROOMS = {   # the roastery's interiors: floor, roasting-bay floor, back wall, counter wood and shop front
+    "brick":    {"plank": ["#C89A64", "#D8AC74", "#B4844E", "#9C6C3C"], "bay": "tile", "left": "brick", "right": ["#F2E8D4", "#E6DAC2"], "wood": WOOD, "front": WOOD},
+    "kissaten": {"plank": ["#6A4428", "#7E5434", "#5A3820", "#3E2614"], "bay": "slate", "left": "panel", "right": ["#2E5A44", "#26503C"], "wood": ["#9C6C3C", "#7A4E2A", "#5E3A1E", "#4A2C16", "#2E1A0C"], "front": ["#7A4E2A", "#5E3A1E", "#4A2C16", "#3A2210", "#24140A"]},
+    "modern":   {"plank": ["#C8C4BC", "#D6D2CA", "#B8B4AC", "#A4A098"], "bay": "concrete", "left": "concrete", "right": ["#E8D4AE", "#DCC69C"], "wood": ["#F0DCB4", "#E0C898", "#C8AC7C", "#A88C60", "#6E5A3E"], "front": ["#B8B4AC", "#A4A098", "#8E8A82", "#76726A", "#4E4A44"]},
+    "showa":    {"plank": ["#F4ECDA", "#B8402C", "#F4ECDA", "#9A2E20"], "bay": "check", "left": "mint", "right": ["#BCE0CC", "#A8D4BC"], "wood": ["#F2C04A", "#E0A830", "#C08820", "#986818", "#5E4010"], "front": ["#C8302C", "#A82420", "#8A1E1C", "#6A1614", "#3E0C0A"]},
+    "machiya":  {"plank": ["#C8C890", "#D6D6A0", "#B4B47C", "#5E6A3A"], "bay": "stone", "left": "shoji", "right": ["#F8F4EC", "#E8E0D0"], "wood": ["#B88A5A", "#9C7046", "#7E5634", "#5E3E24", "#3A2414"], "front": ["#5E3E24", "#4A3020", "#3A2418", "#2A1A10", "#1A100A"]},
+}
+
+
+def scene_roastery(room="brick"):
+    """Beju's roastery in Osaka: three roaster bays, shelves for finished bags, a shop counter and a door to the street. The noren is drawn live."""
+    R = ROOMS[room]
+    pl, wood, front = R["plank"], R["wood"], R["front"]
+    new_scene(pl[0])
+    for y in range(60, 206):   # floor
         for x in range(W):
-            plank = (y - 60) % 8
-            put(x, y, "#9C6C3C" if plank == 7 else "#D8AC74" if plank == 0 else "#C89A64" if (x + (y // 8) * 37) % 41 else "#B4844E")
-    for y in range(60, 144):   # terracotta tiles under the roasters
+            if room == "showa":   # a red and cream checkerboard
+                put(x, y, pl[1] if ((x // 8) + ((y - 60) // 8)) % 2 else pl[0])
+            elif room == "machiya":   # tatami mats with dark cloth borders
+                mx, my = x % 48, (y - 60) % 32
+                put(x, y, pl[3] if mx < 2 or my < 2 else pl[1] if (x + y) % 3 else pl[0])
+            elif room == "modern":   # polished concrete with saw cuts
+                put(x, y, pl[3] if x % 32 == 0 or (y - 60) % 32 == 0 else pl[1] if (x * 7 + y * 3) % 17 == 0 else pl[0])
+            else:
+                plank = (y - 60) % 8
+                put(x, y, pl[3] if plank == 7 else pl[1] if plank == 0 else pl[0] if (x + (y // 8) * 37) % 41 else pl[2])
+    bay = R["bay"]
+    for y in range(60, 144):   # the fire-safe floor under the roasters
         for x in range(0, 100):
-            put(x, y, TILE[4] if x % 10 == 0 or (y - 60) % 10 == 0 or x == 99 else TILE[2] if ((x // 10) + (y // 10)) % 2 else TILE[1])
+            edge = x % 10 == 0 or (y - 60) % 10 == 0 or x == 99
+            if bay == "tile":
+                c = TILE[4] if edge else TILE[2] if ((x // 10) + (y // 10)) % 2 else TILE[1]
+            elif bay == "slate":
+                c = "#2A2A2E" if edge else "#4A4A52" if ((x // 10) + (y // 10)) % 2 else "#3E3E46"
+            elif bay == "concrete":
+                c = CONCRETE[3] if x % 20 == 0 or (y - 60) % 20 == 0 or x == 99 else CONCRETE[1]
+            elif bay == "check":
+                c = "#2A2A2A" if ((x // 6) + (y // 6)) % 2 else "#F4ECDA"
+            else:
+                c = STONE[3] if edge else STONE[1] if ((x // 10) * 3 + (y // 10)) % 4 else STONE[2]
+            put(x, y, c)
     for y in range(0, 8):
         for x in range(W):
-            put(x, y, WOOD[4] if y in (0, 7) else WOOD[3])
-    for y in range(8, 60):     # back wall: brick behind the roasters, plaster behind the shelves
+            put(x, y, wood[4] if y in (0, 7) else wood[3])
+    left = R["left"]
+    for y in range(8, 60):     # back wall behind the roasters, and behind the shelves
         for x in range(W):
             if x < 100:
-                row = (y - 8) // 4
-                mortar = (y - 8) % 4 == 3 or (x + (row % 2) * 5) % 10 == 0
-                put(x, y, "#8A5A44" if mortar else "#B85A3A" if (x * 3 + y) % 7 else "#A04A30")
+                if left == "brick":
+                    row = (y - 8) // 4
+                    mortar = (y - 8) % 4 == 3 or (x + (row % 2) * 5) % 10 == 0
+                    c = "#8A5A44" if mortar else "#B85A3A" if (x * 3 + y) % 7 else "#A04A30"
+                elif left == "panel":   # dark wood panelling
+                    c = wood[4] if x % 16 == 0 else wood[2] if (x % 16) < 3 else wood[3]
+                elif left == "concrete":
+                    c = CONCRETE[2] if (x * 5 + y * 3) % 23 == 0 else CONCRETE[1] if y % 26 else CONCRETE[3]
+                elif left == "mint":   # Showa enamel wall tiles
+                    c = "#F8F4EC" if x % 8 == 0 or (y - 8) % 8 == 0 else "#A8D4BC"
+                else:   # shoji paper in a wooden grid
+                    c = wood[2] if x % 12 == 0 or (y - 8) % 10 == 0 else "#F8F4EC" if (x + y) % 13 else "#EEE8DC"
             else:
-                put(x, y, "#F2E8D4" if (x + y) % 11 else "#E6DAC2")
+                c = R["right"][0] if (x + y) % 11 else R["right"][1]
+                if room == "machiya" and (x % 12 == 4 or (y - 8) % 10 == 0):
+                    c = wood[2]
+            put(x, y, c)
     for y in range(8, 60):
         for px_ in (0, 99, 100, W - 1):
-            put(px_, y, WOOD[4])
+            put(px_, y, wood[4])
     for y in range(50, 60):
         for x in range(100, W - 1):
-            put(x, y, WOOD[2] if y > 50 else WOOD[4])
+            put(x, y, wood[2] if y > 50 else wood[4])
     for k, dx in enumerate((20, 50, 80)):   # an exhaust duct for each roaster bay
         for y in range(8, 64):
             for x in range(dx - 2, dx + 2):
@@ -932,56 +975,55 @@ def scene_roastery():
             put(x, 30, TIN[4]); put(x, 46, TIN[4])
     for sy in (26, 42, 58):    # three shelves for finished bags
         for x in range(104, W - 4):
-            put(x, sy, WOOD[1]); put(x, sy + 1, WOOD[3]); put(x, sy + 2, "#BCA888")
+            put(x, sy, wood[1]); put(x, sy + 1, wood[3]); put(x, sy + 2, R["right"][1] if room != "kissaten" else "#1E3A2C")
         for bx in (106, 146, W - 8):
-            put(bx, sy + 1, WOOD[4]); put(bx, sy + 2, WOOD[4]); put(bx, sy + 3, WOOD[4])
+            put(bx, sy + 1, wood[4]); put(bx, sy + 2, wood[4]); put(bx, sy + 3, wood[4])
     fill(106, 10, 14, 12, OUT); fill(107, 11, 12, 10, "#2E3A30")   # a little menu board
     for k in range(3):
         for x in range(108, 117):
             put(x, 13 + k * 3, "#E8E4D8" if (x + k) % 4 else "#2E3A30")
     # a low tasting table with two cushions, where guests try the roasts
     shadow_ellipse(170, 116, 13, 2.5, 60)
-    fill(158, 104, 24, 11, OUT); fill(159, 105, 22, 8, WOOD[1]); fill(159, 112, 22, 1, WOOD[3])
+    fill(158, 104, 24, 11, OUT); fill(159, 105, 22, 8, wood[1]); fill(159, 112, 22, 1, wood[3])
     for (cx, cy) in ((166, 108), (174, 108)):
         ellipse(cx, cy, 2.4, 1.8, OUT); ellipse(cx, cy, 1.6, 1.1, "#F8F4EC"); put(cx, cy, "#6A3C1C")
+    cush = {"kissaten": "#2E5A44", "showa": "#E8B830", "machiya": "#3A4C9C", "modern": "#C86A3A"}.get(room, "#7A4A8A")
     for (qx, qy) in ((150, 106), (184, 106)):
-        fill(qx - 4, qy, 8, 8, OUT); fill(qx - 3, qy + 1, 6, 6, "#7A4A8A"); fill(qx - 3, qy + 1, 6, 1, "#9A6AAA")
+        fill(qx - 4, qy, 8, 8, OUT); fill(qx - 3, qy + 1, 6, 6, cush)
     # the shop counter, with the till and a jar of beans
     shadow_ellipse(150, 160, 42, 3, 60)
-    fill(110, 138, 82, 20, OUT); fill(111, 139, 80, 6, WOOD[0]); fill(111, 145, 80, 12, WOOD[2])
+    fill(110, 138, 82, 20, OUT); fill(111, 139, 80, 6, wood[0]); fill(111, 145, 80, 12, wood[2])
     for x in range(114, 190, 9):
-        fill(x, 146, 1, 11, WOOD[3])
+        fill(x, 146, 1, 11, wood[3])
     fill(170, 132, 14, 9, OUT); fill(171, 133, 12, 7, "#3E3E3E"); fill(172, 134, 10, 3, "#9CC8A8"); fill(171, 140, 12, 1, "#2A2A2A")
     fill(124, 132, 8, 9, OUT); fill(125, 133, 6, 7, "#D4ECF4"); fill(125, 136, 6, 4, "#6A3C1C"); fill(125, 132, 6, 1, "#C8A040")
     fill(140, 135, 10, 5, OUT); fill(141, 136, 8, 3, "#F8F4EC")
-    # the shop front: windows on to the street, potted plants and a noren over the door
+    # the shop front: windows on to the street and potted plants; the noren over the door is drawn live
     for y in range(206, H):
         for x in range(W):
-            put(x, y, WOOD[3] if y < 208 else "#3A2A1C" if y > 236 else WOOD[2] if (x + y) % 17 else WOOD[3])
+            put(x, y, front[3] if y < 208 else "#3A2A1C" if y > 236 else front[2] if (x + y) % 17 else front[3])
     for (wx, ww) in ((8, 70), (114, 70)):
         fill(wx, 210, ww, 24, OUT)
         for y in range(211, 233):
             for x in range(wx + 1, wx + ww - 1):
                 put(x, y, "#D4ECF4" if (x - y) % 23 < 3 else "#9CC8D8" if y < 222 else "#86B8CC")
         for x in range(wx + 1, wx + ww - 1, 17):
-            fill(x, 211, 1, 22, WOOD[4])
+            fill(x, 211, 1, 22, front[4])
     fill(84, 206, 24, 34, "#5A4632")
-    for x in range(84, 108):   # the noren: indigo cloth in three panels
-        for y in range(204, 216):
-            if (x - 84) % 8 != 7 or y < 207:
-                put(x, y, "#2C3A80" if y > 205 else WOOD[4])
-    for (a, b) in [(95, 209), (96, 209), (94, 210), (97, 210), (95, 211), (96, 211), (95, 212)]:
-        put(a, b, "#F8F4EC")
+    for x in range(84, 108):
+        put(x, 204, front[4]); put(x, 205, front[4])
     for (pxp, pyp) in ((4, 192), (178, 192)):
         fill(pxp + 2, pyp + 6, 8, 7, OUT); fill(pxp + 3, pyp + 7, 6, 5, TILE[2])
         cluster(pxp + 6, pyp + 2, 7, 6, LUSH, pxp, blobs=6, br=(2.5, 4))
-    fill(80, 190, 32, 12, "#8A2A26"); fill(82, 192, 28, 8, "#B8402C")   # a doormat
+    mat = {"kissaten": ("#2E5A44", "#4A7A60"), "machiya": ("#5E6A3A", "#8A9450"), "showa": ("#2A2A2A", "#F2C04A")}.get(room, ("#8A2A26", "#B8402C"))
+    fill(80, 190, 32, 12, mat[0]); fill(82, 192, 28, 8, mat[1])   # a doormat
     for x in range(84, 108, 4):
         put(x, 196, "#E8C890")
 
 
 scene_mill(); img.save(os.path.join(HERE, "bg", "mill.png")); rendered[("mill", "")] = img.copy()
-scene_roastery(); img.save(os.path.join(HERE, "bg", "roastery.png")); rendered[("roastery", "")] = img.copy()
+for _room in ROOMS:
+    scene_roastery(_room); img.save(os.path.join(HERE, "bg", "roastery.png" if _room == "brick" else "roastery-%s.png" % _room)); rendered[("roastery", _room)] = img.copy()
 
 # ---------------- coffee varieties ----------------
 VARIETIES = {
@@ -1825,6 +1867,110 @@ def charm_qgrader(p):   # the Q grader charm from the cupping notebook: a gold s
 
 
 add_layer("charm_qgrader", 9, 9, charm_qgrader)
+
+
+# ---------------- roastery props (each has its own spot in the shop) and the crack master charm ----------------
+def rp_record(p):   # a record player on the counter
+    rect(p, 0, 2, 14, 8, OUT); rect(p, 1, 3, 12, 6, WOOD[2]); rect(p, 1, 3, 12, 1, WOOD[1])
+    for y in range(3, 9):
+        for x in range(2, 10):
+            if (x - 5.5) ** 2 + (y - 5.8) ** 2 <= 9:
+                p(x, y, "#1E1E1E" if (x + y) % 3 else "#3A3A3A")
+    p(5, 5, "#D8302C"); p(6, 6, "#D8302C")
+    rect(p, 10, 3, 1, 5, "#B8B8B8"); p(9, 7, "#B8B8B8")
+
+
+def rp_maneki(f):   # a beckoning cat; frame 1 has the paw raised
+    def draw(p):
+        rect(p, 1, 3, 8, 8, OUT); rect(p, 2, 4, 6, 6, "#F8F4EC"); p(1, 2, OUT); p(2, 2, OUT); p(7, 2, OUT); p(8, 2, OUT); p(2, 3, "#F8F4EC"); p(7, 3, "#F8F4EC")
+        p(3, 5, OUT); p(6, 5, OUT); p(4, 6, "#E89048"); p(5, 6, "#E89048"); rect(p, 2, 8, 6, 1, "#D8302C"); p(4, 9, "#F2C04A"); p(5, 9, "#F2C04A")
+        if f:
+            rect(p, 8, 1, 2, 4, OUT); p(8, 2, "#F8F4EC"); p(8, 3, "#F8F4EC")
+        else:
+            rect(p, 8, 3, 2, 3, OUT); p(8, 4, "#F8F4EC")
+    return draw
+
+
+def rp_siphon(p):   # a glass siphon brewer: upper bowl, lower globe and a little burner
+    rect(p, 3, 0, 4, 1, OUT); rect(p, 2, 1, 6, 5, OUT); rect(p, 3, 2, 4, 3, "#D4ECF4"); rect(p, 3, 4, 4, 1, "#7A4A28")
+    rect(p, 4, 6, 2, 2, "#B8B8B8")
+    for y in range(8, 14):
+        for x in range(1, 9):
+            d = (x - 4.5) ** 2 + (y - 10.8) ** 2
+            if d <= 12:
+                p(x, y, OUT if d > 7.5 else "#5A3418" if y > 10 else "#D4ECF4")
+    rect(p, 0, 14, 10, 2, OUT); rect(p, 1, 14, 8, 1, "#C8A040")
+
+
+def rp_neon(f):   # a neon COFFEE sign hanging in the window; frame 1 flickers dimmer
+    def draw(p):
+        c = "#FF8AB4" if f == 0 else "#C86A8A"
+        g = "#7ED0F0" if f == 0 else "#5A9AB8"
+        rect(p, 0, 0, 26, 9, "#1E1E1E")
+        letters = ["xxx.xxx.xxx.xxx.xxx.xxx", "x...x.x.x...x...x...x..", "x...x.x.xx..xx..xx..xx.", "x...x.x.x...x...x...x..", "xxx.xxx.x...x...xxx.xxx"]
+        for y, row in enumerate(letters):
+            for x, ch in enumerate(row):
+                if ch == "x":
+                    p(x + 2, y + 2, c if x < 7 else g)
+    return draw
+
+
+def rp_plants(p):   # two macramé hanging planters
+    for (x0, h) in ((2, 6), (12, 9)):
+        rect(p, x0 + 3, 0, 1, h, "#E8DCC0")
+        rect(p, x0, h, 7, 5, OUT); rect(p, x0 + 1, h + 1, 5, 3, "#C86A3A")
+        for (a, b) in [(-1, -1), (0, -2), (2, -3), (4, -2), (6, -1), (7, 1), (-2, 1), (1, 4), (5, 5), (3, 6)]:
+            p(x0 + a + 1, h + b, "#5A9C3C" if (a + b) % 2 else "#427E30")
+
+
+def rp_cat(f):   # the shop cat asleep, breathing slowly
+    def draw(p):
+        rect(p, 0, 2 - f, 11, 5 + f, OUT); rect(p, 1, 3 - f, 9, 3 + f, "#E89048"); rect(p, 2, 5, 6, 1, "#C86C30")
+        p(8, 1 - f, OUT); p(10, 1 - f, OUT); p(9, 3 - f, "#2E1E18"); p(0, 6, "#E89048"); p(1, 7, "#E89048")
+    return draw
+
+
+def rp_booth(p):   # a green velvet kissaten booth
+    rect(p, 0, 0, 30, 14, OUT); rect(p, 1, 1, 28, 5, "#2E5A44"); rect(p, 1, 1, 28, 1, "#4A7A60")
+    for x in range(4, 28, 6):
+        p(x, 3, "#C8A040")
+    rect(p, 1, 7, 28, 5, "#26503C"); rect(p, 1, 7, 28, 1, "#4A7A60"); rect(p, 2, 12, 2, 2, WOOD[4]); rect(p, 26, 12, 2, 2, WOOD[4])
+
+
+def charm_crack(p):   # crack master: a roasted bean with its crease, on a gold tag
+    for y in range(9):
+        for x in range(9):
+            d = (x - 4) ** 2 + (y - 4) ** 2
+            if d <= 20:
+                p(x, y, OUT if d > 13 else "#F2C04A")
+    for y in range(2, 7):
+        for x in range(2, 7):
+            if ((x - 4) / 2.2) ** 2 + ((y - 4) / 2.6) ** 2 <= 1:
+                p(x, y, "#5A3418")
+    for (x, y) in [(4, 2), (4, 3), (5, 4), (4, 5), (4, 6)]:
+        p(x, y, "#F8E0A8")
+
+
+add_layer("rp_record", 14, 10, rp_record)
+for _f in (0, 1):
+    add_layer("rp_maneki_%d" % _f, 10, 11, rp_maneki(_f))
+    add_layer("rp_neon_%d" % _f, 26, 9, rp_neon(_f))
+    add_layer("rp_cat_%d" % _f, 11, 8, rp_cat(_f))
+add_layer("rp_siphon", 10, 16, rp_siphon)
+add_layer("rp_plants", 22, 16, rp_plants)
+add_layer("rp_booth", 30, 14, rp_booth)
+add_layer("charm_crack", 9, 9, charm_crack)
+
+
+def noren_icon(p):   # the noren on shop cards: three cloth panels on a rod, recoloured per design
+    rect(p, 0, 0, 14, 2, WOOD[4])
+    for k in range(3):
+        rect(p, k * 5, 2, 4, 10, "#2C3A80")
+    for (x, y) in [(6, 5), (7, 5), (5, 6), (8, 6), (6, 7), (7, 7)]:
+        p(x, y, "#F8F4EC")
+
+
+add_layer("noren_icon", 14, 12, noren_icon)
 
 # ---------------- the roastery: a drum roaster (two flame frames) and a bag for each roast ----------------
 def roaster(f, big=False):

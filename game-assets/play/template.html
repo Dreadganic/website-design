@@ -135,6 +135,7 @@ button, a.btn, [data-act], [data-tab] { touch-action: manipulation; -webkit-tap-
 .push-app { font-size: 11px; color: #6E6E76; letter-spacing: 0.04em; }
 .season { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; padding: 8px 10px; background: #E2F0E6; border: 2px solid #2D6A46; border-radius: 8px; font-size: 13px; }
 .plate .charm { width: 14px; height: 14px; image-rendering: pixelated; vertical-align: -2px; margin-left: 4px; }
+.rbadge { width: 16px; height: 16px; image-rendering: pixelated; vertical-align: -3px; margin-left: 4px; }
 .badge.gold { border-color: #E8B830; box-shadow: 0 0 0 2px #FFF1C4, 0 0 0 4px #E8B830; }
 .track { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px; }
 .tier { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px; border: 2px solid #C8BCA4; border-radius: 8px; background: #FBF7EE; font-size: 11px; text-align: center; line-height: 1.2; }
@@ -522,6 +523,7 @@ function trackTier(k, n) {
   const cos = { 5: { deco: id, label: t.name + ' decoration', img: 'deco_s_' + id }, 10: { bg: id, label: t.name + ' background', img: 'sbg_' + id }, 15: { hat: id, label: t.name + ' hat', img: 'hat_s_' + id },
     20: { bskin: id, label: t.name + ' building style', img: 'build_housing_s_' + id }, 25: { charm: id, label: t.name + ' nameplate charm', img: 'charm_' + id }, 30: { title: k, label: '"' + t.title + ' ' + k.slice(0, 4) + '" title and a gold badge', img: 'charm_' + id } }[n];
   if (cos) return Object.assign({ cosmetic: true }, cos);
+  if ((n === 12 || n === 22) && roasteryOpen()) return { cosmetic: true, rcos: (n === 12 ? 'noren:s_' : 'label:s_') + id, label: t.name + (n === 12 ? ' roastery noren' : ' bag label'), img: n === 12 ? 'noren_icon' : 'bag_light' };   /* the roastery's monthly look */
   return [{ coins: 1, label: 'Coins', img: 'i_coin' }, { hearts: 1, label: 'Stamina refill', img: 'i_heart' }, { grow: 1, label: 'Growth ×2 for 10 min', img: 'i_cherry' }, { coins: 2, label: 'Big coin bag', img: 'i_coin' }][(n - 1) % 5 % 4];
 }
 const tierCoins = (r) => r.coins * Math.max(500, Math.round(rateC * 4));   /* about four minutes of your income */
@@ -534,6 +536,7 @@ function grantTier(k, n, quiet) {
   if (r.bskin) S.bskins['s_' + r.bskin] = true;
   if (r.charm) S.sitems.charm[r.charm] = true;
   if (r.title) S.sitems.title[r.title] = true;
+  if (r.rcos) S.rcos.own[r.rcos] = true;
   if (r.coins) S.coins += tierCoins(r);
   if (r.hearts) S.hearts = maxHearts();
   if (r.grow) S.boosts.grow = Math.max(S.boosts.grow || 0, S.minutesTotal) + 10 * REAL_MIN;
@@ -554,7 +557,7 @@ const NB_TOTALS = [[25, 'cupper', 'Cupper'], [75, 'head', 'Head cupper'], [162, 
 const titleText = (k) => { if (!k) return ''; const [a, b] = k.split(':');
   if (a === 'nb' && VAR[b]) return ART.varieties[b] + ' specialist'; if (a === 'nbm' && METHODS[b]) return METHODS[b].name + ' master';
   if (a === 'nbt') { const t = NB_TOTALS.find((x) => x[1] === b); return t ? t[2] : ''; }
-  if (a === 'rr') return 'Master roaster';
+  if (a === 'rr') return b === 'crack' ? 'Crack master' : 'Master roaster';
   return ART.seasons[String(+k.slice(5))] ? theme(k).title + ' ' + k.slice(0, 4) : ''; };
 /* the cupping notebook: every coffee and process pair you sell earns stars at 1, 25 and 250 lots; each star adds +0.5 cup score to that pair */
 const NB_STARS = [1, 25, 250], NB_MAX = 9 * 6 * 3;
@@ -616,10 +619,135 @@ const roastTime = (p) => ROASTS[p].time * (repLevel() >= 2 ? 0.8 : 1);
 const BLEND_NAMES = ['Casablanca Blend', 'Osaka Morning', 'Kissaten Dark', 'Sakura Light', 'Crane House Blend', 'Kyoto Evening', 'Beju Breakfast', 'Momiji Roast'];
 const beanName = (key) => { const [v, m] = key.split('.'); return ART.varieties[v] + ' ' + METHODS[m].name.toLowerCase(); };
 const bagName = (b) => (b.blend || beanName(b.key)) + (b.blend ? '' : ' · ' + ROASTS[b.profile].name.toLowerCase());
-const bagPrice = (b, k) => { const rb = RBUYERS[k], want = b.blend || b.profile === rb.wants; return Math.round(b.coins * (want ? rb.mult * (b.blend ? 1.1 : 1) : 1) * (0.7 + b.q / 200)); };
+const bagPrice = (b, k) => { const rb = RBUYERS[k], want = b.blend || b.profile === rb.wants; return Math.round(b.coins * (want ? rb.mult * (b.blend ? 1.1 : 1) : 1) * (0.7 + b.q / 200) * (1 + shopCharm())); };
 /* how many roasts' worth of green coffee the foreman keeps waiting in the roastery (0 = off); on by default, so you never race him for lots */
 const feedRoasts = () => (S.roastery.feed === true ? 2 : S.roastery.feed === undefined ? 4 : +S.roastery.feed || 0);
 const roasteryFeedWants = () => roasteryOpen() && feedRoasts() > 0 && Object.values(S.roastery.beans).reduce((a, b) => a + b.kg, 0) < roastCap() * roasterCount() * feedRoasts();
+/* ---------- roastery cosmetics: roaster finishes, interiors, noren, props, bag labels and aprons ----------
+   Earned from reputation levels, buyer gifts, perfect cracks, the season track and real orders, or bought in Shop > Roastery.
+   Each one you own adds 1% to bag prices (shop charm, up to +20%): customers pay a little more in a shop they like. */
+const RFIN = {   /* drum colours: [body, highlight, shade, hopper] */
+  classic: { name: 'Classic red' }, copper: { name: 'Copper', c: ['#B8683A', '#E0985C', '#7A3E1E', '#E0985C'] }, showa: { name: 'Showa blue', c: ['#5A8AC8', '#88B0E0', '#3A5E98', '#F2C04A'] },
+  sakura: { name: 'Sakura', c: ['#E68EAC', '#FAD2DF', '#C86C8E', '#F8F4EC'] }, beju: { name: 'Beju green', c: ['#2D6A46', '#4A8E66', '#1E4A30', '#F2C04A'] },
+  cream: { name: 'Enamel cream', c: ['#E8DCC0', '#F8F0DC', '#B8A888', '#7AA8C8'] }, gold: { name: 'Master gold', c: ['#D8A830', '#F8D870', '#A07818', '#FFF2A8'] }
+};
+const RROOM = { brick: 'Brick and tile', kissaten: 'Kissaten', modern: 'Osaka modern', showa: 'Showa retro', machiya: 'Machiya' };
+const RNOREN = { indigo: { name: 'Indigo crest', cloth: '#2C3A80', mark: '#F8F4EC', pat: 'crest' }, crane: { name: 'Crane', cloth: '#2D6A46', mark: '#F2C04A', pat: 'crane' }, gold: { name: 'Gold', cloth: '#C8A040', mark: '#3E2A1C', pat: 'crane' } };
+const RLABEL = { house: { name: 'House label' }, kraft: { name: 'Kraft paper', body: '#C8A878', hi: '#D8BC90', fold: '#A88858', stripe: '#3E2A1C' }, konbini: { name: 'Konbini stripe', body: '#F8F8F8', hi: '#FFFFFF', fold: '#D8D8D8', stripe: '#4878C8' },
+  beju: { name: 'Beju crest', body: '#2D6A46', hi: '#4A8E66', fold: '#1E4A30', stripe: '#F2C04A' }, casablanca: { name: 'Casablanca Blend', body: '#F4ECDA', hi: '#FFF8EC', fold: '#D8C8A8', stripe: '#B8402C' } };
+const RAPRON = { plain: { name: 'Charcoal' }, denim: { name: 'Denim', c: ['#6A8AB8', '#4A6A98', '#344E78'] }, beju: { name: 'Beju green', c: ['#4A8E66', '#2D6A46', '#1E4A30'] }, sakura: { name: 'Sakura', c: ['#FAD2DF', '#E68EAC', '#C86C8E'] },
+  barista: { name: 'Barista brown', c: ['#A8784A', '#86582E', '#5E3C1C'] }, black: { name: 'Kissaten black', c: ['#3A3A3A', '#2A2A2A', '#1A1A1A'] } };
+const RPROP = { plants: { name: 'Hanging plants', at: [156, 208] }, record: { name: 'Record player', at: [152, 131] }, neon: { name: 'Neon COFFEE sign', at: [120, 213] }, booth: { name: 'Velvet booth', at: [56, 152] },
+  maneki: { name: 'Maneki-neko', at: [113, 129] }, cat: { name: 'Shop cat', at: [145, 103] }, siphon: { name: 'Siphon bar', at: [132, 124] } };
+const RCOS = [   /* every item that isn't a default or a season item; src says how to earn it, and coins or cranes how to buy it */
+  { id: 'fin:copper', src: { rep: 5, coins: 250e3 } }, { id: 'fin:showa', src: { rep: 9, coins: 600e3 } }, { id: 'fin:sakura', src: { coins: 1.2e6 } }, { id: 'fin:beju', src: { rep: 14, coins: 2e6 } },
+  { id: 'fin:cream', src: { rep: 17, coins: 4e6 } }, { id: 'fin:gold', src: { rep: 20 } },
+  { id: 'room:kissaten', src: { rep: 11, coins: 5e6 } }, { id: 'room:modern', src: { coins: 8e6 } }, { id: 'room:showa', src: { coins: 12e6 } }, { id: 'room:machiya', src: { coins: 25e6 } },
+  { id: 'noren:crane', src: { rep: 19, coins: 1e6 } }, { id: 'noren:gold', src: { cranes: 20 } },
+  { id: 'prop:plants', src: { gift: ['cafe', 25], coins: 300e3 } }, { id: 'prop:record', src: { rep: 8, coins: 400e3 } }, { id: 'prop:neon', src: { rep: 16, gift: ['konbini', 25], coins: 800e3 } },
+  { id: 'prop:booth', src: { gift: ['kissa', 25], coins: 1e6 } }, { id: 'prop:maneki', src: { rep: 13, coins: 1.5e6 } }, { id: 'prop:cat', src: { rep: 18, coins: 2.5e6 } }, { id: 'prop:siphon', src: { coins: 3e6 } },
+  { id: 'label:kraft', src: { coins: 250e3 } }, { id: 'label:konbini', src: { gift: ['konbini', 100] } }, { id: 'label:beju', src: { cranes: 10 } }, { id: 'label:casablanca', src: { order: 'casablanca' } },
+  { id: 'apron:denim', src: { coins: 300e3 } }, { id: 'apron:beju', src: { coins: 1e6 } }, { id: 'apron:sakura', src: { coins: 2e6 } }, { id: 'apron:barista', src: { gift: ['cafe', 100] } }, { id: 'apron:black', src: { gift: ['kissa', 100] } },
+  { id: 'trim:gold', src: { cracks: 500 } }
+];
+const RDEF = { fin: 'classic', room: 'brick', noren: 'indigo', label: 'house', apron: 'plain' };
+const RKIND = [['fin', 'Roasters'], ['room', 'Interior'], ['noren', 'Noren'], ['prop', 'Props'], ['label', 'Bag labels'], ['apron', 'Aprons'], ['trim', 'Trophies']];
+const rItem = (id) => RCOS.find((x) => x.id === id);
+const rSplit = (id) => { const i = id.indexOf(':'); return [id.slice(0, i), id.slice(i + 1)]; };
+const rOwn = (id) => { const [k, v] = rSplit(id); return RDEF[k] === v || !!S.rcos.own[id]; };
+function rName(id) {
+  const [k, v] = rSplit(id), sea = v.startsWith('s_') ? themeById(v) : null;
+  if (k === 'fin') return RFIN[v].name + ' roaster'; if (k === 'room') return RROOM[v] + ' interior'; if (k === 'prop') return RPROP[v].name; if (k === 'trim') return 'Gold drum windows';
+  if (k === 'noren') return (sea ? sea.name : RNOREN[v].name) + ' noren'; if (k === 'label') return (sea ? sea.name : RLABEL[v].name) + ' bag label'; if (k === 'apron') return RAPRON[v].name + ' aprons';
+  return id;
+}
+const BUYER_SHORT = { cafe: 'café', kissa: 'kissaten', konbini: 'konbini' };
+function rHow(id) {   /* how a locked item is earned, for the shop card */
+  const it = rItem(id), s = it ? it.src : {}, out = [];
+  if (s.rep) out.push('Reputation ' + s.rep);
+  if (s.gift) out.push(s.gift[1] + ' bags to ' + BUYER_SHORT[s.gift[0]] + ' (' + Math.min(s.gift[1], S.rcos.sold[s.gift[0]] || 0) + ')');
+  if (s.cracks) out.push(s.cracks + ' perfect cracks (' + Math.min(s.cracks, S.rcos.cracks || 0) + ')');
+  if (s.order) out.push('Order ' + COFFEES[s.order].name);
+  if (!it) out.push(rSplit(id)[0] === 'noren' ? 'Season track tier 12' : 'Season track tier 22');
+  return out.join(' or ');
+}
+const rCount = () => Object.keys(S.rcos.own).filter((k) => S.rcos.own[k]).length;
+const shopCharm = () => Math.min(0.2, rCount() * 0.01);
+function rCheck() {   /* grants whatever reputation, buyer gifts and perfect cracks have earned; returns the new names */
+  const lv = repLevel(), got = [];
+  RCOS.forEach((it) => {
+    if (S.rcos.own[it.id]) return; const s = it.src;
+    if ((s.rep && lv >= s.rep) || (s.gift && (S.rcos.sold[s.gift[0]] || 0) >= s.gift[1]) || (s.cracks && (S.rcos.cracks || 0) >= s.cracks)) { S.rcos.own[it.id] = true; got.push(rName(it.id)); }
+  });
+  if ((S.rcos.cracks || 0) >= 100 && !S.sitems.title['rr:crack']) { S.sitems.title['rr:crack'] = true; S.sitems.charm.crack = true; got.push('The Crack master title and charm'); }
+  return got;
+}
+function rUse(id) {
+  const [k, v] = rSplit(id); if (!rOwn(id)) return;
+  if (k === 'prop' || k === 'trim') { S.rcos.hide[id] = !S.rcos.hide[id]; return; }
+  S.rcos.on[k] = v; if (k === 'fin') S.look.roaster = v === 'classic' ? '' : v;
+}
+function rBuy(id) {
+  const it = rItem(id); if (!it || rOwn(id)) return false;
+  if (it.src.coins ? spend('coins', it.src.coins) : it.src.cranes ? spend('cranes', it.src.cranes) : false) { S.rcos.own[id] = true; if (rSplit(id)[0] !== 'prop' && rSplit(id)[0] !== 'trim') rUse(id); toast(rName(id) + ' is yours. Shop charm +' + Math.round(shopCharm() * 100) + '%'); return true; }
+  return false;
+}
+/* how the cosmetics look: sprite colour swaps */
+function finSwap(v, big) {
+  const f = RFIN[v || 'classic']; if (!f || !f.c) return null;
+  return { swap: big ? { '#3A3A3A': f.c[0], '#5A5A5A': f.c[1], '#1E1E1E': f.c[2] } : { '#C8302C': f.c[0], '#E8584A': f.c[1], '#8A1E1C': f.c[2], '#E8B830': f.c[3] } };
+}
+function labelSwap(v) {
+  if (v && v.startsWith('s_')) { const t = themeById(v); return t ? { swap: { '#E8DCC0': '#F8F4EC', '#F6EEDC': '#FFFFFF', '#C8B898': t.accent, '#2D6A46': t.main } } : null; }
+  const l = RLABEL[v || 'house']; return l && l.body ? { swap: { '#E8DCC0': l.body, '#F6EEDC': l.hi, '#C8B898': l.fold, '#2D6A46': l.stripe } } : null;
+}
+function norenOf(v) { if (v && v.startsWith('s_')) { const t = themeById(v); if (t) return { cloth: t.main, mark: t.accent, pat: 'dot' }; } return RNOREN[v] || RNOREN.indigo; }
+const apronShirt = (v) => (RAPRON[v] && RAPRON[v].c) || null;
+function rPic(id, size) {   /* the picture on a shop card */
+  const [k, v] = rSplit(id), im = (src, w) => '<img src="' + src + '" alt="" style="width:' + (w || size) + 'px;image-rendering:pixelated">';
+  if (k === 'fin') return im(url('roaster_2', finSwap(v)));
+  if (k === 'room') return '<img src="' + BGS[v === 'brick' ? 'roastery' : 'roastery-' + v] + '" alt="" style="width:' + size + 'px;height:' + Math.round(size * 1.1) + 'px;object-fit:cover;object-position:50% 60%;image-rendering:pixelated;border-radius:4px">';
+  if (k === 'noren') { const n = norenOf(v); return im(url('noren_icon', { swap: { '#2C3A80': n.cloth, '#F8F4EC': n.mark } })); }
+  if (k === 'label') return im(url('bag_medium', labelSwap(v)), Math.round(size * 0.7));
+  if (k === 'apron') return im(url('worker_down_0', apronShirt(v) ? { shirt: apronShirt(v), hat: HELP_LOOK.hat } : HELP_LOOK), Math.round(size * 0.7));
+  if (k === 'prop') return im(url('rp_' + v + (v === 'maneki' || v === 'neon' || v === 'cat' ? '_0' : '')));
+  return im(url('roaster_2'));
+}
+function rBadge(look) { const v = look && look.roaster; return v && RFIN[v] && v !== 'classic' ? '<img class="rbadge" src="' + url('roaster_2', finSwap(v)) + '" alt="' + RFIN[v].name + ' roaster" title="' + RFIN[v].name + ' roaster">' : ''; }
+function roastShopPanel() {
+  const own = rCount(), pct = Math.round(shopCharm() * 100);
+  let h = '<h2>Roastery</h2><div class="season"><b>Shop charm +' + pct + '%</b><span>Customers pay 1% more for bags for every roastery cosmetic you own, up to +20%. You own ' + own + '.</span></div>';
+  h += '<p class="note">' + icon('i_coin') + ' ' + fmt(S.coins) + ' coins · ' + icon('i_crane') + ' ' + S.cranes + ' cranes. Earn them free from reputation, buyers and perfect cracks, or buy them here.</p>';
+  RKIND.forEach(([k, title]) => {
+    const ids = (RDEF[k] ? [k + ':' + RDEF[k]] : []).concat(RCOS.filter((x) => x.id.startsWith(k + ':')).map((x) => x.id), Object.keys(S.rcos.own).filter((x) => x.startsWith(k + ':s_')));
+    h += '<h3>' + title + '</h3><div class="grid2">' + ids.map((id) => {
+      const [, v] = rSplit(id), it = rItem(id), mine = rOwn(id), toggle = k === 'prop' || k === 'trim', on = toggle ? mine && !S.rcos.hide[id] : S.rcos.on[k] === v;
+      const btnH = mine ? (toggle ? btn(on ? 'Shown' : 'Hidden', 'tap to switch', 'ruse:' + id, true, on ? 'blue' : '') : btn(on ? 'In use' : 'Use', '', 'ruse:' + id, !on, 'blue'))
+        : it && it.src.coins ? btn('Buy', fmt(it.src.coins) + ' coins', 'rbuy:' + id, S.coins >= it.src.coins) : it && it.src.cranes ? btn('Buy', it.src.cranes + ' cranes', 'rbuy:' + id, S.cranes >= it.src.cranes) : '';
+      return '<div class="tile" aria-pressed="' + on + '"><div style="display:flex;justify-content:center;min-height:44px;align-items:center">' + rPic(id, 44) + '</div><b>' + rName(id) + '</b><span>' + (mine ? (RDEF[k] === v ? 'The original' : 'Yours') : rHow(id)) + '</span>' + btnH + '</div>';
+    }).join('') + '</div>';
+  });
+  h += '<p class="note">Buyer gifts so far: ' + Object.keys(RBUYERS).map((b) => BUYER_SHORT[b] + ' ' + fmt(S.rcos.sold[b] || 0) + ' bags').join(' · ') + '. Perfect cracks: ' + fmt(S.rcos.cracks || 0) + '.</p>';
+  return h;
+}
+function drawNoren() {   /* the cloth over the door, in three panels */
+  const n = norenOf(S.rcos.on.noren);
+  for (let k = 0; k < 3; k++) { fx.fillStyle = n.cloth; fx.fillRect(84 + k * 8, 206, 7, 11); fx.fillStyle = 'rgba(0,0,0,0.18)'; fx.fillRect(84 + k * 8, 215, 7, 2); }
+  fx.fillStyle = n.mark;
+  const px = (pts) => pts.forEach(([a, b]) => fx.fillRect(a, b, 1, 1));
+  if (n.pat === 'crest') px([[95, 209], [96, 209], [94, 210], [97, 210], [95, 211], [96, 211], [95, 212]]);
+  else if (n.pat === 'crane') px([[92, 210], [93, 209], [94, 210], [95, 210], [96, 210], [97, 209], [98, 208], [99, 210], [95, 211], [96, 211], [95, 212]]);
+  else { fx.fillRect(94, 209, 4, 4); fx.fillRect(93, 210, 6, 2); }
+}
+function drawProps(time) {
+  Object.keys(RPROP).forEach((v) => {
+    const id = 'prop:' + v; if (!S.rcos.own[id] || S.rcos.hide[id]) return;
+    const [x, y] = RPROP[v].at, f = v === 'maneki' ? Math.floor(time * 1.6) % 2 : v === 'neon' ? (Math.floor(time * 9) % 31 === 0 ? 1 : 0) : v === 'cat' ? Math.floor(time * 0.7) % 2 : -1;
+    fx.drawImage(sprite('rp_' + v + (f > -1 ? '_' + f : '')), x, y);
+    if (v === 'record' && S.music) { const t = (time * 0.6) % 1; fx.globalAlpha = 1 - t; fx.fillStyle = '#3E2A1C'; const nx = Math.round(x + 4 + Math.sin(time * 2) * 2), ny = Math.round(y - 2 - t * 10); fx.fillRect(nx, ny, 1, 3); fx.fillRect(nx - 1, ny + 2, 1, 1); fx.fillRect(nx + 1, ny, 1, 1); fx.globalAlpha = 1; }
+    if (v === 'neon' && !f) { fx.fillStyle = 'rgba(255,138,180,0.10)'; fx.fillRect(x - 3, y - 2, 32, 13); }
+  });
+}
 function toRoastery(i, quiet) {   /* a dry lot goes to the roastery's green store instead of the roastery buyer */
   const l = S.lots[i]; if (!l || l.left > 0 || !roasteryOpen()) return;
   const green = l.kg * 0.2, r = saleFor(l.v, l.method, green, l), key = l.v + '.' + l.method, R = S.roastery;
@@ -651,16 +779,18 @@ function roasteryTick() {
     R.roasters.splice(i, 1); star('roast'); SFX.play('drop');
     toast(ROASTS[r.profile].name + ' roast done: ' + beanName(r.key) + ', quality ' + q + (r.crack === 1 ? ' (perfect crack)' : ''));
   }
-  const lv = repLevel(); if ((R.lvSeen || 1) < lv) {
-    const got = Object.keys(REP_PERKS).filter((k) => +k > (R.lvSeen || 1) && +k <= lv).map((k) => REP_PERKS[k]);
+  const lv = repLevel(), newCos = rCheck();
+  if ((R.lvSeen || 1) < lv) {
+    const got = Object.keys(REP_PERKS).filter((k) => +k > (R.lvSeen || 1) && +k <= lv).map((k) => REP_PERKS[k]).concat(newCos.map((n) => n + ' (Shop › Roastery)'));
     R.lvSeen = lv; if (lv >= 20) S.sitems.title['rr:master'] = true;
     SFX.play('achieve'); showModal('<h2>Roastery reputation ' + lv + '</h2>' + img('roaster_0', 52) + '<p class="note">' + (got.length ? got.map((g) => '<b>' + g + '</b>').join('<br>') : 'Buyers across Japan are talking about your roasts.') + '</p><button class="btn green" data-act="close">Lovely</button>');
-  }
+  } else if (newCos.length) { SFX.play('achieve'); toast('New for your roastery: ' + newCos.join(', ') + '. See Shop › Roastery'); }
 }
 function roasteryPanel() {
-  const R = S.roastery, lv = repLevel(), nextP = Object.keys(REP_PERKS).find((k) => +k > lv);
+  const R = S.roastery, lv = repLevel(), nextP = Array.from({ length: 20 - lv }, (_, i) => lv + 1 + i).find((l) => REP_PERKS[l] || RCOS.some((x) => x.src.rep === l));
+  const nextTxt = nextP ? [REP_PERKS[nextP]].concat(RCOS.filter((x) => x.src.rep === nextP).map((x) => rName(x.id))).filter(Boolean).join(', ') : '';
   let h = '<h2>Roastery</h2><p class="note">Send dry lots here from the Mill, roast them, then sell the bags to Japanese buyers. Each coffee has a best roast (★). Tap Crack at first crack for +15 quality.</p>';
-  h += '<div class="season"><b>Reputation ' + lv + (lv < 20 ? ' · ' + fmt(R.rep) + ' / ' + fmt(REP_AT(lv + 1)) : ' · Master roaster') + '</b><span>' + (nextP ? 'At ' + nextP + ': ' + REP_PERKS[nextP] : 'Every roastery upgrade unlocked.') + '</span></div>';
+  h += '<div class="season"><b>Reputation ' + lv + (lv < 20 ? ' · ' + fmt(R.rep) + ' / ' + fmt(REP_AT(lv + 1)) : ' · Master roaster') + '</b><span>' + (nextP ? 'At ' + nextP + ': ' + nextTxt : 'Every roastery upgrade unlocked.') + '</span></div><p class="note">Shop charm +' + Math.round(shopCharm() * 100) + '% on every bag, from ' + rCount() + ' roastery cosmetics. More in Shop › Roastery.</p>';
   h += '<h3>Roasters ' + R.roasters.length + ' / ' + roasterCount() + ' · up to ' + roastCap() + ' kg a roast</h3><div class="roasters">';
   for (let i = 0; i < roasterCount(); i++) {
     const r = R.roasters[i];
@@ -678,7 +808,7 @@ function roasteryPanel() {
   h += '<p class="note">Buyers: specialty cafés want light (×1.5), kissaten want dark (×1.45), konbini blends want medium (×1.25); a bag a buyer doesn\'t want sells at the base price. Price and reputation grow with quality. Each finished roast gives a season star (up to 3 a day).</p>';
   return h;
 }
-const charmName = (k) => (k === 'qgrader' ? 'Q grader' : themeById(k) ? themeById(k).name : '');
+const charmName = (k) => (k === 'qgrader' ? 'Q grader' : k === 'crack' ? 'Crack master' : themeById(k) ? themeById(k).name : '');
 const FARM_LEVEL = { huila: 3, gedeo: 5, toba: 7, turrialba: 9 };   /* dormant farms reopen at these levels after a prestige */
 const TIERS = ['Seedling', 'Bronze Bean', 'Silver Leaf', 'Gold Cherry', 'Jade Highland', 'Sakura', 'Obsidian Ember', 'Golden Crane'];
 const PLATES = ['seed', 'bronze', 'silver', 'gold', 'jade', 'sakura', 'ember', 'crane'];
@@ -704,7 +834,7 @@ const themeById = (id) => ART.seasons[Object.keys(ART.seasons).find((m) => ART.s
 const bgOpen = (id) => id === 'none' || (id.startsWith('s_') ? !!S.sitems.bg[sid(id)] : (id === 'beju' ? ORIGINS.every((l) => S.stamps[l]) : id === 'osaka' ? S.farms.osaka.unlocked : !!S.stamps[id]));
 const bgName = (id) => id.startsWith('s_') ? themeById(id).name : id === 'none' ? 'Plain' : id === 'beju' ? 'Beju gold' : ART.locations[id].name.split(',')[0];
 const bgHow = (id) => id.startsWith('s_') ? 'Season track' : id === 'beju' ? 'All 5 stamps' : id === 'osaka' ? 'Open Osaka' : bgName(id) + ' stamp';
-const normLook = (l) => { l = l || {}; const n = (x) => Math.max(0, Math.min(7, Math.floor(Number(x) || 0))); return { crest: n(l.crest !== undefined ? l.crest : l.plate), skin: n(l.skin), bg: BG_LIST.indexOf(l.bg) > -1 ? l.bg : 'none', char: ART.chars[l.char] ? l.char : 'none', hat: themeById(l.hat) ? 's_' + sid(l.hat) : '', charm: l.charm === 'qgrader' ? 'qgrader' : themeById(l.charm) ? sid(l.charm) : '', title: /^(\d{4}-\d{2}|nbm?:[a-z]+|nbt:[a-z]+|rr:master)$/.test(l.title || '') ? l.title : '' }; };
+const normLook = (l) => { l = l || {}; const n = (x) => Math.max(0, Math.min(7, Math.floor(Number(x) || 0))); return { crest: n(l.crest !== undefined ? l.crest : l.plate), skin: n(l.skin), bg: BG_LIST.indexOf(l.bg) > -1 ? l.bg : 'none', char: ART.chars[l.char] ? l.char : 'none', hat: themeById(l.hat) ? 's_' + sid(l.hat) : '', charm: l.charm === 'qgrader' || l.charm === 'crack' ? l.charm : themeById(l.charm) ? sid(l.charm) : '', title: /^(\d{4}-\d{2}|nbm?:[a-z]+|nbt:[a-z]+|rr:master|rr:crack)$/.test(l.title || '') ? l.title : '', roaster: RFIN[l.roaster] && l.roaster !== 'classic' ? l.roaster : '' }; };
 /* character models replace the farmer's body; the outfit colours still go on top */
 const bodyOf = (look) => (look && ART.chars[look.char] ? 'chr_' + look.char + '_' : 'worker_');
 const CHAR_IDS = Object.keys(ART.chars).sort((a, b) => ART.chars[a].cost - ART.chars[b].cost);
@@ -859,6 +989,7 @@ function sprite(name, opt) {
   if (opt && opt.shirt) { pal.c = opt.shirt[0]; pal.C = opt.shirt[1]; pal.D = opt.shirt[2]; }
   if (opt && opt.hat) { pal.h = opt.hat[0]; pal.H = opt.hat[1]; pal.k = opt.hat[2]; }
   if (opt && opt.pants) { pal.p = opt.pants[0]; pal.P = opt.pants[1]; }
+  if (opt && opt.swap) Object.keys(pal).forEach((k) => { const c = opt.swap[pal[k].slice(0, 7).toUpperCase()]; if (c) pal[k] = c + pal[k].slice(7); });   /* recolours: roaster finishes, bag labels, noren */
   const c = document.createElement('canvas'); c.width = s.w; c.height = s.h;
   const x = c.getContext('2d'), img = x.createImageData(s.w, s.h);
   s.rows.forEach((r, y) => {
@@ -923,7 +1054,7 @@ function fresh() {
     methods: { washed: true, natural: true }, vars: { caturra: true }, staff: { foreman: false, agent: false, rule: 'best' }, decor: {}, contracts: [], nextContract: 0, hat: 'straw', hats: { straw: true }, stamps: {},
     cherries: {}, lots: [], boosts: {}, minutes: 7 * 60 + 30, minutesTotal: 0, day: 1, taps: 0, year: 1, bonus: 0,
     tasks: null, weekly: { mine: 0, team: 1800, target: 4000, start: 1, claimed: false }, samples: [], stats: { picked: 0, sold: 0, lotsSold: 0 },
-    farms: {}, intro: 0, seasonPick: 'auto', speed: 1, sfx: true, music: true, musicVol: 0.45, guide: 0, guideN: 0, guideV: GUIDE_V, tabs: { upgrades: false, unlock: false, orders: false, ranks: false, shop: false }, newTab: null, checkin: { last: '', streak: 0, freezes: 1 }, season: newSeason(), sitems: { bg: {}, charm: {}, title: {} }, roastery: { rep: 0, beans: {}, roasters: [], bags: [] }, badges: [], event: null, prestige: 0, name: 'You', look: { crest: 0, skin: 0, bg: 'none', char: 'none', hat: '', charm: '', title: '' }, skins: { 0: true }, chars: {}, bskins: {}, skinPicks: 0, dormant: {}, last: Date.now()
+    farms: {}, intro: 0, seasonPick: 'auto', speed: 1, sfx: true, music: true, musicVol: 0.45, guide: 0, guideN: 0, guideV: GUIDE_V, tabs: { upgrades: false, unlock: false, orders: false, ranks: false, shop: false }, newTab: null, checkin: { last: '', streak: 0, freezes: 1 }, season: newSeason(), sitems: { bg: {}, charm: {}, title: {} }, roastery: { rep: 0, beans: {}, roasters: [], bags: [] }, rcos: { own: {}, on: { fin: 'classic', room: 'brick', noren: 'indigo', label: 'house', apron: 'plain' }, hide: {}, sold: {}, cracks: 0 }, badges: [], event: null, prestige: 0, name: 'You', look: { crest: 0, skin: 0, bg: 'none', char: 'none', hat: '', charm: '', title: '' }, skins: { 0: true }, chars: {}, bskins: {}, skinPicks: 0, dormant: {}, last: Date.now()
   };
   LOCS.forEach((l) => { st.farms[l] = newFarm(l); });
   return st;
@@ -955,6 +1086,7 @@ let S = load() || fresh();
   if (S.tabs && S.tabs.upgrades && S.tabs.unlock === undefined) S.tabs.unlock = true;   /* the Unlock tab arrived after this save */
   if (S.upTab === 'vars' || S.upTab === 'farms') S.upTab = 'farm'; if (S.shopTab === 'decor') S.shopTab = 'bskin';   /* when this farm started, for the practice board */
   LOCS.forEach((l) => { const f = S.farms[l]; if (!f.build) f.build = {}; if (f.manager === undefined) f.manager = null; });
+  S.rcos = Object.assign({ own: {}, hide: {}, sold: {}, cracks: 0 }, S.rcos || {}); S.rcos.on = Object.assign({ fin: 'classic', room: 'brick', noren: 'indigo', label: 'house', apron: 'plain' }, S.rcos.on);   /* roastery cosmetics arrived after this save */
 })();
 LOCS.forEach((l) => { const f = S.farms[l]; if (!f.shrubs.length) plant(f); f.workers.forEach((w) => { w.state = 'seek'; w.path = []; w.target = null; }); });
 if (!S.farms[START].workers.length) { addWorker(S.farms[START]); addWorker(S.farms[START]); }
@@ -1359,6 +1491,7 @@ function tickRoast(d) {
   if (!R.till) R.till = walker(150, 136, TILL_LOOK);
   if (!R.help) R.help = walker(44, 176, HELP_LOOK);
   if (!R.me) R.me = Object.assign(walker(110, 120), { me: true });
+  const ap = apronShirt(S.rcos.on.apron); R.help.look = ap ? { shirt: ap, hat: HELP_LOOK.hat } : HELP_LOOK; R.till.look = ap ? { shirt: ap, hat: TILL_LOOK.hat } : TILL_LOOK;   /* the staff wear your aprons */
   const busy = RS.roasters.map((r, i) => i).sort((a, b) => inCrack(RS.roasters[b]) - inCrack(RS.roasters[a]));
   const m = R.me;
   if (busy.length) {   /* you stand at the roaster that needs you, and listen for the crack */
@@ -1430,15 +1563,17 @@ function drawMill(time) {
 }
 function drawRoast(time) {
   const R = IN.roast, RS = S.roastery, big = roastCap() >= 160, things = [];
-  RS.bags.slice(0, SHELF_SHOWN).forEach((b, k) => { const x = 106 + (k % 4) * 12, y = SHELF_Y[Math.floor(k / 4)]; fx.drawImage(sprite('bag_' + (b.blend ? 'medium' : b.profile)), x, y); if (b.blend) { fx.fillStyle = '#F2C04A'; fx.fillRect(x + 2, y + 9, 10, 1); } });   /* the shelf's left end, clear of the HUD */
+  RS.bags.slice(0, SHELF_SHOWN).forEach((b, k) => { const x = 106 + (k % 4) * 12, y = SHELF_Y[Math.floor(k / 4)]; fx.drawImage(sprite('bag_' + (b.blend ? 'medium' : b.profile), labelSwap(S.rcos.on.label)), x, y); if (b.blend) { fx.fillStyle = '#F2C04A'; fx.fillRect(x + 2, y + 9, 10, 1); } });   /* the shelf's left end, clear of the HUD */
   const kg = Object.values(RS.beans).reduce((a, b) => a + b.kg, 0), sacks = kg > 0 ? Math.min(12, Math.max(1, Math.ceil(kg / 15))) : 0;
   for (let k = 0; k < sacks; k++) { const row = Math.floor(k / 3); fx.drawImage(sprite('gsack'), 4 + (k % 3) * 12 + (row % 2) * 6, 182 - row * 7); }
   if (repLevel() >= 6) fx.drawImage(sprite('cup_lab'), 124, 84);
+  drawNoren(); drawProps(time);
   for (let i = 0; i < BAYS.length; i++) {
     if (i >= roasterCount()) continue;
     const r = RS.roasters[i], x = BAYS[i];
     things.push({ y: BAY_Y + 24, draw: () => {
-      fx.drawImage(sprite((big ? 'roasterB_' : 'roaster_') + (r ? Math.floor(time * 3.3) % 2 : 2)), x, BAY_Y);
+      fx.drawImage(sprite((big ? 'roasterB_' : 'roaster_') + (r ? Math.floor(time * 3.3) % 2 : 2), finSwap(S.rcos.on.fin, big)), x, BAY_Y);
+      if (S.rcos.own['trim:gold'] && !S.rcos.hide['trim:gold']) { fx.fillStyle = '#F2C04A'; fx.fillRect(x + 8, BAY_Y + 10, 10, 1); fx.fillRect(x + 8, BAY_Y + 17, 10, 1); fx.fillRect(x + 8, BAY_Y + 10, 1, 8); fx.fillRect(x + 17, BAY_Y + 10, 1, 8); }
       if (repLevel() >= 2) {
         fx.drawImage(sprite('cool_tray'), x + 1, BAY_Y + 30);
         const cool = R.cool[i], hot = r && roastP(r) > 0.9 ? ROASTS[r.profile].col : cool && cool.until > Date.now() ? cool.col : null;
@@ -1461,7 +1596,7 @@ function drawRoast(time) {
   things.forEach((t) => {
     if (t.draw) return t.draw();
     const { X, Y } = drawGuy(t.o);
-    if (t.o.carry) fx.drawImage(sprite('bag_medium'), t.o.flip ? X - 2 : X + 8, Y + 8);
+    if (t.o.carry) fx.drawImage(sprite('bag_medium', labelSwap(S.rcos.on.label)), t.o.flip ? X - 2 : X + 8, Y + 8);
   });
   R.puffs.forEach((p) => {
     if (p.pop) { fx.fillStyle = p.t < 0.2 ? '#F2C04A' : '#7A4A28'; fx.fillRect(Math.round(p.x), Math.round(p.y), 1, 1); return; }
@@ -1470,7 +1605,7 @@ function drawRoast(time) {
   fx.globalAlpha = 1;
 }
 function drawInside(sc, time) {
-  const b = sceneBg(sc === 'roast' ? 'roastery' : 'mill');
+  const room = S.rcos.on.room, b = sceneBg(sc === 'roast' ? (room && room !== 'brick' ? 'roastery-' + room : 'roastery') : 'mill');
   fx.imageSmoothingEnabled = false;
   if (b.complete && b.naturalWidth) fx.drawImage(b, 0, 0); else { fx.fillStyle = '#C89A64'; fx.fillRect(0, 0, W, H); }
   if (sc === 'mill') drawMill(time); else drawRoast(time);
@@ -1665,7 +1800,7 @@ function cupAll() {
 }
 function crackRoast(i) {
   const r = S.roastery.roasters[i]; if (!r || r.crack) return;
-  r.crack = inCrack(r) ? 1 : 2; SFX.play(r.crack === 1 ? 'achieve' : 'nope');
+  r.crack = inCrack(r) ? 1 : 2; SFX.play(r.crack === 1 ? 'achieve' : 'nope'); if (r.crack === 1) S.rcos.cracks = (S.rcos.cracks || 0) + 1;
   toast(r.crack === 1 ? 'Perfect crack! +15 quality' : roastP(r) < 0.7 ? 'Too early: listen for the crack at about 70%' : 'Too late: the crack has passed');
   if (scene() === 'roast' && i < BAYS.length) floats.push({ x: BAYS[i] + 13, y: BAY_Y - 2, text: r.crack === 1 ? 'perfect!' : roastP(r) < 0.7 ? 'too early' : 'too late', t: 0 });
 }
@@ -1765,6 +1900,7 @@ function applyCoffee(id) {   /* stamps and processes from one coffee; returns wh
   const out = [], next = c.stamps.find((x) => !S.stamps[x]) || null;
   if (next) { S.stamps[next] = true; S.cranes += 20; stampBg(next); out.push('a ' + ART.locations[next].name.split(',')[0] + ' stamp (+20 cranes)'); }
   if (c.method && !S.methods[c.method]) { S.methods[c.method] = true; out.push(METHODS[c.method].name.toLowerCase() + ' processing'); }
+  if (id === 'casablanca' && !S.rcos.own['label:casablanca']) { S.rcos.own['label:casablanca'] = true; out.push('the Casablanca Blend bag label for your roastery'); }
   return out;
 }
 function applyGrant(g) {   /* a real order, counted by the server */
@@ -1984,7 +2120,8 @@ function showModal(html, replace) {   /* a second window waits its turn instead 
 }
 function shopTabs() {
   const st = S.shopTab || 'cranes', dot = Object.keys(DECOR).some((k) => S.decor[k] === undefined && S.coins >= DECOR[k].cost);
-  return '<div class="seg subtabs">' + [['cranes', 'Boosts'], ['chars', 'Farmer'], ['bskin', 'Farm style'], ['beju', 'Real coffee']].map(([k, t]) => '<button type="button" data-act="shoptab:' + k + '" aria-pressed="' + (st === k) + '">' + t + (k === 'bskin' && dot ? ' <i class="dot" aria-label="something to buy"></i>' : '') + '</button>').join('') + '</div>';
+  const rdot = roasteryOpen() && RCOS.some((x) => !S.rcos.own[x.id] && x.src.coins && S.coins >= x.src.coins);
+  return '<div class="seg subtabs">' + [['cranes', 'Boosts'], ['chars', 'Farmer'], ['bskin', 'Farm style']].concat(roasteryOpen() ? [['roast', 'Roastery']] : [], [['beju', 'Real coffee']]).map(([k, t]) => '<button type="button" data-act="shoptab:' + k + '" aria-pressed="' + (st === k) + '">' + t + ((k === 'bskin' && dot) || (k === 'roast' && rdot) ? ' <i class="dot" aria-label="something to buy"></i>' : '') + '</button>').join('') + '</div>';
 }
 function avatar(look, size) { look = normLook(look); return '<span class="fr b-' + PLATES[look.crest] + (look.bg === 'beju' ? ' bg-beju' : '') + '" style="width:' + size + 'px;height:' + size + 'px">' + (bgThumb(look.bg) ? '<img class="fbg" src="' + bgThumb(look.bg) + '" alt="">' : '') + '<img src="' + url(bodyOf(look) + 'down_0', Object.assign(skinLook(look.skin), look.hat ? { hat: ART.hats[look.hat] } : {})) + '" alt="" style="height:' + Math.round(size * 0.78) + 'px"></span>'; }
 const bgThumb = (id) => (id.startsWith('s_') ? url('sbg_' + sid(id)) : BG_THUMB[id]);
@@ -2196,7 +2333,7 @@ function renderPanel() {
     h += btn(wk.claimed ? 'Claimed' : 'Claim ' + WEEKLY_CRANES + ' cranes', '', 'weekly', tot >= wk.target && !wk.claimed && wk.mine > 0, 'green');
   } else if (tab === 'ranks') {
     const mode = S.rankTab || 'season', list = board(mode), pos = list.findIndex((x) => x.you) + 1, t = tierOf(S.prestige), need = prestigeNeed(), ready = level() >= need;
-    h += '<div class="me">' + avatar(S.look, 64) + '<div class="me-t">' + plate(S.name, S.look.crest, starsFor(S.prestige), S.look.charm) + '<span class="note">Prestige ' + S.prestige + ' · ' + TIERS[t] + (S.look.title ? ' · ' + titleText(S.look.title) : '') + '</span><span class="note">Level ' + level() + ' · ' + fmt(Math.round(S.xp)) + ' know-how · rank #' + pos + ' of ' + list.length + '</span></div></div>';
+    h += '<div class="me">' + avatar(S.look, 64) + '<div class="me-t">' + plate(S.name, S.look.crest, starsFor(S.prestige), S.look.charm) + rBadge(S.look) + '<span class="note">Prestige ' + S.prestige + ' · ' + TIERS[t] + (S.look.title ? ' · ' + titleText(S.look.title) : '') + '</span><span class="note">Level ' + level() + ' · ' + fmt(Math.round(S.xp)) + ' know-how · rank #' + pos + ' of ' + list.length + '</span></div></div>';
     const rsub = S.rankSub || 'season', rdot = ready || S.skinPicks > 0, ss = S.season, reached = tierAt(ss.stars), sdot = Array.from({ length: reached }, (_, i) => i + 1).some((n) => !ss.claimed[n]);
     h += '<div class="seg subtabs">' + [['season', 'Season'], ['board', 'Leaderboard'], ['rewards', 'Prestige & looks']].map(([k, tl]) => '<button type="button" data-act="ranksub:' + k + '" aria-pressed="' + (rsub === k) + '">' + tl + ((k === 'rewards' && rdot) || (k === 'season' && sdot) ? ' <i class="dot" aria-label="something waiting"></i>' : '') + '</button>').join('') + '</div>';
     const strip = '<div class="season"><b>' + seasonName(ss.key) + ' season</b><span>' + daysLeft() + ' day' + (daysLeft() === 1 ? '' : 's') + ' left · ★ ' + ss.stars + ' season star' + (ss.stars === 1 ? '' : 's') + ' · track tier ' + reached + ' of ' + TRACK_TIERS + '</span></div>';
@@ -2222,7 +2359,7 @@ function renderPanel() {
     if (S.badges.length) h += '<div class="badges">' + S.badges.slice(-6).map((bd) => '<span class="badge r' + Math.min(bd.rank, 11) + (bd.gold ? ' gold' : '') + '">' + (bd.label || 'Event') + '<small>' + (bd.key ? seasonName(bd.key) : bd.event) + '</small></span>').join('') + '</div>';
     h += '<h3>Leaderboard</h3><div class="seg">' + [['season', 'This season'], ['all', 'All time']].map(([k, tl]) => '<button type="button" data-act="ranktab:' + k + '" aria-pressed="' + (mode === k) + '">' + tl + '</button>').join('') + '</div><div class="lb">' + list.slice(0, 15).concat(pos > 15 ? [list[pos - 1]] : []).map((x) => {
       const r = list.indexOf(x) + 1;
-      return '<div class="lb-row' + (x.you ? ' you' : '') + '"><b class="rk">' + r + '</b>' + avatar(x.look, 40) + '<div class="lb-n">' + plate(x.name, normLook(x.look).crest, starsFor(x.prestige), normLook(x.look).charm) + '<span class="note">' + (normLook(x.look).title ? titleText(normLook(x.look).title) : TIERS[tierOf(x.prestige)]) + '</span></div><div class="lb-s"><b>' + (mode === 'all' ? 'P' + x.prestige : '★ ' + (x.seasonStars || 0)) + '</b><span>' + (mode === 'all' ? 'Lv ' + x.level : fmt(x.seasonKh || 0) + ' kh this season') + '</span><span>' + (mode === 'all' ? fmt(x.points) + ' kh' : 'P' + x.prestige + (x.seasonP ? ' (+' + x.seasonP + ' this season)' : '')) + '</span></div></div>';
+      return '<div class="lb-row' + (x.you ? ' you' : '') + '"><b class="rk">' + r + '</b>' + avatar(x.look, 40) + '<div class="lb-n">' + plate(x.name, normLook(x.look).crest, starsFor(x.prestige), normLook(x.look).charm) + rBadge(normLook(x.look)) + '<span class="note">' + (normLook(x.look).title ? titleText(normLook(x.look).title) : TIERS[tierOf(x.prestige)]) + '</span></div><div class="lb-s"><b>' + (mode === 'all' ? 'P' + x.prestige : '★ ' + (x.seasonStars || 0)) + '</b><span>' + (mode === 'all' ? 'Lv ' + x.level : fmt(x.seasonKh || 0) + ' kh this season') + '</span><span>' + (mode === 'all' ? fmt(x.points) + ' kh' : 'P' + x.prestige + (x.seasonP ? ' (+' + x.seasonP + ' this season)' : '')) + '</span></div></div>';
     }).join('') + '</div>';
     h += '<p class="note">' + (NET.status === 'online' && NET.board[mode] ? 'Live leaderboard · ' + NET.board[mode].players + ' farmer' + (NET.board[mode].players === 1 ? '' : 's') : 'Practice board: the live leaderboard appears when the game is played on bejucoffee.com.') + '</p>';
     h += '<h3>Your name</h3><div class="seg"><input id="nameIn" maxlength="16" value="' + S.name.replace(/"/g, '') + '" aria-label="Your name on the leaderboard"><button type="button" data-act="rename">Save</button></div>';
@@ -2282,6 +2419,8 @@ function renderPanel() {
       const pic = kind === 'hat' ? url('worker_down_0', { hat: ART.hats['s_' + id] }) : url({ deco: 'deco_s_', bg: 'sbg_', bskin: 'build_housing_s_', charm: 'charm_' }[kind] + id), own = archOwned(kind, id);
       return '<div class="tile"><img src="' + pic + '" alt="" style="width:40px;height:40px;object-fit:contain;image-rendering:pixelated"><b>' + ARCHIVE_WHAT[kind] + '</b>' + (own ? '<span>Owned</span>' : btn('Buy', ARCHIVE[kind] + ' cranes', 'arch:' + kind + '.' + id, S.cranes >= ARCHIVE[kind])) + '</div>';
     }).join('') + '</div>'; });
+  } else if (tab === 'shop' && S.shopTab === 'roast' && roasteryOpen()) {
+    h += shopTabs() + roastShopPanel();
   } else if (tab === 'shop' && S.shopTab === 'bskin') {
     h += shopTabs();
     const f = S.farms[S.loc], here = ART.locations[S.loc].name.split(',')[0], cur = ART.bskins[f.skin] ? f.skin : 'classic';
@@ -2368,7 +2507,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'roastfeed') S.roastery.feed = +v || 0;
   else if (a === 'roast') { const [k, p] = v.split('|'); startRoast(k, p); }
   else if (a === 'crack') crackRoast(+v);
-  else if (a === 'sellbag') { const [i, k] = v.split('.'), R = S.roastery, b = R.bags[+i]; if (b && RBUYERS[k]) { const c = bagPrice(b, k), pts = Math.round(b.pts), rep = Math.round(b.q / 10 * (b.blend ? 2 : b.profile === RBUYERS[k].wants ? 1.5 : 1)); R.bags.splice(+i, 1); earn({ coins: c, points: pts }); R.rep = (R.rep || 0) + rep; SFX.play('coins'); roastGuest(k, true); toast('Sold to a ' + RBUYERS[k].name.toLowerCase() + ': +' + fmt(c) + ' coins, +' + fmt(pts) + ' know-how, +' + fmt(rep) + ' reputation'); } }
+  else if (a === 'sellbag') { const [i, k] = v.split('.'), R = S.roastery, b = R.bags[+i]; if (b && RBUYERS[k]) { const c = bagPrice(b, k), pts = Math.round(b.pts), rep = Math.round(b.q / 10 * (b.blend ? 2 : b.profile === RBUYERS[k].wants ? 1.5 : 1)); R.bags.splice(+i, 1); earn({ coins: c, points: pts }); R.rep = (R.rep || 0) + rep; S.rcos.sold[k] = (S.rcos.sold[k] || 0) + 1; SFX.play('coins'); roastGuest(k, true); toast('Sold to a ' + RBUYERS[k].name.toLowerCase() + ': +' + fmt(c) + ' coins, +' + fmt(pts) + ' know-how, +' + fmt(rep) + ' reputation'); } }
   else if (a === 'blendask') { const R = S.roastery, b = R.bags[+v]; if (b) showModal('<h2>Blend ' + bagName(b) + '</h2><p class="note">Blend it with another bag to make <b>' + BLEND_NAMES[R.blendName || 0] + '</b>. A house blend gets +5 quality and every buyer wants it.</p>' + R.bags.map((x, j) => (j === +v || x.blend ? '' : row(img('bag_' + x.profile, 26), bagName(x) + ' · ' + fmtKg(x.kg) + ' kg', 'Quality ' + x.q, btn('Blend', '', 'blendwith:' + v + '.' + j, true, 'green')))).join('') + '<button class="btn" data-act="close">Cancel</button>'); }
   else if (a === 'blendwith') { const [i, j] = v.split('.').map(Number), R = S.roastery, x = R.bags[i], y = R.bags[j]; if (x && y && i !== j && repLevel() >= 10) { const kg = x.kg + y.kg, nb = { key: x.key, profile: 'blend', blend: BLEND_NAMES[R.blendName || 0], kg, coins: x.coins + y.coins, pts: x.pts + y.pts, q: Math.min(100, Math.round((x.q * x.kg + y.q * y.kg) / kg + 5)) }; R.bags = R.bags.filter((_, k) => k !== i && k !== j); R.bags.push(nb); closeModal(); SFX.play('pour'); toast(nb.blend + ' blended: ' + fmtKg(kg) + ' kg, quality ' + nb.q); } }
   else if (a === 'reqskip') { S.request = null; S.reqNext = Date.now() + 3600000; toast('Maybe next time. A new request comes within the hour.'); }
@@ -2397,6 +2536,8 @@ document.addEventListener('click', (e) => {
   else if (a === 'arch') { const [kind, id] = v.split('.'); if (archiveKeys().some((k) => theme(k).id === id) && !archOwned(kind, id) && spend('cranes', ARCHIVE[kind])) { archGive(kind, id); toast(themeById(id).name + ' ' + ARCHIVE_WHAT[kind] + ' is yours'); } }
   else if (a === 'prestigetab') { S.rankSub = 'rewards'; setTab('ranks'); }
   else if (a === 'shoptab') S.shopTab = v;
+  else if (a === 'rbuy') rBuy(v + (b.dataset.act.split(':')[2] !== undefined ? ':' + b.dataset.act.split(':')[2] : ''));
+  else if (a === 'ruse') rUse(v + (b.dataset.act.split(':')[2] !== undefined ? ':' + b.dataset.act.split(':')[2] : ''));
   else if (a === 'build') { const n = f.build[v] || 0; if (n < buildMax() && spend('coins', buildCost(S.loc, v))) { f.build[v] = n + 1; toast(ART.buildings[v].name + (n ? ' upgraded to level ' + (n + 1) : ' built')); } }
   else if (a === 'master') { if (f.manager && spend('coins', masterCost(S.loc))) { f.mastery = (f.mastery || 0) + 1; toast(ART.locations[S.loc].name.split(',')[0] + ' mastery level ' + f.mastery); } }
   else if (a === 'research') { if (spend('points', researchCost())) { S.research = (S.research || 0) + 1; toast('Cupping research level ' + S.research); } }

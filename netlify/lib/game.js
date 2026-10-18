@@ -96,14 +96,16 @@ function cleanName(s) {
 /* A look is a crest (nameplate and border, capped at the tier the player's prestige has reached), an outfit (any of the 8 once they have prestiged, since each prestige picks one) and a background. Old clients sent plate/border. */
 const BGS = ["none", "mogiana", "huila", "gedeo", "toba", "turrialba", "osaka", "beju"];
 const CHARS = ["none", "shiba", "capybara", "bear", "gelada", "orangutan", "sloth", "tanuki", "kitsune", "robot", "crane"];   /* character models, bought with cranes */
+const ROASTER_FINISHES = ["copper", "showa", "sakura", "beju", "cream", "gold"];   /* roastery cosmetics that show on the board */
 const cleanLook = (l, prestige) => {
   const n = (x, max) => Math.max(0, Math.min(max, Math.floor(Number(x) || 0)));
   l = l || {};
   const cap = prestige === undefined ? 7 : n(prestige, 7);
   const sid = (x) => String(x || "").replace(/^s_/, ""), now = seasonKey();
   return { crest: n(l.crest !== undefined ? l.crest : l.plate, cap), skin: cap > 0 ? n(l.skin, 7) : 0, bg: BGS.includes(l.bg) || (/^s_/.test(l.bg || "") && SEASON_IDS.includes(sid(l.bg))) ? l.bg : "none", char: CHARS.includes(l.char) ? l.char : "none",
-    hat: SEASON_IDS.includes(sid(l.hat)) ? "s_" + sid(l.hat) : "", charm: l.charm === "qgrader" ? "qgrader" : SEASON_IDS.includes(sid(l.charm)) ? sid(l.charm) : "",
-    title: (/^\d{4}-\d{2}$/.test(l.title || "") && l.title <= now) || /^nbm?:[a-z]{3,16}$|^nbt:(cupper|head|q)$|^rr:master$/.test(l.title || "") ? l.title : "" };   /* season titles, and cupping notebook titles */   /* season track cosmetics; a title names a season that has started */
+    hat: SEASON_IDS.includes(sid(l.hat)) ? "s_" + sid(l.hat) : "", charm: l.charm === "qgrader" || l.charm === "crack" ? l.charm : SEASON_IDS.includes(sid(l.charm)) ? sid(l.charm) : "",
+    roaster: ROASTER_FINISHES.includes(l.roaster) ? l.roaster : "",
+    title: (/^\d{4}-\d{2}$/.test(l.title || "") && l.title <= now) || /^nbm?:[a-z]{3,16}$|^nbt:(cupper|head|q)$|^rr:(master|crack)$/.test(l.title || "") ? l.title : "" };   /* season titles, and cupping notebook titles */   /* season track cosmetics; a title names a season that has started */
 };
 
 /* Free coffee samples earned in the game. The server decides who has earned what, from its own records:
