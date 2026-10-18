@@ -1525,8 +1525,22 @@ function drawProps(time) {
     if (v === 'neon' && !f) { fx.fillStyle = 'rgba(255,138,180,0.10)'; fx.fillRect(x - 3, y - 2, 32, 13); }
   });
 }
+const ROAST_BINS = 4;   /* green coffee bins in the roastery: one coffee each */
+const canBin = (key) => !!S.roastery.beans[key] || Object.keys(S.roastery.beans).length + Object.keys(S.roastery.want || {}).filter((k) => k !== key).length < ROAST_BINS;
+const bestBuyer = (b) => Object.keys(RBUYERS).reduce((x, k) => (bagPrice(b, k) > bagPrice(b, x) ? k : x), 'konbini');
+const fmtShort = (n) => (n >= 1e6 ? (n / 1e6).toFixed(1).replace(/\.0$/, '') + 'M' : n >= 1e4 ? Math.round(n / 1e3) + 'k' : fmt(n));
+function requestTickRoast() {   /* a requested coffee goes to its bin as soon as a lot of it is dry */
+  const R = S.roastery; if (!R.want || !roasteryOpen()) return;
+  Object.keys(R.want).forEach((k) => { const i = S.lots.findIndex((l) => l.left <= 0 && !reqLot(l) && l.v + '.' + l.method === k); if (i > -1) { delete R.want[k]; toRoastery(i, true); toast(beanName(k) + ' is in its roastery bin'); } });
+}
+function roastReqModal() {
+  const opts = {}; S.lots.forEach((l) => { const k = l.v + '.' + l.method; if (!reqLot(l)) { opts[k] = opts[k] || { dry: 0, drying: 0 }; opts[k][l.left <= 0 ? 'dry' : 'drying'] += 1; } });
+  const ks = Object.keys(opts).filter((k) => !S.roastery.beans[k] && !(S.roastery.want || {})[k]);
+  showModal('<h2>Request beans</h2><p class="note">Pick a coffee from the mill for an empty bin. A dry lot comes straight away; a drying one comes when it\'s dry.</p>' + (ks.length ? ks.map((k) => row(img('bush_' + k.split('.')[0] + '_ripe', 28), beanName(k), (opts[k].dry ? opts[k].dry + ' dry' : '') + (opts[k].dry && opts[k].drying ? ' · ' : '') + (opts[k].drying ? opts[k].drying + ' drying' : '') + ' · best roast ' + ROASTS[bestRoast(...k.split('.'))].name.toLowerCase(), btn('Request', '', 'rreq:' + k, true, 'green'))).join('') : '<p class="note">Nothing on the mill racks yet. Start a lot in the Mill, then request it here.</p>') + '<button class="btn" data-act="close">Close</button>');
+}
 function toRoastery(i, quiet) {   /* a dry lot goes to the roastery's green store instead of the roastery buyer */
   const l = S.lots[i]; if (!l || l.left > 0 || !roasteryOpen()) return;
+  if (!canBin(l.v + '.' + l.method)) { if (!quiet) { SFX.play('nope'); toast('All ' + ROAST_BINS + ' roastery bins are full. Roast or sell one first'); } return; }
   const green = l.kg * 0.2, r = saleFor(l.v, l.method, green, l), key = l.v + '.' + l.method, R = S.roastery;
   const b = R.beans[key] = R.beans[key] || { kg: 0, coins: 0, pts: 0, cup: 0 };
   b.cup = (b.cup * b.kg + r.cup * green) / (b.kg + green); b.kg += green; b.coins += r.coins; b.pts += r.points;
@@ -1566,23 +1580,32 @@ function roasteryTick() {
 function roasteryPanel() {
   const R = S.roastery, lv = repLevel(), nextP = Array.from({ length: 20 - lv }, (_, i) => lv + 1 + i).find((l) => REP_PERKS[l] || RCOS.some((x) => x.src.rep === l));
   const nextTxt = nextP ? [REP_PERKS[nextP]].concat(RCOS.filter((x) => x.src.rep === nextP).map((x) => rName(x.id))).filter(Boolean).join(', ') : '';
-  let h = '<h2>Roastery</h2><p class="note">Send dry lots here from the Mill, roast them, then sell the bags to Japanese buyers. Each coffee has a best roast (★). Tap Crack at first crack for +15 quality.</p>';
-  h += '<div class="season"><b>Reputation ' + lv + (lv < 20 ? ' · ' + fmt(R.rep) + ' / ' + fmt(REP_AT(lv + 1)) : ' · Master roaster') + '</b><span>' + (nextP ? 'At ' + nextP + ': ' + nextTxt : 'Every roastery upgrade unlocked.') + '</span></div><p class="note">Shop charm +' + Math.round(shopCharm() * 100) + '% on every bag, from ' + rCount() + ' roastery cosmetics. More in Shop › Roastery.</p>';
+  let h = '<h2>Roastery</h2><div class="season"><b>Reputation ' + lv + (lv < 20 ? ' · ' + fmt(R.rep) + ' / ' + fmt(REP_AT(lv + 1)) : ' · Master roaster') + '</b><span>' + (nextP ? 'At ' + nextP + ': ' + nextTxt : 'Every roastery upgrade unlocked.') + '</span></div>';
+  /* bags to sell come first: that's where the coins are */
+  h += '<h3>Bags to sell ' + R.bags.length + '</h3>';
+  if (R.bags.length > 1) h += '<div class="rackbar">' + btn('Sell all', 'each to the buyer who wants it', 'sellbags', true, 'green') + '</div>';
+  h += R.bags.length ? '<div class="racks">' + R.bags.map((b, i) => { const best = bestBuyer(b);
+    return '<div class="rack dry"><div class="rk-top">' + '<img src="' + url('bag_' + (b.blend ? 'medium' : b.profile), labelSwap(S.rcos.on.label)) + '" alt="" style="width:20px;image-rendering:pixelated"><span><b>' + (b.blend || ART.varieties[b.key.split('.')[0]]) + '</b><small>' + (b.blend ? 'house blend' : ROASTS[b.profile].name.toLowerCase() + ' · ' + METHODS[b.key.split('.')[1]].name.split(' ')[0].toLowerCase()) + ' · ' + fmtKg(b.kg) + ' kg</small></span></div><small>Quality ' + b.q + '</small>' +
+      '<div class="rk-act">' + Object.keys(RBUYERS).map((k) => '<button type="button" class="btn' + (k === best ? ' green' : '') + '" data-act="sellbag:' + i + '.' + k + '">' + BUYER_SHORT[k].replace(/^./, (c) => c.toUpperCase()) + (k === best ? ' ★ ' : ' ') + fmtShort(bagPrice(b, k)) + '</button>').join('') +
+      (lv >= 10 && !b.blend && R.bags.filter((x) => !x.blend).length > 1 ? '<button type="button" class="btn blue" data-act="blendask:' + i + '">Blend</button>' : '') + '</div></div>'; }).join('') + '</div>' : '<p class="note">Finished roasts appear here. Cafés want light, kissaten dark, konbini medium (★ marks who pays most).</p>';
+  if (lv >= 10) h += '<p class="note">House blend name: <select data-blendname="1" aria-label="Blend name">' + BLEND_NAMES.map((n, i) => '<option value="' + i + '"' + ((R.blendName || 0) === i ? ' selected' : '') + '>' + n + '</option>').join('') + '</select></p>';
   h += '<h3>Roasters ' + R.roasters.length + ' / ' + roasterCount() + ' · up to ' + roastCap() + ' kg a roast</h3><div class="roasters">';
   for (let i = 0; i < roasterCount(); i++) {
     const r = R.roasters[i];
-    if (!r) { h += '<div class="rslot idle">' + img('roaster_0', 40) + '<span>Free: choose green coffee below</span></div>'; continue; }
+    if (!r) { h += '<div class="rslot idle">' + img('roaster_0', 40) + '<span>Free: tap a roast on a bin below</span></div>'; continue; }
     const p = roastP(r), cr = inCrack(r);
-    h += '<div class="rslot' + (cr ? ' crack' : '') + '">' + img('roaster_' + (Math.floor(Date.now() / 300) % 2), 40) + '<div><b>' + fmtKg(r.kg) + ' kg ' + beanName(r.key) + ' · ' + ROASTS[r.profile].name.toLowerCase() + '</b><span class="bar"><i style="width:' + Math.round(p * 100) + '%;background:' + ROASTS[r.profile].col + '"></i></span><small>' + (r.crack === 1 ? 'Perfect crack! ' : r.crack === 2 ? 'Missed the crack. ' : cr ? 'First crack: tap now! ' : p < 0.7 ? 'Drying and browning… ' : '') + Math.max(0, Math.ceil((1 - p) * r.dur / 1000)) + ' s left</small></div>' + (r.crack ? '' : btn('Crack', cr ? 'now!' : 'wait', 'crack:' + i, true, cr ? 'gold' : '')) + '</div>';
+    h += '<div class="rslot' + (cr ? ' crack' : '') + '">' + img('roaster_' + (Math.floor(Date.now() / 300) % 2), 40) + '<div><b>' + fmtKg(r.kg) + ' kg ' + beanName(r.key) + ' · ' + ROASTS[r.profile].name.toLowerCase() + '</b><span class="bar"><i style="width:' + Math.round(p * 100) + '%;background:' + ROASTS[r.profile].col + '"></i></span><small>' + (r.crack === 2 ? 'Missed the crack. ' : cr ? 'First crack: tap now to finish! ' : p < 0.7 ? 'Drying and browning… ' : '') + Math.max(0, Math.ceil((1 - p) * r.dur / 1000)) + ' s left</small></div>' + (r.crack ? '' : btn('Crack', cr ? 'now!' : 'wait', 'crack:' + i, true, cr ? 'gold' : '')) + '</div>';
   }
-  h += '</div><h3>Green coffee</h3>' + (S.staff.foreman ? '<p class="note"><b>Foreman keeps the roastery stocked</b> with this many roasts\' worth of green coffee waiting, so you don\'t have to catch lots before he sells them. You still choose the roast and catch the crack.</p><div class="seg">' + [[0, 'Off'], [2, '2 roasts'], [4, '4 roasts'], [8, '8 roasts']].map(([n, t]) => '<button type="button" data-act="roastfeed:' + n + '" aria-pressed="' + (feedRoasts() === n) + '">' + t + '</button>').join('') + '</div>' : '<p class="note">Tap Roast on a dry lot in the Mill to send it here. Once you hire a mill foreman, he can keep the roastery stocked for you.</p>');
-  const keys = Object.keys(R.beans);
-  h += keys.length ? keys.map((k) => { const b = R.beans[k], [v, m] = k.split('.'), best = bestRoast(v, m), free = R.roasters.length < roasterCount();
-    return '<div class="rrow"><div class="rrow-t">' + img('bush_' + v + '_ripe', 28) + '<div><b>' + beanName(k) + ' · ' + fmtKg(b.kg) + ' kg</b><span>Cup ' + b.cup.toFixed(1) + ' · best roast: ' + ROASTS[best].name.toLowerCase() + '</span></div></div><div class="seg">' + Object.keys(ROASTS).map((p) => btn(ROASTS[p].name + (p === best ? ' ★' : ''), Math.round(roastTime(p)) + ' s', 'roast:' + k + '|' + p, free, p === best ? 'green' : '')).join('') + '</div></div>'; }).join('') : '<p class="note">No green coffee yet. In the Mill, tap Roast on a dry lot to send it here.</p>';
-  h += '<h3>Roasted bags</h3>';
-  if (lv >= 10) h += '<p class="note">House blend name: <select data-blendname="1" aria-label="Blend name">' + BLEND_NAMES.map((n, i) => '<option value="' + i + '"' + ((R.blendName || 0) === i ? ' selected' : '') + '>' + n + '</option>').join('') + '</select></p>';
-  h += R.bags.length ? R.bags.map((b, i) => '<div class="rrow"><div class="rrow-t">' + img('bag_' + (b.profile === 'blend' ? 'medium' : b.profile), 26) + '<div><b>' + bagName(b) + ' · ' + fmtKg(b.kg) + ' kg</b><span>Quality ' + b.q + (b.blend ? ' · every buyer wants a house blend' : '') + '</span></div></div><div class="seg">' + Object.keys(RBUYERS).map((k) => btn(RBUYERS[k].name.split(' ')[0] + ((b.blend || b.profile === RBUYERS[k].wants) ? ' ★' : ''), fmt(bagPrice(b, k)) + ' coins', 'sellbag:' + i + '.' + k, true, (b.blend || b.profile === RBUYERS[k].wants) ? 'green' : '')).join('') + (lv >= 10 && !b.blend && R.bags.filter((x) => !x.blend).length > 1 ? btn('Blend', 'with another', 'blendask:' + i, true, 'blue') : '') + '</div></div>').join('') : '<p class="note">Finished roasts appear here.</p>';
-  h += '<p class="note">Buyers: specialty cafés want light (×1.5), kissaten want dark (×1.45), konbini blends want medium (×1.25); a bag a buyer doesn\'t want sells at the base price. Price and reputation grow with quality. Each finished roast gives a season star (up to 3 a day).</p>';
+  h += '</div><p class="note">Catch first crack for +15 quality, and the roast finishes on the spot.</p>';
+  /* green coffee lives in a few bins, so the list never grows past what you can roast */
+  const keys = Object.keys(R.beans), free = R.roasters.length < roasterCount(), want = Object.keys(R.want || {});
+  h += '<h3>Green coffee bins ' + keys.length + ' / ' + ROAST_BINS + '</h3><div class="racks">' + keys.map((k) => { const b = R.beans[k], [v, m] = k.split('.'), best = bestRoast(v, m);
+    return '<div class="rack"><div class="rk-top">' + img('bush_' + v + '_ripe', 22) + '<span><b>' + ART.varieties[v] + '</b><small>' + METHODS[m].name.split(' ')[0].toLowerCase() + ' · ' + fmtKg(b.kg) + ' kg</small></span></div><small>Cup ' + b.cup.toFixed(1) + '</small>' +
+      '<div class="rk-act">' + Object.keys(ROASTS).map((p) => '<button type="button" class="btn' + (p === best ? ' green' : '') + '" data-act="roast:' + k + '|' + p + '"' + (free ? '' : ' disabled') + '>' + ROASTS[p].name + (p === best ? ' ★' : '') + '</button>').join('') + '<button type="button" class="btn" data-act="binsell:' + k + '">Sell green</button></div></div>'; }).join('') +
+    want.map((k) => '<div class="rack"><div class="rk-top">' + img('bush_' + k.split('.')[0] + '_ripe', 22) + '<span><b>' + ART.varieties[k.split('.')[0]] + '</b><small>requested · ' + METHODS[k.split('.')[1]].name.split(' ')[0].toLowerCase() + '</small></span></div><small>Comes when a lot dries</small><div class="rk-act"><button type="button" class="btn" data-act="rreq:' + k + '">Cancel</button></div></div>').join('') +
+    Array.from({ length: Math.max(0, ROAST_BINS - keys.length - want.length) }, () => '<div class="rack"><div class="rk-top"><span><b>Empty bin</b><small>for one green coffee</small></span></div><div class="rk-act"><button type="button" class="btn gold" data-act="rreqask">Request beans</button></div></div>').join('') + '</div>';
+  h += S.staff.foreman ? '<p class="note"><b>Foreman keeps the bins stocked</b> with this many roasts\' worth of green coffee, using coffees already in a bin or free bins. Requests come first.</p><div class="seg">' + [[0, 'Off'], [2, '2 roasts'], [4, '4 roasts'], [8, '8 roasts']].map(([n, t]) => '<button type="button" data-act="roastfeed:' + n + '" aria-pressed="' + (feedRoasts() === n) + '">' + t + '</button>').join('') + '</div>' : '<p class="note">Request beans for an empty bin, or tap Roast on a dry lot in the Mill. Once you hire a mill foreman, he keeps the bins stocked for you.</p>';
+  h += '<p class="note">Shop charm +' + Math.round(shopCharm() * 100) + '% on every bag, from ' + rCount() + ' roastery cosmetics (Shop › Roastery). Each finished roast gives a season star (up to 3 a day).</p>';
   return h;
 }
 const charmName = (k) => (k === 'qgrader' ? 'Q grader' : k === 'crack' ? 'Crack master' : themeById(k) ? themeById(k).name : '');
@@ -2040,7 +2063,7 @@ function tick(dt) {
   LOCS.forEach((l) => { const f = S.farms[l]; if (f.unlocked && !S.dormant[l]) tickFarm(f, d, l === S.loc && tab === 'farm'); });
   tickMe(d); tickInside(dt);
   rateC = rateC * Math.pow(0.99, dt) + earnedC * 60 * (1 - Math.pow(0.99, dt)) / Math.max(dt, 1e-3); rateX = rateX * Math.pow(0.99, dt) + earnedX * 60 * (1 - Math.pow(0.99, dt)) / Math.max(dt, 1e-3); earnedC = 0; earnedX = 0;
-  requestTick(); roasteryTick();
+  requestTick(); roasteryTick(); requestTickRoast();
   { const gg = $('goldGo'), away = golden && golden.loc !== S.loc, txt = away ? 'Golden bush at ' + ART.locations[golden.loc].name.split(',')[0] + ' · Go (' + Math.ceil(golden.t) + ' s)' : ''; gg.hidden = !away; if (gg.textContent !== txt) gg.textContent = txt; }   /* Lookout: a Go button when the golden bush is on another farm */
   if (golden) { golden.t -= dt; if (golden.t <= 0) { golden = null; toast('The golden bush faded'); } }
   else if ((S.guide >= GUIDE.length || level() >= 3) && (goldenT -= dt) <= 0) {   /* a golden bush appears every 3-6 minutes while you play */
@@ -2577,8 +2600,8 @@ function cupAll() {
 }
 function crackRoast(i) {
   const r = S.roastery.roasters[i]; if (!r || r.crack) return;
-  r.crack = inCrack(r) ? 1 : 2; SFX.play(r.crack === 1 ? 'achieve' : 'nope'); if (r.crack === 1) S.rcos.cracks = (S.rcos.cracks || 0) + 1;
-  toast(r.crack === 1 ? 'Perfect crack! +15 quality' : roastP(r) < 0.7 ? 'Too early: listen for the crack at about 70%' : 'Too late: the crack has passed');
+  r.crack = inCrack(r) ? 1 : 2; SFX.play(r.crack === 1 ? 'achieve' : 'nope'); if (r.crack === 1) { S.rcos.cracks = (S.rcos.cracks || 0) + 1; r.start = Date.now() - r.dur; }   /* a perfect crack finishes the roast on the spot */
+  toast(r.crack === 1 ? 'Perfect crack! +15 quality, and the roast is done' : roastP(r) < 0.7 ? 'Too early: listen for the crack at about 70%' : 'Too late: the crack has passed');
   if (scene() === 'roast' && i < BAYS.length) floats.push({ x: BAYS[i] + 13, y: BAY_Y - 2, text: r.crack === 1 ? 'perfect!' : roastP(r) < 0.7 ? 'too early' : 'too late', t: 0 });
 }
 function sellLot(i, quiet) {
@@ -2644,7 +2667,7 @@ function staffTick() {
   if (!S.staff.foreman) return;
   for (let i = S.lots.length - 1; i >= 0; i--) {
     const l = S.lots[i]; if (l.left > 0 || reqLot(l)) continue;   /* a lot a regular asked for waits for you */
-    if (roasteryFeedWants()) { toRoastery(i, true); continue; }   /* keeps the roastery's green store topped up when asked */
+    if (roasteryFeedWants() && canBin(l.v + '.' + l.method)) { toRoastery(i, true); continue; }   /* keeps the roastery's green store topped up when asked */
     const c = S.staff.agent && S.tabs.orders && S.contracts.find((x) => fits(x, l));
     if (c) deliver(i, c.id, true); else sellLot(i, true);
   }
@@ -3282,6 +3305,10 @@ document.addEventListener('click', (e) => {
   else if (a === 'roastgo') { closeModal(); S.millSub = 'roast'; setTab('mill'); }
   else if (a === 'toroast') toRoastery(+v);
   else if (a === 'roastfeed') S.roastery.feed = +v || 0;
+  else if (a === 'rreqask') roastReqModal();
+  else if (a === 'rreq') { const R = S.roastery, k = v; R.want = R.want || {}; if (R.want[k]) delete R.want[k]; else if (canBin(k)) { R.want[k] = true; closeModal(); requestTickRoast(); } else toast('All ' + ROAST_BINS + ' bins are taken'); }
+  else if (a === 'binsell') { const R = S.roastery, b = R.beans[v]; if (b) { delete R.beans[v]; earn({ coins: Math.round(b.coins), points: Math.round(b.pts) }); SFX.play('coins'); toast('Sold ' + fmtKg(b.kg) + ' kg of green ' + beanName(v) + ': +' + fmt(Math.round(b.coins)) + ' coins'); } }
+  else if (a === 'sellbags') { const R = S.roastery; let n = 0, c0 = S.coins; for (let i = R.bags.length - 1; i >= 0; i--) { const b = R.bags[i], k = bestBuyer(b), c = bagPrice(b, k), pts = Math.round(b.pts), rep = Math.round(b.q / 10 * (b.blend ? 2 : b.profile === RBUYERS[k].wants ? 1.5 : 1)); R.bags.splice(i, 1); earn({ coins: c, points: pts }); R.rep = (R.rep || 0) + rep; S.rcos.sold[k] = (S.rcos.sold[k] || 0) + 1; n += 1; if (n <= 3) roastGuest(k, true); } SFX.play('coins'); toast('Sold ' + n + ' bags: +' + fmt(S.coins - c0) + ' coins'); }
   else if (a === 'roast') { const [k, p] = v.split('|'); startRoast(k, p); }
   else if (a === 'crack') crackRoast(+v);
   else if (a === 'sellbag') { const [i, k] = v.split('.'), R = S.roastery, b = R.bags[+i]; if (b && RBUYERS[k]) { const c = bagPrice(b, k), pts = Math.round(b.pts), rep = Math.round(b.q / 10 * (b.blend ? 2 : b.profile === RBUYERS[k].wants ? 1.5 : 1)); R.bags.splice(+i, 1); earn({ coins: c, points: pts }); R.rep = (R.rep || 0) + rep; S.rcos.sold[k] = (S.rcos.sold[k] || 0) + 1; SFX.play('coins'); roastGuest(k, true); toast('Sold to a ' + RBUYERS[k].name.toLowerCase() + ': +' + fmt(c) + ' coins, +' + fmt(pts) + ' know-how, +' + fmt(rep) + ' reputation'); } }

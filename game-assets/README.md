@@ -264,3 +264,10 @@ All of these show in the roastery scene. `RCOS` in `template.html` lists every i
 - **Shop charm:** every item you own adds 1% to bag prices, up to +20%. The roastery earns about 15% of coins, so the cap is worth about 3% of total income. It's a small thank-you, not a reason to grind.
 - **Leaderboard:** your roaster finish shows as a small badge beside your name (`look.roaster`). The server accepts `copper`, `showa`, `sakura`, `beju`, `cream` and `gold`, plus the `crack` charm and the `rr:crack` title.
 - **State:** `S.rcos` = `{ own, on, hide, sold, cracks }`. Old saves get the defaults.
+
+## Roastery panel: bags first, bins, requests, instant crack
+- **Bags to sell** sit at the top of Mill › Roastery as compact tiles. Each shows all three buyers with the best-paying one marked ★. **Sell all** sends each bag to its best buyer.
+- **Perfect crack** finishes the roast on the spot. A miss lets it run to the end.
+- **Green coffee bins:** the roastery holds up to `ROAST_BINS` (4) green coffees, one per bin, as tiles with Light, Medium and Dark buttons (★ marks the best roast) and **Sell green**.
+- **Request beans:** an empty bin offers a choice of the coffees on the mill racks. A dry lot comes straight away; a drying one comes when it dries (`S.roastery.want`, `requestTickRoast`).
+- **Foreman stocking** only fills coffees already in a bin, or free bins, and requests come first.
