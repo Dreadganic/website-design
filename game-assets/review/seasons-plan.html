@@ -1,0 +1,233 @@
+<title>Beju Farm Seasons</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column like the earlier reviews, tables in their own scroll boxes, a 12-month theme calendar as a grid */
+:root {
+  --bg: #F5F3EE; --panel: #FFFFFF; --fg: #23201B; --muted: #6A6358; --line: #DED8CC;
+  --bean: #6B3F22; --leaf: #2F6B4F; --cherry: #B8323A; --gold: #A8791A; --soft: #EFE9DD;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #171512; --panel: #201D19; --fg: #EDE7DC; --muted: #A79F92; --line: #383229;
+  --bean: #D9A47A; --leaf: #6CC59A; --cherry: #F07880; --gold: #E2B64A; --soft: #2A2620; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #171512; --panel: #201D19; --fg: #EDE7DC; --muted: #A79F92; --line: #383229;
+  --bean: #D9A47A; --leaf: #6CC59A; --cherry: #F07880; --gold: #E2B64A; --soft: #2A2620; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font: 16px/1.6 var(--body); }
+.wrap { max-width: 780px; margin: 0 auto; padding-block: 40px 72px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 36px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(30px, 6vw, 42px); font-weight: 800; }
+h2 { font-size: 24px; font-weight: 800; }
+h3 { font-size: 17px; font-weight: 600; }
+p { margin: 0; max-width: 66ch; }
+section { display: flex; flex-direction: column; gap: 14px; }
+.eyebrow { font: 600 12px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--bean); }
+.lede { font-size: 18px; color: var(--muted); }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; }
+.kpi b { font: 800 26px/1.1 var(--display); font-variant-numeric: tabular-nums; color: var(--cherry); }
+.kpi span { font-size: 13px; color: var(--muted); }
+.tw { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 12px/1.3 var(--mono); letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+tr.us td { background: var(--soft); font-weight: 600; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; }
+.card .tag { font: 600 12px var(--mono); color: var(--muted); }
+.card.bad { border-left: 4px solid var(--cherry); }
+.card.good { border-left: 4px solid var(--leaf); }
+ul, ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 68ch; }
+.note { font-size: 14px; color: var(--muted); }
+a { color: var(--leaf); }
+code { font: 13px var(--mono); background: var(--soft); padding: 1px 5px; border-radius: 4px; }
+.cal { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+.mo { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.mo .m { font: 600 11px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.mo b { font: 800 17px/1.2 var(--display); color: var(--bean); }
+.mo span { font-size: 13px; color: var(--muted); }
+.mo.first { border-color: var(--gold); background: var(--soft); }
+.track { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; }
+.tier { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--panel); display: flex; flex-direction: column; gap: 2px; }
+.tier .t { font: 600 11px var(--mono); color: var(--muted); }
+.tier b { font-size: 13px; line-height: 1.3; }
+.tier.cos { border-color: var(--gold); background: var(--soft); }
+.tier.cos b { color: var(--bean); }
+</style>
+
+<div class="wrap">
+<header style="display:flex;flex-direction:column;gap:12px">
+  <span class="eyebrow">Seasons research · 18 October 2026 · measured with the playtest bot</span>
+  <h1>Keep seasons monthly, but stop ranking them by prestige</h1>
+  <p class="lede">A calendar month is the right length for a Beju Farm season. The problem is what the season board counts. Prestige comes in a burst in a player's first month and then almost stops. So under today's ranking every new account beats every veteran. A free 30-tier season track, scored in capped "season stars" and dressed in a monthly Japanese theme, fixes the board and gives everyone something to collect.</p>
+</header>
+
+<section>
+<h2>How fast players prestige</h2>
+<p>I ran the current build for three kinds of player. Each sim started on 1 November with the foreman running between sessions and the bot playing actively (cupping, golden bushes, contracts). The casual run covers three months. The regular and keen runs are slower to simulate, so they are reported as far as they got.</p>
+<div class="tw"><table>
+<thead><tr><th>Player</th><th>Play per day</th><th>Month 1</th><th>Month 2</th><th>Month 3</th></tr></thead>
+<tbody>
+<tr><td>Casual</td><td class="n">3 × 10 min</td><td>P0 → P5, level 44, 32.9M know-how</td><td><b>0 prestiges</b>, level 49 (P6 needs 50), 33.4M</td><td>1 prestige (P6), 34.4M</td></tr>
+<tr><td>Regular</td><td class="n">4 × 20 min</td><td>P5 by day 7 (16.9M know-how in week 1)</td><td colspan="2" class="note">Run still going when this was written</td></tr>
+<tr><td>Keen</td><td class="n">8 × 30 min</td><td>P5 and level 48 by day 7 (57.3M know-how in week 1)</td><td colspan="2" class="note">Run still going when this was written</td></tr>
+</tbody></table></div>
+<p>Everyone reaches P5 inside their first month: the keen player in a day or two, the regular player in a week, the casual player in four weeks. After that each prestige needs 8 more levels. Each level past 10 costs 1.22× the last, so a prestige costs about 1.22<sup>8</sup> ≈ 4.9× the know-how of the one before. Income grows much more slowly than that, so even the keen player stalls two levels short of P6 at the end of week 1. A casual player needs about two months for P6 and would take several for P7.</p>
+<div class="kpis">
+  <div class="kpi"><b>5</b><span>prestiges every new player gets in their first month</span></div>
+  <div class="kpi"><b>0–1</b><span>prestiges a month for a veteran after that</span></div>
+  <div class="kpi"><b>~33M</b><span>know-how a month for the casual player, steady from month 1 to month 3</span></div>
+</div>
+<p>This is intended. Prestige is the long career, and the crest it unlocks is what shows rank on the all-time board. It also means prestige is the wrong thing to rank a month by.</p>
+</section>
+
+<section>
+<h2>The season board is broken by design</h2>
+<div class="card bad">
+  <span class="tag">Current rule: prestiges this month, then know-how this month</span>
+  <p>A player who installs the game on the 1st scores 5 prestiges by the end of the month. A loyal player at P6 scores 0 or 1. So the newcomer outranks every veteran, however much the veteran plays. Worse, a second account started each month wins the Champion badge every month. Know-how alone is fairer: the casual player earned a steady ~33M a month whether new or not. But it is open-ended, so it hands the board to whoever plays the most hours.</p>
+</div>
+<p>A season score should do three things: treat new and old players the same, reward showing up over grinding, and still let keen players stand out at the top. Daily-capped points do all three. That is how Brawl Stars trophies-plus-pass and Duolingo's weekly XP leagues work, and how Hay Day's derby task cards are capped per day.</p>
+</section>
+
+<section>
+<h2>How long other games run a season</h2>
+<div class="tw"><table>
+<thead><tr><th>Game</th><th>Season length</th><th>What resets</th><th>Lesson for us</th></tr></thead>
+<tbody>
+<tr><td>Brawl Stars</td><td class="n">~1 month (was 2)</td><td>Brawl Pass, ranked</td><td>Supercell cut seasons from two months to about four or five weeks because players stopped playing once the pass was done. Shorter seasons kept them coming back.</td></tr>
+<tr><td>Clash Royale</td><td class="n">1 month</td><td>Trophy season, pass</td><td>Monthly reset with rewards by highest league reached, not by final rank alone.</td></tr>
+<tr><td>Pokémon GO</td><td class="n">~3 months</td><td>Themed season, bonuses</td><td>Long seasons are tied to real-world seasons and carry monthly events inside them.</td></tr>
+<tr><td>Hay Day Derby</td><td class="n">1 week</td><td>Team task cards</td><td>Weekly is great for co-op tasks but too short to make a cosmetic set each time.</td></tr>
+<tr><td>Duolingo Leagues</td><td class="n">1 week</td><td>30-player league</td><td>Small leagues with promotion keep every rank meaningful, even for small player counts.</td></tr>
+<tr class="us"><td>Beju Farm today</td><td class="n">Calendar month (JST)</td><td>Season board, badge</td><td>Right length; the score needs fixing and the season needs content.</td></tr>
+</tbody></table></div>
+<p class="note">Meta's developer guide for Quest suggests a fresh event every 2–4 weeks. Beju Farm already has a 7-day drop event and a weekly order, so a monthly season with a weekly beat inside it lands in that range.</p>
+</section>
+
+<section>
+<h2>Recommendation: calendar-month seasons</h2>
+<div class="card good">
+  <span class="tag">Keep: one season per calendar month, Japan time</span>
+  <ul>
+    <li><b>It fits the loops we already have.</b> The free monthly sample needs 20 check-ins in a calendar month. Subscription renewals pay cranes monthly. The season board already resets monthly. One month means one clock for players to learn.</li>
+    <li><b>It fits the prestige curve.</b> A casual newcomer's first season is a complete arc from P0 to P5. After that, a month is long enough for a veteran to make visible progress on a big prestige without the season being only about prestige.</li>
+    <li><b>It's the length the evidence points to.</b> Brawl Stars moved to monthly for retention, Clash Royale runs monthly, and two-month seasons lost players after the pass was done.</li>
+    <li><b>We can make the art.</b> One themed set of six sprites a month is a realistic pace with <code>build_sprites.py</code>. A weekly season could not carry a cosmetic set.</li>
+  </ul>
+</div>
+<h3>A weekly beat inside each month</h3>
+<ol>
+  <li><b>Week 1, theme reveal.</b> New season art on the farm, the track resets, and a "new season" popup shows the six cosmetics on offer.</li>
+  <li><b>Week 2, drop event.</b> The existing 7-day drop, picked to suit the season (a Geisha honey drop for the winter lights season, for example). Drop contracts pay bonus stars.</li>
+  <li><b>Week 3, mid-season.</b> Regular players finish the track around here. The board race between keen players takes over.</li>
+  <li><b>Last 3 days, last harvest.</b> Golden bushes appear twice as often. The banner counts down to the season end.</li>
+</ol>
+<p class="note">Launch timing: if the game launches after the 15th of a month, let the first season run to the end of the following month, so nobody's first badge comes from a 10-day season.</p>
+</section>
+
+<section>
+<h2>Season stars: the new season score</h2>
+<p>Stars come from things a player does on a given real day, with a cap on each, so an hour a day earns nearly as much as six hours. Level-ups give no stars, because newcomers level many times faster than veterans. Prestige gives a few stars, but it no longer decides the board.</p>
+<div class="tw"><table>
+<thead><tr><th>Action</th><th>Stars</th><th>Daily cap</th></tr></thead>
+<tbody>
+<tr><td>Daily check-in</td><td class="n">2</td><td class="n">2</td></tr>
+<tr><td>Each daily task done</td><td class="n">2</td><td class="n">6</td></tr>
+<tr><td>Golden bush caught</td><td class="n">1</td><td class="n">5</td></tr>
+<tr><td>Lot cupped by hand</td><td class="n">1</td><td class="n">3</td></tr>
+<tr><td>Supply contract completed</td><td class="n">1</td><td class="n">3</td></tr>
+<tr><td>Weekly order delivered</td><td class="n">15</td><td class="n">once a week</td></tr>
+<tr><td>Drop event contract</td><td class="n">5</td><td class="n">3 per drop</td></tr>
+<tr><td>Prestige</td><td class="n">10</td><td class="n">none (rare)</td></tr>
+</tbody></table></div>
+<div class="tw"><table>
+<thead><tr><th>Player</th><th>Stars a day (est.)</th><th>Track tier by month end</th></tr></thead>
+<tbody>
+<tr><td>Casual, 30 min</td><td class="n">~13</td><td>about tier 26 of 30</td></tr>
+<tr><td>Regular, 80 min</td><td class="n">~21</td><td>finishes around day 21</td></tr>
+<tr><td>Keen, 4 h</td><td class="n">~21 + prestiges</td><td>finishes around day 20; competes on the board after that</td></tr>
+</tbody></table></div>
+<p><b>Season board:</b> rank by season stars, then by know-how earned this month. Stars level the field between new and old players. Know-how breaks the ties at the top, so keen players still have something to race for. Keep prestiges this month on the row as information only.</p>
+<p class="note">The star rates are estimates from the bot's catch rates. I'd re-run the sim once stars exist and tune the caps so a 30-minute-a-day player ends at about tier 25.</p>
+</section>
+
+<section>
+<h2>The season track</h2>
+<p>The track is free, has 30 tiers at 15 stars each (450 stars), and gives a cosmetic every 5 tiers. The other tiers give small play items, never cranes. Cranes stay tied to real coffee orders. Stars earned past tier 30 still count on the board.</p>
+<div class="track">
+  <div class="tier"><span class="t">Tier 1–4</span><b>Coins, stamina refill, growth ×2 for 10 min</b></div>
+  <div class="tier cos"><span class="t">Tier 5</span><b>Farm decoration</b></div>
+  <div class="tier"><span class="t">Tier 6–9</span><b>Coins, cupping kit, growth boost</b></div>
+  <div class="tier cos"><span class="t">Tier 10</span><b>Character background</b></div>
+  <div class="tier"><span class="t">Tier 11–14</span><b>Coins, stamina, research discount</b></div>
+  <div class="tier cos"><span class="t">Tier 15</span><b>Hat or accessory, fits every character</b></div>
+  <div class="tier"><span class="t">Tier 16–19</span><b>Coins, growth boost</b></div>
+  <div class="tier cos"><span class="t">Tier 20</span><b>Building skin</b></div>
+  <div class="tier"><span class="t">Tier 21–24</span><b>Coins, stamina</b></div>
+  <div class="tier cos"><span class="t">Tier 25</span><b>Nameplate charm</b></div>
+  <div class="tier"><span class="t">Tier 26–29</span><b>Coins, growth boost</b></div>
+  <div class="tier cos"><span class="t">Tier 30</span><b>Season title, gold badge frame</b></div>
+</div>
+<h3>Rules for seasonal cosmetics</h3>
+<ul>
+  <li><b>Prestige stays the status symbol.</b> Seasonal items sit around the prestige crest and never replace it. A nameplate charm is a small motif pinned to the plate, so a P7 player's crest still reads first on the board.</li>
+  <li><b>Hats are a new layer.</b> They need a hat slot drawn over every character sprite, human and non-human. This is the one new piece of art tech; the decor, backgrounds and building skins all reuse systems that exist today.</li>
+  <li><b>Dated items stay exclusive.</b> The season badge and the tier-30 title ("Momiji Harvester 2026") can never be earned again.</li>
+  <li><b>Other items come back.</b> Twelve months later, a season's decoration, background, hat, skin and charm return in a Season archive in the Shop, for cranes. Missing a month never locks someone out for good, and the archive gives cranes from real orders a steady, cosmetic-only use.</li>
+  <li><b>Rank rewards stay small.</b> Keep Champion, Top 3 and Top 10 badges, drawn in the season's art. Add an animated plate shimmer for the Top 10 that lasts the following month. Once there are a few hundred players, switch to percentile tiers (top 1%, 10%, 25%) so the rewards still mean something.</li>
+  <li><b>Collect the year.</b> Earning a badge in all 12 seasons of a year gives a permanent ring around the crest for that year.</li>
+  <li><b>No paid pass at launch.</b> A free track fits the cosy genre and the coffee brand. Real coffee orders already earn cranes, and cranes buy archive items.</li>
+</ul>
+</section>
+
+<section>
+<h2>A year of themes</h2>
+<p>Each month gets a theme drawn from the Japanese calendar, matching the Osaka garden's four seasons and the shop's home in Japan. Each theme brings six items: decoration, background, hat, building skin, nameplate charm and badge art. Week 2's drop can feature an origin in harvest that month.</p>
+<div class="cal">
+  <div class="mo first"><span class="m">Nov 2026 · launch candidate</span><b>Momiji</b><span>Maple-leaf bunting, red-leaf valley background, leaf-crown hat, mill roof in autumn red</span></div>
+  <div class="mo"><span class="m">December</span><b>Winter lights</b><span>Illuminated trees, lantern-lit farm at night, knitted beanie, snow on the drying shed</span></div>
+  <div class="mo"><span class="m">January</span><b>Shōgatsu</b><span>Kadomatsu by the gate, first sunrise, daruma charm, shimenawa rope on the warehouse</span></div>
+  <div class="mo"><span class="m">February</span><b>Ume</b><span>Plum trees, oni mask for Setsubun, plum-blossom plate charm</span></div>
+  <div class="mo"><span class="m">March</span><b>Hina</b><span>Peach blossom, hina doll stand, paper-lantern charm</span></div>
+  <div class="mo"><span class="m">April</span><b>Sakura</b><span>Hanami picnic mat, cherry-blossom background, petal hat, pink mill</span></div>
+  <div class="mo"><span class="m">May</span><b>Koinobori</b><span>Carp streamers, kabuto paper hat, green-tea field background</span></div>
+  <div class="mo"><span class="m">June</span><b>Tsuyu</b><span>Hydrangeas, rain umbrella hat, teru-teru bōzu charm</span></div>
+  <div class="mo"><span class="m">July</span><b>Tanabata</b><span>Bamboo with wish slips, starry river background, star charm</span></div>
+  <div class="mo"><span class="m">August</span><b>Hanabi</b><span>Fireworks sky, yukata outfit tint, festival stall decoration</span></div>
+  <div class="mo"><span class="m">September</span><b>Tsukimi</b><span>Moon-viewing dango, full moon background, rabbit-ear hat</span></div>
+  <div class="mo"><span class="m">October</span><b>Aki matsuri</b><span>Festival lanterns, mikoshi decoration, harvest-straw hat</span></div>
+</div>
+<p class="note">Art plan: make the first three themes before launch, then stay two months ahead.</p>
+</section>
+
+<section>
+<h2>What it would take to build</h2>
+<ol>
+  <li><b>Stars and caps.</b> <code>S.season</code> gains stars, a per-real-day cap ledger and claimed tiers. The award hooks sit beside the existing task, golden bush, cupping, contract, weekly and prestige code.</li>
+  <li><b>A Season sub-tab in Ranks.</b> It shows the track, the days left and the theme preview. The end-of-season popup shows the badge and the tiers reached.</li>
+  <li><b>Board and server.</b> Ranking becomes season stars, then know-how. <code>game-score</code> takes <code>seasonStars</code> and checks it against a daily rate limit (about 25 a day plus 10 per prestige). This is backend only, so nothing shows on the live site.</li>
+  <li><b>Theme table and sprites.</b> A <code>SEASONS</code> table keyed by month, plus the hat layer and the Momiji, Winter lights and Shōgatsu sets in <code>build_sprites.py</code>.</li>
+  <li><b>Season archive in the Shop</b> for cranes, which unlocks a year after each season.</li>
+  <li><b>Re-run the sim</b> to tune the caps against the targets above.</li>
+</ol>
+</section>
+
+<section>
+<h2>Sources</h2>
+<ul class="note">
+  <li><a href="https://mobilematters.gg/brawl-stars/brawl-stars-brawl-pass-rework">Brawl Stars Brawl Pass rework (Mobile Matters)</a></li>
+  <li><a href="https://seasontimer.live/blog/brawl-stars-all-seasons-dates/">Brawl Stars season dates (Season Timer)</a></li>
+  <li><a href="https://pogo.gamepress.gg/node/1318471">Pokémon GO seasons (GamePress)</a></li>
+  <li><a href="https://supercell.com/en/games/clashroyale/blog/release-notes/june-update-2025/">Clash Royale June 2025 update (Supercell)</a></li>
+  <li><a href="https://www.sportskeeda.com/esports/5-tips-completing-hayday-s-derby-event">Hay Day Derby tips (Sportskeeda)</a></li>
+  <li><a href="https://developers.meta.com/horizon/blog/build-faster-earn-more-developers-guide-to-engagement-and-retention-meta-quest/">Engagement and retention guide (Meta for Developers)</a></li>
+  <li><a href="https://blog.duolingo.com/duolingo-leagues-leaderboards/">Duolingo leagues and leaderboards (Duolingo blog)</a></li>
+</ul>
+</section>
+</div>
