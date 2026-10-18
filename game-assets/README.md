@@ -322,3 +322,13 @@ First crack always opens at 70% of the roast. How long its window lasts depends 
   - Farm manager: +5% picking speed on that farm per level (from 300k × the farm's cost multiplier).
   - Mill foreman: lots dry 5% faster per level (from 500k).
   - Contracts agent: new contracts pay 5% more per level (from 750k).
+- **Farm reopening after prestige** scales with the run (`wakeLevel`). Each dormant farm reopens once you reach a share of the XP the new run needs for its next prestige: Huila 2%, Gedeo 5%, Toba 10%, Turrialba 18%. The old levels 3, 5, 7 and 9 are the minimum.
+
+  | Going into | Huila | Gedeo | Toba | Turrialba |
+  |---|---|---|---|---|
+  | P1 | 4 | 6 | 7 | 9 |
+  | P3 | 13 | 17 | 21 | 24 |
+  | P5 | 24 | 28 | 33 | 37 |
+  | P8 | 46 | 52 | 57 | 61 |
+
+  The P4 perk still keeps Huila and Gedeo open. The prestige window lists each farm's reopen level.
