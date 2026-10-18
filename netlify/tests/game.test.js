@@ -50,8 +50,8 @@ test("scores: honest progress is accepted and ranked", async () => {
   assert.equal((await call(score, "POST", s(0, 0, 2400), a)).status, 200);
   const board = await call(score, "GET", undefined, b, { mode: "season" });
   assert.equal(board.body.top[0].points, 2400); assert.equal(board.body.me.rank, 2);
-  assert.deepEqual(board.body.top[0].look, { crest: 0, skin: 0, bg: "huila", char: "kitsune" }, "crest is capped at the prestige tier");
-  assert.deepEqual(G.cleanLook({ plate: 3, border: 3, skin: 2, bg: "<script>" }), { crest: 3, skin: 2, bg: "none", char: "none" }, "old looks still read");
+  assert.deepEqual(board.body.top[0].look, { crest: 0, skin: 0, bg: "huila", char: "kitsune", hat: "", charm: "", title: "" }, "crest is capped at the prestige tier");
+  assert.deepEqual(G.cleanLook({ plate: 3, border: 3, skin: 2, bg: "<script>" }), { crest: 3, skin: 2, bg: "none", char: "none", hat: "", charm: "", title: "" }, "old looks still read");
 });
 
 test("scores: impossible jumps are rejected", async () => {
@@ -99,16 +99,17 @@ test("claims: a paid order grants cranes and coffees once", async () => {
   assert.equal((await call(claim, "POST", { session_id: "nope" }, a)).status, 400);
 });
 
-test("scores: prestige needs 8 more levels each time, and the season board ranks know-how", async () => {
+test("scores: prestige needs 8 more levels each time, and the season board ranks season stars, then know-how", async () => {
   assert.deepEqual([0, 1, 2, 3].map(G.prestigeNeed), [10, 18, 26, 34]);
   assert.ok(G.XP_AT(11) > G.XP_AT(10) && Math.abs(G.XP_AT(20) / G.XP_AT(19) - 1.22) < 0.01, "levels past 10 grow 1.22x");
   const a = await newPlayer(), b = await newPlayer();
-  const s = (kh, pts) => ({ name: "Farmer", prestige: 0, seasonP: 0, seasonKh: kh, level: G.levelFor(pts), points: pts });
+  const s = (kh, pts, st) => ({ name: "Farmer", prestige: 0, seasonP: 0, seasonKh: kh, seasonStars: st || 0, level: G.levelFor(pts), points: pts });
   await call(score, "POST", s(5000, 5000), a); await call(score, "POST", s(9000, 2000), b);
   const board = await call(score, "GET", undefined, a, { mode: "season" });
-  assert.equal(board.body.top[0].seasonKh, 9000, "most know-how this month leads the season board");
-  const c = await newPlayer(); await call(score, "POST", { name: "Farmer", prestige: 1, seasonP: 1, seasonKh: 100, level: 1, points: 0 }, c);
-  assert.equal((await call(score, "GET", undefined, a, { mode: "season" })).body.top[0].seasonP, 1, "a prestige this month beats any amount of know-how");
+  assert.equal(board.body.top[0].seasonKh, 9000, "with equal stars, most know-how this season leads");
+  const c = await newPlayer(); await call(score, "POST", { name: "Farmer", prestige: 1, seasonP: 1, seasonKh: 100, seasonStars: 12, level: 1, points: 0 }, c);
+  const top = (await call(score, "GET", undefined, a, { mode: "season" })).body.top[0];
+  assert.equal(top.seasonStars, 12, "season stars beat any amount of know-how"); assert.equal(top.seasonP, 1);
   clock += 20000;
   assert.equal((await call(score, "POST", s(5000 + 1e7, 5000), a)).body.error, "too_fast");
 });
@@ -120,4 +121,38 @@ test("events: only current and upcoming drops are served", async () => {
     { id: "soon", starts: "2026-12-01T00:00:00Z", ends: "2026-12-08T00:00:00Z" }] } }), configurable: true });
   const r = await call(events, "GET");
   assert.deepEqual(r.body.events.map((e) => e.id + ":" + e.live), ["now:true", "soon:false"]);
+});
+
+test("seasons: stars can only grow as fast as the daily caps allow", async () => {
+  const a = await newPlayer();
+  const s = (st) => ({ name: "Farmer", prestige: 0, seasonP: 0, seasonKh: 0, seasonStars: st, level: 1, points: 0 });
+  assert.equal((await call(score, "POST", s(500), a)).body.error, "too_far_for_a_new_player");
+  assert.equal((await call(score, "POST", s(30), a)).status, 200);
+  clock += 60000;
+  assert.equal((await call(score, "POST", s(200), a)).body.error, "too_many_stars", "a minute later");
+  clock += 5 * 86400e3;
+  assert.equal((await call(score, "POST", s(150), a)).status, 200, "five days of capped play");
+});
+
+test("seasons: the first request of a new season saves the final board, and final ranks come from it", async () => {
+  clock = Date.parse("2026-11-29T03:00:00Z");
+  const a = await newPlayer(), b = await newPlayer();
+  const s = (st, kh) => ({ name: "Farmer", prestige: 0, seasonP: 0, seasonKh: kh, seasonStars: st, level: 1, points: 0 });
+  await call(score, "POST", s(40, 10), a); await call(score, "POST", s(20, 99), b);
+  assert.equal((await call(score, "GET", undefined, a, { mode: "final", season: "2026-11" })).body.error, "season_not_over");
+  clock = Date.parse("2026-11-30T16:00:00Z");   /* 1 December in Japan */
+  assert.equal(G.seasonKey(clock), "2026-12");
+  await call(score, "POST", s(2, 0), a);   /* a moves on to December straight away */
+  const fin = await call(score, "GET", undefined, b, { mode: "final", season: "2026-11" });
+  assert.equal(fin.status, 200); assert.equal(fin.body.top[0].seasonStars, 40, "a's November stars were kept"); assert.equal(fin.body.me.rank, 2);
+  const live = await call(score, "GET", undefined, b, { mode: "season" });
+  assert.equal(live.body.players, 1, "December has only the player who played in it");
+});
+
+test("seasons: season cosmetics pass, made-up ones do not", () => {
+  const l = G.cleanLook({ crest: 0, hat: "s_momiji", charm: "lights", title: "2026-10", bg: "s_sakura" }, 0);
+  assert.deepEqual([l.hat, l.charm, l.title, l.bg], ["s_momiji", "lights", "2026-10", "s_sakura"]);
+  const bad = G.cleanLook({ hat: "s_<b>", charm: "gold", title: "2099-01", bg: "s_nope" }, 0);
+  assert.deepEqual([bad.hat, bad.charm, bad.title, bad.bg], ["", "", "", "none"], "unknown themes and future titles are dropped");
+  assert.equal(G.prevSeason("2027-01"), "2026-12");
 });

@@ -12,6 +12,9 @@ Before launch
 - [ ] Stock 100 g sample bags of Casablanca Blend, Colombia Pink Whiskey, Ethiopia Yirgacheffe and Sumatra Strawberry, plus a "Roaster's choice" for monthly samples. Order emails will say which to pack.
 - [ ] Place one test-mode order on a Netlify deploy preview with `GAME_SAMPLES=on` set for previews only: claim it in `/farm/`, earn the welcome sample, and check it rides with the next order and the email says to pack it. (The new backend has only run in tests so far.)
 
+- [ ] Season timing: set `SEASON_FIRST` in `game-assets/play/template.html` to the launch month (it decides when the Season archive opens, a year after the first season). If launch falls after the 15th, fold the next month into the first season by setting `SEASON_JOIN` to e.g. `{ '2026-12': '2026-11' }` in **both** `template.html` and `netlify/lib/game.js`, so nobody's first badge comes from a short season.
+- [ ] All 12 season themes (Momiji, Winter lights, Shōgatsu and on) are drawn by `game-assets/build_sprites.py`. Look over the season art sheet before launch and adjust any theme's colours there.
+
 Launch day
 - [ ] Try the kit on a copy: `cp -r beju-site /tmp/beju-launch && python3 launch/apply.py --target /tmp/beju-launch`
 - [ ] Apply it: `python3 launch/apply.py`, then commit. This also builds the public game: no noindex, and the Test tab becomes Settings with the cheats switched off.
@@ -23,6 +26,7 @@ Launch day
 - **Checkout redemption** (`create-checkout`): a sample rides with an order of ¥3,000 or more, shown on Stripe's page and noted on the order email. **Off until `GAME_SAMPLES=on`**, and a problem with a sample never blocks a purchase.
 - **Webhook** (`stripe-webhook`): marks a sample redeemed when the order is paid, gives it back if the checkout expires or a konbini payment fails, and pays cranes for every paid subscription renewal (`game-grants` hands them to the game).
 - **Subscriptions**: claiming a subscription order in the game links it, so renewals earn cranes.
+- **Seasons** (`game-score`): the season board ranks season stars, then know-how this season, and checks stars against the daily caps. The first request of each new season saves the closed board as `seasons/<month>`, and `?mode=final&season=<month>` gives each player their final rank for the end-of-season badge.
 
 ## On launch day
 1. Try it on a copy: `cp -r beju-site /tmp/beju-launch && python3 launch/apply.py --target /tmp/beju-launch`

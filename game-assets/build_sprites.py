@@ -1384,6 +1384,57 @@ BUILD_SKINS = {
                 "WOOD": ["#FFF6DA", "#F2DEA0", "#E2C070", "#B88E34", "#7A5C1C"], "THATCH": ["#FFF2A8", "#F4D466", "#E8BC34", "#CC9C22", "#A87C18", "#7A5A10"]},
                 "map": {"#2D6A46": "#E8B830", "#F4ECDC": "#FFFFFF", "#A8B8C4": "#F4D466", "#7A8A96": "#CC9C22"}},
 }
+# ---------------- monthly season themes: one palette and one motif each, drawn into a full set of season cosmetics ----------------
+# Each theme gives: a picker and farmer hat colourway, a building style, a farm decoration, an 80 px character background and a nameplate charm.
+def shade(h, f):
+    r, g, b, _ = hx(h)
+    if f >= 0:
+        r, g, b = r + (255 - r) * f, g + (255 - g) * f, b + (255 - b) * f
+    else:
+        r, g, b = r * (1 + f), g * (1 + f), b * (1 + f)
+    return "#%02X%02X%02X" % (int(r), int(g), int(b))
+
+
+def ramp(base, n):   # light to dark around a base colour
+    steps = [0.45, 0.2, 0, -0.22, -0.42, -0.58][:n] if n == 6 else [0.4, 0.15, 0, -0.25, -0.48]
+    return [shade(base, s) for s in steps]
+
+
+MOTIFS = {   # 7x7: a main colour, b dark, c accent
+    "maple":   ["...a...", ".a.a.a.", "aaaaaaa", ".aaaaa.", "..aaa..", "...b...", "...b..."],
+    "light":   ["...b...", "..bab..", ".baaab.", ".bacab.", ".baaab.", "..bab..", "...b..."],
+    "pine":    ["...a...", "..aaa..", ".aaaaa.", "..aaa..", ".aaaaa.", "aaaaaaa", "...b..."],
+    "plum":    ["..a.a..", ".aaaaa.", "aaacaaa", ".aaaaa.", "..a.a..", ".......", "......."],
+    "peach":   [".aa.aa.", "aaaaaaa", "aaacaaa", ".aaaaa.", "..aaa..", "...a...", "......."],
+    "petal":   ["...a...", "..aaa..", ".aacaa.", "aaaaaaa", ".aa.aa.", ".a...a.", "......."],
+    "carp":    [".......", "b.aaa..", "bbaaaa.", "baaacab", "bbaaaa.", "b.aaa..", "......."],
+    "drop":    ["...a...", "..aaa..", "..aaa..", ".aaaca.", ".aaaaa.", "..aaa..", "......."],
+    "star":    ["...a...", "...a...", "aaaaaaa", ".aaaaa.", "..aaa..", ".aa.aa.", ".a...a."],
+    "burst":   ["a..a..a", ".a.a.a.", "..aca..", "aacccaa", "..aca..", ".a.a.a.", "a..a..a"],
+    "moon":    ["..aaa..", ".aaa...", "aaa....", "aaa....", "aaa....", ".aaa...", "..aaa.."],
+    "lantern": ["..bbb..", ".aaaaa.", "aacaaca", "aaaaaaa", "aacaaca", ".aaaaa.", "..bbb.."],
+}
+SEASON_THEMES = {   # month -> theme. main: the motif and canopy colour; deep: roofs and trim; sky: top and bottom of the background
+    1:  {"id": "shogatsu", "name": "Shōgatsu", "title": "New Year Grower", "motif": "pine", "main": "#3E8A4A", "accent": "#E8B830", "deep": "#B8282E", "sky": ["#F8D8B0", "#FFF4E2"], "ground": "#DCC28E", "deco": "pole", "rule": "Daily tasks pay double coins."},
+    2:  {"id": "ume", "name": "Ume", "title": "Plum Blossom Grower", "motif": "plum", "main": "#E05A86", "accent": "#F8E070", "deep": "#6A3A4E", "sky": ["#E6D8EC", "#FBF2F6"], "ground": "#B8B49A", "deco": "tree", "rule": "Natural lots sell for 15% more."},
+    3:  {"id": "hina", "name": "Hina", "title": "Peach Festival Grower", "motif": "peach", "main": "#F49AB0", "accent": "#F8F0A0", "deep": "#8A3A58", "sky": ["#FCE0E6", "#FFF6F2"], "ground": "#BCC88A", "deco": "tree", "rule": "Supply contracts pay 10% more."},
+    4:  {"id": "sakura", "name": "Sakura", "title": "Cherry Blossom Grower", "motif": "petal", "main": "#F6B4CA", "accent": "#FFF0F4", "deep": "#C86C8E", "sky": ["#CCE6F6", "#FCEEF4"], "ground": "#A8C878", "deco": "tree", "rule": "Every farm grows 10% faster."},
+    5:  {"id": "koinobori", "name": "Koinobori", "title": "Carp Streamer Grower", "motif": "carp", "main": "#E8503A", "accent": "#FFFFFF", "deep": "#2A4C9C", "sky": ["#A8DAF4", "#E8F6FC"], "ground": "#8CC060", "deco": "pole", "rule": "Washed lots sell for 15% more."},
+    6:  {"id": "tsuyu", "name": "Tsuyu", "title": "Rainy Season Grower", "motif": "drop", "main": "#6A8AE0", "accent": "#C8E0FF", "deep": "#4A3A8A", "sky": ["#A8B4C4", "#DCE4EC"], "ground": "#7AA05A", "deco": "tree", "rule": "Rainy weather no longer slows growth."},
+    7:  {"id": "tanabata", "name": "Tanabata", "title": "Star Festival Grower", "motif": "star", "main": "#F2D24A", "accent": "#FFFFFF", "deep": "#2A3470", "sky": ["#1E2A5A", "#4A4A8A"], "ground": "#4A6A3A", "deco": "pole", "rule": "Golden bushes appear 25% more often."},
+    8:  {"id": "hanabi", "name": "Hanabi", "title": "Fireworks Grower", "motif": "burst", "main": "#F27A4A", "accent": "#FFF0A0", "deep": "#3A2A5A", "sky": ["#141A3A", "#3A2A5A"], "ground": "#3E5A34", "deco": "pole", "rule": "Golden bushes pay 25% more."},
+    9:  {"id": "tsukimi", "name": "Tsukimi", "title": "Moon Viewing Grower", "motif": "moon", "main": "#F8E8A0", "accent": "#FFFFFF", "deep": "#3A3A6A", "sky": ["#2A305A", "#6A6A9A"], "ground": "#A89A62", "deco": "pole", "rule": "Each lot you cup gives 2 season stars."},
+    10: {"id": "akimatsuri", "name": "Aki matsuri", "title": "Autumn Festival Grower", "motif": "lantern", "main": "#E8602A", "accent": "#F8E070", "deep": "#6A2A1A", "sky": ["#F8C890", "#FCEAD2"], "ground": "#C8A45C", "deco": "pole", "rule": "Picking by hand brings in 20% more cherries."},
+    11: {"id": "momiji", "name": "Momiji", "title": "Maple Harvester", "motif": "maple", "main": "#D8402E", "accent": "#F8B040", "deep": "#7A2A1E", "sky": ["#F6D2A8", "#FCEEDC"], "ground": "#C8A060", "deco": "tree", "rule": "Honey lots sell for 15% more."},
+    12: {"id": "lights", "name": "Winter lights", "title": "Winter Lights Grower", "motif": "light", "main": "#F8D860", "accent": "#FFFFFF", "deep": "#2A4A6A", "sky": ["#1E2E4A", "#4A5E7A"], "ground": "#E2EAF2", "deco": "tree", "rule": "Golden bushes stay for 45 seconds."},
+}
+for _m, _t in SEASON_THEMES.items():
+    HATS["s_" + _t["id"]] = [shade(_t["main"], 0.3), _t["main"], shade(_t["main"], -0.4)]
+    BUILD_SKINS["s_" + _t["id"]] = {"name": _t["name"], "cost": 0, "season": _t["id"], "note": _t["name"] + " season style", "snow": _t["id"] in ("lights",),
+                                    "ramps": {"THATCH": ramp(_t["deep"], 6)},
+                                    "map": {"#2D6A46": _t["main"], "#F4ECDC": _t["accent"]}}
+
+
 _SHADOW = "#2A2A0850"
 for sk, spec in BUILD_SKINS.items():
     saved = {k: globals()[k] for k in spec["ramps"]}
@@ -1400,7 +1451,7 @@ for sk, spec in BUILD_SKINS.items():
                         canvas[(x, ys[0] + 1)] = "#E4EEF6"
         add_layer("build_%s_%s" % (k, sk), 28, 26, lambda p, cv=canvas: [p(x, y, c) for (x, y), c in cv.items()])
     globals().update(saved)
-BSKIN_INFO = {k: {"name": v["name"], "cost": v["cost"], "note": v["note"]} for k, v in BUILD_SKINS.items()}
+BSKIN_INFO = {k: {"name": v["name"], "cost": v["cost"], "note": v["note"], "season": v.get("season")} for k, v in BUILD_SKINS.items()}
 
 
 def d_bench(p):
@@ -1475,6 +1526,79 @@ def d_bandana(p):
 for k, fn, w, h in [("bench", d_bench, 16, 10), ("lantern", d_lantern, 7, 14), ("flag", d_flag, 12, 22), ("bunting", d_bunting, 24, 8),
                     ("planter", d_planter, 12, 12), ("cart", d_cart, 22, 16), ("bandana", d_bandana, 12, 10)]:
     add_layer("deco_" + k, w, h, fn)
+
+
+def motif_at(p, x0, y0, t, scale=1):
+    cols = {"a": t["main"], "b": shade(t["deep"], -0.2), "c": t["accent"]}
+    for y, row in enumerate(MOTIFS[t["motif"]]):
+        for x, ch in enumerate(row):
+            if ch in cols:
+                for dy in range(scale):
+                    for dx in range(scale):
+                        p(x0 + x * scale + dx, y0 + y * scale + dy, cols[ch])
+
+
+def season_deco(t):   # 16x20: a blossom or leaf tree, or a bamboo pole with a banner
+    def draw(p):
+        for x in range(3, 13):
+            p(x, 19, "#2A2A0850")
+        if t["deco"] == "tree":
+            rect(p, 7, 11, 2, 8, OUT); rect(p, 7, 11, 1, 8, WOOD[3])
+            rng = random.Random(t["id"])
+            can = ramp(t["main"], 5)
+            for y in range(1, 13):
+                for x in range(1, 15):
+                    d = ((x - 7.5) / 7) ** 2 + ((y - 6.5) / 6) ** 2
+                    if d < 1:
+                        p(x, y, OUT if d > 0.8 else can[min(4, int(d * 3 + (y > 8) + rng.random() * 0.8))])
+            for _ in range(7):
+                x, y = rng.randint(3, 12), rng.randint(2, 10)
+                p(x, y, t["accent"])
+        else:
+            rect(p, 2, 0, 2, 19, OUT); rect(p, 2, 0, 1, 19, "#9CB860")
+            for y in (5, 11, 16):
+                p(2, y, "#5E7A2C"); p(3, y, "#5E7A2C")
+            rect(p, 4, 1, 11, 11, OUT); rect(p, 5, 2, 9, 9, t["deep"])
+            motif_at(p, 6, 3, t)
+    return draw
+
+
+def season_bg(t):   # 80x80 backdrop behind the farmer: sky, falling motifs, a hill and ground
+    def draw(p):
+        top, bot = hx(t["sky"][0]), hx(t["sky"][1])
+        for y in range(80):
+            f = min(7, y // 8) / 7   # eight bands, so the palette stays small
+            c = "#%02X%02X%02X" % tuple(int(top[i] + (bot[i] - top[i]) * f) for i in range(3))
+            for x in range(80):
+                p(x, y, c)
+        rng = random.Random("bg" + t["id"])
+        for _ in range(9):
+            motif_at(p, rng.randint(0, 72), rng.randint(0, 46), t)
+        g = ramp(t["ground"], 5)
+        for x in range(80):
+            hill = int(56 + 5 * math.sin(x / 13 + len(t["id"])))
+            for y in range(hill, 80):
+                p(x, y, g[1] if y < hill + 2 else g[2] if y < 66 else g[3])
+    return draw
+
+
+def season_charm(t):   # 9x9 round tag pinned to the nameplate
+    def draw(p):
+        for y in range(9):
+            for x in range(9):
+                d = (x - 4) ** 2 + (y - 4) ** 2
+                if d <= 20:
+                    p(x, y, OUT if d > 13 else "#FFF8EC")
+        motif_at(p, 1, 1, t)
+    return draw
+
+
+SEASON_INFO = {}
+for _m, _t in SEASON_THEMES.items():
+    add_layer("deco_s_" + _t["id"], 16, 20, season_deco(_t))
+    add_layer("sbg_" + _t["id"], 80, 80, season_bg(_t))
+    add_layer("charm_" + _t["id"], 9, 9, season_charm(_t))
+    SEASON_INFO[_m] = {k: _t[k] for k in ("id", "name", "title", "main", "accent", "deep", "rule")}
 
 
 def board(p):
@@ -1747,7 +1871,7 @@ for cid, (name, home, cost, sp, hp, hands, feet, tail, tcol, tcol2) in CHARS.ite
 
 SHRUBS = [(bx + 6 + c * 18, by + r * 17) for (bx, by) in BEDS[:3] for r in range(2) for c in range(4)]
 with open(os.path.join(HERE, "sprites.json"), "w") as f:
-    json.dump({"sprites": S, "shirts": SHIRTS, "shrubs": SHRUBS, "locations": LOCATIONS, "storage": STORAGE, "carry": CARRY, "hats": HATS, "buildings": BUILDINGS, "chars": CHAR_INFO, "bskins": BSKIN_INFO, "stampColors": STAMP_COLORS, "beds": BEDS,
+    json.dump({"sprites": S, "shirts": SHIRTS, "shrubs": SHRUBS, "locations": LOCATIONS, "storage": STORAGE, "carry": CARRY, "hats": HATS, "buildings": BUILDINGS, "chars": CHAR_INFO, "bskins": BSKIN_INFO, "seasons": SEASON_INFO, "stampColors": STAMP_COLORS, "beds": BEDS,
                "varieties": {k: v[0] for k, v in VARIETIES.items()}}, f, separators=(",", ":"))
 
 # sheet of non-shrub sprites

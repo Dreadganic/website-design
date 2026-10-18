@@ -148,3 +148,16 @@ Coins build, know-how unlocks, cranes buy looks, and the tabs follow that rule:
 - **Samples:** a welcome 100 g bag at Mogiana's first 1,000 kg, one per origin at prestige 2 (Huila), 3 (Gedeo), 4 (Lake Toba) and 5 (Turrialba), and one a month for checking in on 20 days. Each is redeemed with a bejucoffee.com order of ¥3,000 or more within 60 days, one per order. Online, the server's list (`game-samples`) is the real one and local samples it hasn't confirmed show as "Checking with the roastery". Shop › Real coffee lists them with status and expiry; the farm tab shows each farm's sample goal. Test tab: "Next free sample", "+20 check-in days".
 - **Cranes from play** are kept low so real orders are the fast lane: the daily "sell 2 lots" task pays 1, the weekly team order 10, and check-in day 4 and day 7 pay 1 and 3. Paid subscription renewals pay cranes too (`game-grants`).
 - The public-site changes for launch (footer link, thank-you button, checkout sample offer, un-hiding /farm/) live in `launch/`, not in `beju-site/`. See `launch/README.md`.
+
+## Seasons (season stars, the track and monthly themes)
+- **One season per calendar month, Japan time.** Each month has a theme from the Japanese calendar (`SEASON_THEMES` in `build_sprites.py`): Shōgatsu, Ume, Hina, Sakura, Koinobori, Tsuyu, Tanabata, Hanabi, Tsukimi, Aki matsuri, Momiji, Winter lights.
+- **The farm never resets.** Only the season board, the track, the daily star caps and the month's rule start again. Prestige stays the only reset.
+- **Season stars** come from the daily check-in (2), daily tasks (2 each, 6 a day), golden bushes (1, 5 a day), hand cupping (1, 3 a day), contracts (1, 3 a day), the weekly order (15), drop event contracts (5) and the season's first prestige (10; later prestiges that season give none, so quick early prestiges don't put new players ahead). The caps reset each real day.
+- **The season board** ranks season stars, then know-how earned this season, so new and old farmers race on equal terms.
+- **The track**: 30 tiers of 15 stars, free. A cosmetic every 5 tiers (decoration, background, hat, building style, nameplate charm, then a dated title and a gold badge frame), coins, stamina and growth boosts in between, never cranes. Unclaimed tiers are granted when the season ends.
+- **Season rules**: one mild twist per theme, aimed at active play (e.g. Momiji: honey lots sell for 15% more; Winter lights: golden bushes last 45 s). The last 3 days of every season bring golden bushes twice as often.
+- **Season archive** (Shop > Farmer): a year after a season ends, its cosmetics come back for cranes. Titles and badges never come back.
+- **Closing a season**: the server saves the final board on the first request of a new season, and the game asks it for the final rank before showing the badge.
+- The farm's harvest, rainy, spring … chip is now called the weather, so it isn't confused with the monthly season.
+- Test tab: "+50 season stars" and "End the season".
+

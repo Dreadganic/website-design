@@ -100,6 +100,17 @@ button, a.btn, [data-act], [data-tab] { touch-action: manipulation; -webkit-tap-
 .push { display: flex; flex-direction: column; gap: 2px; width: 100%; text-align: left; padding: 10px 12px; border-radius: 14px; background: #F4F4F6; color: #1E1E22; box-shadow: 0 2px 8px rgba(0,0,0,0.18); font-family: -apple-system, system-ui, sans-serif; font-size: 13px; }
 .push-app { font-size: 11px; color: #6E6E76; letter-spacing: 0.04em; }
 .season { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; padding: 8px 10px; background: #E2F0E6; border: 2px solid #2D6A46; border-radius: 8px; font-size: 13px; }
+.plate .charm { width: 14px; height: 14px; image-rendering: pixelated; vertical-align: -2px; margin-left: 4px; }
+.badge.gold { border-color: #E8B830; box-shadow: 0 0 0 2px #FFF1C4, 0 0 0 4px #E8B830; }
+.track { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px; }
+.tier { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px; border: 2px solid #C8BCA4; border-radius: 8px; background: #FBF7EE; font-size: 11px; text-align: center; line-height: 1.2; }
+.tier img { width: 28px; height: 28px; object-fit: contain; image-rendering: pixelated; }
+.tier b { font-size: 11px; color: #6A5A44; }
+.tier.cos { border-color: #E8B830; background: #FFF6D8; }
+.tier.got { opacity: 0.55; }
+.tier.ready { border-color: #2D6A46; background: #E2F0E6; }
+.tier button { font-size: 11px; padding: 3px 6px; }
+.rule { padding: 8px 10px; border: 2px dashed #A87818; border-radius: 8px; background: #FFF8E2; font-size: 13px; }
 .season span { font-weight: 700; color: #3E5A48; }
 .badges { display: flex; gap: 6px; flex-wrap: wrap; }
 .badge { display: flex; flex-direction: column; align-items: center; padding: 4px 8px; border-radius: 8px; border: 2px solid #A87818; background: #FFF1C4; font: 700 12px 'Pixelify Sans', monospace; }
@@ -243,7 +254,7 @@ canvas.hint { transform: none !important; }
   <div class="card top">
     <button class="arrow" id="prevLoc" type="button" aria-label="Previous farm">◀</button>
     <div class="name"><b id="locName">Mogiana, Brazil</b><span id="locBeds">Yellow Bourbon · Mundo Novo · Catuaí</span></div>
-    <span class="chip" id="seasonChip">Harvest</span>
+    <span class="chip" id="seasonChip" aria-label="Weather">Harvest</span>
     <button class="arrow" id="nextLoc" type="button" aria-label="Next farm">▶</button>
   </div>
 
@@ -298,7 +309,7 @@ const VAR = {
   caturra: { cost: 0, kg: 3, speed: 1, value: 1, perk: 'The everyday bean. Reliable, nothing fancy.' },
   catimor: { cost: 150, kg: 3, speed: 1.35, value: 0.9, perk: 'Fast grower: ripens 35% sooner, sells a little lower.' },
   catuai: { cost: 400, kg: 4, speed: 1, value: 1.1, perk: 'Compact and heavy: 4 kg every pick.' },
-  castillo: { cost: 1000, kg: 3, speed: 1, value: 1, allSeason: true, perk: 'Rust-proof: grows at harvest speed in every season.' },
+  castillo: { cost: 1000, kg: 3, speed: 1, value: 1, allSeason: true, perk: 'Rust-proof: grows at harvest speed in all weather.' },
   mundonovo: { cost: 2500, kg: 5, speed: 0.8, value: 1, perk: 'Tall giant: 5 kg every pick, grows 20% slower.' },
   yellowbourbon: { cost: 6000, kg: 3, speed: 1, value: 1.3, cup: { natural: 1.5, honey: 1.5 }, perk: 'Sweet: sells ×1.3, +1.5 cup score as natural or honey.' },
   pinkbourbon: { cost: 14000, kg: 3, speed: 1, value: 1.4, cup: { whiskey: 2, rum: 2 }, perk: 'Barrel friend: sells ×1.4, +2 cup score in whiskey or rum.' },
@@ -340,16 +351,80 @@ const DECOR = {
   bunting: { name: 'Festival bunting', cost: 15000, sub: 'Flags strung across the farm' },
   cart: { name: 'Coffee cart', cost: 25000, sub: 'A little Beju cart serving the pickers' }
 };
+const SEASON_DECO_AT = [[30, 199], [88, 199], [146, 199]];   /* along the hedge, clear of the paths */
 const DECOR_AT = { bench: [[138, 96]], planter: [[179, 104]], lantern: [[91, 140], [91, 186]], flag: [[2, 86]], cart: [[154, 92]] };
 /* prestige: purely for show. It ranks you above everyone on a lower prestige, unlocks a nameplate, border and farmer outfit per tier,
    and costs you level, points and access to farms until you level back up. Coins, upgrades and cosmetics are never touched. */
 const PRESTIGE_LEVEL = 10;
-/* monthly seasons: a fresh board each calendar month, ranked by know-how earned that month. Each lifetime prestige asks for 8 more levels */
-const seasonKey = (d) => { d = d || new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); };
-const seasonName = (k) => new Date(+k.slice(0, 4), +k.slice(5) - 1, 1).toLocaleString('en', { month: 'long', year: 'numeric' });
+/* seasons: each calendar month (Japan time) is a themed season with its own board, a free 30-tier track paid in season stars, and one mild rule.
+   The farm never resets: only the season board, the track and the rule start again. Each lifetime prestige asks for 8 more levels */
+const SEASON_JOIN = {};   /* for launch: a month listed here counts as part of an earlier season, e.g. { '2026-12': '2026-11' } when launching after the 15th. Keep in step with netlify/lib/game.js */
+const monthOf = (d) => { const j = new Date((d ? d.getTime() : Date.now()) + 9 * 3600e3); return j.getUTCFullYear() + '-' + String(j.getUTCMonth() + 1).padStart(2, '0'); };
+const seasonKey = (d) => { const k = monthOf(d); return SEASON_JOIN[k] || k; };
+const theme = (k) => ART.seasons[String(+(k || S.season.key).slice(5))];
+const seasonName = (k) => theme(k).name + ' ' + k.slice(0, 4);
+const seasonEnds = () => {   /* midnight Japan time at the start of the first month that is not part of this season */
+  const j = new Date(Date.now() + 9 * 3600e3), cur = seasonKey();
+  let y = j.getUTCFullYear(), m = j.getUTCMonth() + 1;
+  for (;;) { m += 1; if (m > 12) { m = 1; y += 1; } const k = y + '-' + String(m).padStart(2, '0'); if ((SEASON_JOIN[k] || k) !== cur) return Date.UTC(y, m - 1, 1) - 9 * 3600e3; }
+};
+const daysLeft = () => Math.max(1, Math.ceil((seasonEnds() - Date.now()) / 86400000));
+const lastHarvest = () => daysLeft() <= 3;   /* the last 3 days: golden bushes come twice as often */
+const rule = (id) => theme().id === id;
 const prestigeNeed = () => PRESTIGE_LEVEL + 8 * S.prestige;   /* 10, 18, 26, 34 ... and each level past 10 costs 1.22x the last */
-const daysLeft = () => { const n = new Date(); return Math.ceil((new Date(n.getFullYear(), n.getMonth() + 1, 1) - n) / 86400000); };
 const BADGE = (rank) => (rank === 1 ? 'Champion' : rank <= 3 ? 'Top 3' : rank <= 10 ? 'Top 10' : 'Farmer');
+/* season stars come from things done on a real day, each with a daily cap, so an hour a day earns nearly as much as six */
+const STAR_PER = { checkin: 2, task: 2, golden: 1, cup: 1, contract: 1, weekly: 15, drop: 5, prestige: 10 };
+const STAR_CAP = { checkin: 2, task: 6, golden: 5, cup: 3, contract: 3 };
+const STAR_WHAT = { checkin: 'Daily check-in', task: 'Daily tasks', golden: 'Golden bushes', cup: 'Lots cupped by hand', contract: 'Supply contracts' };
+const TRACK_TIERS = 30, TIER_STARS = 15;
+const tierAt = (st) => Math.min(TRACK_TIERS, Math.floor(st / TIER_STARS));
+const newSeason = () => ({ key: seasonKey(), prestige: 0, kh: 0, stars: 0, claimed: {}, caps: {}, capDay: '' });
+const starCap = (kind) => STAR_CAP[kind] * (kind === 'cup' && rule('tsukimi') ? 2 : 1);
+function star(kind) {
+  const ss = S.season, day = dayKey(new Date());
+  if (kind === 'prestige' && ss.prestige > 1) return;   /* only the season's first prestige pays stars, so a newcomer's run of quick early prestiges can't outrank a veteran */
+  if (ss.capDay !== day) { ss.capDay = day; ss.caps = {}; }
+  let add = STAR_PER[kind] * (kind === 'cup' && rule('tsukimi') ? 2 : 1);
+  if (STAR_CAP[kind]) { add = Math.min(add, starCap(kind) - (ss.caps[kind] || 0)); if (add <= 0) return; ss.caps[kind] = (ss.caps[kind] || 0) + add; }
+  const before = tierAt(ss.stars); ss.stars += add;
+  if (tierAt(ss.stars) > before) toast('Season track: tier ' + tierAt(ss.stars) + ' reached! Claim it in Ranks');
+}
+/* the free season track: a cosmetic every 5 tiers, small play rewards in between, never cranes */
+function trackTier(k, n) {
+  const t = theme(k), id = t.id;
+  const cos = { 5: { deco: id, label: t.name + ' decoration', img: 'deco_s_' + id }, 10: { bg: id, label: t.name + ' background', img: 'sbg_' + id }, 15: { hat: id, label: t.name + ' hat', img: 'hat_s_' + id },
+    20: { bskin: id, label: t.name + ' building style', img: 'build_housing_s_' + id }, 25: { charm: id, label: t.name + ' nameplate charm', img: 'charm_' + id }, 30: { title: k, label: '"' + t.title + ' ' + k.slice(0, 4) + '" title and a gold badge', img: 'charm_' + id } }[n];
+  if (cos) return Object.assign({ cosmetic: true }, cos);
+  return [{ coins: 1, label: 'Coins', img: 'i_coin' }, { hearts: 1, label: 'Stamina refill', img: 'i_heart' }, { grow: 1, label: 'Growth ×2 for 10 min', img: 'i_cherry' }, { coins: 2, label: 'Big coin bag', img: 'i_coin' }][(n - 1) % 5 % 4];
+}
+const tierCoins = (r) => r.coins * Math.max(500, Math.round(rateC * 4));   /* about four minutes of your income */
+function grantTier(k, n, quiet) {
+  const ss = S.season, r = trackTier(k, n); if (ss.claimed[n]) return null;
+  ss.claimed[n] = true;
+  if (r.deco) S.decor['s_' + r.deco] = true;
+  if (r.bg) S.sitems.bg[r.bg] = true;
+  if (r.hat) S.hats['s_' + r.hat] = true;
+  if (r.bskin) S.bskins['s_' + r.bskin] = true;
+  if (r.charm) S.sitems.charm[r.charm] = true;
+  if (r.title) S.sitems.title[r.title] = true;
+  if (r.coins) S.coins += tierCoins(r);
+  if (r.hearts) S.hearts = maxHearts();
+  if (r.grow) S.boosts.grow = Math.max(S.boosts.grow || 0, S.minutesTotal) + 10 * REAL_MIN;
+  if (!quiet) { SFX.play(r.cosmetic ? 'achieve' : 'coins'); toast('Tier ' + n + ': ' + r.label + (r.cosmetic ? '. Find it in Ranks > Prestige & looks' : '')); }
+  return r;
+}
+/* the Season archive: a year after a season ends, its cosmetics (not its title or badge) can be bought with cranes */
+const SEASON_FIRST = '2026-11', ARCHIVE = { deco: 10, bg: 15, hat: 15, bskin: 30, charm: 10 }, ARCHIVE_WHAT = { deco: 'decoration', bg: 'background', hat: 'hat', bskin: 'building style', charm: 'nameplate charm' };
+function archiveKeys() {
+  const out = [], cur = seasonKey(), at = (k) => +k.slice(0, 4) * 12 + +k.slice(5);
+  let y = +SEASON_FIRST.slice(0, 4), m = +SEASON_FIRST.slice(5);
+  for (;;) { const k = y + '-' + String(m).padStart(2, '0'); if (at(cur) - at(k) < 13) break; if (!out.some((x) => theme(x).id === theme(k).id)) out.push(k); m += 1; if (m > 12) { m = 1; y += 1; } }
+  return out;
+}
+const archOwned = (kind, id) => ({ deco: S.decor['s_' + id] !== undefined, bg: !!S.sitems.bg[id], hat: !!S.hats['s_' + id], bskin: !!S.bskins['s_' + id], charm: !!S.sitems.charm[id] })[kind];
+function archGive(kind, id) { if (kind === 'deco') S.decor['s_' + id] = true; if (kind === 'bg') S.sitems.bg[id] = true; if (kind === 'hat') S.hats['s_' + id] = true; if (kind === 'bskin') S.bskins['s_' + id] = true; if (kind === 'charm') S.sitems.charm[id] = true; }
+const titleText = (k) => (k && ART.seasons[String(+k.slice(5))] ? theme(k).title + ' ' + k.slice(0, 4) : '');
 const FARM_LEVEL = { huila: 3, gedeo: 5, toba: 7, turrialba: 9 };   /* dormant farms reopen at these levels after a prestige */
 const TIERS = ['Seedling', 'Bronze Bean', 'Silver Leaf', 'Gold Cherry', 'Jade Highland', 'Sakura', 'Obsidian Ember', 'Golden Crane'];
 const PLATES = ['seed', 'bronze', 'silver', 'gold', 'jade', 'sakura', 'ember', 'crane'];
@@ -368,11 +443,14 @@ const tierOf = (p) => Math.min(p, TIERS.length - 1);
 /* outfits are not tied to tiers: each prestige lets the player pick any one outfit they don't have yet, so collections differ from player to player */
 /* character backgrounds come from the passport: each origin stamp gives that farm's scene, opening Osaka gives the garden, and all five origin stamps give the gold Beju backdrop */
 const ORIGINS = ['mogiana', 'huila', 'gedeo', 'toba', 'turrialba'];
-const BG_LIST = ['none'].concat(LOCS, ['beju']);
-const bgOpen = (id) => id === 'none' || (id === 'beju' ? ORIGINS.every((l) => S.stamps[l]) : id === 'osaka' ? S.farms.osaka.unlocked : !!S.stamps[id]);
-const bgName = (id) => id === 'none' ? 'Plain' : id === 'beju' ? 'Beju gold' : ART.locations[id].name.split(',')[0];
-const bgHow = (id) => id === 'beju' ? 'All 5 stamps' : id === 'osaka' ? 'Open Osaka' : bgName(id) + ' stamp';
-const normLook = (l) => { l = l || {}; const n = (x) => Math.max(0, Math.min(7, Math.floor(Number(x) || 0))); return { crest: n(l.crest !== undefined ? l.crest : l.plate), skin: n(l.skin), bg: BG_LIST.indexOf(l.bg) > -1 ? l.bg : 'none', char: ART.chars[l.char] ? l.char : 'none' }; };
+const SEASON_IDS = Object.keys(ART.seasons).map((m) => ART.seasons[m].id);
+const BG_LIST = ['none'].concat(LOCS, ['beju'], SEASON_IDS.map((id) => 's_' + id));   /* s_<theme>: season track backgrounds */
+const sid = (x) => String(x || '').replace(/^s_/, '');
+const themeById = (id) => ART.seasons[Object.keys(ART.seasons).find((m) => ART.seasons[m].id === sid(id))];
+const bgOpen = (id) => id === 'none' || (id.startsWith('s_') ? !!S.sitems.bg[sid(id)] : (id === 'beju' ? ORIGINS.every((l) => S.stamps[l]) : id === 'osaka' ? S.farms.osaka.unlocked : !!S.stamps[id]));
+const bgName = (id) => id.startsWith('s_') ? themeById(id).name : id === 'none' ? 'Plain' : id === 'beju' ? 'Beju gold' : ART.locations[id].name.split(',')[0];
+const bgHow = (id) => id.startsWith('s_') ? 'Season track' : id === 'beju' ? 'All 5 stamps' : id === 'osaka' ? 'Open Osaka' : bgName(id) + ' stamp';
+const normLook = (l) => { l = l || {}; const n = (x) => Math.max(0, Math.min(7, Math.floor(Number(x) || 0))); return { crest: n(l.crest !== undefined ? l.crest : l.plate), skin: n(l.skin), bg: BG_LIST.indexOf(l.bg) > -1 ? l.bg : 'none', char: ART.chars[l.char] ? l.char : 'none', hat: themeById(l.hat) ? 's_' + sid(l.hat) : '', charm: themeById(l.charm) ? sid(l.charm) : '', title: /^\d{4}-\d{2}$/.test(l.title || '') ? l.title : '' }; };
 /* character models replace the farmer's body; the outfit colours still go on top */
 const bodyOf = (look) => (look && ART.chars[look.char] ? 'chr_' + look.char + '_' : 'worker_');
 const CHAR_IDS = Object.keys(ART.chars).sort((a, b) => ART.chars[a].cost - ART.chars[b].cost);
@@ -386,39 +464,54 @@ LOCS.forEach((l) => {
 const skinLook = (i) => ({ shirt: SKINS[i].shirt, hat: SKINS[i].hat, pants: SKINS[i].pants });
 /* the other players on the board (simulated until the app has a server) */
 const BOT_NAMES = ['mika.brews', 'kenji_pourover', 'hana.at.home', 'cafe_lucia', 'bean_samurai', 'pourover_pedro', 'tomo_roasts', 'aroma.amara', 'v60_vince', 'geisha_gabi', 'yuki.drip', 'marco_moka', 'sol_de_huila', 'chemex_chloe', 'riku.ristretto', 'nyala_coffee', 'barista.ben', 'kiko_kettle', 'mogiana_mae', 'dripdrop.dan', 'ayumi_aeropress', 'felipe_finca', 'sakura_sips', 'ruby_roastery', 'ole_espresso', 'lena_latte', 'sumatra_sam', 'koa_cupper', 'ivy.infuser', 'toba_terrace'];
-function bots() {
+function bots(fin) {   /* fin: as the season stood when it closed */
   return BOT_NAMES.map((name, i) => {
     let z = (i + 1) * 9301 + 49297; const r = () => { z = (z * 233280 + 49297) % 2147483647; return z / 2147483647; };
     /* practice players follow the real rules: a run's level stays below their next prestige, and this month's know-how adds up the runs they finished this month */
     const p0 = [5, 4, 4, 3, 3, 3, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0][(i * 7) % 30], sp = r(), rp = r() * 0.1, x0 = r(), rx = 0.15 + r() * 0.5;
-    const days = Math.max(0, (Date.now() - (S.born || Date.now())) / 864e5), month = new Date().getDate() / 31;
+    const days = Math.max(0, (Date.now() - (S.born || Date.now())) / 864e5), dom = fin ? 31 : new Date().getDate(), month = dom / 31;
     const prestige = p0 + Math.floor(days * rp), need = PRESTIGE_LEVEL + 8 * prestige;
     const lv = 1 + Math.floor(((x0 + days * rx) % 1) * (need - 1)), xp = XP_AT(lv) + Math.floor((XP_AT(lv + 1) - XP_AT(lv)) * x0);
     const seasonP = Math.min(prestige, Math.floor(sp * 3.5 * month + 0.3));   /* prestiges so far this month */
     const tr = tierOf(prestige), skin = prestige ? Math.floor(r() * SKINS.length) : 0, bgs = BG_LIST.slice(0, 1 + Math.min(7, prestige + 2));
     const bg = bgs[Math.floor(r() * bgs.length)], ch = r() < 0.45 ? CHAR_IDS[Math.floor(r() * CHAR_IDS.length)] : 'none';
     let seasonKh = Math.round(xp * (seasonP ? 1 : month)); for (let k = prestige - seasonP; k < prestige; k++) seasonKh += XP_AT(PRESTIGE_LEVEL + 8 * k);   /* know-how earned so far this month */
-    return { name, prestige, seasonP, seasonKh, level: lv, points: Math.round(xp), look: { crest: tr, skin, bg, char: ch } };
+    const seasonStars = Math.round(dom * (6 + ((i * 37) % 17))) + 10 * seasonP;   /* each practice player earns 6-22 stars a day */
+    return { name, prestige, seasonP, seasonKh, seasonStars, level: lv, points: Math.round(xp), look: { crest: tr, skin, bg, char: ch } };
   });
 }
-function board(mode) {
-  const live = NET.board[mode === 'all' ? 'all' : 'season'];
+const seasonSort = (a, b) => (b.seasonStars || 0) - (a.seasonStars || 0) || b.seasonKh - a.seasonKh;
+function board(mode, fin) {   /* fin: the practice board as it stood when the season closed */
+  const live = !fin && NET.board[mode === 'all' ? 'all' : 'season'];
   if (live && NET.status === 'online') {
     liveBoard(mode === 'all' ? 'all' : 'season');
-    const rows = live.top.map((r) => ({ name: r.name, prestige: r.prestige, seasonP: r.seasonP, seasonKh: r.seasonKh || 0, level: r.level, points: r.points, look: normLook(r.look), you: live.me && r.rank === live.me.rank }));
+    const rows = live.top.map((r) => ({ name: r.name, prestige: r.prestige, seasonP: r.seasonP, seasonKh: r.seasonKh || 0, seasonStars: r.seasonStars || 0, level: r.level, points: r.points, look: normLook(r.look), you: live.me && r.rank === live.me.rank }));
     if (live.me && !rows.some((r) => r.you)) rows.push(Object.assign({}, live.me, { look: normLook(live.me.look), you: true }));
     return rows;
   }
-  if (API && NET.status === 'online') liveBoard(mode === 'all' ? 'all' : 'season');
-  const me = { name: S.name, prestige: S.prestige, seasonP: S.season.prestige, seasonKh: Math.round(S.season.kh || 0), level: level(), points: Math.round(S.xp), look: S.look, you: true };
-  /* all time: prestige, then level, then know-how this run. This season: prestiges this month, then know-how earned this month */
-  return bots().concat([me]).sort(mode === 'all' ? (a, b) => b.prestige - a.prestige || b.level - a.level || b.points - a.points : (a, b) => b.seasonP - a.seasonP || b.seasonKh - a.seasonKh);
+  if (!fin && API && NET.status === 'online') liveBoard(mode === 'all' ? 'all' : 'season');
+  const me = { name: S.name, prestige: S.prestige, seasonP: S.season.prestige, seasonKh: Math.round(S.season.kh || 0), seasonStars: S.season.stars, level: level(), points: Math.round(S.xp), look: S.look, you: true };
+  /* all time: prestige, then level, then know-how this run. This season: season stars, then know-how earned this season */
+  return bots(fin).concat([me]).sort(mode === 'all' ? (a, b) => b.prestige - a.prestige || b.level - a.level || b.points - a.points : seasonSort);
 }
-function seasonTick() {   /* a new month closes the old season and hands out its badge */
+function seasonTick() {   /* a new season closes the old one: unclaimed track tiers are granted, then the final rank comes from the server's record of the closed board */
   if (S.season.key === seasonKey()) return;
-  const list = board('season'), rank = list.findIndex((x) => x.you) + 1, old = S.season.key;
-  if ((S.season.kh || 0) > 0 || rank <= 10) { S.badges.push({ key: old, rank, label: BADGE(rank) }); showModal('<h2>' + seasonName(old) + ' season over</h2><p class="note">You finished <b>#' + rank + '</b> with ' + S.season.prestige + ' prestige' + (S.season.prestige === 1 ? '' : 's') + ' and ' + fmt(S.season.kh || 0) + ' know-how earned this season. Your <b>' + BADGE(rank) + '</b> badge is on your profile.</p><p class="note">A new season starts now: the season board starts again from zero know-how. Your prestige, level and looks stay.</p><button class="btn green" data-act="close">Start the season</button>'); }
-  S.season = { key: seasonKey(), prestige: 0, kh: 0 };
+  const ss = S.season, old = ss.key, t = theme(old), reached = tierAt(ss.stars);
+  const local = board('season', true).findIndex((x) => x.you) + 1, got = [];
+  for (let n = 1; n <= reached; n++) { const r = grantTier(old, n, true); if (r && r.cosmetic) got.push(r.label); }
+  const done = reached >= TRACK_TIERS, played = ss.stars > 0 || (ss.kh || 0) > 0;
+  S.season = newSeason();
+  const finish = (rank) => {
+    if (!played && rank > 10) return;
+    S.badges.push({ key: old, rank, label: BADGE(rank), theme: t.id, gold: done });
+    const nt = theme();
+    showModal('<h2>' + seasonName(old) + ' season over</h2><p class="note">You finished <b>#' + rank + '</b> with <b>' + ss.stars + ' season stars</b> (track tier ' + reached + ' of ' + TRACK_TIERS + ') and ' + fmt(ss.kh || 0) + ' know-how this season. Your <b>' + BADGE(rank) + '</b> badge' + (done ? ', framed in gold for finishing the track,' : '') + ' is on your profile.</p>' +
+      (got.length ? '<p class="note">Track rewards you hadn\'t claimed are now yours: ' + got.join(', ') + '.</p>' : '') +
+      '<p class="note">The <b>' + nt.name + '</b> season starts now with a fresh board and track. ' + nt.rule + ' Your farm, prestige, level and looks stay as they are.</p><button class="btn green" data-act="close">Start the ' + nt.name + ' season</button>');
+    save();
+  };
+  if (API && NET.acct) api('game-score?mode=final&season=' + old).then((r) => finish(r && r.status === 200 && r.data.me ? r.data.me.rank : local)).catch(() => finish(local));
+  else finish(local);
 }
 /* drop events: each real product launch becomes a week in the game. On the live app the list comes from the server and a push notification announces it */
 const DROPS = [
@@ -552,7 +645,7 @@ function fresh() {
     methods: { washed: true, natural: true }, vars: { caturra: true }, staff: { foreman: false, agent: false, rule: 'best' }, decor: {}, contracts: [], nextContract: 0, hat: 'straw', hats: { straw: true }, stamps: {},
     cherries: {}, lots: [], boosts: {}, minutes: 7 * 60 + 30, minutesTotal: 0, day: 1, taps: 0, year: 1, bonus: 0,
     tasks: null, weekly: { mine: 0, team: 1800, target: 4000, start: 1, claimed: false }, samples: [], stats: { picked: 0, sold: 0, lotsSold: 0 },
-    farms: {}, intro: 0, seasonPick: 'auto', speed: 1, sfx: true, music: true, musicVol: 0.45, guide: 0, guideN: 0, guideV: GUIDE_V, tabs: { upgrades: false, unlock: false, orders: false, ranks: false, shop: false }, newTab: null, checkin: { last: '', streak: 0, freezes: 1 }, season: { key: seasonKey(), prestige: 0, kh: 0 }, badges: [], event: null, prestige: 0, name: 'You', look: { crest: 0, skin: 0, bg: 'none', char: 'none' }, skins: { 0: true }, chars: {}, bskins: {}, skinPicks: 0, dormant: {}, last: Date.now()
+    farms: {}, intro: 0, seasonPick: 'auto', speed: 1, sfx: true, music: true, musicVol: 0.45, guide: 0, guideN: 0, guideV: GUIDE_V, tabs: { upgrades: false, unlock: false, orders: false, ranks: false, shop: false }, newTab: null, checkin: { last: '', streak: 0, freezes: 1 }, season: newSeason(), sitems: { bg: {}, charm: {}, title: {} }, badges: [], event: null, prestige: 0, name: 'You', look: { crest: 0, skin: 0, bg: 'none', char: 'none', hat: '', charm: '', title: '' }, skins: { 0: true }, chars: {}, bskins: {}, skinPicks: 0, dormant: {}, last: Date.now()
   };
   LOCS.forEach((l) => { st.farms[l] = newFarm(l); });
   return st;
@@ -568,7 +661,8 @@ let S = load() || fresh();
     S.skins = {}; for (let i = 0; i <= tierOf(S.prestige || 0); i++) S.skins[i] = true;
     S.look = { crest: tierOf(S.look.plate || 0), skin: S.look.skin || 0, bg: 'none' };
   }
-  ['staff', 'decor', 'contracts', 'nextContract', 'sfx', 'music', 'musicVol', 'name', 'look', 'skins', 'skinPicks', 'chars', 'bskins', 'dormant', 'guide', 'guideN', 'tabs', 'newTab', 'checkin', 'season', 'badges', 'event'].forEach((k) => { if (S[k] === undefined) S[k] = JSON.parse(JSON.stringify(d[k])); });
+  ['staff', 'decor', 'contracts', 'nextContract', 'sfx', 'music', 'musicVol', 'name', 'look', 'skins', 'skinPicks', 'chars', 'bskins', 'dormant', 'guide', 'guideN', 'tabs', 'newTab', 'checkin', 'season', 'sitems', 'badges', 'event'].forEach((k) => { if (S[k] === undefined) S[k] = JSON.parse(JSON.stringify(d[k])); });
+  const ns = newSeason(); Object.keys(ns).forEach((k) => { if (S.season[k] === undefined) S.season[k] = ns[k]; });   /* seasons gained stars and a track */
   if (S.guideV !== GUIDE_V) { S.guide = S.guide >= 6 ? GUIDE.length : [0, 1, 2, 4, 5, 6][S.guide || 0]; S.guideN = 0; S.guideV = GUIDE_V; }   /* the old six-step guide maps onto the new one */
   if (veteran) { S.guide = GUIDE.length; S.tabs = { upgrades: true, unlock: true, orders: true, ranks: true, shop: true }; }   /* existing players skip the guide */
   if (!S.lv.pickers) { S.lv.pickers = Math.max(S.lv.speed || 1, S.lv.carry >= 3 ? 8 : S.lv.carry >= 2 ? 4 : 1); S.lv.speed = S.lv.pickers; }
@@ -631,7 +725,7 @@ function season(loc) {
   if (loc === 'osaka') return m >= 3 && m <= 5 ? 'spring' : m >= 6 && m <= 8 ? 'summer' : m >= 9 && m <= 11 ? 'autumn' : 'winter';
   return L.months.indexOf(m) > -1 ? 'harvest' : 'rainy';
 }
-const growth = (loc) => ({ harvest: 1.5, winter: 0.5, summer: 1.25 })[season(loc)] || 1;
+const growth = (loc) => (({ harvest: 1.5, winter: 0.5, summer: 1.25, rainy: rule('tsuyu') ? 1.25 : 1 })[season(loc)] || 1) * (rule('sakura') ? 1.1 : 1);   /* the Tsuyu and Sakura season rules */
 const bgImgs = {};
 function bg(loc) { const k = loc + '-' + season(loc); if (!bgImgs[k]) { const im = new Image(); im.src = BGS[k]; bgImgs[k] = im; } return bgImgs[k]; }
 
@@ -744,8 +838,9 @@ function tick(dt) {
   rateC = rateC * Math.pow(0.99, dt) + earnedC * 60 * (1 - Math.pow(0.99, dt)) / Math.max(dt, 1e-3); rateX = rateX * Math.pow(0.99, dt) + earnedX * 60 * (1 - Math.pow(0.99, dt)) / Math.max(dt, 1e-3); earnedC = 0; earnedX = 0;
   if (golden) { golden.t -= dt; if (golden.t <= 0) { golden = null; toast('The golden bush faded'); } }
   else if ((S.guide >= GUIDE.length || level() >= 3) && (goldenT -= dt) <= 0) {   /* a golden bush appears every 3-6 minutes while you play */
-    goldenT = 180 + Math.random() * 180;
-    const fs = S.farms[S.loc]; if (fs.unlocked && !S.dormant[S.loc]) { golden = { loc: S.loc, i: Math.floor(Math.random() * fs.shrubs.length), t: 30 }; SFX.play('achieve'); toast('A golden bush appeared on the farm! Tap it within 30 s'); if (!S.goldenTip && $('modal').hidden) { S.goldenTip = true; showModal(coachCard('Golden bush', 'See that glowing bush? Golden bushes turn up every few minutes while you play, and only last 30 seconds. Tap one for about two minutes of your income at once. Your staff can\'t pick them for you.', 'I\'ll find it')); } }
+    goldenT = (180 + Math.random() * 180) * (rule('tanabata') ? 0.8 : 1) * (lastHarvest() ? 0.5 : 1);   /* Tanabata and the season's last 3 days bring them sooner */
+    const gs = rule('lights') ? 45 : 30;
+    const fs = S.farms[S.loc]; if (fs.unlocked && !S.dormant[S.loc]) { golden = { loc: S.loc, i: Math.floor(Math.random() * fs.shrubs.length), t: gs }; SFX.play('achieve'); toast('A golden bush appeared on the farm! Tap it within ' + gs + ' s'); if (!S.goldenTip && $('modal').hidden) { S.goldenTip = true; showModal(coachCard('Golden bush', 'See that glowing bush? Golden bushes turn up every few minutes while you play, and only last 30 seconds. Tap one for about two minutes of your income at once. Your staff can\'t pick them for you.', 'I\'ll find it')); } }
   }
   if (fireworks > 0) {   /* level-up fireworks: coloured bursts popping over your farmer */
     fireworks -= dt; fwT -= dt;
@@ -770,6 +865,7 @@ function draw(time) {
     fx.fillStyle = '#F2C04A'; for (let j = 0; j < n; j++) fx.fillRect(SLOTS[i] + 22 - j * 3, 221, 2, 2);
   });
   Object.keys(DECOR_AT).forEach((k) => { if (S.decor[k]) DECOR_AT[k].forEach(([x, y]) => fx.drawImage(sprite('deco_' + k), x, y)); });
+  Object.keys(S.decor).filter((k) => k.startsWith('s_') && S.decor[k]).slice(0, SEASON_DECO_AT.length).forEach((k, i) => fx.drawImage(sprite('deco_' + k), SEASON_DECO_AT[i][0], SEASON_DECO_AT[i][1]));   /* season decorations, up to three at once */
   if (f.field && S.loc !== 'osaka') fx.drawImage(sprite('bed_open'), 104, 160);
   const asleep = !!S.dormant[S.loc];
   if (!f.field) fx.drawImage(sprite('sign'), 134, 168);
@@ -871,8 +967,8 @@ cv.addEventListener('click', (e) => {
   const f = S.farms[S.loc];
   const s = f.shrubs.find((x) => lx >= x.x && lx < x.x + 18 && ly >= x.y && ly < x.y + 22);
   if (s && golden && golden.loc === S.loc && f.shrubs.indexOf(s) === golden.i) {   /* golden bush: about two minutes of your current income */
-    const c = Math.max(150, Math.round(rateC * 2)), k = Math.max(40, Math.round(rateX * 2));
-    golden = null; earn({ coins: c, points: k }); earnedC -= c; earnedX -= k; S.stats.golden = (S.stats.golden || 0) + 1;
+    const gm = rule('hanabi') ? 2.5 : 2, c = Math.max(150, Math.round(rateC * gm)), k = Math.max(40, Math.round(rateX * gm));
+    golden = null; earn({ coins: c, points: k }); earnedC -= c; earnedX -= k; S.stats.golden = (S.stats.golden || 0) + 1; star('golden');
     SFX.play('achieve'); SFX.play('coins'); floats.push({ x: s.x + 9, y: s.y - 4, text: '+' + fmt(c) + ' coins', t: 0 }); floats.push({ x: s.x + 9, y: s.y + 8, text: '+' + fmt(k) + ' know-how', t: -0.3 });
     for (let i = 0; i < 24; i++) bursts.push({ x: s.x + 9, y: s.y + 8, vx: (rnd() - 0.5) * 90, vy: -40 - rnd() * 60, t: 0, c: i % 2 ? '#F2C04A' : '#FFF4B0' });
     toast('Golden bush! +' + fmt(c) + ' coins, +' + fmt(k) + ' know-how'); return;
@@ -883,7 +979,7 @@ cv.addEventListener('click', (e) => {
     if (stored() >= cap()) { SFX.play('knock'); floats.push({ x: s.x + 9, y: s.y, text: 'storage full', t: 0 }); return; }
     if (s.claim) { const w = s.claim; w.target = null; if (w.state === 'pick' || w.state === 'walk') w.state = 'seek'; }
     s.p = 0; s.claim = null; S.hearts -= 1; S.taps += 1; task('pick', 1); guideStep('pick');
-    const kg = store(f, s.v, VAR[s.v].kg);
+    const kg = store(f, s.v, VAR[s.v].kg * (rule('akimatsuri') ? 1.2 : 1));
     SFX.play('harvest');
     floats.push({ x: s.x + 9, y: s.y, text: '+' + kg + ' kg', t: 0 });
     for (let i = 0; i < 7; i++) bursts.push({ x: s.x + 9, y: s.y + 8, vx: (rnd() - 0.5) * 60, vy: -30 - rnd() * 40, t: 0, c: i % 2 ? '#E83A30' : '#3E8036' });
@@ -986,9 +1082,10 @@ const cupFor = (v, method) => { const vr = VAR[v]; return Math.min(95, METHODS[m
 /* active play beats the staff: a lot you cup by hand scores +1.5 and pays 20% more, and golden bushes pay a burst of income to whoever taps them */
 const CUP_BONUS = 1.5, CUP_PAY = 1.2;
 const lotCup = (l) => cupFor(l.v, l.method) + (l.cupped ? CUP_BONUS : 0);
+const seasonSale = (method) => ((rule('momiji') && method === 'honey') || (rule('ume') && method === 'natural') || (rule('koinobori') && method === 'washed') ? 1.15 : 1);   /* season rules */
 function saleFor(v, method, green, lot) {
   const bonus = 1 + S.bonus, cup = cupFor(v, method) + (lot && lot.cupped ? CUP_BONUS : 0);
-  return { cup, coins: Math.round((lot && lot.cupped ? CUP_PAY : 1) * green * 22 * VAR[v].value * METHODS[method].mult * bonus * (method === marketPick() ? MARKET : 1) * (eventDrop() && (v === eventDrop().variety || method === eventDrop().method) ? EVENT_MULT : 1)), points: Math.round(green * (3 + Math.max(0, cup - 80)) * 0.8 * bonus) };
+  return { cup, coins: Math.round((lot && lot.cupped ? CUP_PAY : 1) * green * 22 * VAR[v].value * METHODS[method].mult * bonus * (method === marketPick() ? MARKET : 1) * (eventDrop() && (v === eventDrop().variety || method === eventDrop().method) ? EVENT_MULT : 1) * seasonSale(method)), points: Math.round(green * (3 + Math.max(0, cup - 80)) * 0.8 * bonus) };
 }
 function sellLot(i, quiet) {
   const l = S.lots[i]; if (!l || l.left > 0) return;
@@ -1040,9 +1137,10 @@ function deliver(i, id, quiet) {
   /* each delivery is paid its share straight away, so coffee in a contract that runs out of time is never lost */
   const done = c.have >= c.kg - 0.01, pay = done ? { coins: c.coins - (c.paidC || 0), points: c.points - (c.paidP || 0) } : { coins: Math.round(c.coins * use / c.kg), points: Math.round(c.points * use / c.kg) };
   c.paidC = (c.paidC || 0) + pay.coins; c.paidP = (c.paidP || 0) + pay.points;
-  earn(pay); if (l.cupped) earn({ coins: Math.round(pay.coins * (CUP_PAY - 1)) });   /* buyers pay extra for hand-cupped coffee */
+  earn(pay); if (l.cupped) earn({ coins: Math.round(pay.coins * (CUP_PAY - 1)) }); if (rule('hina')) earn({ coins: Math.round(pay.coins * 0.1) });   /* buyers pay extra for hand-cupped coffee */
   if (done) {
     S.contracts = S.contracts.filter((x) => x !== c); S.nextContract = Math.min(S.nextContract, S.minutesTotal + 10); S.stats.contracts = (S.stats.contracts || 0) + 1; SFX.play('contract');
+    star('contract'); if (c.event) star('drop');
     if (c.event && S.event) { S.event.done += 1; if (S.event.done >= 3) { earn({ cranes: 10 }); S.badges.push({ event: eventDrop() ? eventDrop().name : 'Drop event', label: 'Drop', rank: 99 }); setTimeout(() => showModal('<h2>Drop event complete!</h2><p class="note">All three event contracts are delivered. The event badge is on your profile, and 10 cranes are yours.</p><button class="btn green" data-act="close">Brilliant</button>'), 600); } }
     if (quiet) { toast('Contract for ' + c.buyer + ' complete: +' + fmt(c.coins) + ' coins, +' + fmt(c.points) + ' know-how in all'); return; }
     showModal(img('board', 64) + '<h2>Contract complete!</h2><p class="note">' + c.buyer + ' received ' + fmt(c.kg) + ' kg' + (c.note ? ' (' + c.note.toLowerCase() + ')' : '') + '.' + (spare > 0.05 ? ' The spare ' + fmt(spare) + ' kg went to the roastery.' : '') + '</p><div class="stats"><div><small>Coins</small><b>+' + fmt(c.coins + extra.coins) + '</b></div><div><small>Know-how</small><b>+' + fmt(c.points + extra.points) + '</b></div></div><p class="note">Totals for the whole contract, including what earlier deliveries already paid.</p><button class="btn green" data-act="close">Great</button>');
@@ -1117,7 +1215,7 @@ function stampBg(l) {   /* a new stamp unlocks that farm's scene as a character 
 }
 function prestige() {
   if (level() < prestigeNeed()) return;
-  S.prestige += 1; S.season.prestige += 1;
+  S.prestige += 1; S.season.prestige += 1; star('prestige');
   const t = tierOf(S.prestige);
   S.look.crest = t;   /* the new crest goes on straight away */
   if (SKINS.some((sk, i) => !S.skins[i])) S.skinPicks += 1;   /* and the player picks one new outfit */
@@ -1219,7 +1317,7 @@ function checkIn() {   /* once per real day: keep the streak going, with a freez
   const mk = monthKey(); c.days = c.days || {}; c.days[mk] = (c.days[mk] || []).concat([key]); Object.keys(c.days).sort().slice(0, -3).forEach((k) => { delete c.days[k]; });
   if (API && NET.status === 'online') api('game-checkin', 'POST', {}).then(() => syncSamples()).catch(() => {});
   setTimeout(() => checkSamples(), 600);
-  const idx = (c.streak - 1) % 7, r = CHECKIN[idx]; earn(r);
+  const idx = (c.streak - 1) % 7, r = CHECKIN[idx]; earn(r); star('checkin');
   if (idx === 6) c.freezes = Math.min(2, c.freezes + 1);
   const rl = (x) => (x.coins ? x.coins + ' coins' : x.points ? x.points + ' know-how' : x.cranes + ' cranes');
   showModal('<h2>Daily brew check-in</h2><p class="note">Day ' + c.streak + ' in a row' + (used ? ' (a streak freeze covered yesterday)' : '') + '. Today: <b>' + rl(r) + '</b>' + (idx === 6 ? ' and a streak freeze' : '') + '.</p><div class="streak">' + CHECKIN.map((x, i) => '<span class="' + (i < idx ? 'done' : i === idx ? 'now' : '') + '"><b>' + (i + 1) + '</b>' + rl(x) + '</span>').join('') + '</div><p class="note">Streak freezes: ' + c.freezes + ' of 2. A freeze saves your streak if you miss one day.</p><button class="btn green" data-act="close">Collect</button>');
@@ -1295,8 +1393,9 @@ function shopTabs() {
   const st = S.shopTab || 'cranes', dot = Object.keys(DECOR).some((k) => S.decor[k] === undefined && S.coins >= DECOR[k].cost);
   return '<div class="seg subtabs">' + [['cranes', 'Boosts'], ['chars', 'Farmer'], ['bskin', 'Farm style'], ['beju', 'Real coffee']].map(([k, t]) => '<button type="button" data-act="shoptab:' + k + '" aria-pressed="' + (st === k) + '">' + t + (k === 'bskin' && dot ? ' <i class="dot" aria-label="something to buy"></i>' : '') + '</button>').join('') + '</div>';
 }
-function avatar(look, size) { look = normLook(look); return '<span class="fr b-' + PLATES[look.crest] + (look.bg === 'beju' ? ' bg-beju' : '') + '" style="width:' + size + 'px;height:' + size + 'px">' + (BG_THUMB[look.bg] ? '<img class="fbg" src="' + BG_THUMB[look.bg] + '" alt="">' : '') + '<img src="' + url(bodyOf(look) + 'down_0', skinLook(look.skin)) + '" alt=""" style="height:' + Math.round(size * 0.78) + 'px"></span>'; }
-function plate(name, i, stars) { return '<span class="plate p-' + PLATES[i] + '">' + name + (stars ? ' ' + '★'.repeat(Math.min(5, stars)) : '') + '</span>'; }
+function avatar(look, size) { look = normLook(look); return '<span class="fr b-' + PLATES[look.crest] + (look.bg === 'beju' ? ' bg-beju' : '') + '" style="width:' + size + 'px;height:' + size + 'px">' + (bgThumb(look.bg) ? '<img class="fbg" src="' + bgThumb(look.bg) + '" alt="">' : '') + '<img src="' + url(bodyOf(look) + 'down_0', Object.assign(skinLook(look.skin), look.hat ? { hat: ART.hats[look.hat] } : {})) + '" alt="" style="height:' + Math.round(size * 0.78) + 'px"></span>'; }
+const bgThumb = (id) => (id.startsWith('s_') ? url('sbg_' + sid(id)) : BG_THUMB[id]);
+function plate(name, i, stars, charm) { return '<span class="plate p-' + PLATES[i] + '">' + name + (stars ? ' ' + '★'.repeat(Math.min(5, stars)) : '') + (charm ? '<img class="charm" src="' + url('charm_' + charm) + '" alt="' + themeById(charm).name + ' charm">' : '') + '</span>'; }
 const starsFor = (p) => (p >= TIERS.length ? p - TIERS.length + 1 : 0);
 function bottleneck() {   /* name the one thing slowing the farm down right now */
   const f = S.farms[S.loc];
@@ -1459,20 +1558,36 @@ function renderPanel() {
     h += btn(wk.claimed ? 'Claimed' : 'Claim ' + WEEKLY_CRANES + ' cranes', '', 'weekly', tot >= wk.target && !wk.claimed && wk.mine > 0, 'green');
   } else if (tab === 'ranks') {
     const mode = S.rankTab || 'season', list = board(mode), pos = list.findIndex((x) => x.you) + 1, t = tierOf(S.prestige), need = prestigeNeed(), ready = level() >= need;
-    h += '<div class="me">' + avatar(S.look, 64) + '<div class="me-t">' + plate(S.name, S.look.crest, starsFor(S.prestige)) + '<span class="note">Prestige ' + S.prestige + ' · ' + TIERS[t] + '</span><span class="note">Level ' + level() + ' · ' + fmt(Math.round(S.xp)) + ' know-how · rank #' + pos + ' of ' + list.length + '</span></div></div>';
-    const rsub = S.rankSub || 'board', rdot = ready || S.skinPicks > 0;
-    h += '<div class="seg subtabs">' + [['board', 'Leaderboard'], ['rewards', 'Prestige & looks']].map(([k, tl]) => '<button type="button" data-act="ranksub:' + k + '" aria-pressed="' + (rsub === k) + '">' + tl + (k === 'rewards' && rdot ? ' <i class="dot" aria-label="something waiting"></i>' : '') + '</button>').join('') + '</div>';
-    if (rsub === 'board') {
-    h += '<div class="season"><b>' + seasonName(S.season.key) + ' season</b><span>' + daysLeft() + ' day' + (daysLeft() === 1 ? '' : 's') + ' left · ' + S.season.prestige + ' prestige' + (S.season.prestige === 1 ? '' : 's') + ' and ' + fmt(S.season.kh || 0) + ' know-how this season</span></div>';
-    if (S.badges.length) h += '<div class="badges">' + S.badges.slice(-6).map((bd) => '<span class="badge r' + Math.min(bd.rank, 11) + '">' + (bd.label || 'Event') + '<small>' + (bd.key ? seasonName(bd.key) : bd.event) + '</small></span>').join('') + '</div>';
+    h += '<div class="me">' + avatar(S.look, 64) + '<div class="me-t">' + plate(S.name, S.look.crest, starsFor(S.prestige), S.look.charm) + '<span class="note">Prestige ' + S.prestige + ' · ' + TIERS[t] + (S.look.title ? ' · ' + titleText(S.look.title) : '') + '</span><span class="note">Level ' + level() + ' · ' + fmt(Math.round(S.xp)) + ' know-how · rank #' + pos + ' of ' + list.length + '</span></div></div>';
+    const rsub = S.rankSub || 'season', rdot = ready || S.skinPicks > 0, ss = S.season, reached = tierAt(ss.stars), sdot = Array.from({ length: reached }, (_, i) => i + 1).some((n) => !ss.claimed[n]);
+    h += '<div class="seg subtabs">' + [['season', 'Season'], ['board', 'Leaderboard'], ['rewards', 'Prestige & looks']].map(([k, tl]) => '<button type="button" data-act="ranksub:' + k + '" aria-pressed="' + (rsub === k) + '">' + tl + ((k === 'rewards' && rdot) || (k === 'season' && sdot) ? ' <i class="dot" aria-label="something waiting"></i>' : '') + '</button>').join('') + '</div>';
+    const strip = '<div class="season"><b>' + seasonName(ss.key) + ' season</b><span>' + daysLeft() + ' day' + (daysLeft() === 1 ? '' : 's') + ' left · ★ ' + ss.stars + ' season star' + (ss.stars === 1 ? '' : 's') + ' · track tier ' + reached + ' of ' + TRACK_TIERS + '</span></div>';
+    if (rsub === 'season') {
+    const th = theme(), into = ss.stars - reached * TIER_STARS, today = ss.capDay === dayKey(new Date()) ? ss.caps : {};
+    h += strip;
+    if (lastHarvest()) h += '<p class="rule"><b>Last harvest!</b> Golden bushes come twice as often until the season ends.</p>';
+    h += '<p class="rule"><b>' + th.name + ' season rule:</b> ' + th.rule + '</p>';
+    h += reached < TRACK_TIERS ? '<div class="bar"><i style="width:' + Math.round(into / TIER_STARS * 100) + '%"></i></div><p class="note">' + into + ' / ' + TIER_STARS + ' stars to tier ' + (reached + 1) + '.</p>' : '<p class="note"><b>Track complete!</b> Stars you earn now still count on the season board.</p>';
+    if (sdot) h += btn('Claim all', 'tiers you have reached', 'tierall', true, 'green');
+    h += '<h3>Stars today</h3><div class="stats">' + Object.keys(STAR_WHAT).map((k) => '<div><small>' + STAR_WHAT[k] + '</small><b>' + (today[k] || 0) + ' / ' + starCap(k) + '</b></div>').join('') + '</div>';
+    h += '<p class="note">Also: weekly order ' + STAR_PER.weekly + ' stars, each drop event contract ' + STAR_PER.drop + ', your first prestige this season ' + STAR_PER.prestige + '. The daily caps reset each real day, so playing a little every day beats one long session.</p>';
+    h += '<h3>Season track</h3><div class="track">' + Array.from({ length: TRACK_TIERS }, (_, i) => {
+      const n = i + 1, r = trackTier(ss.key, n), got = ss.claimed[n], can = !got && n <= reached;
+      const pic = r.hat ? url('worker_down_0', { hat: ART.hats['s_' + r.hat] }) : url(r.img);
+      return '<div class="tier' + (r.cosmetic ? ' cos' : '') + (got ? ' got' : '') + (can ? ' ready' : '') + '"><b>Tier ' + n + '</b><img src="' + pic + '" alt=""><span>' + (r.coins ? fmt(tierCoins(r)) + ' coins' : r.label) + '</span>' + (got ? '<span>Claimed</span>' : can ? '<button type="button" class="btn green" data-act="tier:' + n + '">Claim</button>' : '<span>★ ' + n * TIER_STARS + '</span>') + '</div>';
+    }).join('') + '</div>';
+    h += '<p class="note">Seasons follow the calendar month in Japan time. The season board ranks by season stars, then know-how earned this season. Your farm, prestige and level never reset. When the season ends you keep everything you earned, any tiers you reached but did not claim are given to you, and your badge goes on your profile. A year later the season\'s decoration, background, hat, building style and charm return in the Season archive in the Shop.</p>';
+    } else if (rsub === 'board') {
+    h += strip;
+    if (S.badges.length) h += '<div class="badges">' + S.badges.slice(-6).map((bd) => '<span class="badge r' + Math.min(bd.rank, 11) + (bd.gold ? ' gold' : '') + '">' + (bd.label || 'Event') + '<small>' + (bd.key ? seasonName(bd.key) : bd.event) + '</small></span>').join('') + '</div>';
     h += '<h3>Leaderboard</h3><div class="seg">' + [['season', 'This season'], ['all', 'All time']].map(([k, tl]) => '<button type="button" data-act="ranktab:' + k + '" aria-pressed="' + (mode === k) + '">' + tl + '</button>').join('') + '</div><div class="lb">' + list.slice(0, 15).concat(pos > 15 ? [list[pos - 1]] : []).map((x) => {
       const r = list.indexOf(x) + 1;
-      return '<div class="lb-row' + (x.you ? ' you' : '') + '"><b class="rk">' + r + '</b>' + avatar(x.look, 40) + '<div class="lb-n">' + plate(x.name, normLook(x.look).crest, starsFor(x.prestige)) + '<span class="note">' + TIERS[tierOf(x.prestige)] + '</span></div><div class="lb-s"><b>' + (mode === 'all' ? 'P' + x.prestige : 'P' + x.seasonP + ' this month') + '</b><span>' + (mode === 'all' ? 'Lv ' + x.level : fmt(x.seasonKh || 0) + ' kh this month') + '</span><span>' + (mode === 'all' ? fmt(x.points) + ' kh' : 'P' + x.prestige + ' all time') + '</span></div></div>';
+      return '<div class="lb-row' + (x.you ? ' you' : '') + '"><b class="rk">' + r + '</b>' + avatar(x.look, 40) + '<div class="lb-n">' + plate(x.name, normLook(x.look).crest, starsFor(x.prestige), normLook(x.look).charm) + '<span class="note">' + (normLook(x.look).title ? titleText(normLook(x.look).title) : TIERS[tierOf(x.prestige)]) + '</span></div><div class="lb-s"><b>' + (mode === 'all' ? 'P' + x.prestige : '★ ' + (x.seasonStars || 0)) + '</b><span>' + (mode === 'all' ? 'Lv ' + x.level : fmt(x.seasonKh || 0) + ' kh this season') + '</span><span>' + (mode === 'all' ? fmt(x.points) + ' kh' : 'P' + x.prestige + (x.seasonP ? ' (+' + x.seasonP + ' this season)' : '')) + '</span></div></div>';
     }).join('') + '</div>';
     h += '<p class="note">' + (NET.status === 'online' && NET.board[mode] ? 'Live leaderboard · ' + NET.board[mode].players + ' farmer' + (NET.board[mode].players === 1 ? '' : 's') : 'Practice board: the live leaderboard appears when the game is played on bejucoffee.com.') + '</p>';
     h += '<h3>Your name</h3><div class="seg"><input id="nameIn" maxlength="16" value="' + S.name.replace(/"/g, '') + '" aria-label="Your name on the leaderboard"><button type="button" data-act="rename">Save</button></div>';
     } else {
-    h += '<h3>Prestige</h3><p class="note">The all-time board ranks by prestige first, then level, then know-how earned this run. The season board ranks by prestiges this month, then know-how earned this month, so a fresh start each month gives everyone a chance. Each prestige needs 8 more levels than the last (10, 18, 26, 34 ...), and levels past 10 get steadily bigger. Unspent know-how does not carry over, so spend it on research before you prestige.</p>';
+    h += '<h3>Prestige</h3><p class="note">The all-time board ranks by prestige first, then level, then know-how earned this run. The season board ranks by season stars, then know-how earned this season, so new and old farmers race on equal terms each month. Each prestige needs 8 more levels than the last (10, 18, 26, 34 ...), and levels past 10 get steadily bigger. Unspent know-how does not carry over, so spend it on research before you prestige.</p>';
     h += '<div class="bar"><i style="width:' + Math.min(100, Math.round(levelSpan()[1] / need * 100)) + '%"></i></div>';
     h += btn(ready ? 'Prestige to ' + (S.prestige + 1) : 'Prestige at level ' + need, ready ? (S.prestige + 1 < TIERS.length ? 'unlocks the ' + TIERS[S.prestige + 1] + ' crest' : 'adds a star') : 'you are level ' + level(), 'prestigeAsk', ready, 'green');
     const has = () => ORIGINS.filter((l) => S.stamps[l]).length;
@@ -1485,10 +1600,16 @@ function renderPanel() {
       return '<button type="button" class="look' + (can ? ' pick' : '') + '" data-act="' + (own ? 'skin:' : 'pickskin:') + i + '" aria-pressed="' + (S.look.skin === i) + '"' + (own || can ? '' : ' disabled') + '>' + avatar({ crest: 0, skin: i }, 40) + '<small>' + (can ? 'Pick ' + sk.name : sk.name) + '</small></button>';
     }).join('') + '</div>';
     h += '<h3>Character</h3><p class="note">Characters are bought with cranes in the Shop.</p><div class="looks">' + ['none'].concat(CHAR_IDS.filter((id) => S.chars[id])).map((id) => '<button type="button" class="look" data-act="char:' + id + '" aria-pressed="' + (S.look.char === id) + '">' + avatar({ crest: 0, skin: S.look.skin, char: id }, 40) + '<small>' + (ART.chars[id] ? ART.chars[id].name : 'Farmer') + '</small></button>').join('') + '<button type="button" class="look" data-act="shopchars"><span style="font-size:22px;line-height:40px">+</span><small>Shop</small></button></div>';
-    h += '<h3>Background</h3><p class="note">Passport stamps unlock scenes behind your farmer: ' + has() + ' of 5 origin stamps collected. Real orders on bejucoffee.com stamp the passport.</p><div class="looks">' + BG_LIST.map((id) => {
+    h += '<h3>Background</h3><p class="note">Passport stamps unlock scenes behind your farmer: ' + has() + ' of 5 origin stamps collected. Real orders on bejucoffee.com stamp the passport. Season tracks add seasonal scenes.</p><div class="looks">' + BG_LIST.filter((id) => !id.startsWith('s_') || bgOpen(id)).map((id) => {
       const open = bgOpen(id);
       return '<button type="button" class="look" data-act="bg:' + id + '" aria-pressed="' + (S.look.bg === id) + '"' + (open ? '' : ' disabled') + '>' + avatar({ crest: S.look.crest, skin: S.look.skin, bg: id }, 40) + '<small>' + (open ? bgName(id) : bgHow(id)) + '</small></button>';
     }).join('') + '</div>';
+    const hats = Object.keys(S.hats).filter((k) => k.startsWith('s_')), charms = Object.keys(S.sitems.charm), titles = Object.keys(S.sitems.title).sort();
+    h += '<h3>Season items</h3><p class="note">Earned on season tracks. They sit around your crest and never replace it.</p>';
+    h += '<p class="note"><b>Hat</b></p><div class="looks">' + [''].concat(hats).map((k) => '<button type="button" class="look" data-act="lookhat:' + k + '" aria-pressed="' + (S.look.hat === k) + '">' + avatar({ crest: S.look.crest, skin: S.look.skin, bg: S.look.bg, char: S.look.char, hat: k }, 40) + '<small>' + (k ? themeById(k).name : 'Outfit hat') + '</small></button>').join('') + '</div>';
+    h += '<p class="note"><b>Nameplate charm</b></p><div class="looks">' + [''].concat(charms).map((k) => '<button type="button" class="look" data-act="lookcharm:' + k + '" aria-pressed="' + (S.look.charm === k) + '">' + plate('P' + S.prestige, S.look.crest, 0, k) + '<small>' + (k ? themeById(k).name : 'None') + '</small></button>').join('') + '</div>';
+    h += '<p class="note"><b>Title</b> (shown under your name on the board)</p><div class="looks">' + [''].concat(titles).map((k) => '<button type="button" class="look" data-act="looktitle:' + k + '" aria-pressed="' + (S.look.title === k) + '"><small>' + (k ? titleText(k) : 'Crest name') + '</small></button>').join('') + '</div>';
+    if (!hats.length && !charms.length && !titles.length) h += '<p class="note">Reach tier 15 on the season track for a hat, 25 for a charm and 30 for a title.</p>';
     }
   } else if (tab === 'shop' && S.shopTab === 'beju') {
     h += shopTabs();
@@ -1508,16 +1629,23 @@ function renderPanel() {
       return '<div class="tile" aria-pressed="' + on + '">' + avatar({ crest: S.look.crest, skin: S.look.skin, bg: S.look.bg, char: id }, 56) + '<b>' + (c ? c.name : 'Farmer') + '</b><span>' + (c ? 'From ' + c.from : 'The farmer you started with') + '</span>' +
         (own ? btn(on ? 'Playing' : 'Play as', '', 'char:' + id, !on, 'blue') : btn('Buy', c.cost + ' cranes', 'buychar:' + id, S.cranes >= c.cost)) + '</div>';
     }).join('') + '</div>';
-    h += '<h3>Picker hats</h3><p class="note">Hats for your pickers, bought with cranes.</p><div class="grid2">' + Object.keys(ART.hats).map((k) => {
+    h += '<h3>Picker hats</h3><p class="note">Hats for your pickers, bought with cranes.</p><div class="grid2">' + Object.keys(ART.hats).filter((k) => !k.startsWith('s_') || S.hats[k]).map((k) => {
       const owned = S.hats[k], cost = { straw: 0, beju: 15, sakura: 20, indigo: 15, harvest: 20 }[k];
-      return '<div class="tile" aria-pressed="' + (S.hat === k) + '"><div style="display:flex;align-items:center;gap:6px"><img src="' + url('worker_down_0', { hat: ART.hats[k] }) + '" alt="" style="width:32px;image-rendering:pixelated"><b>' + ({ straw: 'Straw', beju: 'Beju green', sakura: 'Sakura', indigo: 'Indigo', harvest: 'Harvest orange' })[k] + '</b></div>' +
+      return '<div class="tile" aria-pressed="' + (S.hat === k) + '"><div style="display:flex;align-items:center;gap:6px"><img src="' + url('worker_down_0', { hat: ART.hats[k] }) + '" alt="" style="width:32px;image-rendering:pixelated"><b>' + (({ straw: 'Straw', beju: 'Beju green', sakura: 'Sakura', indigo: 'Indigo', harvest: 'Harvest orange' })[k] || themeById(k).name + ' (season)') + '</b></div>' +
         (owned ? btn(S.hat === k ? 'Wearing' : 'Wear', '', 'hat:' + k, S.hat !== k, 'blue') : btn('Buy', cost + ' cranes', 'buyhat:' + k, S.cranes >= cost)) + '</div>';
     }).join('') + '</div>';
+    const arch = archiveKeys();
+    h += '<h3>Season archive</h3><p class="note">A year after each season ends, its decoration, background, hat, building style and charm come back here for cranes. Season titles and badges never come back.</p>';
+    if (!arch.length) h += '<p class="note">The first season items arrive here in ' + new Date(Date.UTC(+SEASON_FIRST.slice(0, 4) + 1, +SEASON_FIRST.slice(5), 1)).toLocaleString('en', { month: 'long', year: 'numeric', timeZone: 'UTC' }) + '.</p>';
+    arch.forEach((k) => { const id = theme(k).id; h += '<p class="note"><b>' + theme(k).name + '</b></p><div class="grid2">' + Object.keys(ARCHIVE).map((kind) => {
+      const pic = kind === 'hat' ? url('worker_down_0', { hat: ART.hats['s_' + id] }) : url({ deco: 'deco_s_', bg: 'sbg_', bskin: 'build_housing_s_', charm: 'charm_' }[kind] + id), own = archOwned(kind, id);
+      return '<div class="tile"><img src="' + pic + '" alt="" style="width:40px;height:40px;object-fit:contain;image-rendering:pixelated"><b>' + ARCHIVE_WHAT[kind] + '</b>' + (own ? '<span>Owned</span>' : btn('Buy', ARCHIVE[kind] + ' cranes', 'arch:' + kind + '.' + id, S.cranes >= ARCHIVE[kind])) + '</div>';
+    }).join('') + '</div>'; });
   } else if (tab === 'shop' && S.shopTab === 'bskin') {
     h += shopTabs();
     const f = S.farms[S.loc], here = ART.locations[S.loc].name.split(',')[0], cur = ART.bskins[f.skin] ? f.skin : 'classic';
     h += '<h2>Farm style</h2><h3>Building styles</h3><p class="note">' + icon('i_crane') + ' ' + S.cranes + ' cranes. Buy a style once and use it on any farm. Showing ' + here + '; switch farms with the arrows above to style another.</p>';
-    h += '<div class="grid2">' + ['classic'].concat(BSKIN_IDS).map((id) => {
+    h += '<div class="grid2">' + ['classic'].concat(BSKIN_IDS.filter((id) => !ART.bskins[id].season || S.bskins[id])).map((id) => {
       const s = ART.bskins[id], own = id === 'classic' || S.bskins[id], on = cur === id, sfx = id === 'classic' ? '' : '_' + id;
       return '<div class="tile" aria-pressed="' + on + '"><div style="display:flex;justify-content:center;gap:2px">' + ['housing', 'wetmill', 'sorter'].map((k) => '<img src="' + url('build_' + k + sfx) + '" alt="" style="width:40px;image-rendering:pixelated">').join('') + '</div><b>' + (s ? s.name : 'Classic') + '</b><span>' + (s ? s.note : 'The original farm buildings') + '</span>' +
         (own ? btn(on ? 'On ' + here : 'Use at ' + here, '', 'bskin:' + id, !on, 'blue') + (id !== 'classic' ? '<button type="button" class="btn" data-act="bskinall:' + id + '">Use on every farm</button>' : '') : btn('Buy', s.cost + ' cranes', 'buybskin:' + id, S.cranes >= s.cost)) + '</div>';
@@ -1526,6 +1654,9 @@ function renderPanel() {
     Object.keys(DECOR).forEach((k) => {
       const d = DECOR[k], own = S.decor[k] !== undefined;
       h += row(img('deco_' + k, k === 'bunting' || k === 'cart' ? 40 : 30), d.name, d.sub, own ? btn(S.decor[k] ? 'Shown' : 'Hidden', 'tap to switch', 'decor:' + k, true, S.decor[k] ? 'blue' : '') : btn('Buy', fmt(d.cost) + ' coins', 'decor:' + k, S.coins >= d.cost));
+    });
+    Object.keys(S.decor).filter((k) => k.startsWith('s_')).forEach((k) => {
+      h += row(img('deco_' + k, 26), themeById(k).name + ' decoration', 'From the season track. Up to three season decorations show at once.', btn(S.decor[k] ? 'Shown' : 'Hidden', 'tap to switch', 'decor:' + k, true, S.decor[k] ? 'blue' : ''));
     });
   } else if (tab === 'shop') {
     h += shopTabs();
@@ -1543,10 +1674,10 @@ function renderPanel() {
     h += '<h2>Test tools</h2><p class="note">For playtesting: everything here stands in for something that will come from real orders or real time.</p>';
     h += '<h3>Simulate a bejucoffee.com order</h3><div class="seg">' + Object.keys(COFFEES).map((k) => '<button type="button" data-act="order:' + k + '">' + COFFEES[k].name + '</button>').join('') + '</div>';
     h += '<div class="stamps">' + LOCS.map((l) => '<img src="' + url('stamp_' + l) + '" alt="' + ART.locations[l].name + (S.stamps[l] ? ', stamped' : ', not yet') + '" class="' + (S.stamps[l] ? '' : 'off') + '">').join('') + '</div>';
-    h += '<h3>Resources</h3><div class="seg"><button type="button" data-act="add:coins">+1,000 coins</button><button type="button" data-act="add:bigcoins">+25,000 coins</button><button type="button" data-act="add:contracts">New contracts</button><button type="button" data-act="add:checkin">Next real day</button><button type="button" data-act="add:drop">Start a drop event</button><button type="button" data-act="add:season">End the season</button><button type="button" data-act="add:guide">Restart guide</button><button type="button" data-act="add:points">+2,000 know-how</button><button type="button" data-act="add:cranes">+50 cranes</button><button type="button" data-act="add:vars">All varieties</button><button type="button" data-act="add:xp">+1 level</button><button type="button" data-act="add:cherries">Fill storage</button><button type="button" data-act="add:stamp">Next passport stamp</button><button type="button" data-act="add:sample">Next free sample</button><button type="button" data-act="add:days">+20 check-in days</button></div>';
+    h += '<h3>Resources</h3><div class="seg"><button type="button" data-act="add:coins">+1,000 coins</button><button type="button" data-act="add:bigcoins">+25,000 coins</button><button type="button" data-act="add:contracts">New contracts</button><button type="button" data-act="add:checkin">Next real day</button><button type="button" data-act="add:drop">Start a drop event</button><button type="button" data-act="add:season">End the season</button><button type="button" data-act="add:stars">+50 season stars</button><button type="button" data-act="add:guide">Restart guide</button><button type="button" data-act="add:points">+2,000 know-how</button><button type="button" data-act="add:cranes">+50 cranes</button><button type="button" data-act="add:vars">All varieties</button><button type="button" data-act="add:xp">+1 level</button><button type="button" data-act="add:cherries">Fill storage</button><button type="button" data-act="add:stamp">Next passport stamp</button><button type="button" data-act="add:sample">Next free sample</button><button type="button" data-act="add:days">+20 check-in days</button></div>';
     h += '<h3>Time</h3><div class="seg"><button type="button" data-act="away:1">Away 1 h</button><button type="button" data-act="away:4">Away 4 h</button><button type="button" data-act="away:12">Away 12 h</button><button type="button" data-act="day">Next day</button></div>';
     h += '<h3>Game speed</h3><div class="seg">' + [1, 3, 10].map((x) => '<button type="button" data-act="speed:' + x + '" aria-pressed="' + (S.speed === x) + '">×' + x + '</button>').join('') + '</div>';
-    h += '<h3>Season</h3><div class="seg">' + ['auto', 'harvest', 'rainy', 'spring', 'summer', 'autumn', 'winter'].map((x) => '<button type="button" data-act="season:' + x + '" aria-pressed="' + (S.seasonPick === x) + '">' + x + '</button>').join('') + '</div><p class="note">Harvest and rainy apply to the coffee farms; spring to winter apply to Osaka.</p>';
+    h += '<h3>Weather</h3><div class="seg">' + ['auto', 'harvest', 'rainy', 'spring', 'summer', 'autumn', 'winter'].map((x) => '<button type="button" data-act="season:' + x + '" aria-pressed="' + (S.seasonPick === x) + '">' + x + '</button>').join('') + '</div><p class="note">Harvest and rainy apply to the coffee farms; spring to winter apply to Osaka.</p>';
     h += '<h3>Music volume</h3><div class="seg">' + [['0.25', 'Quiet'], ['0.45', 'Normal'], ['0.7', 'Loud']].map(([v, t]) => '<button type="button" data-act="mvol:' + v + '" aria-pressed="' + (S.musicVol === +v) + '">' + t + '</button>').join('') + '</div><p class="note">Each farm has its own theme. Night versions play from 7 pm to 6 am on the farm clock. Use the buttons at the bottom left of the farm to turn music or sounds off.</p>';
     h += '<h3>Online</h3><p class="note">' + (API ? (NET.status === 'online' ? 'Connected as ' + NET.acct.player + ' · cloud save v' + NET.ver + (NET.rank ? ' · rank #' + NET.rank : '') + (NET.scoreError ? ' · last score refused: ' + NET.scoreError : '') : 'Connecting to bejucoffee.com…') : 'Offline prototype. Accounts, cloud saves, the live leaderboard and order links switch on when the game runs on bejucoffee.com.') + '</p>';
     h += '<h3>Save</h3><div class="seg"><button type="button" data-act="reset">Reset the game</button></div><p class="note">Progress saves in this browser every few seconds.</p>';
@@ -1576,7 +1707,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'mv') S.millV = v;
   else if (a === 'lot') startLot(S.millV, v);
   else if (a === 'sell') sellLot(+v);
-  else if (a === 'cup') { const l = S.lots[+v]; if (l && !l.cupped) { l.cupped = true; S.stats.cupped = (S.stats.cupped || 0) + 1; SFX.play('pour'); toast('Cupped by hand: +' + CUP_BONUS + ' cup score, +' + Math.round((CUP_PAY - 1) * 100) + '% pay'); } }
+  else if (a === 'cup') { const l = S.lots[+v]; if (l && !l.cupped) { l.cupped = true; S.stats.cupped = (S.stats.cupped || 0) + 1; star('cup'); SFX.play('pour'); toast('Cupped by hand: +' + CUP_BONUS + ' cup score, +' + Math.round((CUP_PAY - 1) * 100) + '% pay'); } }
   else if (a === 'method') { if (spend('points', METHODS[v].cost)) { S.methods[v] = true; toast(METHODS[v].name + ' unlocked'); } }
   else if (a === 'up') { const before = S.lv[v]; buyUpgrade(v); if (S.lv[v] !== before) guideStep('up:' + v); }
   else if (a === 'guideNext') { if (S.guide < GUIDE.length) guideDone(); }
@@ -1587,6 +1718,12 @@ document.addEventListener('click', (e) => {
   else if (a === 'gounlock') { S.unTab = v || 'processes'; setTab('unlock'); }
   else if (a === 'ranktab') S.rankTab = v;
   else if (a === 'ranksub') S.rankSub = v;
+  else if (a === 'tier') { if (+v <= tierAt(S.season.stars)) grantTier(S.season.key, +v); }
+  else if (a === 'tierall') { for (let n = 1; n <= tierAt(S.season.stars); n++) grantTier(S.season.key, n, true); SFX.play('achieve'); toast('Season track rewards claimed'); }
+  else if (a === 'lookhat') { if (!v || S.hats[v]) S.look.hat = v; }
+  else if (a === 'lookcharm') { if (!v || S.sitems.charm[v]) S.look.charm = v; }
+  else if (a === 'looktitle') { if (!v || S.sitems.title[v]) S.look.title = v; }
+  else if (a === 'arch') { const [kind, id] = v.split('.'); if (archiveKeys().some((k) => theme(k).id === id) && !archOwned(kind, id) && spend('cranes', ARCHIVE[kind])) { archGive(kind, id); toast(themeById(id).name + ' ' + ARCHIVE_WHAT[kind] + ' is yours'); } }
   else if (a === 'prestigetab') { S.rankSub = 'rewards'; setTab('ranks'); }
   else if (a === 'shoptab') S.shopTab = v;
   else if (a === 'build') { const n = f.build[v] || 0; if (n < BUILD_MAX && spend('coins', buildCost(S.loc, v))) { f.build[v] = n + 1; toast(ART.buildings[v].name + (n ? ' upgraded to level ' + (n + 1) : ' built')); } }
@@ -1607,8 +1744,8 @@ document.addEventListener('click', (e) => {
   }
   else if (a === 'plant') { const [b, x] = v.split('.'); if (S.vars[x] || (eventDrop() && eventDrop().variety === x)) { replantBed(f, +b, x); closeModal(); guideStep('plant'); toast('Field ' + (+b + 1) + ' planted with ' + ART.varieties[x]); } }
   else if (a === 'var') { const nx = VAR_ORDER.find((x) => !S.vars[x]); if (v === nx && spend('points', VAR[v].cost)) { S.vars[v] = true; guideStep('var'); showModal('<h2>' + ART.varieties[v] + ' unlocked</h2>' + img('bush_' + v + '_ripe', 54) + '<p class="note">' + VAR[v].perk + ' Replant a field in the Farm tab to start growing it.</p><button class="btn green" data-act="close">Plant it</button>'); } }
-  else if (a === 'task') { const tk = S.tasks[+v]; if (tk.have >= tk.goal && !tk.done) { tk.done = true; earn(tk.reward); guideStep('task'); toast('Task complete!'); } }
-  else if (a === 'weekly') { S.weekly.claimed = true; S.cranes += WEEKLY_CRANES; showModal('<h2>Order delivered!</h2><p class="note">The team delivered ' + fmt(S.weekly.target) + ' kg of washed coffee to the roastery. +' + WEEKLY_CRANES + ' cranes and the Co-op Roaster badge.</p><button class="btn green" data-act="close">Hooray</button>'); }
+  else if (a === 'task') { const tk = S.tasks[+v]; if (tk.have >= tk.goal && !tk.done) { tk.done = true; earn(rule('shogatsu') && tk.reward.coins ? { coins: tk.reward.coins * 2 } : tk.reward); star('task'); guideStep('task'); toast('Task complete!'); } }
+  else if (a === 'weekly') { S.weekly.claimed = true; S.cranes += WEEKLY_CRANES; star('weekly'); showModal('<h2>Order delivered!</h2><p class="note">The team delivered ' + fmt(S.weekly.target) + ' kg of washed coffee to the roastery. +' + WEEKLY_CRANES + ' cranes and the Co-op Roaster badge.</p><button class="btn green" data-act="close">Hooray</button>'); }
   else if (a === 'prestigeAsk') {
     const asleep = LOCS.filter((l) => FARM_LEVEL[l] && S.farms[l].unlocked);
     showModal('<h2>Prestige ' + (S.prestige + 1) + '?</h2><p class="note"><b>You keep</b> coins, cranes, every upgrade, building, manager, variety, process, decoration, hat, outfit and background.</p><p class="note"><b>You lose</b> your level and ' + fmt(S.points) + ' unspent know-how' + (asleep.length ? ', and ' + asleep.map((l) => ART.locations[l].name.split(',')[0]).join(', ') + (asleep.length > 1 ? ' go' : ' goes') + ' dormant until you level back up' : '') + '.</p><p class="note">You gain ' + (S.prestige + 1 < TIERS.length ? 'the ' + TIERS[S.prestige + 1] + ' crest (nameplate and border)' : 'a star on your name') + (SKINS.some((sk, i) => !S.skins[i]) ? ', you pick one new outfit' : '') + ', and you jump above everyone on prestige ' + S.prestige + '.</p>' + btn('Prestige now', '', 'prestige', true, 'green') + '<button class="btn" data-act="close">Not yet</button>');
@@ -1623,7 +1760,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'buychar') { const c = ART.chars[v]; if (c && !S.chars[v] && spend('cranes', c.cost)) { S.chars[v] = true; S.look.char = v; toast('Now farming as the ' + c.name); } }
   else if (a === 'shopchars') { S.shopTab = 'chars'; setTab('shop'); }
   else if (a === 'char') { if (v === 'none' || S.chars[v]) S.look.char = v; }
-  else if (a === 'buybskin') { const s = ART.bskins[v]; if (s && !S.bskins[v] && spend('cranes', s.cost)) { S.bskins[v] = true; f.skin = v; toast(s.name + ' style on ' + ART.locations[S.loc].name.split(',')[0]); } }
+  else if (a === 'buybskin') { const s = ART.bskins[v]; if (s && !s.season && !S.bskins[v] && spend('cranes', s.cost)) { S.bskins[v] = true; f.skin = v; toast(s.name + ' style on ' + ART.locations[S.loc].name.split(',')[0]); } }
   else if (a === 'bskin') { if (v === 'classic' || S.bskins[v]) f.skin = v; }
   else if (a === 'bskinall') { if (S.bskins[v]) { LOCS.forEach((l) => { S.farms[l].skin = v; }); toast(ART.bskins[v].name + ' style on every farm'); } }
   else if (a === 'rename') { const nv = ($('nameIn').value || '').trim().slice(0, 16); if (nv) { S.name = nv; toast('Name saved'); } }
@@ -1636,11 +1773,11 @@ document.addEventListener('click', (e) => {
     if (v === 'dry') S.lots.forEach((l) => { l.left = 0; });
     toast('Boost used');
   }
-  else if (a === 'buyhat') { const cost = { beju: 15, sakura: 20, indigo: 15, harvest: 20 }[v]; if (spend('cranes', cost)) { S.hats[v] = true; S.hat = v; } }
+  else if (a === 'buyhat') { const cost = { beju: 15, sakura: 20, indigo: 15, harvest: 20 }[v]; if (cost && spend('cranes', cost)) { S.hats[v] = true; S.hat = v; } }
   else if (a === 'hat') S.hat = v;
   else if (a === 'order') realOrder(v);
   else if (a === 'add') {
-    if (v === 'coins') S.coins += 1000; if (v === 'bigcoins') S.coins += 25000; if (v === 'drop') { const i = S.event ? (DROPS.findIndex((d) => d.id === S.event.id) + 1) % DROPS.length : 0; startDrop(DROPS[i].id); } if (v === 'season') { const n = new Date(); S.season.key = seasonKey(new Date(n.getFullYear(), n.getMonth() - 1, 1)); seasonTick(); } if (v === 'checkin') { const y = new Date(Date.now() - 86400000); S.checkin.last = dayKey(y); checkIn(); } if (v === 'guide') { S.guide = 0; S.guideN = 0; } if (v === 'contracts') { S.contracts = []; for (let k = 0; k < contractSlots(); k++) S.contracts.push(newContract()); } if (v === 'points') earn({ points: 2000 }); if (v === 'cranes') S.cranes += 50; if (v === 'vars') VAR_ORDER.forEach((x) => { S.vars[x] = true; }); if (v === 'sample') { const r = SAMPLE_LADDER.find((x) => !sampleOf(x.id)); if (r) grantSample(r.id); } if (v === 'days') { const mk = monthKey(); S.checkin.days[mk] = (S.checkin.days[mk] || []).concat(Array.from({ length: 20 }, (_, i) => mk + '-x' + i)); checkSamples(); } if (v === 'stamp') { const l = ORIGINS.find((o) => !S.stamps[o]); if (l) { S.stamps[l] = true; stampBg(l); } }
+    if (v === 'coins') S.coins += 1000; if (v === 'bigcoins') S.coins += 25000; if (v === 'drop') { const i = S.event ? (DROPS.findIndex((d) => d.id === S.event.id) + 1) % DROPS.length : 0; startDrop(DROPS[i].id); } if (v === 'season') { const n = new Date(); S.season.key = seasonKey(new Date(n.getFullYear(), n.getMonth() - 1, 1)); seasonTick(); } if (v === 'checkin') { const y = new Date(Date.now() - 86400000); S.checkin.last = dayKey(y); checkIn(); } if (v === 'guide') { S.guide = 0; S.guideN = 0; } if (v === 'contracts') { S.contracts = []; for (let k = 0; k < contractSlots(); k++) S.contracts.push(newContract()); } if (v === 'points') earn({ points: 2000 }); if (v === 'stars') { const b = tierAt(S.season.stars); S.season.stars += 50; if (tierAt(S.season.stars) > b) toast('Season track: tier ' + tierAt(S.season.stars) + ' reached!'); } if (v === 'cranes') S.cranes += 50; if (v === 'vars') VAR_ORDER.forEach((x) => { S.vars[x] = true; }); if (v === 'sample') { const r = SAMPLE_LADDER.find((x) => !sampleOf(x.id)); if (r) grantSample(r.id); } if (v === 'days') { const mk = monthKey(); S.checkin.days[mk] = (S.checkin.days[mk] || []).concat(Array.from({ length: 20 }, (_, i) => mk + '-x' + i)); checkSamples(); } if (v === 'stamp') { const l = ORIGINS.find((o) => !S.stamps[o]); if (l) { S.stamps[l] = true; stampBg(l); } }
     if (v === 'xp') { const lv = level(); S.xp = XP_AT(lv + 1); levelUp(lv, level()); }
     if (v === 'cherries') { const vv = S.farms[S.loc].beds[0]; S.cherries[vv] = (S.cherries[vv] || 0) + (cap() - stored()); }
   }
@@ -1659,7 +1796,7 @@ function refreshHud() {
   const fb = S.farms[S.loc].beds.slice(0, S.farms[S.loc].field ? 4 : 3);
   $('locBeds').textContent = S.farms[S.loc].unlocked ? fb.filter((v, i) => fb.indexOf(v) === i).map((v) => ART.varieties[v]).join(' · ') : 'Native: ' + L.beds.filter((v, i) => L.beds.indexOf(v) === i).map((v) => ART.varieties[v]).join(' · ');
   const SEA = { harvest: ['Harvest ×1.5', '#D85A3A'], rainy: ['Rainy · flowering', '#4A8AB8'], spring: ['Spring', '#E688A8'], summer: ['Summer ×1.25', '#6CA442'], autumn: ['Autumn', '#D2702C'], winter: ['Winter ×0.5', '#8CA8C8'] }[sea];
-  $('seasonChip').textContent = SEA[0] + (S.seasonPick !== 'auto' && sea === S.seasonPick ? ' (test)' : ''); $('seasonChip').style.background = SEA[1];
+  $('seasonChip').textContent = SEA[0] + (S.seasonPick !== 'auto' && sea === S.seasonPick ? ' (test)' : ''); $('seasonChip').title = 'Weather: ' + SEA[0]; $('seasonChip').style.background = SEA[1];
   const mh = maxHearts();
   const hshow = Math.min(mh, 10);   /* ten hearts drawn, the rest as a number */
   $('hearts').innerHTML = Array.from({ length: hshow }, (_, i) => '<svg width="14" height="12" viewBox="0 0 7 6" shape-rendering="crispEdges" aria-hidden="true" style="filter:drop-shadow(1px 1px 0 #3E2A1C)"><g fill="' + (i < Math.ceil(S.hearts / mh * hshow) ? '#F07A3A' : '#5A3A2C') + '"><rect x="1" y="0" width="2" height="1"/><rect x="4" y="0" width="2" height="1"/><rect x="0" y="1" width="7" height="2"/><rect x="1" y="3" width="5" height="1"/><rect x="2" y="4" width="3" height="1"/><rect x="3" y="5" width="1" height="1"/></g></svg>').join('') + '<b class="hn">' + S.hearts + '</b>';
@@ -1725,7 +1862,8 @@ async function cloudSync(force) {
 }
 async function submitScore() {
   if (!API || !NET.acct || NET.status !== 'online') return;
-  const body = { name: S.name, prestige: S.prestige, seasonP: S.season.prestige, seasonKh: Math.floor(S.season.kh || 0), level: level(), points: Math.floor(S.xp), look: S.look }, sig = JSON.stringify(body);
+  seasonTick();   /* never send last season's stars into a new season */
+  const body = { name: S.name, prestige: S.prestige, seasonP: S.season.prestige, seasonKh: Math.floor(S.season.kh || 0), seasonStars: S.season.stars, level: level(), points: Math.floor(S.xp), look: S.look }, sig = JSON.stringify(body);
   if (sig === NET.lastScore) return;
   const r = await api('game-score', 'POST', body).catch(() => null);
   if (r && r.status === 200) { NET.lastScore = sig; NET.rank = r.data.rank; } else if (r && r.status === 422) NET.scoreError = r.data.error;

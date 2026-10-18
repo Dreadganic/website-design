@@ -40,10 +40,19 @@ const XP_AT = (l) => l <= 10 ? Math.round(100 * Math.pow(l - 1, 2.4)) : Math.rou
 const levelFor = (xp) => { let l = 1; while (xp >= XP_AT(l + 1)) l++; return l; };
 const PRESTIGE_LEVEL = 10;
 const prestigeNeed = (p) => PRESTIGE_LEVEL + 8 * p;   /* by lifetime prestige: 10, 18, 26, 34 ... */
-const seasonKey = (ms) => { const d = new Date((ms || Date.now()) + 9 * 3600e3); return d.getUTCFullYear() + "-" + String(d.getUTCMonth() + 1).padStart(2, "0"); };   /* seasons follow Japan time */
+/* Seasons follow the calendar month in Japan time. SEASON_JOIN folds a month into an earlier season, e.g. { "2026-12": "2026-11" } when the game launches after the 15th.
+   Keep it in step with SEASON_JOIN in game-assets/play/template.html. */
+const SEASON_JOIN = {};
+const monthKey = (y, m) => { while (m < 1) { m += 12; y -= 1; } while (m > 12) { m -= 12; y += 1; } return y + "-" + String(m).padStart(2, "0"); };
+const seasonKey = (ms) => { const d = new Date((ms || Date.now()) + 9 * 3600e3), k = monthKey(d.getUTCFullYear(), d.getUTCMonth() + 1); return SEASON_JOIN[k] || k; };
+const prevSeason = (key) => { const k = monthKey(+key.slice(0, 4), +key.slice(5) - 1); return SEASON_JOIN[k] || k; };   /* a season's key is its first month */
+const SEASON_IDS = ["shogatsu", "ume", "hina", "sakura", "koinobori", "tsuyu", "tanabata", "hanabi", "tsukimi", "akimatsuri", "momiji", "lights"];   /* by month, January first */
 const RULES = {
   xpPerSecond: 1500,        /* a maxed farm with mastery earns a few hundred a second; this leaves room above that */
   xpBurst: 150000,          /* contracts, check-ins and offline earnings arrive in lumps */
+  starsPerDay: 25,          /* the daily caps add up to about 19 season stars, plus the weekly order spread over the week */
+  starsBurst: 50,           /* a weekly order, a drop contract and a day's capped stars can land together */
+  starsPerPrestige: 10,
   minPrestigeGapSec: 15 * 60, /* reaching level 10+ again takes far longer than this */
   minScoreGapSec: 15,
   minSaveGapSec: 5,
@@ -56,9 +65,10 @@ function checkScore(prev, next, now) {
   if (!Number.isInteger(n.prestige) || !Number.isInteger(n.seasonP) || !Number.isFinite(n.points) || n.prestige < 0 || n.seasonP < 0 || n.points < 0) return "bad_numbers";
   n.seasonKh = Math.max(0, Math.floor(Number(n.seasonKh) || 0));
   if (n.seasonP > n.prestige) return "bad_numbers";
+  n.seasonStars = Math.max(0, Math.floor(Number(n.seasonStars) || 0));
   const lv = levelFor(n.points);
   if (n.level !== lv) return "level_mismatch";
-  if (!prev) return n.prestige <= 1 && n.points <= RULES.xpBurst * 4 && n.seasonKh <= RULES.xpBurst * 4 ? null : "too_far_for_a_new_player";
+  if (!prev) return n.prestige <= 1 && n.points <= RULES.xpBurst * 4 && n.seasonKh <= RULES.xpBurst * 4 && n.seasonStars <= RULES.starsBurst + RULES.starsPerPrestige ? null : "too_far_for_a_new_player";
   const dt = Math.max(0, (now - prev.at) / 1000);
   if (dt < RULES.minScoreGapSec) return "too_soon";
   const sameSeason = prev.season === seasonKey(now);
@@ -71,6 +81,8 @@ function checkScore(prev, next, now) {
   if (sameSeason && n.seasonP > prev.seasonP + (n.prestige - prev.prestige)) return "season_jump";
   const khBase = sameSeason ? prev.seasonKh || 0 : 0;   /* know-how earned this month can only grow as fast as play allows */
   if (n.seasonKh > khBase + RULES.xpPerSecond * dt + RULES.xpBurst) return "too_fast";
+  const starBase = sameSeason ? prev.seasonStars || 0 : 0;   /* season stars are capped per real day in the game */
+  if (n.seasonStars > starBase + RULES.starsPerDay * dt / 86400 + RULES.starsBurst + RULES.starsPerPrestige * (n.prestige - prev.prestige)) return "too_many_stars";
   return null;
 }
 
@@ -88,7 +100,10 @@ const cleanLook = (l, prestige) => {
   const n = (x, max) => Math.max(0, Math.min(max, Math.floor(Number(x) || 0)));
   l = l || {};
   const cap = prestige === undefined ? 7 : n(prestige, 7);
-  return { crest: n(l.crest !== undefined ? l.crest : l.plate, cap), skin: cap > 0 ? n(l.skin, 7) : 0, bg: BGS.includes(l.bg) ? l.bg : "none", char: CHARS.includes(l.char) ? l.char : "none" };
+  const sid = (x) => String(x || "").replace(/^s_/, ""), now = seasonKey();
+  return { crest: n(l.crest !== undefined ? l.crest : l.plate, cap), skin: cap > 0 ? n(l.skin, 7) : 0, bg: BGS.includes(l.bg) || (/^s_/.test(l.bg || "") && SEASON_IDS.includes(sid(l.bg))) ? l.bg : "none", char: CHARS.includes(l.char) ? l.char : "none",
+    hat: SEASON_IDS.includes(sid(l.hat)) ? "s_" + sid(l.hat) : "", charm: SEASON_IDS.includes(sid(l.charm)) ? sid(l.charm) : "",
+    title: /^\d{4}-\d{2}$/.test(l.title || "") && l.title <= now ? l.title : "" };   /* season track cosmetics; a title names a season that has started */
 };
 
 /* Free coffee samples earned in the game. The server decides who has earned what, from its own records:
@@ -122,4 +137,4 @@ async function savePlayer(store, me) { const { id, ...rest } = me; await store.s
 /* Which passport origins each real coffee can stamp, in blend order (mirrors the game's COFFEES) */
 const STAMPS = { casablanca: ["mogiana", "huila", "turrialba"], pinkwhiskey: ["huila"], rumbarrel: ["huila"], yirgacheffe: ["gedeo"], strawberry: ["toba"] };
 
-module.exports = { SAMPLE_RULES, SAMPLE_LADDER, dayJST, newSamples, sampleView, savePlayer, json, parse, stores, memoryStore, authed, hash, newId, newToken, XP_AT, levelFor, prestigeNeed, seasonKey, RULES, checkScore, cleanName, cleanLook, STAMPS };
+module.exports = { SAMPLE_RULES, SAMPLE_LADDER, dayJST, newSamples, sampleView, savePlayer, json, parse, stores, memoryStore, authed, hash, newId, newToken, XP_AT, levelFor, prestigeNeed, seasonKey, prevSeason, SEASON_JOIN, SEASON_IDS, RULES, checkScore, cleanName, cleanLook, STAMPS };
