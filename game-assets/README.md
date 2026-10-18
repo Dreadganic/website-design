@@ -219,3 +219,10 @@ Coins build, know-how unlocks, cranes buy looks, and the tabs follow that rule:
 - The P7 perk is now the Foreman's ledger, so it isn't confused with the notebook.
 - Measured: efficient bot P5 in 10.5 h (11.2 h before), with 30 of 54 pairs tried and 6 notebook titles.
 
+## The roastery (Mill > Roastery)
+- Opens at prestige 3, or as soon as the Osaka garden opens. Rosa introduces it.
+- **Loop:** tap Roast on a dry lot to send its green coffee to the roastery; roast up to the drum size in one go, light (75 s), medium (90 s) or dark (105 s). Each coffee has a best roast (light for Geisha, Heirloom and fine washed coffees; dark for barrel lots and Brazilian-style naturals; medium otherwise). Tap **Crack** during first crack (70-86% through) for +15 quality; too early or late misses it. Quality = cup score - 40, +15 for the best roast (-5 otherwise), +15 for the crack, +5 with the cupping lab.
+- **Buyers:** specialty cafés pay x1.7 for light, kissaten x1.6 for dark, konbini blends x1.3 for medium; a roast a buyer doesn't want sells at the green price; price also scales with quality (x0.6 + quality/100). Roasted coffee earns about 1.5-2.5x green, plus 1.2x the know-how.
+- **Reputation** (personal, not on a leaderboard) comes from bags sold, more when the buyer wanted that roast. Levels 1-20: 2 cooling tray (-20% roast time), 3 60 kg drum, 4 second roaster, 6 cupping lab (+5 quality), 7 150 kg drum, 10 house blends (two bags into a Beju-named blend: Casablanca Blend, Osaka Morning, Kissaten Dark, Sakura Light, Crane House Blend, Kyoto Evening, Beju Breakfast, Momiji Roast; +5 quality and every buyer wants it), 12 400 kg drum, 15 third roaster, 20 the Master roaster title.
+- Each finished roast gives 1 season star (up to 3 a day). Staff never roast; the foreman and Sell all dry leave lots alone unless you send them.
+

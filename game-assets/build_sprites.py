@@ -1648,6 +1648,41 @@ def charm_qgrader(p):   # the Q grader charm from the cupping notebook: a gold s
 
 
 add_layer("charm_qgrader", 9, 9, charm_qgrader)
+
+# ---------------- the roastery: a drum roaster (two flame frames) and a bag for each roast ----------------
+def roaster(f):
+    def draw(p):
+        for x in range(3, 23):
+            p(x, 25, "#2A2A0850")
+        rect(p, 4, 20, 2, 5, OUT); rect(p, 20, 20, 2, 5, OUT)                       # legs
+        rect(p, 2, 8, 22, 13, OUT); rect(p, 3, 9, 20, 11, "#C8302C"); rect(p, 3, 9, 20, 2, "#E8584A"); rect(p, 3, 18, 20, 2, "#8A1E1C")   # body
+        rect(p, 8, 10, 10, 8, OUT); rect(p, 9, 11, 8, 6, "#2A2A2A"); rect(p, 10, 12, 3, 2, "#5A4630")   # drum window with beans
+        rect(p, 11, 1, 4, 8, OUT); rect(p, 12, 2, 2, 6, "#B8B8B8")                    # chimney
+        rect(p, 18, 3, 6, 6, OUT); rect(p, 19, 4, 4, 4, "#E8B830")                    # hopper
+        flame = ["#F2C04A", "#E8602A"] if f == 0 else ["#E8602A", "#F2C04A"]
+        for i, x in enumerate(range(7, 19, 2)):
+            p(x, 22, flame[i % 2]); p(x + 1, 23, flame[(i + 1) % 2])
+        if f == 1:
+            p(12, 0, "#DCDCDC"); p(14, 0, "#DCDCDC")                                 # a puff of smoke
+    return draw
+
+
+def roast_bag(col):
+    def draw(p):
+        for x in range(2, 12):
+            p(x, 15, "#2A2A0850")
+        rect(p, 1, 3, 12, 12, OUT); rect(p, 2, 4, 10, 10, "#E8DCC0"); rect(p, 2, 4, 10, 2, "#F6EEDC")
+        rect(p, 3, 1, 8, 3, OUT); rect(p, 4, 2, 6, 1, "#C8B898")
+        for (x, y) in [(4, 8), (7, 7), (9, 10), (5, 11)]:
+            rect(p, x, y, 2, 2, col); p(x, y, OUT)
+        rect(p, 3, 5, 8, 1, "#2D6A46")
+    return draw
+
+
+for _f in (0, 1):
+    add_layer("roaster_%d" % _f, 26, 26, roaster(_f))
+for _k, _c in (("light", "#B07A4A"), ("medium", "#7A4A28"), ("dark", "#3E2414")):
+    add_layer("bag_" + _k, 14, 16, roast_bag(_c))
 add_layer("perk_sign", 20, 20, perk_sign)
 for _f in (0, 1):
     add_layer("crane_fly_%d" % _f, 13, 7, crane_fly(_f))
