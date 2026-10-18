@@ -1,0 +1,116 @@
+<title>Late Game Playtest</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column like the other reviews; the run as tables, findings and options as cards */
+:root {
+  --bg: #F5F3EE; --panel: #FFFFFF; --fg: #23201B; --muted: #6A6358; --line: #DED8CC;
+  --bean: #6B3F22; --leaf: #2F6B4F; --cherry: #B8323A; --gold: #A8791A; --soft: #EFE9DD;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #171512; --panel: #201D19; --fg: #EDE7DC; --muted: #A79F92; --line: #383229;
+  --bean: #D9A47A; --leaf: #6CC59A; --cherry: #F07880; --gold: #E2B64A; --soft: #2A2620; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #171512; --panel: #201D19; --fg: #EDE7DC; --muted: #A79F92; --line: #383229;
+  --bean: #D9A47A; --leaf: #6CC59A; --cherry: #F07880; --gold: #E2B64A; --soft: #2A2620; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font: 16px/1.6 var(--body); }
+.wrap { max-width: 780px; margin: 0 auto; padding-block: 40px 72px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 36px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(30px, 6vw, 42px); font-weight: 800; }
+h2 { font-size: 24px; font-weight: 800; }
+p { margin: 0; max-width: 66ch; }
+section { display: flex; flex-direction: column; gap: 14px; }
+.eyebrow { font: 600 12px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--bean); }
+.lede { font-size: 18px; color: var(--muted); }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; }
+.kpi b { font: 800 26px/1.1 var(--display); font-variant-numeric: tabular-nums; color: var(--leaf); }
+.kpi span { font-size: 13px; color: var(--muted); }
+.tw { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 12px/1.3 var(--mono); letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; }
+.card .tag { font: 600 12px var(--mono); color: var(--muted); }
+.card.bad { border-left: 4px solid var(--cherry); }
+.card.good { border-left: 4px solid var(--leaf); }
+.card.warn { border-left: 4px solid var(--gold); }
+ul, ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 68ch; }
+.note { font-size: 14px; color: var(--muted); }
+</style>
+<div class="wrap">
+<header style="display:flex;flex-direction:column;gap:12px">
+  <span class="eyebrow">Playtest · 18 October 2026 · three human-like runs of 120 hours, aiming for P8</span>
+  <h1>Up to P5 the game is well paced; from P5 to P6 it takes about 45 hours with little to do</h1>
+  <p class="lede">Three bots played for 120 hours each, about 216 sessions of 20–45 minutes with breaks of up to 18 hours: two with the new building costs, one with the old. All three reached P6. None got near P7. This report covers the building cost change, the 2.5-second crack windows and what the game is like after P5.</p>
+</header>
+
+<section>
+<h2>The run</h2>
+<div class="tw"><table>
+<thead><tr><th>Run</th><th>P1</th><th>P2</th><th>P3</th><th>P4</th><th>P5</th><th>P6</th><th>At 120 h</th></tr></thead>
+<tbody>
+<tr><td>New costs, seed 7</td><td class="n">0.5 h</td><td class="n">0.9</td><td class="n">1.6</td><td class="n">3.1</td><td class="n">10.4</td><td class="n">58.4</td><td class="n">P6 · level 51 of 58</td></tr>
+<tr><td>New costs, seed 11</td><td class="n">0.5 h</td><td class="n">0.9</td><td class="n">1.5</td><td class="n">3.0</td><td class="n">10.1</td><td class="n">54.2</td><td class="n">P6 · level 52 of 58</td></tr>
+<tr><td>Old costs, seed 7</td><td class="n">0.5 h</td><td class="n">1.0</td><td class="n">1.7</td><td class="n">3.3</td><td class="n">11.1</td><td class="n">56.7</td><td class="n">P6 · level 52 of 58</td></tr>
+</tbody></table></div>
+<p class="note">Times are cumulative hours of play. At about an hour a day, P6 arrives in roughly two months.</p>
+</section>
+
+<section>
+<h2>What changed</h2>
+<div class="card good">
+  <span class="tag">Building costs (×2 past level 5): a small help</span>
+  <p>P5 came about 45 minutes sooner (10.1–10.4 h against 11.1 h). P6 came at about the same time, because by then the buildings are maxed and costs no longer matter. Levels 6 and 7 are now steady purchases instead of one big save each.</p>
+</div>
+<div class="card good">
+  <span class="tag">Crack windows of 10 down to 2.5 seconds: the roastery's share settled</span>
+  <p>From P4 to P5 the roastery earned 20–24% of coins, down from 27–30% with the wider windows. Rare beans now often miss their crack, which is the difficulty you wanted.</p>
+</div>
+</section>
+
+<section>
+<h2>After P5: the long stretch</h2>
+<div class="tw"><table>
+<thead><tr><th>P5 to P6</th><th>Seed 7</th><th>Seed 11</th><th>Old costs</th></tr></thead>
+<tbody>
+<tr><td>Play time</td><td class="n">48 h</td><td class="n">44 h</td><td class="n">46 h</td></tr>
+<tr><td>Purchases</td><td class="n">88</td><td class="n">79</td><td class="n">91</td></tr>
+<tr><td>Gaps of 10+ minutes with nothing to buy</td><td class="n">65</td><td class="n">58</td><td class="n">69</td></tr>
+<tr><td>Longest gap</td><td class="n">159 min</td><td class="n">144 min</td><td class="n">144 min</td></tr>
+<tr><td>Levels gained per hour</td><td class="n">0.83</td><td class="n">0.68</td><td class="n">0.70</td></tr>
+<tr><td>Roastery share of coins</td><td class="n">68%</td><td class="n">61%</td><td class="n">63%</td></tr>
+<tr><td>Roastery reputation 20 reached</td><td class="n">25 h in</td><td class="n">25 h in</td><td class="n">25 h in</td></tr>
+</tbody></table></div>
+<div class="card bad">
+  <span class="tag">Three problems</span>
+  <ul>
+    <li><b>P6 is too far away.</b> P6 needs level 50, and each level past 10 costs 1.22× the one before. Farm income stops growing once buildings reach the P5 cap of 7, so players gain under one level an hour for about 45 hours. P7 (level 58) would take months.</li>
+    <li><b>There's little left to buy.</b> Across 45 hours a player makes 80–90 purchases, mostly farm mastery, with about 60 stretches of 10 minutes or more and some of over two hours where nothing new is affordable. The P1–P4 runs had a purchase every few minutes.</li>
+    <li><b>The roastery runs out too.</b> It earns about two-thirds of income from P5 on, which is the takeover we wanted. But reputation 20 and every one of the 28 cosmetics are done by about 25 hours, halfway to P6, and after that the roastery has no new goals.</li>
+  </ul>
+</div>
+</section>
+
+<section>
+<h2>Options</h2>
+<div class="card warn">
+  <span class="tag">1 · A softer level curve past level 30 (recommended)</span>
+  <p>Make each level past 30 cost 1.15× the last instead of 1.22×. Getting from level 42 to 50 would take about a quarter of the XP, so P5 to P6 would drop from about 45 hours to roughly 12–15. P6 to P7 would need a sixth of the XP. Levels up to 30, and so everything up to about P3, stay exactly as they are.</p>
+</div>
+<div class="card warn">
+  <span class="tag">2 · A building cap step at P5</span>
+  <p>Add a cap of 8 at P5, between the 7 at P4 and the 9 at P6, so there's something big to save for during P5 and income keeps growing.</p>
+</div>
+<div class="card warn">
+  <span class="tag">3 · Roastery goals beyond reputation 20</span>
+  <p>Master roaster stars: past reputation 20, every further 2,000 reputation earns a star on your roastery sign and +1% bag price, up to 10 stars. A seasonal roast "streak", making that season's recipe several times, could also count towards season stars.</p>
+</div>
+</section>
+</div>
