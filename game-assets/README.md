@@ -375,3 +375,19 @@ From prestige 4, each farm's drying area (left of the farmhouse) becomes an esta
 - **Ranks and Looks.** Ranks opens on the Leaderboard, with Season and Prestige as its other pages. The Prestige page shows your crest and the next one side by side above the button. Cosmetics have their own **Looks** tab: crests, outfits, characters, backgrounds, hats, charms and titles, plus a link to building styles in the Shop. It opens at the first prestige or with your first cosmetic. Settings moved from the tab bar to a gear button on the farm, beside the sound buttons.
 - **The guided first prestige** (`S.pwalk`, `PWALK`, `pwalkTick`). When a first prestige is ready, Rosa offers to show you, and the guide bar and arrow lead to Ranks › Prestige and the Prestige button. After the ceremony comes Looks to pick an outfit, then the farm, where Rosa names the resting farm and its wake level. Later prestiges skip the walk.
 - **Help text pass.** Every standing explanation now goes through `help()`: the Mill intro, contracts, cupping, the foreman, terroir, buildings, staff training, Unlock (know-how, coffees, processes, farms), the notebook and Beju cards, the weekly order, season stars and rules, prestige, backgrounds and titles. Prestige perks show the next perk to come, with "see all". The season track shows the tiers around you up to the next cosmetic, with "see all 30". The roastery and notebook first-time cards are one sentence. Settings › Help text switches between "Short, with i buttons" and "Always in full" (`S.showHelp`). For a returning player: Ranks › Prestige went from about 2,950px to 510px, Season from about 2,200px to 1,100px, and the Mill from about 800px to 640px.
+
+## Head roaster and estate manager
+Two late staff who take over chores, never as well as you do them yourself (`ROASTER_REP`, `ESTATE_MGR_STAGES`). Their roasts and chores earn no season stars and count for no tasks.
+- **Head roaster:** from roastery reputation 10 (about mid-P5), 1.5M coins.
+  - **Work:** starts the best roast on free roasters (`headRoasterTick`), always leaving you one while you play.
+  - **Crack:** catches 35% of first cracks (+5% per training level, 85% at most). His catch adds the +15 quality but not the instant finish.
+  - **Away:** roasts at half your pace while you're away, and the welcome-back card counts his batches.
+  - **Switch:** "Give him a break" in the Roastery turns him off.
+  - **In the scene:** a white-jacketed roaster minds his drum in the roastery.
+- **Estate manager:** from 3 estate stages built (about P5), 3M coins.
+  - **Effectiveness:** works at 40% of what you would (+5% per training level, 90% at most, `estateEff`).
+  - **Ceremony:** he holds it only if you haven't after 30 minutes of play that day, and it lasts that share of its length.
+  - **Koi:** he feeds them 20 minutes after they're ready, for that share of the crack bonus and never a golden koi.
+  - **Cellar:** he keeps it full and takes his lots out at a lower age, +1 cup untrained to +2.5 trained, where yours reach +3.
+  - **In the scene:** he walks the path below each built estate.
+- **Coin sinks:** hiring is 4.5M. Training starts at 600k (head roaster) and 800k (estate manager), doubling each level up to 10, alongside the existing staff training from P5.
