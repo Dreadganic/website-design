@@ -45,6 +45,13 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-
 .day { width: 38px; height: 38px; border-radius: 19px; background: var(--paper); border: 3px solid var(--edge); display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; box-shadow: 0 2px 0 var(--ink); }
 .day small { font-size: 8px; color: var(--muted); font-weight: 600; } .day b { font-size: 16px; }
 .goldgo { position: absolute; left: 50%; top: 56px; transform: translateX(-50%); padding: 6px 12px; background: linear-gradient(#FFF4B0, #F2C04A); border: 3px solid #A87818; border-radius: 10px; font: 700 14px var(--pixel); color: var(--ink); cursor: pointer; box-shadow: 0 2px 0 #7A5A10; white-space: nowrap; }
+.nb-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 0; border-top: 1px dashed var(--paper-2); font-size: 14px; }
+.nb-row select { font: inherit; padding: 3px 6px; border: 2px solid var(--edge); border-radius: 6px; background: var(--paper); color: var(--ink); max-width: 60%; }
+.n { font-family: var(--body); font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: 0; font-size: 1.1em; line-height: 1; }
+b .n, h2 .n, h3 .n, .row .grow b .n, .tile b .n { color: inherit; font-size: 1.1em; }
+.note .n, .grow span .n, .tile span .n, .btn small .n, .pill .n, .toast .n, .goldgo .n, .stats .n, .rack small .n, .nb-row .n { font-size: 1em; }
+.pill, .toast, .goldgo, .btn small, .stats b, .stats small, .fit, .want, .tile .tags > span { font-family: var(--body); font-weight: 700; font-variant-numeric: tabular-nums; }
+.pc-num .n, .lvl-badge .n { font-family: inherit; }
 .toast { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); max-width: 92%; padding: 8px 12px; background: var(--paper); border: 3px solid var(--edge); border-radius: 10px; font-size: 15px; text-align: center; box-shadow: 0 3px 0 #1E140C; pointer-events: none; }
 .tabs { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
 .tab { height: 46px; border: 3px solid var(--edge); border-radius: 8px; background: var(--paper-2); color: var(--ink); font-size: 10.5px; letter-spacing: -0.02em; padding: 0 1px; min-width: 0; overflow: hidden; font-weight: 700; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; position: relative; }
@@ -89,7 +96,7 @@ button, a.btn, [data-act], [data-tab] { touch-action: manipulation; -webkit-tap-
 .tile { position: relative; }
 .tile.best { border-color: #2D6A46; box-shadow: 0 0 0 2px #2D6A46 inset; }
 .tags { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 4px; }
-.tile .tags span, .fit, .want { font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 4px; white-space: nowrap; }
+.tile .tags > span, .fit, .want { font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 4px; white-space: nowrap; }
 .tile .tags .bestpay { background: #2D6A46; color: #FBF1DC; }
 .tile .tags .fit, .fit { background: #F2C04A; color: #3E2A1C; }
 .tile .tags .est { background: #EFE2C4; color: #5A4630; }
@@ -156,7 +163,7 @@ button, a.btn, [data-act], [data-tab] { touch-action: manipulation; -webkit-tap-
 .rack.dry { border-color: var(--leaf-ink); background: #EEF5DC; }
 .rack.cup { box-shadow: inset 0 0 0 2px #E8B830; }
 .rk-top { display: flex; gap: 4px; align-items: center; min-width: 0; }
-.rk-top span { display: flex; flex-direction: column; min-width: 0; line-height: 1.15; }
+.rk-top > span { display: flex; flex-direction: column; min-width: 0; line-height: 1.15; }
 .rk-top b { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rk-top small, .rack small { color: var(--muted); font-size: 10px; }
 .rack .bar { display: block; height: 6px; }
@@ -196,10 +203,10 @@ canvas.hint { transform: none !important; }
 @media (prefers-reduced-motion: reduce) { .lvl-badge { animation: none; } }
 .market { display: flex; gap: 8px; align-items: center; padding: 8px 10px; background: #FFF1C4; border: 2px solid #C98F12; border-radius: 8px; font-size: 13px; }
 .streak { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; width: 100%; }
-.streak span { display: flex; flex-direction: column; align-items: center; padding: 4px 2px; border: 2px solid #D9C29A; border-radius: 6px; font-size: 9px; font-weight: 700; color: #7A5A3A; line-height: 1.2; text-align: center; }
+.streak > span { display: flex; flex-direction: column; align-items: center; padding: 4px 2px; border: 2px solid #D9C29A; border-radius: 6px; font-size: 9px; font-weight: 700; color: #7A5A3A; line-height: 1.2; text-align: center; }
 .streak span b { font-size: 13px; color: #3E2A1C; }
-.streak span.done { background: #E2F0E6; border-color: #2D6A46; }
-.streak span.now { background: #F2C04A; border-color: #A87818; }
+.streak > span.done { background: #E2F0E6; border-color: #2D6A46; }
+.streak > span.now { background: #F2C04A; border-color: #A87818; }
 @media (prefers-reduced-motion: reduce) { .hint, .tab.fresh, .garrow { animation: none; } }
 .plate { display: inline-block; padding: 2px 8px; border: 2px solid; border-radius: 6px; font: 700 13px var(--pixel, 'Pixelify Sans'), monospace; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .p-seed { background: #EEE2C6; color: #5A4630; border-color: #B89A6A; }
@@ -374,7 +381,7 @@ const DECOR = {
   bunting: { name: 'Festival bunting', cost: 15000, sub: 'Flags strung across the farm' },
   cart: { name: 'Coffee cart', cost: 25000, sub: 'A little Beju cart serving the pickers' }
 };
-const SEASON_DECO_AT = [[30, 199], [88, 199], [146, 199]];   /* along the hedge, clear of the paths */
+const SEASON_DECO_AT = [[8, 24], [44, 20], [80, 24]];   /* along the top of the drying patio, clear of the paths and the farm buildings */
 const DECOR_AT = { bench: [[138, 96]], planter: [[179, 104]], lantern: [[91, 140], [91, 186]], flag: [[2, 86]], cart: [[154, 92]] };
 /* prestige: purely for show. It ranks you above everyone on a lower prestige, unlocks a nameplate, border and farmer outfit per tier,
    and costs you level, points and access to farms until you level back up. Coins, upgrades and cosmetics are never touched. */
@@ -401,6 +408,8 @@ const PERKS = {
   3: { id: 'nightshift', name: 'Night shift', text: 'Your farm keeps working for up to 18 hours while you\'re away, up from 12.' },
   4: { id: 'awake', name: 'Old friends', text: 'After a prestige, Huila and Gedeo keep working straight away; only Toba and Turrialba sleep until you level back up.' },
   5: { id: 'lookout', name: 'Lookout', text: 'Golden bushes can appear on any open farm, and a Go button takes you there.' },
+  6: { id: 'reroll', name: 'Tasting notes', text: 'Swap one daily task a day for a different one. The reward stays the same.' },
+  7: { id: 'notebook', name: 'Foreman\'s notebook', text: 'Set the mill foreman\'s process for each coffee, instead of one rule for everything.' },
   8: { id: 'goldsign', name: 'Golden Crane', text: 'A gold Beju sign on every farm, and a red-crowned crane that flies over your fields.' }
 };
 const AWAKE = ['huila', 'gedeo'];   /* the farms Old friends keeps awake through a prestige */
@@ -807,6 +816,23 @@ function newTasks() {
     { id: 'sell', text: 'Sell 2 processed lots', goal: 2, have: 0, reward: { cranes: 1 } }
   ];
 }
+/* every kind of daily task; the Tasting notes perk swaps one for another the player doesn't have today */
+const TASK_KINDS = {
+  pick: { text: 'Pick 15 ripe shrubs yourself', goal: 15, img: 'i_cherry' },
+  store: { text: 'Bring in 200 kg of cherries', goal: 200, img: 'i_box' },
+  sell: { text: 'Sell 2 processed lots', goal: 2, img: 'green_sack' },
+  golden: { text: 'Catch 2 golden bushes', goal: 2, img: 'i_coin' },
+  cup: { text: 'Cup 4 lots by hand', goal: 4, img: 'i_cup' },
+  contract: { text: 'Complete a buyer contract', goal: 1, img: 'board' }
+};
+function rerollTask(i) {
+  const t = S.tasks[i], today = dayKey(new Date());
+  if (!t || t.done || !hasPerk('reroll') || S.rerollDay === today) return;
+  const pool = Object.keys(TASK_KINDS).filter((k) => !S.tasks.some((x) => x.id === k)), k = pool[Math.floor(Math.random() * pool.length)];
+  if (!k) return;
+  S.tasks[i] = { id: k, text: TASK_KINDS[k].text, goal: TASK_KINDS[k].goal, have: 0, reward: t.reward };   /* same reward, so the crane task stays a crane task */
+  S.rerollDay = today; SFX.play('page'); toast('New task: ' + TASK_KINDS[k].text);
+}
 function task(id, n) { S.tasks.forEach((t) => { if (t.id === id && !t.done) t.have = Math.min(t.goal, t.have + n); }); }
 
 /* ---------- the world loop ---------- */
@@ -938,7 +964,7 @@ function draw(time) {
   });
   Object.keys(DECOR_AT).forEach((k) => { if (S.decor[k]) DECOR_AT[k].forEach(([x, y]) => fx.drawImage(sprite('deco_' + k), x, y)); });
   if (hasPerk('goldsign')) {   /* Golden Crane: the gold sign, and a crane crossing the sky every 45 seconds */
-    fx.drawImage(sprite('perk_sign'), 170, 197);
+    fx.drawImage(sprite('perk_sign'), 100, 66);
     const ct = (Date.now() / 1000) % 45;
     if (ct < 9) fx.drawImage(sprite('crane_fly_' + (Math.floor(Date.now() / 260) % 2)), Math.round(-14 + ct / 9 * (W + 28)), Math.round(14 + Math.sin(ct * 1.3) * 3));
   }
@@ -1024,12 +1050,12 @@ function draw(time) {
   }
   if (asleep) {   /* a wooden sign in the middle of the farm */
     const tx = 'DORMANT · REOPENS AT LEVEL ' + S.dormant[S.loc];
-    ctx.font = '700 18px "Pixelify Sans", monospace'; const w = ctx.measureText(tx).width + 28;
+    ctx.font = '700 18px "Zen Kaku Gothic New", system-ui, sans-serif'; const w = ctx.measureText(tx).width + 28;
     ctx.fillStyle = '#3E2A1C'; ctx.fillRect(W - w / 2 - 3, 205, w + 6, 44); ctx.fillStyle = '#C08C50'; ctx.fillRect(W - w / 2, 208, w, 38);
     ctx.fillStyle = '#9C6C3C'; ctx.fillRect(W - w / 2, 226, w, 2); ctx.fillStyle = '#FFF4DE'; ctx.fillText(tx, W, 233);
   }
   if (!f.field) { ctx.font = '700 13px "Pixelify Sans", monospace'; ctx.fillStyle = '#4A2E18'; ctx.fillText('EXPAND', 142 * 2, 173 * 2); }
-  ctx.font = '700 18px "Pixelify Sans", monospace';
+  ctx.font = '700 19px "Zen Kaku Gothic New", system-ui, sans-serif';   /* floating +coins and +kg read best in the body font */
   floats.forEach((t) => {
     const y = (t.y - t.t * 12) * 2;
     ctx.globalAlpha = Math.max(0, 1 - t.t);
@@ -1045,7 +1071,7 @@ cv.addEventListener('click', (e) => {
   const s = f.shrubs.find((x) => lx >= x.x && lx < x.x + 18 && ly >= x.y && ly < x.y + 22);
   if (s && golden && golden.loc === S.loc && f.shrubs.indexOf(s) === golden.i) {   /* golden bush: about two minutes of your current income */
     const gm = rule('hanabi') ? 2.5 : 2, c = Math.max(150, Math.round(rateC * gm)), k = Math.max(40, Math.round(rateX * gm));
-    golden = null; earn({ coins: c, points: k }); earnedC -= c; earnedX -= k; S.stats.golden = (S.stats.golden || 0) + 1; star('golden');
+    golden = null; earn({ coins: c, points: k }); earnedC -= c; earnedX -= k; S.stats.golden = (S.stats.golden || 0) + 1; star('golden'); task('golden', 1);
     SFX.play('achieve'); SFX.play('coins'); floats.push({ x: s.x + 9, y: s.y - 4, text: '+' + fmt(c) + ' coins', t: 0 }); floats.push({ x: s.x + 9, y: s.y + 8, text: '+' + fmt(k) + ' know-how', t: -0.3 });
     for (let i = 0; i < 24; i++) bursts.push({ x: s.x + 9, y: s.y + 8, vx: (rnd() - 0.5) * 90, vy: -40 - rnd() * 60, t: 0, c: i % 2 ? '#F2C04A' : '#FFF4B0' });
     toast('Golden bush! +' + fmt(c) + ' coins, +' + fmt(k) + ' know-how'); return;
@@ -1217,7 +1243,7 @@ function deliver(i, id, quiet) {
   earn(pay); if (l.cupped) earn({ coins: Math.round(pay.coins * (CUP_PAY - 1)) }); if (rule('hina')) earn({ coins: Math.round(pay.coins * 0.1) });   /* buyers pay extra for hand-cupped coffee */
   if (done) {
     S.contracts = S.contracts.filter((x) => x !== c); S.nextContract = Math.min(S.nextContract, S.minutesTotal + 10); S.stats.contracts = (S.stats.contracts || 0) + 1; SFX.play('contract');
-    star('contract'); if (c.event) star('drop');
+    star('contract'); task('contract', 1); if (c.event) star('drop');
     if (c.event && S.event) { S.event.done += 1; if (S.event.done >= 3) { earn({ cranes: 10 }); S.badges.push({ event: eventDrop() ? eventDrop().name : 'Drop event', label: 'Drop', rank: 99 }); setTimeout(() => showModal('<h2>Drop event complete!</h2><p class="note">All three event contracts are delivered. The event badge is on your profile, and 10 cranes are yours.</p><button class="btn green" data-act="close">Brilliant</button>'), 600); } }
     if (quiet) { toast('Contract for ' + c.buyer + ' complete: +' + fmt(c.coins) + ' coins, +' + fmt(c.points) + ' know-how in all'); return; }
     showModal(img('board', 64) + '<h2>Contract complete!</h2><p class="note">' + c.buyer + ' received ' + fmt(c.kg) + ' kg' + (c.note ? ' (' + c.note.toLowerCase() + ')' : '') + '.' + (spare > 0.05 ? ' The spare ' + fmt(spare) + ' kg went to the roastery.' : '') + '</p><div class="stats"><div><small>Coins</small><b>+' + fmt(c.coins + extra.coins) + '</b></div><div><small>Know-how</small><b>+' + fmt(c.points + extra.points) + '</b></div></div><p class="note">Totals for the whole contract, including what earlier deliveries already paid.</p><button class="btn green" data-act="close">Great</button>');
@@ -1242,7 +1268,8 @@ function staffTick() {
       .sort((a, b) => (!!b.c - !!a.c) || S.cherries[b.v] - S.cherries[a.v])
       .find(({ v, c }) => full || S.cherries[v] >= (c ? Math.min(cap() * 0.25, Math.max(10, (c.kg - c.have) / 0.2)) : idle || free * 2 >= racks() ? Math.max(10, cap() * 0.05) : Math.max(10, cap() * 0.25)));
     if (!pick) break;
-    let method = S.staff.rule !== 'best' && S.methods[S.staff.rule] ? S.staff.rule : ok.slice().sort(byPay)[0];
+    const own = hasPerk('notebook') && S.staff.rules && S.methods[S.staff.rules[pick.v]] ? S.staff.rules[pick.v] : null;   /* Foreman's notebook: a process per coffee */
+    let method = own || (S.staff.rule !== 'best' && S.methods[S.staff.rule] ? S.staff.rule : ok.slice().sort(byPay)[0]);
     if (pick.c) method = pick.c.method || ok.filter((k) => cupFor(pick.v, k) >= pick.c.minCup).sort(byPay)[0] || method;
     if (!startLot(pick.v, method, true)) break;
   }
@@ -1455,7 +1482,9 @@ const tabLocked = (id) => !!TAB_OPEN[id] && !S.tabs[id];
 function checkTabs() {
   Object.keys(TAB_OPEN).forEach((k) => { if (!S.tabs[k] && TAB_OPEN[k]()) { S.tabs[k] = true; if (k === 'orders') { S.contracts = S.contracts.filter((c) => c.event); S.nextContract = 0; setTimeout(() => toast('Buyers now post contracts in the Mill'), 2800); } S.newTab = k; toast('New tab: ' + TABS.find((x) => x[0] === k)[1]); SFX.play('achieve'); const c = TAB_COACH[k]; if (c) setTimeout(() => showModal(coachCard(c[0], c[1] || seasonPitch(), c[2], c[3])), 1200); } });
 }
-function setHTML(el, html) { if (el.__html === html) return false; el.__html = html; el.innerHTML = html; return true; }   /* rebuilding unchanged buttons swallows taps */
+/* readable numbers: the pixel font stays for words, but every run of digits in the panels and windows is set in the clean body font */
+const numify = (html) => ('>' + html + '<').replace(/>([^<]+)</g, (m, t) => '>' + t.split(/(&#?\w+;)/).map((p) => (p[0] === '&' ? p : p.replace(/\d[\d,.:]*\d|\d/g, '<span class="n">$&</span>'))).join('') + '<').slice(1, -1);
+function setHTML(el, html) { if (el.__html === html) return false; el.__html = html; el.innerHTML = numify(html); return true; }   /* rebuilding unchanged buttons swallows taps */
 function unlockReady() {   /* is there an unlock the player can afford right now? */
   const nv = VAR_ORDER.find((v) => !S.vars[v]), nf = LOCS.find((l) => canOpen(l));
   return S.tabs.unlock && ((nv && nv !== 'geisha' && gateOK('var:' + nv) && S.points >= VAR[nv].cost) || Object.keys(METHODS).some((k) => !S.methods[k] && METHODS[k].cost && gateOK('method:' + k) && S.points >= METHODS[k].cost) || (nf && S.points >= FARM_COST[nf]) || (!S.farms.osaka.unlocked && S.cranes >= OSAKA_CRANES));
@@ -1468,10 +1497,10 @@ function renderTabs() {
 }
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; toastT = 2.6; }
 const modalQueue = [];
-function closeModal() { if (modalQueue.length) $('modalCard').innerHTML = modalQueue.shift(); else $('modal').hidden = true; }
+function closeModal() { if (modalQueue.length) $('modalCard').innerHTML = numify(modalQueue.shift()); else $('modal').hidden = true; }
 function showModal(html, replace) {   /* a second window waits its turn instead of hiding the first */
   if (!$('modal').hidden && !replace) { modalQueue.push(html); return; }
-  $('modalCard').innerHTML = html; if ($('modal').hidden) SFX.play('page'); $('modal').hidden = false;
+  $('modalCard').innerHTML = numify(html); if ($('modal').hidden) SFX.play('page'); $('modal').hidden = false;
 }
 function shopTabs() {
   const st = S.shopTab || 'cranes', dot = Object.keys(DECOR).some((k) => S.decor[k] === undefined && S.coins >= DECOR[k].cost);
@@ -1615,6 +1644,10 @@ function renderPanel() {
     h += '<h3>Mill staff</h3>';
     h += row(img('green_sack', 34), 'Mill foreman', 'Starts lots on free racks and sells them when they’re dry, even while you’re on another tab.', S.staff.foreman ? btn('Hired', '', 'noop', false, 'blue') : btn('Hire', fmt(FOREMAN_COST) + ' coins', 'foreman', S.coins >= FOREMAN_COST));
     if (S.staff.foreman) h += '<p class="note">Foreman’s process:</p><div class="seg">' + ['best'].concat(Object.keys(METHODS).filter((k) => S.methods[k])).map((k) => '<button type="button" data-act="rule:' + k + '" aria-pressed="' + (S.staff.rule === k) + '">' + (k === 'best' ? 'Best paying' : METHODS[k].name) + '</button>').join('') + '</div>';
+    if (S.staff.foreman && hasPerk('notebook')) {
+      const rules = S.staff.rules || {};
+      h += '<p class="note"><b>Foreman\'s notebook:</b> a process for each coffee. "Main rule" follows the choice above. Buyers waiting for a coffee still come first.</p>' + VAR_ORDER.filter((v) => S.vars[v]).map((v) => '<label class="nb-row"><span>' + ART.varieties[v] + '</span><select data-rulev="' + v + '" aria-label="Process for ' + ART.varieties[v] + '"><option value="">Main rule</option>' + Object.keys(METHODS).filter((k) => S.methods[k]).map((k) => '<option value="' + k + '"' + (rules[v] === k ? ' selected' : '') + '>' + METHODS[k].name + '</option>').join('') + '</select></label>').join('');
+    } else if (S.staff.foreman) h += '<p class="note">At prestige 7 the Foreman\'s notebook lets you set his process for each coffee.</p>';
     h += row(img('board', 34), 'Contracts agent', 'Delivers finished lots to matching contracts first, tells the foreman which process buyers want, and adds a fourth contract slot.' + (S.tabs.orders ? '' : ' Buyers start posting contracts at level 3, so he has nothing to do before then.'), S.staff.agent ? btn('Hired', '', 'noop', false, 'blue') : btn('Hire', fmt(AGENT_COST) + ' coins', 'agent', S.staff.foreman && S.coins >= AGENT_COST));
     if (!S.staff.foreman) h += '<p class="note">Hire the mill foreman before the contracts agent.</p>';
     }
@@ -1649,8 +1682,10 @@ function renderPanel() {
     h += '<h2>Daily tasks</h2><p class="note">New tasks every day.</p>';
     S.tasks.forEach((t, i) => {
       const r = t.reward, rl = r.coins ? r.coins + ' coins' : r.points ? r.points + ' know-how' : r.cranes + ' cranes';
-      h += row(img(t.id === 'pick' ? 'i_cherry' : t.id === 'store' ? 'i_box' : 'green_sack', 28), t.text, '<span class="bar" style="display:block"><i style="width:' + Math.round(t.have / t.goal * 100) + '%"></i></span>' + fmt(t.have) + ' / ' + t.goal, t.done ? btn('Done', '', 'none', false) : btn('Claim', rl, 'task:' + i, t.have >= t.goal, 'green'));
+      const swap = hasPerk('reroll') && !t.done && t.have < t.goal && S.rerollDay !== dayKey(new Date()) ? btn('Swap', 'once a day', 'reroll:' + i, true, 'blue') : '';
+      h += row(img((TASK_KINDS[t.id] || {}).img || 'green_sack', 28), t.text, '<span class="bar" style="display:block"><i style="width:' + Math.round(t.have / t.goal * 100) + '%"></i></span>' + fmt(t.have) + ' / ' + t.goal, (t.done ? btn('Done', '', 'none', false) : btn('Claim', rl, 'task:' + i, t.have >= t.goal, 'green')) + swap);
     });
+    if (hasPerk('reroll')) h += '<p class="note">Tasting notes: ' + (S.rerollDay === dayKey(new Date()) ? 'you have swapped a task today. Another swap tomorrow.' : 'tap Swap on a task to trade it for a different one, once a day.') + '</p>';
     const wk = S.weekly, tot = Math.min(wk.target, wk.team + wk.mine);
     h += '<h2>Weekly roastery order</h2><p class="note">Deliver ' + fmt(wk.target) + ' kg of washed green coffee as a team. Your washed lots count when you sell them. Ends in ' + Math.max(0, 7 - (Math.floor(Date.now() / 864e5) - wk.start)) + ' days.</p>';
     h += '<div class="bar"><i style="width:' + Math.round(tot / wk.target * 100) + '%"></i></div><p class="note">' + fmt(tot) + ' / ' + fmt(wk.target) + ' kg · you: ' + fmt(wk.mine) + ' kg · mika.brews, kenji_pourover and hana.at.home: ' + fmt(wk.team) + ' kg</p>';
@@ -1788,6 +1823,11 @@ function renderPanel() {
   if (!setHTML(P, h)) return;
   P.querySelectorAll('.ccards').forEach((x, i) => { if (strips[i]) x.scrollLeft = strips[i]; });
 }
+document.addEventListener('change', (e) => {   /* Foreman's notebook: the process picked for one coffee */
+  const v = e.target.dataset && e.target.dataset.rulev; if (!v || !hasPerk('notebook')) return;
+  S.staff.rules = S.staff.rules || {}; if (e.target.value) S.staff.rules[v] = e.target.value; else delete S.staff.rules[v];
+  SFX.play('tick'); save();
+});
 document.addEventListener('click', (e) => {
   const t = e.target.closest('[data-tab]'); if (t) { if (tabLocked(t.dataset.tab)) { SFX.play('nope'); toast(TABS.find((x) => x[0] === t.dataset.tab)[1] + ' opens when you ' + TAB_HINT[t.dataset.tab]); return; } setTab(t.dataset.tab); return; }
   const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
@@ -1812,13 +1852,13 @@ document.addEventListener('click', (e) => {
   else if (a === 'lot') startLot(S.millV, v);
   else if (a === 'sell') sellLot(+v);
   else if (a === 'millview') S.millView = v;
-  else if (a === 'cupall') { if (!hasPerk('cupall')) return; let n = 0; S.lots.forEach((l) => { if (!l.cupped) { l.cupped = true; n += 1; S.stats.cupped = (S.stats.cupped || 0) + 1; star('cup'); } }); if (n) { SFX.play('pour'); toast('Cupped ' + n + ' lot' + (n > 1 ? 's' : '') + ' by hand: +' + CUP_BONUS + ' cup score, +' + Math.round((CUP_PAY - 1) * 100) + '% pay'); } }
+  else if (a === 'cupall') { if (!hasPerk('cupall')) return; let n = 0; S.lots.forEach((l) => { if (!l.cupped) { l.cupped = true; n += 1; S.stats.cupped = (S.stats.cupped || 0) + 1; star('cup'); task('cup', 1); } }); if (n) { SFX.play('pour'); toast('Cupped ' + n + ' lot' + (n > 1 ? 's' : '') + ' by hand: +' + CUP_BONUS + ' cup score, +' + Math.round((CUP_PAY - 1) * 100) + '% pay'); } }
   else if (a === 'sellall') {   /* dry lots go to a matching buyer first, the rest to the roastery */
     const c0 = S.coins; let n = 0;
     for (let i = S.lots.length - 1; i >= 0; i--) { const l = S.lots[i]; if (l.left > 0) continue; const c = S.tabs.orders && S.contracts.find((x) => fits(x, l)); if (c) deliver(i, c.id, true); else sellLot(i, true); n += 1; }
     if (n) { SFX.play('coins'); toast(n + ' lot' + (n > 1 ? 's' : '') + ' sold and delivered: +' + fmt(S.coins - c0) + ' coins'); }
   }
-  else if (a === 'cup') { const l = S.lots[+v]; if (l && !l.cupped) { l.cupped = true; S.stats.cupped = (S.stats.cupped || 0) + 1; star('cup'); SFX.play('pour'); toast('Cupped by hand: +' + CUP_BONUS + ' cup score, +' + Math.round((CUP_PAY - 1) * 100) + '% pay'); } }
+  else if (a === 'cup') { const l = S.lots[+v]; if (l && !l.cupped) { l.cupped = true; S.stats.cupped = (S.stats.cupped || 0) + 1; star('cup'); task('cup', 1); SFX.play('pour'); toast('Cupped by hand: +' + CUP_BONUS + ' cup score, +' + Math.round((CUP_PAY - 1) * 100) + '% pay'); } }
   else if (a === 'method') { if (gateOK('method:' + v) && spend('points', METHODS[v].cost)) { S.methods[v] = true; toast(METHODS[v].name + ' unlocked'); } }
   else if (a === 'up') { const before = S.lv[v]; buyUpgrade(v); if (S.lv[v] !== before) guideStep('up:' + v); }
   else if (a === 'guideNext') { if (S.guide < GUIDE.length) guideDone(); }
@@ -1844,6 +1884,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'foreman') { if (!S.staff.foreman && spend('coins', FOREMAN_COST)) { S.staff.foreman = true; toast('The mill foreman starts work'); } }
   else if (a === 'agent') { if (S.staff.foreman && !S.staff.agent && spend('coins', AGENT_COST)) { S.staff.agent = true; toast('The contracts agent joins the mill'); } }
   else if (a === 'rule') S.staff.rule = v;
+  else if (a === 'reroll') rerollTask(+v);
   else if (a === 'skip') { S.contracts = S.contracts.filter((c) => String(c.id) !== v); S.nextContract = Math.max(S.nextContract, S.minutesTotal + 2 * REAL_MIN); toast('Contract skipped. A new buyer comes in about 2 minutes.');   /* a real wait, so skipping can't reroll the board for free */ }
   else if (a === 'deliver') { const [i, id] = v.split('.'); deliver(+i, +id); }
   else if (a === 'decor') { if (S.decor[v] !== undefined) S.decor[v] = !S.decor[v]; else if (spend('coins', DECOR[v].cost)) { S.decor[v] = true; toast(DECOR[v].name + ' added to your farms'); } }

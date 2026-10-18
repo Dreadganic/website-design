@@ -187,5 +187,10 @@ Coins build, know-how unlocks, cranes buy looks, and the tabs follow that rule:
 - P3 Night shift: offline time capped at 18 hours instead of 12.
 - P4 Old friends: Huila and Gedeo stay awake through a prestige; Toba and Turrialba still sleep until their levels.
 - P5 Lookout: golden bushes can appear on any open farm, with a Go button over the farm view.
-- P8 Golden Crane: a gold Beju sign on every farm and a red-crowned crane crossing the sky every 45 seconds (cosmetic).
+- P6 Tasting notes: swap one daily task a day for a different one (golden bushes, cupping or a buyer contract join the task pool); the reward stays the same.
+- P7 Foreman's notebook: pick the foreman's process for each coffee in Build > Staff; buyers waiting for a coffee still come first.
+- P8 Golden Crane: a gold Beju sign on every farm and a red-crowned crane crossing the sky every 45 seconds (cosmetic). Season decorations stand along the top of the drying patio and the sign by the house path, clear of the six farm buildings on the hedge line.
 - Measured with the bot (active, to P5): 10.3 hours with the perks, against 10.7 before.
+
+## Readable numbers
+- The pixel font stays for words (headings, tabs, button labels, names), but every run of digits in the panels and popups is set in the body font (Zen Kaku Gothic New, bold, even-width digits) by `numify` in the template. HUD counters, toasts, button costs, stats and the floating +coins / +kg text use the body font too.
