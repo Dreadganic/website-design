@@ -3,7 +3,7 @@ window.BOT = (function () {
   const G = window.__G, cv = document.getElementById('cv');
   /* where each action lives in the interface, to measure how much tab hopping a player would do */
   const LOCOF = (x) => { const a = x.split(':')[0];
-    if (['hire', 'plant', 'bed', 'replantall', 'replantask', 'sellraw', 'mv'].includes(a)) return 'farm:fields'; if (a === 'up') return 'farm:upgrades'; if (a === 'build') return 'farm:build';
+    if (['hire', 'plant', 'bed', 'replantall', 'replantask', 'sellraw', 'mv', 'estbuy', 'ceremony', 'koi', 'age', 'unage'].includes(a)) return 'farm:fields'; if (a === 'up') return 'farm:upgrades'; if (a === 'build') return 'farm:build';
     if (['mgr', 'master', 'foreman', 'agent', 'rule', 'train'].includes(a)) return 'farm:staff';
     if (['lot', 'cup', 'sell', 'deliver', 'toroast', 'sellall', 'cupall', 'reqfill', 'reqskip'].includes(a)) return 'mill';
     if (['roast', 'crack', 'sellbag', 'sellbags', 'roastfeed', 'rreq', 'binsell', 'blendask', 'blendwith'].includes(a)) return 'roast';
@@ -86,6 +86,7 @@ window.BOT = (function () {
       });
       ['storage', 'pickers', 'racks', 'hearts'].forEach((k) => { if (S.lv[k] < G.UP[k].max && !(k === 'storage' && G.STORE && G.STORE[S.lv[k]] && G.STORE[S.lv[k]].p > S.prestige)) c.push([S.loc, 'up:' + k, G.UP[k].cost(S.lv[k])]); });
       if (G.trainCost && S.prestige >= 5) { G.LOCS.forEach((l) => { if (live(l) && S.farms[l].manager && G.trainLv('mgr', l) < 10) c.push([l, 'train:mgr', G.trainCost('mgr', l)]); }); ['foreman', 'agent'].forEach((w) => { if (S.staff[w] && G.trainLv(w) < 10) c.push([S.loc, 'train:' + w, G.trainCost(w)]); }); }   /* staff training */
+      if (G.estateNext && !B.cfg.noEstate) G.LOCS.forEach((l) => { const n = G.estateNext(l); if (n && !n.why && S.points >= n.k) c.push([l, 'estbuy:' + l, n.c]); });   /* estate projects */
       if (!S.staff.foreman) c.push([S.loc, 'foreman', G.FOREMAN_COST]); else if (!S.staff.agent) c.push([S.loc, 'agent', G.AGENT_COST]);
       c.sort((a, b) => a[2] - b[2]);
       if (H()) {
@@ -121,6 +122,13 @@ window.BOT = (function () {
     const g = G.golden; if (g && H() && !g.seen) { g.seen = true; g.miss = rnd() < 0.45; }
     if (g && !(H() && g.miss)) { if (S.loc !== g.loc) act('go:' + g.loc); const s = S.farms[S.loc].shrubs[g.i], r = cv.getBoundingClientRect(); cv.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: r.left + (s.x + 9) / G.W * r.width, clientY: r.top + (s.y + 11) / G.H * r.height })); }
   }
+  function estate() {   /* the estate projects' tap-in moments: the daily ceremony, the koi and the barrel cellar */
+    const S = G.S, E = S.estate; if (!E || !G.estOn) return;
+    if (G.estOn('gedeo', 2) && !G.cerOn() && (!H() || rnd() < 0.05)) { const n0 = E.cerDay; act('ceremony'); closeAll(); if (E.cerDay !== n0) B.cer = (B.cer || 0) + 1; }
+    if (G.estOn('osaka', 1) && Date.now() - (E.koiAt || 0) >= 3 * 3600e3 && (!H() || rnd() < 0.1)) { act('koi'); closeAll(); B.koi = (B.koi || 0) + 1; }
+    E.cellar.forEach((c, j) => { if (G.agedCup(c) >= 3) { act('unage:' + j); closeAll(); } });
+    if (E.cellar.length < G.cellarSlots() && (!H() || rnd() < 0.2)) { const i = S.lots.reduce((bi, l, i) => (l.left <= 0 && (bi < 0 || G.saleFor(l.v, l.method, l.kg).coins > G.saleFor(S.lots[bi].v, S.lots[bi].method, S.lots[bi].kg).coins) ? i : bi), -1); if (i > -1) { act('age:' + i); closeAll(); B.aged = (B.aged || 0) + 1; } }
+  }
   function roast() {   /* the roastery: keep it fed, roast (usually the best roast), catch the crack, sell bags to the buyer who wants them */
     if (!G.roasteryOpen || !G.roasteryOpen() || B.cfg.noRoast) return; const S = G.S, R = S.roastery;
     if (S.staff.foreman && R.feed === 0) act('roastfeed:4');   /* foreman stocking is on by default; switch it back on if it was turned off */
@@ -130,14 +138,14 @@ window.BOT = (function () {
       const p = H() && rnd() < 0.25 ? ['light', 'medium', 'dark'][Math.floor(rnd() * 3)] : best; const n = R.roasters.length; act('roast:' + k + '|' + p); if (R.roasters.length === n) break;
     }
     R.roasters.forEach((r, i) => { if (!r.crack && G.inCrack(r) && !r.tried) { r.tried = true; if (!H() || rnd() < Math.min(0.9, 0.3 + (r.cw || 0.16) * r.dur / 1000 * 0.04)) act('crack:' + i);   /* tighter windows are missed more often */ } });
-    for (let i = R.bags.length - 1; i >= 0; i--) { const b = R.bags[i], k = Object.keys(G.RBUYERS).find((x) => b.blend || G.RBUYERS[x].wants === b.profile) || 'konbini'; const c0 = S.coins; act('sellbag:' + i + '.' + k); B.roastCoins = (B.roastCoins || 0) + (S.coins - c0); B.roastSold = (B.roastSold || 0) + 1; }
+    for (let i = R.bags.length - 1; i >= 0; i--) { const b = R.bags[i], k = G.bestBuyer ? G.bestBuyer(b) : Object.keys(G.RBUYERS).find((x) => b.blend || G.RBUYERS[x].wants === b.profile) || 'konbini'; const c0 = S.coins; act('sellbag:' + i + '.' + k); B.roastCoins = (B.roastCoins || 0) + (S.coins - c0); B.roastSold = (B.roastSold || 0) + 1; }
   }
   function cycleEnd() {   /* one check of the game: which tabs and sub-tabs it needed */
     const set = B.cyc || new Set(), p = G.S.prestige, T = B.tabs || (B.tabs = {}), st = T[p] || (T[p] = { cycles: 0, busy: 0, tabs: 0, subs: 0, acts: {}, combos: {}, cracks: 0 });
     st.cycles += 1; if (set.size) { st.busy += 1; const mains = [...new Set([...set].map((x) => x.split(':')[0]))].sort(); st.tabs += mains.length; st.subs += set.size; st.combos[mains.join('+')] = (st.combos[mains.join('+')] || 0) + 1; }
     B.cyc = new Set();
   }
-  function decide() { closeAll(); G.checkIn(); G.checkTabs(); tap(); active(); mill(); roast(); knowhow(); coins(); prestige(); closeAll(); cycleEnd(); }
+  function decide() { closeAll(); G.checkIn(); G.checkTabs(); tap(); active(); mill(); estate(); roast(); knowhow(); coins(); prestige(); closeAll(); cycleEnd(); }
   function snap() {
     const S = G.S;
     B.snaps.push({ t: Math.round(B.t), lv: G.level(), xp: Math.round(S.xp), p: S.prestige, coins: Math.round(S.coins), kh: Math.round(S.points), cranes: S.cranes, farms: G.LOCS.filter(live).length, workers: G.totalWorkers(), lots: S.stats.lotsSold, contracts: S.stats.contracts || 0, cap: G.cap(), racks: G.racks(), stored: Math.round(G.stored()), day: S.day });

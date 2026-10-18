@@ -2413,7 +2413,7 @@ for _loc in ESTATE_LOCS:
         add_layer("estate_%s_%d" % (_loc, _t), EW, EH, estate(_loc, _t))
 
 # seasonal showpieces: one spot per farm, dressed in the season's colours (here as a generic piece recoloured per season)
-SHOWPIECE_AT = {"mogiana": (6, 92), "huila": (64, 10), "gedeo": (38, 4), "toba": (80, 10), "turrialba": (68, 8), "osaka": (58, 2)}
+SHOWPIECE_AT = {"mogiana": (84, 84), "huila": (2, 30), "gedeo": (2, 96), "toba": (88, 34), "turrialba": (86, 40), "osaka": (86, 32)}
 
 
 def showpiece(kind):

@@ -340,3 +340,21 @@ Each farm's house grows with its farm level (`houseTier`). The overlay sprites `
 - **Level 40:** gold trim along the eaves, lanterns, string lights and a Beju flag on the roof.
 
 Each step is a farm milestone with its own line on the milestone card. Preview: `review/farmhouse-upgrades.png`.
+
+## Estate projects
+From prestige 4, each farm's drying area (left of the farmhouse) becomes an estate project, built in three stages at farm levels 30, 40 and 50 (`ESTATE`, `ESTATE_LV`, `estateNext`). Each stage costs coins and know-how: 1M + 100k, then 6M + 1M, then 25M + 5M, ×1.0 for Mogiana rising by 0.3 per farm to ×2.5 for Osaka (`estateCost`). All 18 stages together cost about 336M coins and 64M know-how, which is the late-game hoard the 120-hour playtest found. Stages are kept through prestige; a dormant farm's project rests (`estOn`) until the farm wakes.
+
+| Farm | Stage 1 | Stage 2 | Stage 3 |
+|---|---|---|---|
+| Mogiana | Painted patio: +6 drying racks | Dryer house: natural lots dry 40% faster | Tasting house: natural lots cup +1 |
+| Huila | Second marquesina: honey and barrel lots have a 5% chance to be a micro-lot that pays ×2 | Solar dryer: honey lots dry 30% faster | Greenhouse: micro-lots 12%, Pink Bourbon grows 20% faster |
+| Gedeo | Shade cloth: heirloom picks +15% kg | Ceremony compound: a daily coffee ceremony, 30 min of golden bushes twice as often and +20% picking on every farm | Washing station: washed lots cup +1, ceremony 45 min |
+| Lake Toba | Long jetty: the trader's boat brings a big rare order every 2 hours of play (×2.4–2.8, a third of the time +3 cranes) | Rice barn: strawberry and natural lots dry 30% faster | Guesthouse: a fourth roastery buyer paying ×1.35 for any roast |
+| Turrialba | Settling ponds: washed lots dry 25% faster | Barrel cellar: two barrels; a lot ages +0.5 cup every 2 real hours up to +3, and pays +10% per cup | Volcano café: four barrels, aged lots +15% in the roastery |
+| Osaka | Koi pond: feed every 3 hours for +1 s crack windows for an hour; 1 in 10 is a golden koi (+3 cranes) | Machiya roaster: one more roaster | Zen garden: +2 s for 2 hours, perfect-crack bags +10% |
+
+- **Where:** a card on Farm › Fields for the farm on screen (teased from prestige 3), and tapping the drying area in the scene opens it.
+- **Scene:** the overlay `estate_<farm>_<1-3>` is drawn at (0, 0). Each stage's sprite includes the earlier stages. Chimneys puff (`ESTATE_SMOKE`), the ceremony throws sparks, and the koi swim faster when fed.
+- **Season fairness:** the proposal had the Zen garden raise the daily roast-star cap. It became perfect-crack bag prices instead, so estates never add season stars beyond the normal daily caps.
+- **Seasonal showpieces:** season track tier 15 is now that season's showpiece set (`S.spiece`), and the hat moved to tier 18. A set dresses one spot on every farm (`SHOWPIECE`, clear of the HUD) in the season's colours, and the card lets you choose which set is out. Past sets come back in the Season archive for 20 cranes. The art is a recoloured tree or banner for now.
+- **Bot:** `sim/policy.js` buys stages when affordable, holds the ceremony, feeds the koi and keeps the cellar full.
