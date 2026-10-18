@@ -151,6 +151,10 @@ button, a.btn, [data-act], [data-tab] { touch-action: manipulation; -webkit-tap-
 .btn.gold { background: #FFE27A; }
 .garrow { position: fixed; z-index: 30; width: 22px; height: 22px; pointer-events: none; background: #F2C04A; clip-path: polygon(0 0, 100% 0, 50% 100%); filter: drop-shadow(0 0 2px #3E2A1C) drop-shadow(0 2px 0 #3E2A1C); animation: gbob 0.8s ease-in-out infinite; }
 @keyframes gbob { 50% { transform: translateY(6px); } }
+.how { border: 2px solid #2D6A46; border-radius: 8px; background: #F2F8F2; padding: 6px 10px; font-size: 13px; }
+.how-h { display: flex; justify-content: space-between; width: 100%; background: none; border: 0; padding: 2px 0; font: inherit; color: inherit; cursor: pointer; }
+.how-h span { color: #2D6A46; font-weight: 700; }
+.how ol { margin: 6px 0 2px; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
 .coach { display: flex; gap: 10px; align-items: flex-start; text-align: left; }
 .coach-face { width: 48px; image-rendering: pixelated; flex: none; background: #FBF1DC; border: 3px solid var(--edge); border-radius: 10px; padding: 4px; }
 .coach-t { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
@@ -1096,7 +1100,11 @@ function star(kind) {
   let add = STAR_PER[kind] * (kind === 'cup' && rule('tsukimi') ? 2 : 1);
   if (STAR_CAP[kind]) { add = Math.min(add, starCap(kind) - (ss.caps[kind] || 0)); if (add <= 0) return; ss.caps[kind] = (ss.caps[kind] || 0) + add; }
   const before = tierAt(ss.stars); ss.stars += add;
-  if (tierAt(ss.stars) > before) toast('Season track: tier ' + tierAt(ss.stars) + ' reached! Claim it in Ranks');
+  if (!S.starTip) { S.starTip = true; toast('+' + add + ' season star' + (add > 1 ? 's' : '') + '! Stars fill the season track' + (S.tabs.ranks ? ' in Ranks > Season' : ', which opens with Ranks at level 6')); }
+  if (tierAt(ss.stars) > before) {
+    if (!S.tierTip && S.tabs.ranks) { S.tierTip = true; showModal(coachCard('Season track', 'You reached <b>tier ' + tierAt(ss.stars) + '</b> of the ' + theme().name + ' season track! Each tier has a reward waiting: tap Claim on it in Ranks > Season. Every 5th tier is a cosmetic, and tier 30 gives a title only this season has.', 'Claim it', 'coachgo:ranks')); }
+    else toast('Season track: tier ' + tierAt(ss.stars) + ' reached! Claim it in Ranks > Season');
+  }
 }
 /* the free season track: a cosmetic every 5 tiers, small play rewards in between, never cranes */
 function trackTier(k, n) {
@@ -1250,11 +1258,16 @@ const varGrowth = (f, v) => (VAR[v].allSeason ? 1.5 : growth(f.loc)) * VAR[v].sp
 const METHODS = {
   washed: { name: 'Washed', time: 60, mult: 1.0, cup: 84, art: 'proc_washed', unlock: 'Unlocked' },
   natural: { name: 'Natural', time: 90, mult: 1.3, cup: 85.5, art: 'proc_natural', unlock: 'Unlocked' },
-  honey: { name: 'Honey', time: 75, mult: 1.2, cup: 85, art: 'proc_honey', cost: 400, unlock: '400 know-how' },
-  whiskey: { name: 'Whiskey barrel', time: 120, mult: 2.0, cup: 87.5, art: 'proc_whiskey', cost: 2500, coffee: 'pinkwhiskey', unlock: 'Order Colombia Pink Whiskey, or 2,500 know-how' },
-  rum: { name: 'Rum barrel', time: 120, mult: 1.9, cup: 87, art: 'proc_rum', cost: 2500, coffee: 'rumbarrel', unlock: 'Order Colombia Rum Barrel, or 2,500 know-how' },
-  strawberry: { name: 'Strawberry infused', time: 120, mult: 2.2, cup: 88, art: 'proc_strawberry', cost: 3000, coffee: 'strawberry', unlock: 'Order Sumatra Strawberry, or 3,000 know-how' }
+  honey: { name: 'Honey', time: 75, mult: 1.2, cup: 85, art: 'proc_honey', cost: 600, unlock: '600 know-how' },
+  rum: { name: 'Rum barrel', time: 120, mult: 1.9, cup: 87, art: 'proc_rum', cost: 10000, coffee: 'rumbarrel', unlock: 'Order Colombia Rum Barrel, or 10,000 know-how from prestige 1' },
+  whiskey: { name: 'Whiskey barrel', time: 120, mult: 2.0, cup: 87.5, art: 'proc_whiskey', cost: 20000, coffee: 'pinkwhiskey', unlock: 'Order Colombia Pink Whiskey, or 20,000 know-how from prestige 2' },
+  strawberry: { name: 'Strawberry infused', time: 120, mult: 2.2, cup: 88, art: 'proc_strawberry', cost: 45000, coffee: 'strawberry', unlock: 'Order Sumatra Strawberry, or 45,000 know-how from prestige 3' }
 };
+/* unlock pacing: process prices follow what they pay, like the coffees, and the big unlocks wait for a prestige,
+   so each run opens something new instead of the whole game arriving in the first half hour. Ordering the real coffee still unlocks its process straight away */
+const GATE = { 'method:rum': 1, 'method:whiskey': 2, 'method:strawberry': 3, 'var:pinkbourbon': 1, 'var:heirloom': 2, 'farm:gedeo': 1, 'farm:toba': 2, 'farm:turrialba': 3 };
+const gateOK = (key) => (S.prestige || 0) >= (GATE[key] || 0);
+const gateNote = (key) => 'Opens at prestige ' + GATE[key];
 /* Real Beju coffees: buying one gives cranes, its origin's passport stamp (one per order line; a blend stamps its next origin by share) and any process it unlocks */
 const COFFEES = {
   casablanca: { name: 'Casablanca Blend', price: 3000, stamps: ['mogiana', 'huila', 'turrialba'] },
@@ -1266,7 +1279,7 @@ const COFFEES = {
 /* farms open in order with points earned by playing; Osaka is cranes only */
 const FARM_COST = { mogiana: 0, huila: 800, gedeo: 5000, toba: 20000, turrialba: 60000 };
 const prevFarm = (loc) => LOCS[LOCS.indexOf(loc) - 1];
-const canOpen = (loc) => loc !== 'osaka' && !S.farms[loc].unlocked && S.farms[prevFarm(loc)].unlocked;
+const canOpen = (loc) => loc !== 'osaka' && !S.farms[loc].unlocked && S.farms[prevFarm(loc)].unlocked && gateOK('farm:' + loc);
 const UP = {
   /* cheap early steps, then each step costs a lot more, so the game keeps going for longer */
   storage: { name: 'Storage', max: 5, cost: (l) => [0, 300, 1500, 6000, 25000][l], cur: 'coins' },
@@ -2047,9 +2060,16 @@ function guideDone() {
   if (S.guide >= GUIDE.length) setTimeout(() => showModal(coachCard('Farm school complete', GUIDE_BYE, 'Off I go')), 400);
   checkTabs();
 }
-function coachCard(title, text, ok) {
-  return '<div class="coach"><img src="' + url('worker_down_0', COACH.look) + '" alt="" class="coach-face"><div class="coach-t"><small>' + COACH.name + ' · ' + title + '</small><p>' + text + '</p></div></div><button class="btn green" data-act="close">' + (ok || 'Got it') + '</button>';
+function coachCard(title, text, ok, go) {   /* go: an action for the main button, with "Later" to just close */
+  return '<div class="coach"><img src="' + url('worker_down_0', COACH.look) + '" alt="" class="coach-face"><div class="coach-t"><small>' + COACH.name + ' · ' + title + '</small><p>' + text + '</p></div></div><button class="btn green" data-act="' + (go || 'close') + '">' + (ok || 'Got it') + '</button>' + (go ? '<button class="btn" data-act="close">Later</button>' : '');
 }
+/* each tab gets a short introduction from Rosa when it opens, so new features arrive one at a time with a reason */
+const TAB_COACH = {
+  orders: ['Daily tab open', 'The Daily tab has three small tasks that reset every real day, a weekly roastery order you fill together with other farmers, and your check-in streak. Buyers now post contracts in the Mill too, and they pay about twice what the roastery pays.', 'Show me', 'coachgo:orders'],
+  shop: ['Shop open', 'The Shop has characters, building styles, decor and boosts. Most of it costs cranes, which come from real Beju orders and a few daily tasks. Nothing in it is needed to progress; it is there to make the farm yours.', 'Have a look', 'coachgo:shop'],
+  ranks: ['You\'re on the leaderboard', '', 'Show me the season', 'coachgo:ranks']
+};
+const seasonPitch = () => 'Ranks is open! Each month is a season with its own leaderboard and a free reward track. This month is the <b>' + theme().name + '</b> season. You earn <b>season stars</b> from your daily check-in, daily tasks, golden bushes, cupping lots by hand and contracts. Each has a daily cap, so a little play every day goes furthest. Every ' + TIER_STARS + ' stars climbs one tier of the track, and every 5th tier gives a cosmetic. The season board ranks by stars, so new farmers race veterans on equal terms. At level ' + PRESTIGE_LEVEL + ' you can prestige here too.';
 function renderGuide() {
   const el = $('guide'), arrow = $('garrow'); document.querySelectorAll('.hint').forEach((x) => x.classList.remove('hint'));
   let n = 0; while (S.guide < GUIDE.length && GUIDE[S.guide].done && GUIDE[S.guide].done() && n++ < 3) guideDone();   /* steps already done move on */
@@ -2070,23 +2090,23 @@ function placeArrow(t) {   /* a bouncing arrow over what to tap; on the farm it 
   arrow.hidden = false; arrow.style.left = Math.round(x - 11) + 'px'; arrow.style.top = Math.round(y - 26) + 'px';
 }
 addEventListener('scroll', () => { if (!$('garrow').hidden) renderGuide(); }, { passive: true });
-const TAB_OPEN = { upgrades: () => S.stats.lotsSold >= 1 || S.guide > 4, unlock: () => S.stats.lotsSold >= 1 || S.guide > 4, orders: () => level() >= 3, ranks: () => level() >= 5, shop: () => level() >= 2 };
+const TAB_OPEN = { upgrades: () => S.stats.lotsSold >= 1 || S.guide > 4, unlock: () => S.stats.lotsSold >= 1 || S.guide > 4, orders: () => level() >= 3, ranks: () => level() >= 6, shop: () => level() >= 4 };
 /* every tab shows from the start; locked ones say what opens them */
-const TAB_LEVEL = { shop: 2, orders: 3, ranks: 5 };
-const TAB_HINT = { upgrades: 'sell your first lot', unlock: 'sell your first lot', shop: 'reach level 2', orders: 'reach level 3', ranks: 'reach level 5' };
-const TAB_SHORT = { upgrades: '1st sale', unlock: '1st sale', shop: 'Lv 2', orders: 'Lv 3', ranks: 'Lv 5' };
+const TAB_LEVEL = { orders: 3, shop: 4, ranks: 6 };   /* one new tab every few levels, so features arrive one at a time */
+const TAB_HINT = { upgrades: 'sell your first lot', unlock: 'sell your first lot', shop: 'reach level 4', orders: 'reach level 3', ranks: 'reach level 6' };
+const TAB_SHORT = { upgrades: '1st sale', unlock: '1st sale', shop: 'Lv 4', orders: 'Lv 3', ranks: 'Lv 6' };
 const TAB_WHAT = { shop: 'Shop: characters, building styles, boosts and decor', orders: 'Daily tab, and buyers start posting contracts in the Mill', ranks: 'Ranks: the leaderboard, crests, outfits and prestige' };
 const tabLocked = (id) => !!TAB_OPEN[id] && !S.tabs[id];
 function checkTabs() {
-  Object.keys(TAB_OPEN).forEach((k) => { if (!S.tabs[k] && TAB_OPEN[k]()) { S.tabs[k] = true; if (k === 'orders') { S.contracts = S.contracts.filter((c) => c.event); S.nextContract = 0; setTimeout(() => toast('Buyers now post contracts in the Mill'), 2800); } S.newTab = k; toast('New tab: ' + TABS.find((x) => x[0] === k)[1]); SFX.play('achieve'); } });
+  Object.keys(TAB_OPEN).forEach((k) => { if (!S.tabs[k] && TAB_OPEN[k]()) { S.tabs[k] = true; if (k === 'orders') { S.contracts = S.contracts.filter((c) => c.event); S.nextContract = 0; setTimeout(() => toast('Buyers now post contracts in the Mill'), 2800); } S.newTab = k; toast('New tab: ' + TABS.find((x) => x[0] === k)[1]); SFX.play('achieve'); const c = TAB_COACH[k]; if (c) setTimeout(() => showModal(coachCard(c[0], c[1] || seasonPitch(), c[2], c[3])), 1200); } });
 }
 function setHTML(el, html) { if (el.__html === html) return false; el.__html = html; el.innerHTML = html; return true; }   /* rebuilding unchanged buttons swallows taps */
 function unlockReady() {   /* is there an unlock the player can afford right now? */
   const nv = VAR_ORDER.find((v) => !S.vars[v]), nf = LOCS.find((l) => canOpen(l));
-  return S.tabs.unlock && ((nv && nv !== 'geisha' && S.points >= VAR[nv].cost) || Object.keys(METHODS).some((k) => !S.methods[k] && METHODS[k].cost && S.points >= METHODS[k].cost) || (nf && S.points >= FARM_COST[nf]) || (!S.farms.osaka.unlocked && S.cranes >= OSAKA_CRANES));
+  return S.tabs.unlock && ((nv && nv !== 'geisha' && gateOK('var:' + nv) && S.points >= VAR[nv].cost) || Object.keys(METHODS).some((k) => !S.methods[k] && METHODS[k].cost && gateOK('method:' + k) && S.points >= METHODS[k].cost) || (nf && S.points >= FARM_COST[nf]) || (!S.farms.osaka.unlocked && S.cranes >= OSAKA_CRANES));
 }
 function renderTabs() {
-  const dot = { unlock: unlockReady(), farm: !!golden && tab !== 'farm', orders: S.tasks.some((t) => t.have >= t.goal && !t.done) || (S.weekly.team + S.weekly.mine >= S.weekly.target && !S.weekly.claimed), mill: S.lots.some((l) => l.left <= 0) };
+  const dot = { ranks: S.tabs.ranks && Array.from({ length: tierAt(S.season.stars) }, (_, i) => i + 1).some((n) => !S.season.claimed[n]), unlock: unlockReady(), farm: !!golden && tab !== 'farm', orders: S.tasks.some((t) => t.have >= t.goal && !t.done) || (S.weekly.team + S.weekly.mine >= S.weekly.target && !S.weekly.claimed), mill: S.lots.some((l) => l.left <= 0) };
   $('tabs').style.gridTemplateColumns = 'repeat(' + TABS.length + ', minmax(0, 1fr))';
   setHTML($('tabs'), TABS.map(([id, label, ic]) => { const locked = tabLocked(id);
     return '<button class="tab' + (S.newTab === id ? ' fresh' : '') + (locked ? ' locked' : '') + '" role="tab" type="button" data-tab="' + id + '" aria-pressed="' + (tab === id) + '"' + (locked ? ' aria-label="' + label + ', locked: ' + TAB_HINT[id] + '"' : '') + '><img src="' + url(ic) + '" alt="">' + (locked ? TAB_SHORT[id] : label) + (locked ? '<i class="lock" aria-hidden="true">🔒</i>' : dot[id] ? '<i class="dot"></i>' : '') + '</button>'; }).join(''));
@@ -2230,25 +2250,25 @@ function renderPanel() {
     }
   } else if (tab === 'unlock') {
     const nt = ['coffees', 'processes', 'farms', 'research'].includes(S.unTab) ? S.unTab : 'coffees', nextVar = VAR_ORDER.find((v) => !S.vars[v]), nextFarm = LOCS.find((l) => canOpen(l));
-    const ready = { coffees: !!nextVar && nextVar !== 'geisha' && S.points >= VAR[nextVar].cost, processes: Object.keys(METHODS).some((k) => !S.methods[k] && METHODS[k].cost && S.points >= METHODS[k].cost), farms: (!!nextFarm && S.points >= FARM_COST[nextFarm]) || (!S.farms.osaka.unlocked && S.cranes >= OSAKA_CRANES), research: S.points >= researchCost() };
+    const ready = { coffees: !!nextVar && nextVar !== 'geisha' && gateOK('var:' + nextVar) && S.points >= VAR[nextVar].cost, processes: Object.keys(METHODS).some((k) => !S.methods[k] && METHODS[k].cost && gateOK('method:' + k) && S.points >= METHODS[k].cost), farms: (!!nextFarm && S.points >= FARM_COST[nextFarm]) || (!S.farms.osaka.unlocked && S.cranes >= OSAKA_CRANES), research: S.points >= researchCost() };
     h += '<h2>Unlocks</h2><p class="note">' + icon('i_points') + ' ' + fmt(S.points) + ' know-how to spend. Know-how resets when you prestige, so spend it here first.</p>';
     h += '<div class="seg subtabs">' + [['coffees', 'Coffees'], ['processes', 'Process'], ['farms', 'Farms'], ['research', 'Research']].map(([k, tl]) => '<button type="button" data-act="untab:' + k + '" aria-pressed="' + (nt === k) + '">' + tl + (ready[k] ? ' <i class="dot" aria-label="something to unlock"></i>' : '') + '</button>').join('') + '</div>';
     if (nt === 'coffees') {
     h += '<p class="note">Unlock coffees in order, then replant any field from the Farm tab. Native varieties grow 20% faster at home.</p>' + VAR_ORDER.map((v) => {
       const have = S.vars[v], isNext = v === nextVar, vr = VAR[v];
-      return row(img('bush_' + v + (have || isNext ? '_ripe' : '_sprout'), 34), ART.varieties[v] + ' · ' + vr.kg + ' kg · ×' + vr.value, vr.perk, have ? btn('Owned', '', 'noop', false, 'blue') : isNext ? btn('Unlock', fmt(vr.cost) + ' know-how', 'var:' + v, S.points >= vr.cost, 'green') : btn('Locked', fmt(vr.cost) + ' know-how', 'noop', false));
+      return row(img('bush_' + v + (have || isNext ? '_ripe' : '_sprout'), 34), ART.varieties[v] + ' · ' + vr.kg + ' kg · ×' + vr.value, vr.perk + (!have && GATE['var:' + v] && !gateOK('var:' + v) ? ' ' + gateNote('var:' + v) + ', then ' + fmt(vr.cost) + ' know-how.' : ''), have ? btn('Owned', '', 'noop', false, 'blue') : isNext && !gateOK('var:' + v) ? btn('Locked', 'Prestige ' + GATE['var:' + v], 'noop', false) : isNext ? btn('Unlock', fmt(vr.cost) + ' know-how', 'var:' + v, S.points >= vr.cost, 'green') : btn('Locked', fmt(vr.cost) + ' know-how', 'noop', false));
     }).join('');
     } else if (nt === 'processes') {
-    h += '<p class="note">A process sets how long a lot dries, what it pays and its cup score. Unlock once and use it on every farm.</p>' + Object.keys(METHODS).map((k) => {
+    h += '<p class="note">A process sets how long a lot dries, what it pays and its cup score. Unlock once and use it on every farm. The barrel and infused processes open one per prestige, or straight away when you order that coffee on bejucoffee.com.</p>' + Object.keys(METHODS).map((k) => {
       const m = METHODS[k], ok = S.methods[k];
-      return row(img(m.art, 34), m.name + ' · ×' + m.mult + ' pay', 'Cup score ' + m.cup + ' · dries in ' + Math.round(m.time / 2.5) + ' min' + (ok || !m.coffee ? '' : '. Or order ' + COFFEES[m.coffee].name + ' on bejucoffee.com'), ok ? btn('Owned', '', 'noop', false, 'blue') : m.cost ? btn('Unlock', fmt(m.cost) + ' know-how', 'method:' + k, S.points >= m.cost, 'green') : btn('Locked', '', 'noop', false));
+      return row(img(m.art, 34), m.name + ' · ×' + m.mult + ' pay', 'Cup score ' + m.cup + ' · dries in ' + Math.round(m.time / 2.5) + ' min' + (ok || !m.cost || gateOK('method:' + k) ? '' : '. ' + gateNote('method:' + k) + ', then ' + fmt(m.cost) + ' know-how') + (ok || !m.coffee ? '' : '. Or order ' + COFFEES[m.coffee].name + ' on bejucoffee.com to unlock it now'), ok ? btn('Owned', '', 'noop', false, 'blue') : m.cost && !gateOK('method:' + k) ? btn('Locked', 'Prestige ' + GATE['method:' + k], 'noop', false) : m.cost ? btn('Unlock', fmt(m.cost) + ' know-how', 'method:' + k, S.points >= m.cost, 'green') : btn('Locked', '', 'noop', false));
     }).join('');
     } else if (nt === 'farms') {
     h += '<p class="note">Farms open in order with know-how. The Osaka garden is cranes only.</p>' + LOCS.map((l) => {
       const f2 = S.farms[l], nm = ART.locations[l].name;
       if (f2.unlocked) return row(img('stamp_' + l, 36), nm, S.dormant[l] ? 'Dormant until level ' + S.dormant[l] : l === START ? 'Your first farm' : 'Open', btn('Visit', '', 'go:' + l, true, 'blue'));
       if (l === 'osaka') return row(img('stamp_' + l, 36), nm, 'Cranes only: earned from real coffee orders', btn('Open', OSAKA_CRANES + ' cranes', 'farm:osaka', S.cranes >= OSAKA_CRANES));
-      if (!canOpen(l)) return row(img('stamp_' + l, 36), nm, 'Open ' + ART.locations[prevFarm(l)].name.split(',')[0] + ' first', btn('Locked', fmt(FARM_COST[l]) + ' know-how', 'noop', false));
+      if (!canOpen(l)) return row(img('stamp_' + l, 36), nm, S.farms[prevFarm(l)].unlocked ? gateNote('farm:' + l) + ', then ' + fmt(FARM_COST[l]) + ' know-how. Each prestige opens more of the world.' : 'Open ' + ART.locations[prevFarm(l)].name.split(',')[0] + ' first', btn('Locked', S.farms[prevFarm(l)].unlocked && GATE['farm:' + l] ? 'Prestige ' + GATE['farm:' + l] : fmt(FARM_COST[l]) + ' know-how', 'noop', false));
       return row(img('stamp_' + l, 36), nm, 'Next farm: open with know-how', btn('Open', fmt(FARM_COST[l]) + ' know-how', 'farm:' + l, S.points >= FARM_COST[l]));
     }).join('');
     } else {
@@ -2274,6 +2294,8 @@ function renderPanel() {
     if (rsub === 'season') {
     const th = theme(), into = ss.stars - reached * TIER_STARS, today = ss.capDay === dayKey(new Date()) ? ss.caps : {};
     h += strip;
+    const howOpen = S.seasonHow === undefined ? !Object.keys(ss.claimed).length : S.seasonHow;
+    h += '<div class="how"><button type="button" class="how-h" data-act="seasonhow" aria-expanded="' + howOpen + '"><b>How seasons work</b><span>' + (howOpen ? 'Hide' : 'Show') + '</span></button>' + (howOpen ? '<ol><li><b>Earn stars.</b> Check in, finish daily tasks, catch golden bushes, cup lots by hand and complete contracts. Each has a daily cap (below), so come back each day.</li><li><b>Climb the track.</b> Every ' + TIER_STARS + ' stars is a tier. Tap Claim on a tier for its reward; every 5th tier is a cosmetic only this season has.</li><li><b>Race the board.</b> The season board ranks by stars, then know-how. When the month ends you get a badge for your rank, and anything you reached but didn\'t claim is given to you.</li></ol>' : '') + '</div>';
     if (lastHarvest()) h += '<p class="rule"><b>Last harvest!</b> Golden bushes come twice as often until the season ends.</p>';
     h += '<p class="rule"><b>' + th.name + ' season rule:</b> ' + th.rule + '</p>';
     h += reached < TRACK_TIERS ? '<div class="bar"><i style="width:' + Math.round(into / TIER_STARS * 100) + '%"></i></div><p class="note">' + into + ' / ' + TIER_STARS + ' stars to tier ' + (reached + 1) + '.</p>' : '<p class="note"><b>Track complete!</b> Stars you earn now still count on the season board.</p>';
@@ -2412,12 +2434,14 @@ document.addEventListener('click', (e) => {
   }, 0);
   if (a === 'hire') { if (f.workers.length < maxPickers(f) && spend('coins', hireCost())) { addWorker(f); guideStep('hire'); toast('A new picker joins you'); } }
   else if (a === 'tab') setTab(v);
+  else if (a === 'coachgo') { closeModal(); if (v === 'ranks') S.rankSub = 'season'; setTab(v); }
+  else if (a === 'seasonhow') S.seasonHow = !S.seasonHow;
   else if (a === 'sellraw') sellRaw();
   else if (a === 'mv') S.millV = v;
   else if (a === 'lot') startLot(S.millV, v);
   else if (a === 'sell') sellLot(+v);
   else if (a === 'cup') { const l = S.lots[+v]; if (l && !l.cupped) { l.cupped = true; S.stats.cupped = (S.stats.cupped || 0) + 1; star('cup'); SFX.play('pour'); toast('Cupped by hand: +' + CUP_BONUS + ' cup score, +' + Math.round((CUP_PAY - 1) * 100) + '% pay'); } }
-  else if (a === 'method') { if (spend('points', METHODS[v].cost)) { S.methods[v] = true; toast(METHODS[v].name + ' unlocked'); } }
+  else if (a === 'method') { if (gateOK('method:' + v) && spend('points', METHODS[v].cost)) { S.methods[v] = true; toast(METHODS[v].name + ' unlocked'); } }
   else if (a === 'up') { const before = S.lv[v]; buyUpgrade(v); if (S.lv[v] !== before) guideStep('up:' + v); }
   else if (a === 'guideNext') { if (S.guide < GUIDE.length) guideDone(); }
   else if (a === 'guideSkip') { S.guide = GUIDE.length; ['upgrades', 'unlock', 'orders', 'ranks', 'shop'].forEach((k) => { S.tabs[k] = true; }); toast('Guide skipped: every tab is open'); }
@@ -2452,7 +2476,7 @@ document.addEventListener('click', (e) => {
     return;
   }
   else if (a === 'plant') { const [b, x] = v.split('.'); if (S.vars[x] || (eventDrop() && eventDrop().variety === x)) { replantBed(f, +b, x); closeModal(); guideStep('plant'); toast('Field ' + (+b + 1) + ' planted with ' + ART.varieties[x]); } }
-  else if (a === 'var') { const nx = VAR_ORDER.find((x) => !S.vars[x]); if (v === nx && spend('points', VAR[v].cost)) { S.vars[v] = true; guideStep('var'); showModal('<h2>' + ART.varieties[v] + ' unlocked</h2>' + img('bush_' + v + '_ripe', 54) + '<p class="note">' + VAR[v].perk + ' Replant a field in the Farm tab to start growing it.</p><button class="btn green" data-act="close">Plant it</button>'); } }
+  else if (a === 'var') { const nx = VAR_ORDER.find((x) => !S.vars[x]); if (v === nx && gateOK('var:' + v) && spend('points', VAR[v].cost)) { S.vars[v] = true; guideStep('var'); showModal('<h2>' + ART.varieties[v] + ' unlocked</h2>' + img('bush_' + v + '_ripe', 54) + '<p class="note">' + VAR[v].perk + ' Replant a field in the Farm tab to start growing it.</p><button class="btn green" data-act="close">Plant it</button>'); } }
   else if (a === 'task') { const tk = S.tasks[+v]; if (tk.have >= tk.goal && !tk.done) { tk.done = true; earn(rule('shogatsu') && tk.reward.coins ? { coins: tk.reward.coins * 2 } : tk.reward); star('task'); guideStep('task'); toast('Task complete!'); } }
   else if (a === 'weekly') { S.weekly.claimed = true; S.cranes += WEEKLY_CRANES; star('weekly'); showModal('<h2>Order delivered!</h2><p class="note">The team delivered ' + fmt(S.weekly.target) + ' kg of washed coffee to the roastery. +' + WEEKLY_CRANES + ' cranes and the Co-op Roaster badge.</p><button class="btn green" data-act="close">Hooray</button>'); }
   else if (a === 'prestigeAsk') {

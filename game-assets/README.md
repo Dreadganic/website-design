@@ -161,3 +161,10 @@ Coins build, know-how unlocks, cranes buy looks, and the tabs follow that rule:
 - The farm's harvest, rainy, spring … chip is now called the weather, so it isn't confused with the monthly season.
 - Test tab: "+50 season stars" and "End the season".
 
+## Unlock pacing
+- Process prices follow what they pay: honey 600 know-how, rum barrel 10,000, whiskey barrel 20,000, strawberry infused 45,000. Ordering the real coffee on bejucoffee.com still unlocks its process straight away.
+- The big unlocks wait for a prestige (`GATE` in the template): rum barrel, Pink Bourbon and Gedeo at P1; whiskey barrel, Heirloom and Toba at P2; strawberry infused and Turrialba at P3. The first run has seven small unlocks; each later run opens a new farm, process and coffee.
+- Tabs open one at a time: Build and Unlock after the first sale, Daily at level 3, Shop at level 4, Ranks at level 6. Each gets a short card from Rosa with a "Show me" button. The Ranks card explains the season and goes straight to the season track.
+- The Season sub-tab opens with a "How seasons work" box (earn stars, climb the track, race the board) until the first tier is claimed. The first star gets a toast, the first tier gets a card with a Claim button, and the Ranks tab shows a dot while a tier is waiting.
+- Measured with the bot (active, to P5): the first prestige moves from 20 to 29 minutes, and P5 lands at about the same time as before.
+

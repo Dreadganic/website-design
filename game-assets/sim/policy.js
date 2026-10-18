@@ -34,10 +34,11 @@ window.BOT = (function () {
     const S = G.S; let guard = 0;
     while (guard++ < 10) {
       const c = [];
-      const nv = G.VAR_ORDER.find((v) => !S.vars[v]); if (nv && nv !== 'geisha') c.push(['var:' + nv, G.VAR[nv].cost]);
-      Object.keys(G.METHODS).forEach((m) => { if (!S.methods[m] && G.METHODS[m].cost) c.push(['method:' + m, G.METHODS[m].cost]); });
+      const ok = (k) => !G.gateOK || G.gateOK(k);   /* unlocks that wait for a prestige */
+      const nv = G.VAR_ORDER.find((v) => !S.vars[v]); if (nv && nv !== 'geisha' && ok('var:' + nv)) c.push(['var:' + nv, G.VAR[nv].cost]);
+      Object.keys(G.METHODS).forEach((m) => { if (!S.methods[m] && G.METHODS[m].cost && ok('method:' + m)) c.push(['method:' + m, G.METHODS[m].cost]); });
       G.LOCS.forEach((l) => { if (G.canOpen(l)) c.push(['farm:' + l, G.FARM_COST[l]]); });
-      if (G.researchCost && !nv) c.push(['research', G.researchCost()]);
+      if (G.researchCost && (!nv || !ok('var:' + nv))) c.push(['research', G.researchCost()]);
       c.sort((a, b) => a[1] - b[1]);
       if (!c.length || c[0][1] > S.points) break;
       const before = S.points; act(c[0][0]); closeAll(); if (S.points === before) break;
