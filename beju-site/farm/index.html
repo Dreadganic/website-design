@@ -1100,6 +1100,10 @@ const seasonEnds = () => {   /* midnight Japan time at the start of the first mo
 const daysLeft = () => Math.max(1, Math.ceil((seasonEnds() - Date.now()) / 86400000));
 const lastHarvest = () => daysLeft() <= 3;   /* the last 3 days: golden bushes come twice as often */
 const rule = (id) => theme().id === id;
+/* prestige perks: free, permanent conveniences that arrive with a prestige, timed for when the farm outgrows doing that job by hand */
+const PERKS = { 2: { id: 'cupall', name: 'Head cupper\'s table', text: 'Cup all: hand-cup every lot on your racks in one tap.' } };
+const hasPerk = (id) => Object.keys(PERKS).some((p) => PERKS[p].id === id && S.prestige >= +p);
+const perkAt = (p) => PERKS[p] || null;
 const prestigeNeed = () => PRESTIGE_LEVEL + 8 * S.prestige;   /* 10, 18, 26, 34 ... and each level past 10 costs 1.22x the last */
 const BADGE = (rank) => (rank === 1 ? 'Champion' : rank <= 3 ? 'Top 3' : rank <= 10 ? 'Top 10' : 'Farmer');
 /* season stars come from things done on a real day, each with a daily cap, so an hour a day earns nearly as much as six */
@@ -1972,7 +1976,7 @@ function prestige() {
   LOCS.forEach((l) => { if (FARM_LEVEL[l] && S.farms[l].unlocked) S.dormant[l] = FARM_LEVEL[l]; });
   setTimeout(() => checkSamples(), 300);
   const asleep = Object.keys(S.dormant);
-  showModal(avatar(S.look, 64) + '<h2>Prestige ' + S.prestige + '</h2>' + plate(S.name, S.look.crest, starsFor(S.prestige)) + '<p class="note">' + (S.prestige < TIERS.length ? 'New crest: <b>' + TIERS[t] + '</b>. Its nameplate and border are yours and already on.' : 'You are past the top tier: every prestige adds a star to your name.') + '</p>' + skinPicker() +
+  showModal(avatar(S.look, 64) + '<h2>Prestige ' + S.prestige + '</h2>' + plate(S.name, S.look.crest, starsFor(S.prestige)) + '<p class="note">' + (S.prestige < TIERS.length ? 'New crest: <b>' + TIERS[t] + '</b>. Its nameplate and border are yours and already on.' : 'You are past the top tier: every prestige adds a star to your name.') + '</p>' + (perkAt(S.prestige) ? '<p class="rule"><b>New perk: ' + perkAt(S.prestige).name + '.</b> ' + perkAt(S.prestige).text + '</p>' : '') + skinPicker() +
     (asleep.length ? '<p class="note">' + asleep.map((l) => ART.locations[l].name.split(',')[0] + ' wakes at level ' + S.dormant[l]).join(', ') + '. Brazil and Osaka stay open.</p>' : '') + '<button class="btn green" data-act="close">Back to the farm</button>');
 }
 function prestigeCeremony(rankBefore, rankAfter, players) {
@@ -2216,7 +2220,7 @@ function renderPanel() {
     h += '<h3>Drying racks ' + S.lots.length + ' / ' + racks() + '</h3>';
     /* with many racks the lots become a grid of small tiles, with one-tap Cup all and Sell all, so nothing needs scrolling */
     const view = S.millView || (racks() > 4 ? 'grid' : 'list'), toCup = S.lots.filter((l) => !l.cupped).length, dry = S.lots.filter((l) => l.left <= 0).length;
-    if (S.lots.length > 1) h += '<div class="rackbar">' + btn('Cup all', toCup ? toCup + ' lot' + (toCup > 1 ? 's' : '') + ' · +' + Math.round((CUP_PAY - 1) * 100) + '% pay' : 'all cupped', 'cupall', toCup > 0, 'gold') + btn('Sell all dry', dry ? dry + ' lot' + (dry > 1 ? 's' : '') + (S.tabs.orders ? ' · buyers first' : '') : 'none dry yet', 'sellall', dry > 0, 'green') + '<div class="seg rackview">' + [['grid', 'Grid'], ['list', 'List']].map(([k, t]) => '<button type="button" data-act="millview:' + k + '" aria-pressed="' + (view === k) + '">' + t + '</button>').join('') + '</div></div>';
+    if (S.lots.length > 1) h += '<div class="rackbar">' + (hasPerk('cupall') ? btn('Cup all', toCup ? toCup + ' lot' + (toCup > 1 ? 's' : '') + ' · +' + Math.round((CUP_PAY - 1) * 100) + '% pay' : 'all cupped', 'cupall', toCup > 0, 'gold') : btn('Cup all', 'prestige 2 perk', 'noop', false, 'gold')) + btn('Sell all dry', dry ? dry + ' lot' + (dry > 1 ? 's' : '') + (S.tabs.orders ? ' · buyers first' : '') : 'none dry yet', 'sellall', dry > 0, 'green') + '<div class="seg rackview">' + [['grid', 'Grid'], ['list', 'List']].map(([k, t]) => '<button type="button" data-act="millview:' + k + '" aria-pressed="' + (view === k) + '">' + t + '</button>').join('') + '</div></div>';
     if (view === 'grid') {
       h += '<div class="racks">' + S.lots.map((l, i) => {
         const m = METHODS[l.method], done = l.left <= 0, fit = S.tabs.orders && S.contracts.find((c) => fits(c, l));
@@ -2362,6 +2366,7 @@ function renderPanel() {
     h += '<h3>Prestige</h3><p class="note">The all-time board ranks by prestige first, then level, then know-how earned this run. The season board ranks by season stars, then know-how earned this season, so new and old farmers race on equal terms each month. Each prestige needs 8 more levels than the last (10, 18, 26, 34 ...), and levels past 10 get steadily bigger. Unspent know-how does not carry over, so spend it on research before you prestige.</p>';
     h += '<div class="bar"><i style="width:' + Math.min(100, Math.round(levelSpan()[1] / need * 100)) + '%"></i></div>';
     h += btn(ready ? 'Prestige to ' + (S.prestige + 1) : 'Prestige at level ' + need, ready ? (S.prestige + 1 < TIERS.length ? 'unlocks the ' + TIERS[S.prestige + 1] + ' crest' : 'adds a star') : 'you are level ' + level(), 'prestigeAsk', ready, 'green');
+    h += '<p class="note"><b>Prestige perks</b> (free, and yours for good):</p>' + Object.keys(PERKS).map((p) => row(img('i_cup', 26), PERKS[p].name + ' · prestige ' + p, PERKS[p].text, S.prestige >= +p ? btn('Yours', '', 'noop', false, 'blue') : btn('Locked', 'Prestige ' + p, 'noop', false))).join('');
     const has = () => ORIGINS.filter((l) => S.stamps[l]).length;
     h += '<h3>Crest</h3><p class="note">Each prestige gives a new crest: a nameplate and border together. Every crest you reach stays yours.</p><div class="looks">' + TIERS.map((nm, i) => {
       const open = i <= t;
@@ -2482,7 +2487,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'lot') startLot(S.millV, v);
   else if (a === 'sell') sellLot(+v);
   else if (a === 'millview') S.millView = v;
-  else if (a === 'cupall') { let n = 0; S.lots.forEach((l) => { if (!l.cupped) { l.cupped = true; n += 1; S.stats.cupped = (S.stats.cupped || 0) + 1; star('cup'); } }); if (n) { SFX.play('pour'); toast('Cupped ' + n + ' lot' + (n > 1 ? 's' : '') + ' by hand: +' + CUP_BONUS + ' cup score, +' + Math.round((CUP_PAY - 1) * 100) + '% pay'); } }
+  else if (a === 'cupall') { if (!hasPerk('cupall')) return; let n = 0; S.lots.forEach((l) => { if (!l.cupped) { l.cupped = true; n += 1; S.stats.cupped = (S.stats.cupped || 0) + 1; star('cup'); } }); if (n) { SFX.play('pour'); toast('Cupped ' + n + ' lot' + (n > 1 ? 's' : '') + ' by hand: +' + CUP_BONUS + ' cup score, +' + Math.round((CUP_PAY - 1) * 100) + '% pay'); } }
   else if (a === 'sellall') {   /* dry lots go to a matching buyer first, the rest to the roastery */
     const c0 = S.coins; let n = 0;
     for (let i = S.lots.length - 1; i >= 0; i--) { const l = S.lots[i]; if (l.left > 0) continue; const c = S.tabs.orders && S.contracts.find((x) => fits(x, l)); if (c) deliver(i, c.id, true); else sellLot(i, true); n += 1; }
@@ -2530,7 +2535,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'weekly') { S.weekly.claimed = true; S.cranes += WEEKLY_CRANES; star('weekly'); showModal('<h2>Order delivered!</h2><p class="note">The team delivered ' + fmt(S.weekly.target) + ' kg of washed coffee to the roastery. +' + WEEKLY_CRANES + ' cranes and the Co-op Roaster badge.</p><button class="btn green" data-act="close">Hooray</button>'); }
   else if (a === 'prestigeAsk') {
     const asleep = LOCS.filter((l) => FARM_LEVEL[l] && S.farms[l].unlocked);
-    showModal('<h2>Prestige ' + (S.prestige + 1) + '?</h2><p class="note"><b>You keep</b> coins, cranes, every upgrade, building, manager, variety, process, decoration, hat, outfit and background.</p><p class="note"><b>You lose</b> your level and ' + fmt(S.points) + ' unspent know-how' + (asleep.length ? ', and ' + asleep.map((l) => ART.locations[l].name.split(',')[0]).join(', ') + (asleep.length > 1 ? ' go' : ' goes') + ' dormant until you level back up' : '') + '.</p><p class="note">You gain ' + (S.prestige + 1 < TIERS.length ? 'the ' + TIERS[S.prestige + 1] + ' crest (nameplate and border)' : 'a star on your name') + (SKINS.some((sk, i) => !S.skins[i]) ? ', you pick one new outfit' : '') + ', and you jump above everyone on prestige ' + S.prestige + '.</p>' + btn('Prestige now', '', 'prestige', true, 'green') + '<button class="btn" data-act="close">Not yet</button>');
+    showModal('<h2>Prestige ' + (S.prestige + 1) + '?</h2><p class="note"><b>You keep</b> coins, cranes, every upgrade, building, manager, variety, process, decoration, hat, outfit and background.</p><p class="note"><b>You lose</b> your level and ' + fmt(S.points) + ' unspent know-how' + (asleep.length ? ', and ' + asleep.map((l) => ART.locations[l].name.split(',')[0]).join(', ') + (asleep.length > 1 ? ' go' : ' goes') + ' dormant until you level back up' : '') + '.</p><p class="note">You gain ' + (S.prestige + 1 < TIERS.length ? 'the ' + TIERS[S.prestige + 1] + ' crest (nameplate and border)' : 'a star on your name') + (SKINS.some((sk, i) => !S.skins[i]) ? ', you pick one new outfit' : '') + (perkAt(S.prestige + 1) ? ', the <b>' + perkAt(S.prestige + 1).name + '</b> perk (' + perkAt(S.prestige + 1).text + ')' : '') + ', and you jump above everyone on prestige ' + S.prestige + '.</p>' + btn('Prestige now', '', 'prestige', true, 'green') + '<button class="btn" data-act="close">Not yet</button>');
     return;
   }
   else if (a === 'prestige') { $('modal').hidden = true; const allB = board('all'), rb = allB.findIndex((x) => x.you) + 1; prestige(); const allA = board('all'), ra = allA.findIndex((x) => x.you) + 1; prestigeCeremony(rb, ra, allA.length); setTimeout(() => { NET.lastScore = ''; submitScore(); cloudSync(true); }, 500); }

@@ -178,4 +178,8 @@ Coins build, know-how unlocks, cranes buy looks, and the tabs follow that rule:
 
 ## Mill racks at scale
 - Over 4 racks, the drying racks switch to a grid of small tiles (process icon, coffee, kg, drying bar, buyer tag) with Cup, Sell or Deliver buttons on each tile. A Grid / List switch keeps the detailed rows for anyone who prefers them.
-- With 2 or more lots, two bulk buttons sit above the racks: **Cup all** (hand-cups every lot not yet cupped; staff still never cup, so you have to be playing) and **Sell all dry** (each dry lot goes to a matching buyer first, the rest to the roastery).
+- With 2 or more lots, two bulk buttons sit above the racks: **Cup all** (a free prestige 2 perk, the Head cupper's table: hand-cups every lot not yet cupped; staff still never cup, so you have to be playing) and **Sell all dry** (each dry lot goes to a matching buyer first, the rest to the roastery).
+
+## Prestige perks
+- Free, permanent conveniences that arrive with a prestige (`PERKS` in the template), timed for when the farm outgrows doing that job by hand. They show in the prestige preview, the prestige popup and a list under Ranks > Prestige & looks.
+- P2: Head cupper's table (Cup all). In the bot run, racks go from 6-9 in the P1 run to 10-17 in the P2 run, which is when tapping each lot becomes a chore.
