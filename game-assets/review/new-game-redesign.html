@@ -1,0 +1,233 @@
+<title>New Game Redesign</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column like the other Beju Farm reviews; feedback grouped into five areas, each a card of "you said / we found / the plan"; timelines as tables */
+:root {
+  --bg: #F5F3EE; --panel: #FFFFFF; --fg: #23201B; --muted: #6A6358; --line: #DED8CC;
+  --bean: #6B3F22; --leaf: #2F6B4F; --cherry: #B8323A; --gold: #A8791A; --soft: #EFE9DD;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #171512; --panel: #201D19; --fg: #EDE7DC; --muted: #A79F92; --line: #383229;
+  --bean: #D9A47A; --leaf: #6CC59A; --cherry: #F07880; --gold: #E2B64A; --soft: #2A2620; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #171512; --panel: #201D19; --fg: #EDE7DC; --muted: #A79F92; --line: #383229;
+  --bean: #D9A47A; --leaf: #6CC59A; --cherry: #F07880; --gold: #E2B64A; --soft: #2A2620; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font: 16px/1.6 var(--body); }
+.wrap { max-width: 800px; margin: 0 auto; padding-block: 40px 72px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 40px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(30px, 6vw, 42px); font-weight: 800; }
+h2 { font-size: 24px; font-weight: 800; }
+h3 { font-size: 18px; font-weight: 800; }
+p { margin: 0; max-width: 66ch; }
+section { display: flex; flex-direction: column; gap: 14px; }
+.eyebrow { font: 600 12px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--bean); }
+.lede { font-size: 18px; color: var(--muted); }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; }
+.kpi b { font: 800 26px/1.1 var(--display); font-variant-numeric: tabular-nums; color: var(--cherry); }
+.kpi span { font-size: 13px; color: var(--muted); }
+.tw { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 12px/1.3 var(--mono); letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.now { color: var(--cherry); } td.to { color: var(--leaf); font-weight: 600; }
+tr:last-child td { border-bottom: 0; }
+.rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.rule { background: var(--soft); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
+.rule b { font-family: var(--display); font-size: 17px; }
+.rule span { font-size: 14px; color: var(--muted); }
+.area { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
+.area-h { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.area-h .tag { font: 600 12px var(--mono); color: var(--muted); }
+.said { display: flex; flex-direction: column; gap: 4px; padding-left: 12px; border-left: 3px solid var(--gold); }
+.said p { font-size: 15px; font-style: italic; }
+.found { font-size: 15px; color: var(--muted); }
+.lbl { font: 600 11px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--bean); }
+.plan { display: flex; flex-direction: column; gap: 6px; }
+ul, ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 70ch; }
+.steps { counter-reset: s; list-style: none; padding: 0; gap: 8px; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 28px 1fr; gap: 8px; }
+.steps li::before { content: counter(s); font: 700 13px/26px var(--mono); text-align: center; width: 26px; height: 26px; border-radius: 50%; background: var(--soft); color: var(--bean); }
+.phase { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+.phase .tag { font: 600 12px var(--mono); color: var(--leaf); }
+.q { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--gold); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+.rec { font-size: 14px; color: var(--leaf); font-weight: 600; }
+.note { font-size: 14px; color: var(--muted); }
+.mock { font: 13px/1.5 var(--mono); background: var(--soft); border-radius: 8px; padding: 10px 12px; white-space: pre-wrap; overflow-x: auto; }
+</style>
+<div class="wrap">
+<header style="display:flex;flex-direction:column;gap:12px">
+  <span class="eyebrow">Redesign plan · 18 October 2026 · from your feedback on starting a new game</span>
+  <h1>Slowing down the start, and showing more than telling</h1>
+  <p class="lede">Your feedback says a new game hands you too much, too fast. Too many features arrive close together, the tutorial explains more than it shows, and several screens have grown long. I played a fresh save to check each point. This plan groups the feedback into five areas, says what I found for each, and sets out the changes in four phases. Nothing here has been built yet.</p>
+</header>
+
+<section>
+  <h2>What a new game looks like today</h2>
+  <p>Measured on a fresh save played like a person would, with uneven sessions, the odd missed golden bush and not every coin spent at once.</p>
+  <div class="kpis">
+    <div class="kpi"><b>14 min</b><span>until every tab is open: Daily at level 3, Shop at 4, Ranks at 6</span></div>
+    <div class="kpi"><b>20 min</b><span>to unlock 4 coffees, honey processing and a second farm</span></div>
+    <div class="kpi"><b>35 min</b><span>to the first prestige, with a foreman hired at 28 min</span></div>
+    <div class="kpi"><b>24 s</b><span>between purchases on average before the first prestige</span></div>
+    <div class="kpi"><b>2,950 px</b><span>tall: the Ranks › Prestige &amp; looks page, with 554 words and 45 buttons</span></div>
+  </div>
+</section>
+
+<section>
+  <h2>Four rules for the redesign</h2>
+  <div class="rules">
+    <div class="rule"><b>One new thing at a time</b><span>A new tab, coffee, process or staff member never arrives in the same few minutes as another.</span></div>
+    <div class="rule"><b>Use it before the next</b><span>Each feature gets room to breathe. The next unlock waits until you have used the last one: planted it, processed with it, delivered to it.</span></div>
+    <div class="rule"><b>Show, don't tell</b><span>Point at the button, let the player tap it, then say one short line about what happened.</span></div>
+    <div class="rule"><b>Explain once, then tuck it away</b><span>Full help the first time; after that one line and an <b>i</b> button to read it again.</span></div>
+  </div>
+</section>
+
+<section>
+  <h2>Your feedback, grouped</h2>
+
+  <div class="area">
+    <div class="area-h"><h3>1. Pacing of features and unlocks</h3><span class="tag">phase 2</span></div>
+    <div class="said"><span class="lbl">You said</span><p>Early gameplay and features are introduced way too fast. Each feature needs time to breathe. Coffee types and processing still unlock too fast. Research should be locked until every other unlock is done.</p></div>
+    <p class="found"><span class="lbl">What I found</span><br>Every unlock is gated only by its know-how cost, and early know-how comes quickly, so Catuai arrives at 2 minutes, honey at 5 and Mundo Novo at 11. Staff come just as fast. Research sits in Unlock from the first sale, so it competes with real unlocks for know-how.</p>
+    <div class="plan"><span class="lbl">The plan</span>
+      <ul>
+        <li><b>One unlock offered at a time.</b> The Unlock tab shows the next coffee or process as the one thing to aim for, with a level and a "use it first" condition: plant the last coffee, or process 3 lots with the last process. Later ones show as locked with what opens them.</li>
+        <li><b>Level gates for coffees and processes,</b> on top of their cost, so each lands roughly 10 to 15 minutes after the last (timeline below).</li>
+        <li><b>Staff later:</b> the manager from level 8, the mill foreman after the first prestige, and the contracts agent from prestige 2. Running the mill by hand is the game's core loop, so it should be played for a while before it's automated.</li>
+        <li><b>First prestige later,</b> about 60 to 75 minutes instead of 35, by easing the early level curve. The server's XP rules change with it (decision below).</li>
+        <li><b>Research locked</b> until every coffee, process and farm (except Osaka) is unlocked. It shows as a locked sub-tab with its progress, for example "14 of 18 unlocks". On a normal playthrough it opens around prestige 3 to 4.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="area">
+    <div class="area-h"><h3>2. Tutorial and daily tasks</h3><span class="tag">phase 2</span></div>
+    <div class="said"><span class="lbl">You said</span><p>Rework the tutorial, there's too much information too fast. Live daily and weekly tasks should start after the tutorial; the tutorial's daily should be self-contained as a teaching tool.</p></div>
+    <p class="found"><span class="lbl">What I found</span><br>The guide is 14 steps, and Rosa's lines run up to 50 words with facts like "15% more cherries" and "about twice what the roastery pays". The last four steps aren't teaching. They wait for level 3, a contract, a daily task claim and a Shop visit. The real daily tasks, with season stars and a crane, are live from the first minute.</p>
+    <div class="plan"><span class="lbl">The plan</span>
+      <ul>
+        <li><b>Three short chapters</b> spread over the first 15 minutes, each starting only once the last one's feature has been used for a bit.
+          <ol class="steps">
+            <li><span><b>First harvest</b> (minute 0): pick 5 bushes, process a washed lot, sell it.</span></li>
+            <li><span><b>Grow</b> (after 3 sales): hire a picker, build bigger storage.</span></li>
+            <li><span><b>A new coffee</b> (level 3): unlock Catuai, plant it.</span></li>
+          </ol>
+        </li>
+        <li><b>Rosa says one line, about 20 words at most.</b> An arrow and a highlight do the pointing, and after each action comes one short reaction line ("Nice, that lot paid 42 coins"). The numbers and details move into info buttons.</li>
+        <li><b>Rosa's practice list</b> replaces the daily tasks during the tutorial: pick 10, sell 3 lots, cup 1 lot. It pays small coins and know-how only, with no season stars and no cranes, and it ends with the tutorial.</li>
+        <li><b>Live daily and weekly tasks start when the tutorial ends.</b> The Daily tab opens then with one short card. Contracts, Shop and Ranks each get their own first-time intro when they open, instead of being steps in the guide.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="area">
+    <div class="area-h"><h3>3. The Mill</h3><span class="tag">phase 1</span></div>
+    <div class="said"><span class="lbl">You said</span><p>The Mill needs streamlining: drying racks should show small once 4 are available. Buyers should be streamlined once automation takes over. Requests should have a button to start processing when the beans, the process and a rack are available.</p></div>
+    <p class="found"><span class="lbl">What I found</span><br>Racks only switch to the small grid at 5 or more, so 4 racks still show as a long list. Once the contracts agent is hired, he fills contracts by himself, but every contract still shows as a full swipe card. The request card tells you to "start a lot below" but has no button for it.</p>
+    <div class="plan"><span class="lbl">The plan</span>
+      <ul>
+        <li><b>Racks show as small tiles from 4 racks.</b> The Grid/List switch stays.</li>
+        <li><b>Buyers collapse under the agent</b> into one line that expands on tap: "Your agent is filling 3 contracts · 2 lots on the way · next payout 4,200 coins". Trader's boat orders still show as a card, since they're special.</li>
+        <li><b>Requests get a Start lot button</b> when you have enough of that coffee, its process is unlocked and a rack is free. Once the lot is dry, one <b>Cup and send</b> button replaces the two steps.</li>
+        <li><b>Foreman notes become a status chip</b> ("Foreman: running · stocks the roastery") with an info button, instead of three paragraphs.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="area">
+    <div class="area-h"><h3>4. Ranks, looks and the first prestige</h3><span class="tag">phase 3</span></div>
+    <div class="said"><span class="lbl">You said</span><p>The Ranks tab has too much information everywhere. Cosmetic rewards should have their own tab. The tab should open on the leaderboard first. At the first prestige you should be taken to the prestige page and walked through it: show, don't tell.</p></div>
+    <p class="found"><span class="lbl">What I found</span><br>Ranks opens on the Season page (514 words). Its third page mixes prestige, crests, outfits, backgrounds, characters, hats, charms and titles in one 2,950px scroll. The first prestige is a single modal of text.</p>
+    <div class="plan"><span class="lbl">The plan</span>
+      <ul>
+        <li><b>Ranks opens on the Leaderboard.</b> Its pages become Leaderboard, Season and Prestige. Season keeps the track and a one-line summary, with "How seasons work" behind an info button.</li>
+        <li><b>A new Looks tab</b> for everything you own and wear: crest and outfit, background and character, hats, charms and titles, plus building styles. The Shop sells; Looks is where you equip. Each section is a compact grid with a Use button.</li>
+        <li><b>A guided first prestige.</b> When you first reach the prestige level, a gold banner and an arrow lead to Ranks › Prestige. Then:
+          <ol class="steps">
+            <li><span>"This is your crest now", with the next crest highlighted.</span></li>
+            <li><span>Tap Prestige, and the ceremony plays.</span></li>
+            <li><span>Pick your new outfit, taken straight into Looks.</span></li>
+            <li><span>Back on the farm, an arrow on the sleeping farm: "Huila wakes at level 8".</span></li>
+          </ol>
+          Later prestiges keep the ceremony and skip the walkthrough.</li>
+      </ul>
+      <div class="mock">Tab bar now:  Farm · Mill · Roast · Unlock · Daily · Ranks · Shop · Settings
+Proposed:     Farm · Mill · Roast · Unlock · Daily · Ranks · Looks · Shop   (Settings as a gear in the top bar)</div>
+    </div>
+  </div>
+
+  <div class="area">
+    <div class="area-h"><h3>5. Help text and scrolling</h3><span class="tag">phase 4</span></div>
+    <div class="said"><span class="lbl">You said</span><p>After the tutorial, descriptions of game functions should shrink to save scrolling, with a clickable "info" to see them again.</p></div>
+    <p class="found"><span class="lbl">What I found</span><br>Every tab carries its explanations permanently. The Mill has 78 words of notes, Farm 63, Unlock 57, Season 152 and Prestige &amp; looks 211, all shown every visit.</p>
+    <div class="plan"><span class="lbl">The plan</span>
+      <ul>
+        <li><b>One help component:</b> the first visit shows the full text, and afterwards it's a one-line summary with an <b>i</b> button that opens the full text in a window. Each piece of help remembers whether you've seen it.</li>
+        <li><b>Applied everywhere help text lives:</b>
+          <ul>
+            <li>Farm: terroir and fields.</li>
+            <li>Mill: the intro, market, contracts, the foreman and free racks.</li>
+            <li>Unlock: the coffee and process blurbs.</li>
+            <li>Roastery: the crack and repeat notes.</li>
+            <li>Ranks: the season how-to and the prestige rules.</li>
+            <li>Estates: the stage details.</li>
+          </ul>
+        </li>
+        <li><b>A "Show help text" switch</b> in Settings for anyone who wants everything spelled out.</li>
+        <li><b>Target:</b> no tab taller than about two phone screens once the tutorial is done. Today Ranks is nearly four.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Feature timeline: now and proposed</h2>
+  <p>"Now" is measured on the fresh save above. "Proposed" is the target for a player like that. These are targets to tune with playthroughs, not promises.</p>
+  <div class="tw"><table>
+    <thead><tr><th>Feature</th><th>Now</th><th>Proposed</th><th>What sets it</th></tr></thead>
+    <tbody>
+      <tr><td>Tutorial finished</td><td class="n now">~10 min, 14 steps</td><td class="n to">~15 min, 3 chapters</td><td>chapters wait for the last feature to be used</td></tr>
+      <tr><td>Farm › Upgrades and Buildings</td><td class="n now">1st sale, ~2 min</td><td class="n to">~6 min</td><td>chapter 2</td></tr>
+      <tr><td>Unlock tab and first coffee</td><td class="n now">2 min</td><td class="n to">~12 min</td><td>chapter 3, level 3</td></tr>
+      <tr><td>Daily tab (live tasks) and contracts</td><td class="n now">level 3, ~5 min</td><td class="n to">~15–20 min</td><td>end of tutorial; contracts at level 5</td></tr>
+      <tr><td>Honey process</td><td class="n now">5 min</td><td class="n to">~25 min</td><td>level 5, after 3 lots of the last process</td></tr>
+      <tr><td>Fourth field</td><td class="n now">8 min</td><td class="n to">~20 min</td><td>level 4</td></tr>
+      <tr><td>Shop</td><td class="n now">level 4, ~8 min</td><td class="n to">~35 min</td><td>level 7</td></tr>
+      <tr><td>Second farm (Huila)</td><td class="n now">14 min</td><td class="n to">~40 min</td><td>level and Mogiana farm level</td></tr>
+      <tr><td>Farm manager</td><td class="n now">19 min</td><td class="n to">~45 min</td><td>level 8</td></tr>
+      <tr><td>Ranks tab</td><td class="n now">level 6, ~14 min</td><td class="n to">~50 min</td><td>a few levels before the first prestige, opening on the leaderboard</td></tr>
+      <tr><td>Mill foreman</td><td class="n now">28 min</td><td class="n to">after 1st prestige</td><td>prestige 1</td></tr>
+      <tr><td>First prestige</td><td class="n now">35 min</td><td class="n to">60–75 min</td><td>early level curve (decision below)</td></tr>
+      <tr><td>Contracts agent</td><td class="n now">40 min (P1)</td><td class="n to">prestige 2</td><td>prestige 2</td></tr>
+      <tr><td>Roastery</td><td class="n now">P3, ~1 h 50 min</td><td class="n to">P3, ~3–3.5 h</td><td>follows from the slower prestiges</td></tr>
+      <tr><td>Research</td><td class="n now">open from the 1st sale</td><td class="n to">all unlocks done, ~P3–P4</td><td>every coffee, process and farm except Osaka</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">The late game from prestige 4 onwards (estates, training, storage) isn't meant to change. Slowing the start pushes everything later by roughly the same hour or two, which I'll check with the 120-hour playthrough after phase 2.</p>
+</section>
+
+<section>
+  <h2>Phases</h2>
+  <div class="phase"><span class="tag">Phase 1 · quick wins · small</span><b>Mill and Ranks fixes</b><p>Racks as tiles from 4, buyers collapsed under the agent, a Start lot button on requests, Ranks opening on the leaderboard, Research locked.</p></div>
+  <div class="phase"><span class="tag">Phase 2 · the big one</span><b>Pacing and the tutorial together</b><p>The unlock cadence, the staff gates, the tab timings and the first prestige, plus the three-chapter tutorial, Rosa's practice list, and live tasks starting after the tutorial. These depend on each other, so they ship as one. Checked with fresh-save playthroughs to prestige 3 and a long run for the late game.</p></div>
+  <div class="phase"><span class="tag">Phase 3</span><b>Ranks, Looks and the guided first prestige</b><p>The tab split, the new Looks tab, Settings moving to a gear, and the prestige walkthrough.</p></div>
+  <div class="phase"><span class="tag">Phase 4</span><b>Help text pass</b><p>The info-button component across every tab, plus the "Show help text" switch.</p></div>
+  <p class="note">The game isn't public yet, so there are no player saves to migrate, only test saves.</p>
+</section>
+
+<section>
+  <h2>Decisions for you</h2>
+  <div class="q"><b>1. How long should the first prestige take?</b><p>Now 35 minutes. Options: about 60 minutes, about 75, or about 90.</p><span class="rec">I'd suggest 60 to 75 minutes: long enough to get to know the farm and mill, short enough that prestige still feels close. The server's XP rules change to match.</span></div>
+  <div class="q"><b>2. Where do cosmetics live?</b><p>A new Looks tab, with Settings moving to a gear button in the top bar; or Looks as a section inside the Shop.</p><span class="rec">I'd suggest its own tab. It keeps the tab bar at eight and separates owning from buying.</span></div>
+  <div class="q"><b>3. Should the tutorial's practice tasks give season stars or cranes?</b><p>Today the guide's daily claim gives 3 cranes, and the real dailies give stars and a crane.</p><span class="rec">I'd suggest small coins and know-how only, with the first live crane task arriving right after the tutorial as a welcome.</span></div>
+  <div class="q"><b>4. Should the daily check-in count during the tutorial?</b><span class="rec">I'd suggest yes. It's one tap, it starts the streak on day one, and it teaches nothing that gets in the way.</span></div>
+</section>
+</div>
