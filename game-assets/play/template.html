@@ -606,17 +606,17 @@ function requestCard() {
 const roasteryOpen = () => S.prestige >= 3 || S.farms.osaka.unlocked;
 const ROASTS = { light: { name: 'Light', time: 75, col: '#B07A4A' }, medium: { name: 'Medium', time: 90, col: '#7A4A28' }, dark: { name: 'Dark', time: 105, col: '#3E2414' } };
 const bestRoast = (v, m) => (['geisha', 'heirloom'].includes(v) || (m === 'washed' && VAR[v].value >= 1.3) ? 'light' : m === 'rum' || m === 'whiskey' || (m === 'natural' && ['mundonovo', 'yellowbourbon', 'catimor', 'catuai'].includes(v)) ? 'dark' : 'medium');
-const RBUYERS = { cafe: { name: 'Specialty café', wants: 'light', mult: 1.7 }, kissa: { name: 'Kissaten', wants: 'dark', mult: 1.6 }, konbini: { name: 'Konbini blend', wants: 'medium', mult: 1.3 } };
-const REP_AT = (l) => Math.round(50 * Math.pow(l - 1, 2));
+const RBUYERS = { cafe: { name: 'Specialty café', wants: 'light', mult: 1.5 }, kissa: { name: 'Kissaten', wants: 'dark', mult: 1.45 }, konbini: { name: 'Konbini blend', wants: 'medium', mult: 1.25 } };
+const REP_AT = (l) => Math.round(100 * Math.pow(l - 1, 2));   /* reputation comes per bag, so levels follow how often you roast, not how big the drum is */
 const repLevel = () => { let l = 1; while (l < 20 && (S.roastery.rep || 0) >= REP_AT(l + 1)) l++; return l; };
-const REP_PERKS = { 2: 'Cooling tray: roasts take 20% less time', 3: 'Bigger drum: 60 kg a roast', 4: 'A second roaster', 6: 'Cupping lab: +5 roast quality', 7: 'Bigger drum: 150 kg a roast', 10: 'House blends: blend two bags under a Beju name', 12: 'Bigger drum: 400 kg a roast', 15: 'A third roaster', 20: 'The Master roaster title' };
-const roastCap = () => { const l = repLevel(); return l >= 12 ? 400 : l >= 7 ? 150 : l >= 3 ? 60 : 25; };
+const REP_PERKS = { 2: 'Cooling tray: roasts take 20% less time', 3: 'Bigger drum: 30 kg a roast', 4: 'A second roaster', 6: 'Cupping lab: +5 roast quality', 7: 'Bigger drum: 60 kg a roast', 10: 'House blends: blend two bags under a Beju name', 12: 'Bigger drum: 120 kg a roast', 15: 'A third roaster', 20: 'The Master roaster title' };
+const roastCap = () => { const l = repLevel(); return l >= 12 ? 120 : l >= 7 ? 60 : l >= 3 ? 30 : 15; };
 const roasterCount = () => { const l = repLevel(); return l >= 15 ? 3 : l >= 4 ? 2 : 1; };
 const roastTime = (p) => ROASTS[p].time * (repLevel() >= 2 ? 0.8 : 1);
 const BLEND_NAMES = ['Casablanca Blend', 'Osaka Morning', 'Kissaten Dark', 'Sakura Light', 'Crane House Blend', 'Kyoto Evening', 'Beju Breakfast', 'Momiji Roast'];
 const beanName = (key) => { const [v, m] = key.split('.'); return ART.varieties[v] + ' ' + METHODS[m].name.toLowerCase(); };
 const bagName = (b) => (b.blend || beanName(b.key)) + (b.blend ? '' : ' · ' + ROASTS[b.profile].name.toLowerCase());
-const bagPrice = (b, k) => { const rb = RBUYERS[k], want = b.blend || b.profile === rb.wants; return Math.round(b.coins * (want ? rb.mult * (b.blend ? 1.15 : 1) : 1) * (0.6 + b.q / 100)); };
+const bagPrice = (b, k) => { const rb = RBUYERS[k], want = b.blend || b.profile === rb.wants; return Math.round(b.coins * (want ? rb.mult * (b.blend ? 1.1 : 1) : 1) * (0.7 + b.q / 200)); };
 const roasteryFeedWants = () => roasteryOpen() && S.roastery.feed && Object.values(S.roastery.beans).reduce((a, b) => a + b.kg, 0) < roastCap() * roasterCount() * 2;
 function toRoastery(i, quiet) {   /* a dry lot goes to the roastery's green store instead of the roastery buyer */
   const l = S.lots[i]; if (!l || l.left > 0 || !roasteryOpen()) return;
@@ -672,7 +672,7 @@ function roasteryPanel() {
   h += '<h3>Roasted bags</h3>';
   if (lv >= 10) h += '<p class="note">House blend name: <select data-blendname="1" aria-label="Blend name">' + BLEND_NAMES.map((n, i) => '<option value="' + i + '"' + ((R.blendName || 0) === i ? ' selected' : '') + '>' + n + '</option>').join('') + '</select></p>';
   h += R.bags.length ? R.bags.map((b, i) => '<div class="rrow"><div class="rrow-t">' + img('bag_' + (b.profile === 'blend' ? 'medium' : b.profile), 26) + '<div><b>' + bagName(b) + ' · ' + fmtKg(b.kg) + ' kg</b><span>Quality ' + b.q + (b.blend ? ' · every buyer wants a house blend' : '') + '</span></div></div><div class="seg">' + Object.keys(RBUYERS).map((k) => btn(RBUYERS[k].name.split(' ')[0] + ((b.blend || b.profile === RBUYERS[k].wants) ? ' ★' : ''), fmt(bagPrice(b, k)) + ' coins', 'sellbag:' + i + '.' + k, true, (b.blend || b.profile === RBUYERS[k].wants) ? 'green' : '')).join('') + (lv >= 10 && !b.blend && R.bags.filter((x) => !x.blend).length > 1 ? btn('Blend', 'with another', 'blendask:' + i, true, 'blue') : '') + '</div></div>').join('') : '<p class="note">Finished roasts appear here.</p>';
-  h += '<p class="note">Buyers: specialty cafés want light (×1.7), kissaten want dark (×1.6), konbini blends want medium (×1.3); a bag a buyer doesn\'t want sells at the base price. Price grows with quality. Each finished roast gives a season star (up to 3 a day).</p>';
+  h += '<p class="note">Buyers: specialty cafés want light (×1.5), kissaten want dark (×1.45), konbini blends want medium (×1.25); a bag a buyer doesn\'t want sells at the base price. Price and reputation grow with quality. Each finished roast gives a season star (up to 3 a day).</p>';
   return h;
 }
 const charmName = (k) => (k === 'qgrader' ? 'Q grader' : themeById(k) ? themeById(k).name : '');
@@ -2085,7 +2085,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'roastfeed') S.roastery.feed = !S.roastery.feed;
   else if (a === 'roast') { const [k, p] = v.split('|'); startRoast(k, p); }
   else if (a === 'crack') { const r = S.roastery.roasters[+v]; if (r && !r.crack) { r.crack = inCrack(r) ? 1 : 2; SFX.play(r.crack === 1 ? 'achieve' : 'nope'); toast(r.crack === 1 ? 'Perfect crack! +15 quality' : roastP(r) < 0.7 ? 'Too early: listen for the crack at about 70%' : 'Too late: the crack has passed'); } }
-  else if (a === 'sellbag') { const [i, k] = v.split('.'), R = S.roastery, b = R.bags[+i]; if (b && RBUYERS[k]) { const c = bagPrice(b, k), pts = Math.round(b.pts * 1.2), rep = Math.round(b.kg * b.q / 100 * (b.blend || b.profile === RBUYERS[k].wants ? 1.5 : 1)); R.bags.splice(+i, 1); earn({ coins: c, points: pts }); R.rep = (R.rep || 0) + rep; SFX.play('coins'); toast('Sold to a ' + RBUYERS[k].name.toLowerCase() + ': +' + fmt(c) + ' coins, +' + fmt(pts) + ' know-how, +' + fmt(rep) + ' reputation'); } }
+  else if (a === 'sellbag') { const [i, k] = v.split('.'), R = S.roastery, b = R.bags[+i]; if (b && RBUYERS[k]) { const c = bagPrice(b, k), pts = Math.round(b.pts), rep = Math.round(b.q / 10 * (b.blend ? 2 : b.profile === RBUYERS[k].wants ? 1.5 : 1)); R.bags.splice(+i, 1); earn({ coins: c, points: pts }); R.rep = (R.rep || 0) + rep; SFX.play('coins'); toast('Sold to a ' + RBUYERS[k].name.toLowerCase() + ': +' + fmt(c) + ' coins, +' + fmt(pts) + ' know-how, +' + fmt(rep) + ' reputation'); } }
   else if (a === 'blendask') { const R = S.roastery, b = R.bags[+v]; if (b) showModal('<h2>Blend ' + bagName(b) + '</h2><p class="note">Blend it with another bag to make <b>' + BLEND_NAMES[R.blendName || 0] + '</b>. A house blend gets +5 quality and every buyer wants it.</p>' + R.bags.map((x, j) => (j === +v || x.blend ? '' : row(img('bag_' + x.profile, 26), bagName(x) + ' · ' + fmtKg(x.kg) + ' kg', 'Quality ' + x.q, btn('Blend', '', 'blendwith:' + v + '.' + j, true, 'green')))).join('') + '<button class="btn" data-act="close">Cancel</button>'); }
   else if (a === 'blendwith') { const [i, j] = v.split('.').map(Number), R = S.roastery, x = R.bags[i], y = R.bags[j]; if (x && y && i !== j && repLevel() >= 10) { const kg = x.kg + y.kg, nb = { key: x.key, profile: 'blend', blend: BLEND_NAMES[R.blendName || 0], kg, coins: x.coins + y.coins, pts: x.pts + y.pts, q: Math.min(100, Math.round((x.q * x.kg + y.q * y.kg) / kg + 5)) }; R.bags = R.bags.filter((_, k) => k !== i && k !== j); R.bags.push(nb); closeModal(); SFX.play('pour'); toast(nb.blend + ' blended: ' + fmtKg(kg) + ' kg, quality ' + nb.q); } }
   else if (a === 'reqskip') { S.request = null; S.reqNext = Date.now() + 3600000; toast('Maybe next time. A new request comes within the hour.'); }
