@@ -1553,7 +1553,7 @@ function toRoastery(i, quiet) {   /* a dry lot goes to the roastery's green stor
 function startRoast(key, profile, quiet) {
   const R = S.roastery, b = R.beans[key]; if (!b || b.kg < 0.5 || R.roasters.length >= roasterCount() || !ROASTS[profile]) return;
   const kg = Math.min(roastCap(), b.kg), f = kg / b.kg;
-  R.roasters.push({ key, profile, kg, coins: b.coins * f, pts: b.pts * f, cup: b.cup, start: Date.now(), dur: roastTime(profile) * 1000, crack: 0, cw: crackWin(key) });
+  R.roasters.push({ key, profile, kg, coins: b.coins * f, pts: b.pts * f, cup: b.cup, start: Date.now(), dur: roastTime(profile) * 1000, crack: 0, cw: crackSecs(key) / roastTime(profile) });
   b.kg -= kg; b.coins -= b.coins * f; b.pts -= b.pts * f; if (b.kg < 0.5) delete R.beans[key];
   R.last = R.last || {}; R.last[key] = profile;
   SFX.play('ignite'); if (!quiet) toast(ROASTS[profile].name + ' roast started: tap Crack at first crack');
@@ -1562,8 +1562,8 @@ const roastP = (r) => Math.min(1, (Date.now() - r.start) / r.dur);
 /* crack difficulty: everyday beans and simple processes give a wide first-crack window, rare beans and fancy processes a tight one */
 const CRACK_BEAN = { catimor: 0, caturra: 0.1, castillo: 0.1, mundonovo: 0.1, catuai: 0.2, yellowbourbon: 0.4, pinkbourbon: 0.5, heirloom: 0.7, geisha: 1 };
 const CRACK_METHOD = { washed: 0, honey: 0.2, natural: 0.25, rum: 0.6, whiskey: 0.7, strawberry: 1 };
-const crackWin = (key) => { const [v, m] = key.split('.'); return 0.22 - 0.15 * (0.55 * (CRACK_BEAN[v] || 0) + 0.45 * (CRACK_METHOD[m] || 0)); };   /* share of the roast: 22% down to 7% */
-const crackLabel = (w) => (w >= 0.18 ? 'wide' : w >= 0.13 ? 'normal' : w >= 0.09 ? 'tight' : 'very tight');
+const crackSecs = (key) => { const [v, m] = key.split('.'); return 15 - 5 * (0.55 * (CRACK_BEAN[v] || 0) + 0.45 * (CRACK_METHOD[m] || 0)); };   /* the window lasts 15 s for everyday beans, down to 10 s for the rarest */
+const crackLabel = (secs) => (secs >= 14 ? 'wide' : secs >= 12.5 ? 'normal' : secs >= 11 ? 'tight' : 'very tight');
 const inCrack = (r) => roastP(r) >= 0.7 && roastP(r) <= 0.7 + (r.cw || 0.16);
 function roasteryTick() {
   const R = S.roastery; if (!R) return;
@@ -1604,13 +1604,13 @@ function roasteryPanel() {
     const r = R.roasters[i];
     if (!r) { h += '<div class="rslot idle">' + img('roaster_0', 40) + '<span>Free: tap a roast on a bin below</span></div>'; continue; }
     const p = roastP(r), cr = inCrack(r);
-    h += '<div class="rslot' + (cr ? ' crack' : '') + '">' + img('roaster_' + (Math.floor(Date.now() / 300) % 2), 40) + '<div><b>' + fmtKg(r.kg) + ' kg ' + beanName(r.key) + ' · ' + ROASTS[r.profile].name.toLowerCase() + '</b><span class="bar"><i style="width:' + Math.round(p * 100) + '%;background:' + ROASTS[r.profile].col + '"></i><em class="cz" style="width:' + Math.round((r.cw || 0.16) * 100) + '%"></em></span><small>' + (r.crack === 2 ? 'Missed the crack. ' : cr ? 'First crack: tap now to finish! ' : p < 0.7 ? 'Drying and browning… crack window ' + crackLabel(r.cw || 0.16) + ' (' + Math.max(1, Math.round((r.cw || 0.16) * r.dur / 1000)) + ' s). ' : '') + Math.max(0, Math.ceil((1 - p) * r.dur / 1000)) + ' s left</small></div>' + (r.crack ? '' : btn('Crack', cr ? 'now!' : 'wait', 'crack:' + i, true, cr ? 'gold' : '')) + '</div>';
+    h += '<div class="rslot' + (cr ? ' crack' : '') + '">' + img('roaster_' + (Math.floor(Date.now() / 300) % 2), 40) + '<div><b>' + fmtKg(r.kg) + ' kg ' + beanName(r.key) + ' · ' + ROASTS[r.profile].name.toLowerCase() + '</b><span class="bar"><i style="width:' + Math.round(p * 100) + '%;background:' + ROASTS[r.profile].col + '"></i><em class="cz" style="width:' + Math.round((r.cw || 0.16) * 100) + '%"></em></span><small>' + (r.crack === 2 ? 'Missed the crack. ' : cr ? 'First crack: tap now to finish! ' : p < 0.7 ? 'Drying and browning… crack window ' + crackLabel((r.cw || 0.16) * r.dur / 1000) + ' (' + Math.max(1, Math.round((r.cw || 0.16) * r.dur / 1000)) + ' s). ' : '') + Math.max(0, Math.ceil((1 - p) * r.dur / 1000)) + ' s left</small></div>' + (r.crack ? '' : btn('Crack', cr ? 'now!' : 'wait', 'crack:' + i, true, cr ? 'gold' : '')) + '</div>';
   }
-  h += '</div><p class="note">Catch first crack for +15 quality, and the roast finishes on the spot. Everyday beans and washed lots crack over a wide window; rare beans and barrel or infused lots give you only a few seconds.' + (repLevel() >= 8 ? ' Tap Repeat on a bin to have it start its next roast by itself, using the roast you last chose.' : ' At reputation 8, bins can repeat their roast by themselves.') + '</p>';
+  h += '</div><p class="note">Catch first crack for +15 quality, and the roast finishes on the spot. The window lasts 15 seconds for everyday beans and washed lots, down to 10 seconds for rare beans and barrel or infused lots.' + (repLevel() >= 8 ? ' Tap Repeat on a bin to have it start its next roast by itself, using the roast you last chose.' : ' At reputation 8, bins can repeat their roast by themselves.') + '</p>';
   /* green coffee lives in a few bins, so the list never grows past what you can roast */
   const keys = Object.keys(R.beans), free = R.roasters.length < roasterCount(), want = Object.keys(R.want || {});
   h += '<h3>Green coffee bins ' + keys.length + ' / ' + ROAST_BINS + '</h3><div class="racks">' + keys.map((k) => { const b = R.beans[k], [v, m] = k.split('.'), best = bestRoast(v, m);
-    return '<div class="rack"><div class="rk-top">' + img('bush_' + v + '_ripe', 22) + '<span><b>' + ART.varieties[v] + '</b><small>' + METHODS[m].name.split(' ')[0].toLowerCase() + ' · ' + fmtKg(b.kg) + ' kg</small></span></div><small>Cup ' + b.cup.toFixed(1) + ' · crack ' + crackLabel(crackWin(k)) + '</small>' +
+    return '<div class="rack"><div class="rk-top">' + img('bush_' + v + '_ripe', 22) + '<span><b>' + ART.varieties[v] + '</b><small>' + METHODS[m].name.split(' ')[0].toLowerCase() + ' · ' + fmtKg(b.kg) + ' kg</small></span></div><small>Cup ' + b.cup.toFixed(1) + ' · crack ' + crackLabel(crackSecs(k)) + '</small>' +
       '<div class="rk-act">' + Object.keys(ROASTS).map((p) => '<button type="button" class="btn' + (p === best ? ' green' : '') + '" data-act="roast:' + k + '|' + p + '"' + (free ? '' : ' disabled') + '>' + ROASTS[p].name + (p === best ? ' ★' : '') + '</button>').join('') + (repLevel() >= 8 ? '<button type="button" class="btn' + ((R.repeat || {})[k] ? ' blue' : '') + '" data-act="rrep:' + k + '">' + ((R.repeat || {})[k] ? 'Repeat ' + ROASTS[R.repeat[k]].name.toLowerCase() + ' ✓' : 'Repeat: off') + '</button>' : '') + '<button type="button" class="btn" data-act="binsell:' + k + '">Sell green</button></div></div>'; }).join('') +
     want.map((k) => '<div class="rack"><div class="rk-top">' + img('bush_' + k.split('.')[0] + '_ripe', 22) + '<span><b>' + ART.varieties[k.split('.')[0]] + '</b><small>requested · ' + METHODS[k.split('.')[1]].name.split(' ')[0].toLowerCase() + '</small></span></div><small>Comes when a lot dries</small><div class="rk-act"><button type="button" class="btn" data-act="rreq:' + k + '">Cancel</button></div></div>').join('') +
     Array.from({ length: Math.max(0, ROAST_BINS - keys.length - want.length) }, () => '<div class="rack"><div class="rk-top"><span><b>Empty bin</b><small>for one green coffee</small></span></div><div class="rk-act"><button type="button" class="btn gold" data-act="rreqask">Request beans</button></div></div>').join('') + '</div>';
@@ -2615,7 +2615,7 @@ function cupAll() {
 function crackRoast(i) {
   const r = S.roastery.roasters[i]; if (!r || r.crack) return;
   r.crack = inCrack(r) ? 1 : 2; SFX.play(r.crack === 1 ? 'achieve' : 'nope'); if (r.crack === 1) { S.rcos.cracks = (S.rcos.cracks || 0) + 1; r.start = Date.now() - r.dur; }   /* a perfect crack finishes the roast on the spot */
-  toast(r.crack === 1 ? 'Perfect crack! +15 quality, and the roast is done' + ((r.cw || 0.16) < 0.09 ? '. A very tight window, well caught' : '') : roastP(r) < 0.7 ? 'Too early: listen for the crack at about 70%' : 'Too late: the crack has passed');
+  toast(r.crack === 1 ? 'Perfect crack! +15 quality, and the roast is done' + ((r.cw || 0.16) * r.dur / 1000 < 11 ? '. A very tight window, well caught' : '') : roastP(r) < 0.7 ? 'Too early: listen for the crack at about 70%' : 'Too late: the crack has passed');
   if (scene() === 'roast' && i < BAYS.length) floats.push({ x: BAYS[i] + 13, y: BAY_Y - 2, text: r.crack === 1 ? 'perfect!' : roastP(r) < 0.7 ? 'too early' : 'too late', t: 0 });
 }
 function sellLot(i, quiet) {

@@ -128,7 +128,7 @@ window.BOT = (function () {
       const k = Object.keys(R.beans).sort((a, b) => R.beans[b].kg - R.beans[a].kg)[0], [v, m] = k.split('.'), best = G.bestRoast(v, m);
       const p = H() && rnd() < 0.25 ? ['light', 'medium', 'dark'][Math.floor(rnd() * 3)] : best; const n = R.roasters.length; act('roast:' + k + '|' + p); if (R.roasters.length === n) break;
     }
-    R.roasters.forEach((r, i) => { if (!r.crack && G.inCrack(r) && !r.tried) { r.tried = true; if (!H() || rnd() < Math.min(0.9, 0.35 + (r.cw || 0.16) * 3)) act('crack:' + i);   /* tighter windows are missed more often */ } });
+    R.roasters.forEach((r, i) => { if (!r.crack && G.inCrack(r) && !r.tried) { r.tried = true; if (!H() || rnd() < Math.min(0.9, 0.3 + (r.cw || 0.16) * r.dur / 1000 * 0.04)) act('crack:' + i);   /* tighter windows are missed more often */ } });
     for (let i = R.bags.length - 1; i >= 0; i--) { const b = R.bags[i], k = Object.keys(G.RBUYERS).find((x) => b.blend || G.RBUYERS[x].wants === b.profile) || 'konbini'; const c0 = S.coins; act('sellbag:' + i + '.' + k); B.roastCoins = (B.roastCoins || 0) + (S.coins - c0); B.roastSold = (B.roastSold || 0) + 1; }
   }
   function cycleEnd() {   /* one check of the game: which tabs and sub-tabs it needed */

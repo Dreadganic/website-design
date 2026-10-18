@@ -284,6 +284,7 @@ Farm · Mill · Roastery · Unlock · Daily · Ranks · Shop · Test/Settings.
 - **Roastery tab:** hidden until prestige 2 (or until the roastery opens), then shown as locked until prestige 3.
 
 ## Crack difficulty
-Each roast gets its own first-crack window (`r.cw`, from `crackWin(key)`), starting at 70% of the roast. Its length depends on how rare the bean is (`CRACK_BEAN`: Catimor 0 up to Geisha 1) and how demanding the process is (`CRACK_METHOD`: washed 0 up to strawberry infused 1). It runs from 22% of the roast (Catimor or Caturra washed, about 15 s) down to 7% (Geisha strawberry, about 4 s on a light roast).
-- **Where it shows:** bins show "crack wide / normal / tight / very tight", and roasters show the window in seconds with a gold zone on their bar. The scene's bar matches.
-- **Bot:** the human-like bot catches tighter windows less often (35% plus 3 times the window, up to 90%).
+First crack always opens at 70% of the roast. How long its window lasts depends on how rare the bean is (`CRACK_BEAN`: Catimor 0 up to Geisha 1) and how demanding the process is (`CRACK_METHOD`: washed 0 up to strawberry infused 1).
+- **Window length:** `crackSecs(key)` runs from 15 seconds (everyday beans, washed lots) down to 10 seconds (Geisha strawberry). It's stored on the roast as a share of its time (`r.cw`).
+- **Where it shows:** bins show "crack wide / normal / tight / very tight", and roasters show the seconds with a gold zone on their bar.
+- **Bot:** the human-like bot catches shorter windows a little less often.
