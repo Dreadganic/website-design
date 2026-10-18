@@ -120,3 +120,10 @@ The game's server parts run as Netlify Functions next to the payment functions, 
 - **Linking an order:** send customers to `/farm/?claim=` followed by their Checkout session id (`cs_…`). The thank-you page already has that id; adding the button is one line when you're ready to launch.
 - **Tests:** `npm test` runs the backend tests with an in-memory store and a fake Stripe.
 - **Not built yet:** push notifications (needs an Apple Developer account and Firebase), Capacitor app wrapping, real co-ops, and a leaderboard that scales past a few thousand players (it currently reads every score; it should keep a running top list instead).
+
+
+### Beju Farm rewards (backend, dormant until launch)
+- New functions: `game-samples` (free samples the server has decided a player earned), `game-checkin` (daily check-ins, Japan time), `game-grants` (cranes waiting for the game, for example from subscription renewals).
+- `create-checkout` adds an earned sample to orders of ¥3,000 or more **only when the environment variable `GAME_SAMPLES` is `on`**. Leave it unset until launch.
+- `stripe-webhook` now also handles `checkout.session.expired`, `checkout.session.async_payment_failed` and `invoice.paid`. In Stripe (Developers > Webhooks), add those three events to the existing endpoint so samples are released and renewals earn cranes.
+- Launch steps: `launch/README.md`.

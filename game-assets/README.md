@@ -143,3 +143,8 @@ Coins build, know-how unlocks, cranes buy looks, and the tabs follow that rule:
 - **Daily** check-in, daily tasks and the weekly order only. **Ranks** Leaderboard · Prestige & looks.
 - **Shop** (cranes): Boosts (boosts and the Osaka garden) · Farmer (characters and picker hats) · Farm style (building styles and decor) · Real coffee (orders, passport, free coffee earned).
 - Labels fit down to 360 px phones (smaller type under 400 px and 370 px).
+
+## Free coffee samples and cranes (rewards ladder)
+- **Samples:** a welcome 100 g bag at Mogiana's first 1,000 kg, one per origin at prestige 2 (Huila), 3 (Gedeo), 4 (Lake Toba) and 5 (Turrialba), and one a month for checking in on 20 days. Each is redeemed with a bejucoffee.com order of ¥3,000 or more within 60 days, one per order. Online, the server's list (`game-samples`) is the real one and local samples it hasn't confirmed show as "Checking with the roastery". Shop › Real coffee lists them with status and expiry; the farm tab shows each farm's sample goal. Test tab: "Next free sample", "+20 check-in days".
+- **Cranes from play** are kept low so real orders are the fast lane: the daily "sell 2 lots" task pays 1, the weekly team order 10, and check-in day 4 and day 7 pay 1 and 3. Paid subscription renewals pay cranes too (`game-grants`).
+- The public-site changes for launch (footer link, thank-you button, checkout sample offer, un-hiding /farm/) live in `launch/`, not in `beju-site/`. See `launch/README.md`.

@@ -91,7 +91,35 @@ const cleanLook = (l, prestige) => {
   return { crest: n(l.crest !== undefined ? l.crest : l.plate, cap), skin: cap > 0 ? n(l.skin, 7) : 0, bg: BGS.includes(l.bg) ? l.bg : "none", char: CHARS.includes(l.char) ? l.char : "none" };
 };
 
+/* Free coffee samples earned in the game. The server decides who has earned what, from its own records:
+   a welcome bag once a new farmer gets going, one per origin at prestige 2-5, and one a month for checking in on 20 days.
+   Each sample is redeemed with an order of SAMPLE_RULES.minOrder or more and lasts SAMPLE_RULES.lifeDays. */
+const SAMPLE_RULES = { minOrder: 3000, lifeDays: 60, monthlyCheckins: 20 };
+const SAMPLE_LADDER = [
+  { id: "welcome", origin: "mogiana", coffee: "Casablanca Blend", prestige: 0, minLevel: 2 },
+  { id: "huila", origin: "huila", coffee: "Colombia Pink Whiskey", prestige: 2 },
+  { id: "gedeo", origin: "gedeo", coffee: "Ethiopia Yirgacheffe", prestige: 3 },
+  { id: "toba", origin: "toba", coffee: "Sumatra Strawberry", prestige: 4 },
+  { id: "turrialba", origin: "turrialba", coffee: "Casablanca Blend", prestige: 5 }
+];
+const dayJST = (ms) => new Date((ms || Date.now()) + 9 * 3600e3).toISOString().slice(0, 10);   /* "2026-10-18" */
+/* samples this player qualifies for that they don't hold yet; score is their leaderboard record */
+function newSamples(player, score, now) {
+  const have = new Set((player.samples || []).map((s) => s.id)), out = [];
+  SAMPLE_LADDER.forEach((r) => {
+    if (have.has(r.id) || !score) return;
+    if (score.prestige >= r.prestige && (r.prestige > 0 || score.level >= r.minLevel || score.prestige > 0)) out.push({ id: r.id, kind: r.id === "welcome" ? "welcome" : "origin", origin: r.origin, coffee: r.coffee });
+  });
+  const month = dayJST(now).slice(0, 7), days = ((player.checkins || {})[month] || []).length;
+  if (days >= SAMPLE_RULES.monthlyCheckins && !have.has("month-" + month)) out.push({ id: "month-" + month, kind: "monthly", origin: "", coffee: "Roaster's choice" });
+  return out.map((s) => Object.assign(s, { earned: now, expires: now + SAMPLE_RULES.lifeDays * 864e5, status: "earned" }));
+}
+/* a sample as the game sees it, with expiry applied */
+const sampleView = (s, now) => Object.assign({}, s, { status: s.status === "earned" && s.expires <= now ? "expired" : s.status });
+/* save a player record (the authed() copy carries its id, which isn't stored) */
+async function savePlayer(store, me) { const { id, ...rest } = me; await store.set("players/" + id, rest); }
+
 /* Which passport origins each real coffee can stamp, in blend order (mirrors the game's COFFEES) */
 const STAMPS = { casablanca: ["mogiana", "huila", "turrialba"], pinkwhiskey: ["huila"], rumbarrel: ["huila"], yirgacheffe: ["gedeo"], strawberry: ["toba"] };
 
-module.exports = { json, parse, stores, memoryStore, authed, hash, newId, newToken, XP_AT, levelFor, prestigeNeed, seasonKey, RULES, checkScore, cleanName, cleanLook, STAMPS };
+module.exports = { SAMPLE_RULES, SAMPLE_LADDER, dayJST, newSamples, sampleView, savePlayer, json, parse, stores, memoryStore, authed, hash, newId, newToken, XP_AT, levelFor, prestigeNeed, seasonKey, RULES, checkScore, cleanName, cleanLook, STAMPS };

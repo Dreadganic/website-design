@@ -26,8 +26,8 @@ exports.handler = async (event) => {
   (items.data || []).forEach((li) => { const pid = li.price && li.price.product && li.price.product.metadata && li.price.product.metadata.pid; if (G.STAMPS[pid]) for (let k = 0; k < Math.min(li.quantity || 1, 5); k++) coffees.push(pid); });
   const grant = { cranes: Math.floor((s.amount_total || 0) / 100), coffees, order: id.slice(-8) };
   await store.set(claimKey, { player: me.id, at: now, grant });
+  if (s.mode === "subscription" && s.subscription) await store.set("subs/" + s.subscription, { player: me.id, at: now });   /* renewals of this subscription earn cranes too */
   me.grants = (me.grants || []).concat([{ order: id, at: now, cranes: grant.cranes }]);
-  const { id: _drop, ...rest } = me;
-  await store.set("players/" + me.id, rest);
+  await G.savePlayer(store, me);
   return G.json(200, grant);
 };

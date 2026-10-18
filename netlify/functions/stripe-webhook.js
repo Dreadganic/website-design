@@ -22,8 +22,10 @@ exports.handler = async (event) => {
         customer: (s.customer_details && s.customer_details.name) || ship.name || "", email: (s.customer_details && s.customer_details.email) || "", phone: (s.customer_details && s.customer_details.phone) || "",
         ship_to: [ship.name, a.postal_code, a.state, a.city, a.line1, a.line2].filter(Boolean).join(" "),
         items: items.data.map(li => li.quantity + " × " + li.description + (li.price && li.price.product && li.price.product.description ? " (" + li.price.product.description + ")" : "")).join("\n"),
-        language: (s.metadata && s.metadata.lang) || ""
+        language: (s.metadata && s.metadata.lang) || "",
+        farm_sample: (s.metadata && s.metadata.farm_coffee) ? "Include a free 100 g " + s.metadata.farm_coffee + " sample (Beju Farm)" : ""
       };
+      if (s.metadata && s.metadata.farm_sample) await farmSampleStatus(event, deps, s, "redeemed");
       console.log("order paid", order.order, order.total);
       if (process.env.ORDER_NOTIFY_URL) await f(process.env.ORDER_NOTIFY_URL, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(order) });
     } catch (e) {
@@ -31,5 +33,36 @@ exports.handler = async (event) => {
       return { statusCode: 500, body: "retry" };   /* Stripe retries later */
     }
   }
+  if (evt.type === "checkout.session.expired" || evt.type === "checkout.session.async_payment_failed") {   /* an abandoned or unpaid checkout gives the farm sample back */
+    const s = evt.data.object;
+    if (s.metadata && s.metadata.farm_sample) await farmSampleStatus(event, deps, s, "earned");
+  }
+  if (evt.type === "invoice.paid") {   /* a paid subscription renewal earns Beju Farm cranes, like any order */
+    const inv = evt.data.object;
+    if (inv.billing_reason === "subscription_cycle" && inv.subscription) {
+      try {
+        const G = require("../lib/game"), store = G.stores(event, deps);
+        const link = await store.get("subs/" + inv.subscription);
+        const p = link && await store.get("players/" + link.player);
+        if (p && !(p.pending || []).some((g) => g.invoice === inv.id) && !(p.grants || []).some((g) => g.invoice === inv.id)) {
+          const grant = { invoice: inv.id, cranes: Math.floor((inv.amount_paid || 0) / 100), order: inv.id.slice(-8), reason: "subscription", at: Date.now() };
+          p.pending = (p.pending || []).concat([grant]); p.grants = (p.grants || []).concat([grant]);
+          await store.set("players/" + link.player, p);
+        }
+      } catch (e) { console.error("farm renewal", e.message); }
+    }
+  }
   return { statusCode: 200, body: "ok" };
 };
+
+/* move a Beju Farm sample between reserved, redeemed and earned (released) as its checkout completes or expires */
+async function farmSampleStatus(event, deps, s, status) {
+  try {
+    const G = require("../lib/game"), store = G.stores(event, deps);
+    const p = await store.get("players/" + s.metadata.farm_player);
+    const smp = p && (p.samples || []).find((x) => x.id === s.metadata.farm_sample && x.session === s.id);
+    if (!smp || smp.status === "redeemed") return;
+    smp.status = status; if (status === "redeemed") smp.redeemedAt = Date.now(); else delete smp.session;
+    await store.set("players/" + s.metadata.farm_player, p);
+  } catch (e) { console.error("farm sample status", e.message); }
+}

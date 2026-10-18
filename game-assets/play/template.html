@@ -551,7 +551,7 @@ function fresh() {
     lv: { storage: 1, carry: 1, speed: 1, pickers: 1, racks: 1, hearts: 1 },
     methods: { washed: true, natural: true }, vars: { caturra: true }, staff: { foreman: false, agent: false, rule: 'best' }, decor: {}, contracts: [], nextContract: 0, hat: 'straw', hats: { straw: true }, stamps: {},
     cherries: {}, lots: [], boosts: {}, minutes: 7 * 60 + 30, minutesTotal: 0, day: 1, taps: 0, year: 1, bonus: 0,
-    tasks: null, weekly: { mine: 0, team: 1800, target: 4000, start: 1, claimed: false }, rewards: [], stats: { picked: 0, sold: 0, lotsSold: 0 },
+    tasks: null, weekly: { mine: 0, team: 1800, target: 4000, start: 1, claimed: false }, samples: [], stats: { picked: 0, sold: 0, lotsSold: 0 },
     farms: {}, intro: 0, seasonPick: 'auto', speed: 1, sfx: true, music: true, musicVol: 0.45, guide: 0, guideN: 0, guideV: GUIDE_V, tabs: { upgrades: false, unlock: false, orders: false, ranks: false, shop: false }, newTab: null, checkin: { last: '', streak: 0, freezes: 1 }, season: { key: seasonKey(), prestige: 0, kh: 0 }, badges: [], event: null, prestige: 0, name: 'You', look: { crest: 0, skin: 0, bg: 'none', char: 'none' }, skins: { 0: true }, chars: {}, bskins: {}, skinPicks: 0, dormant: {}, last: Date.now()
   };
   LOCS.forEach((l) => { st.farms[l] = newFarm(l); });
@@ -575,6 +575,11 @@ let S = load() || fresh();
   S.hearts = Math.min(S.hearts, 24 + S.lv.hearts * 6);
   if (S.look && !S.look.char) S.look.char = 'none';
   if (!S.born) S.born = Date.now();
+  if (!S.samples) {   /* samples replace the old harvest rewards: keep the welcome bag, re-check the rest under the new ladder */
+    S.samples = []; if (S.farms.mogiana && S.farms.mogiana.rewarded) S.samples.push({ id: 'welcome', kind: 'welcome', origin: 'mogiana', coffee: 'Casablanca Blend', earned: Date.now(), expires: Date.now() + 60 * 864e5, status: 'earned', local: true });
+    delete S.rewards;
+  }
+  if (!S.checkin.days) S.checkin.days = {};
   if (S.tabs && S.tabs.upgrades && S.tabs.unlock === undefined) S.tabs.unlock = true;   /* the Unlock tab arrived after this save */
   if (S.upTab === 'vars' || S.upTab === 'farms') S.upTab = 'farm'; if (S.shopTab === 'decor') S.shopTab = 'bskin';   /* when this farm started, for the practice board */
   LOCS.forEach((l) => { const f = S.farms[l]; if (!f.build) f.build = {}; if (f.manager === undefined) f.manager = null; });
@@ -635,7 +640,7 @@ function newTasks() {
   S.tasks = [
     { id: 'pick', text: 'Pick 15 ripe shrubs yourself', goal: 15, have: 0, reward: { coins: 300 } },
     { id: 'store', text: 'Bring in 200 kg of cherries', goal: 200, have: 0, reward: { points: 150 } },
-    { id: 'sell', text: 'Sell 2 processed lots', goal: 2, have: 0, reward: { cranes: 3 } }
+    { id: 'sell', text: 'Sell 2 processed lots', goal: 2, have: 0, reward: { cranes: 1 } }
   ];
 }
 function task(id, n) { S.tasks.forEach((t) => { if (t.id === id && !t.done) t.have = Math.min(t.goal, t.have + n); }); }
@@ -656,12 +661,10 @@ function store(f, v, kg) {
   S.cherries[v] = (S.cherries[v] || 0) + take;
   S.stats.picked += take; task('store', take);
   f.harvested = Math.min(f.goal, f.harvested + take);
-  if (f.loc !== 'osaka' && !f.rewarded && f.harvested >= f.goal) {
-    f.rewarded = true;
-    const reward = ART.locations[f.loc].reward;
-    S.rewards.unshift({ text: 'Free 100 g ' + reward, from: ART.locations[f.loc].name, day: S.day });
-    showModal('<h2>Harvest complete!</h2><p class="note">' + ART.locations[f.loc].name + ' reached 1,000 kg. A free 100 g bag of <b>' + reward + '</b> is added to your next bejucoffee.com order.</p><button class="btn green" data-act="close">Wonderful!</button>');
+  if (f.loc === 'mogiana' && !f.rewarded && f.harvested >= f.goal) {   /* the welcome sample */
+    f.rewarded = true; grantSample('welcome');
   }
+
   return take;
 }
 function tickFarm(f, d, visible) {
@@ -1120,6 +1123,7 @@ function prestige() {
   if (SKINS.some((sk, i) => !S.skins[i])) S.skinPicks += 1;   /* and the player picks one new outfit */
   S.xp = 0; S.points = 0;
   LOCS.forEach((l) => { if (FARM_LEVEL[l] && S.farms[l].unlocked) S.dormant[l] = FARM_LEVEL[l]; });
+  setTimeout(() => checkSamples(), 300);
   const asleep = Object.keys(S.dormant);
   showModal(avatar(S.look, 64) + '<h2>Prestige ' + S.prestige + '</h2>' + plate(S.name, S.look.crest, starsFor(S.prestige)) + '<p class="note">' + (S.prestige < TIERS.length ? 'New crest: <b>' + TIERS[t] + '</b>. Its nameplate and border are yours and already on.' : 'You are past the top tier: every prestige adds a star to your name.') + '</p>' + skinPicker() +
     (asleep.length ? '<p class="note">' + asleep.map((l) => ART.locations[l].name.split(',')[0] + ' wakes at level ' + S.dormant[l]).join(', ') + '. Brazil and Osaka stay open.</p>' : '') + '<button class="btn green" data-act="close">Back to the farm</button>');
@@ -1130,7 +1134,7 @@ function prestigeCeremony(rankBefore, rankAfter, players) {
   el.innerHTML = '<div class="pc-rays"></div><canvas id="pcconf"></canvas><div class="pc-flash"></div><div class="pc-body shake"><span class="pc-kicker">PRESTIGE</span><span class="pc-num">' + S.prestige + '</span>' +
     '<span class="pc-crest">' + avatar(S.look, 128) + '</span><span class="pc-tier" style="color:' + TAG_COLOR[t] + '">' + (top ? TIERS[t] + ' ' + '★'.repeat(Math.min(5, starsFor(S.prestige))) : TIERS[t]) + '</span>' +
     '<span class="pc-plate">' + plate(S.name, S.look.crest, starsFor(S.prestige)) + '</span>' +
-    '<span class="pc-sub">' + (top ? 'Another star on your name.' : 'New crest unlocked and already on.') + (above > 0 ? '<br>You climbed <b>' + above + ' place' + (above === 1 ? '' : 's') + '</b> to <b>#' + rankAfter + '</b> of ' + players + ' on the all-time board.' : '<br>You are <b>#' + rankAfter + '</b> of ' + players + ' on the all-time board.') + '</span>' +
+    '<span class="pc-sub">' + (top ? 'Another star on your name.' : 'New crest unlocked and already on.') + (SAMPLE_LADDER.find((r) => r.prestige === S.prestige && !sampleOf(r.id)) ? '<br><b>Plus a free 100 g ' + ART.locations[SAMPLE_LADDER.find((r) => r.prestige === S.prestige).origin].reward + ' sample.</b>' : '') + (above > 0 ? '<br>You climbed <b>' + above + ' place' + (above === 1 ? '' : 's') + '</b> to <b>#' + rankAfter + '</b> of ' + players + ' on the all-time board.' : '<br>You are <b>#' + rankAfter + '</b> of ' + players + ' on the all-time board.') + '</span>' +
     '<button class="btn green pc-go" data-act="pcer">' + (S.skinPicks ? 'Choose your new outfit' : 'Back to the farm') + '</button></div>';
   el.hidden = false;
   SFX.play('prestige'); Cozy.duck(5.5, 0.1); fireworks = 6;
@@ -1180,7 +1184,27 @@ let tab = 'farm', toastT = 0;
 const TABS = [['farm', 'Farm', 'i_worker'], ['mill', 'Mill', 'green_sack'], ['upgrades', 'Build', 'storage_4'], ['unlock', 'Unlock', 'i_points'], ['orders', 'Daily', 'i_cherry'], ['ranks', 'Ranks', 'i_trophy'], ['shop', 'Shop', 'i_crane'], ['test', 'Test', 'i_box']];
 function setTab(t) { if (t !== tab) SFX.play('click'); if (S.newTab === t) S.newTab = null; guideStep('tab:' + t); tab = t; renderTabs(); renderPanel(); }
 
-const CHECKIN = [{ coins: 200 }, { points: 100 }, { coins: 400 }, { cranes: 2 }, { coins: 800 }, { points: 300 }, { cranes: 5 }];
+/* free 100 g coffee samples: a welcome bag at Mogiana's first 1,000 kg, one per origin at prestige 2-5, and one a month for
+   checking in on 20 days. Each is redeemed with a bejucoffee.com order of SAMPLE_MIN or more within SAMPLE_DAYS. Online, the server's list wins */
+const SAMPLE_LADDER = [{ id: 'welcome', origin: 'mogiana', prestige: 0 }, { id: 'huila', origin: 'huila', prestige: 2 }, { id: 'gedeo', origin: 'gedeo', prestige: 3 }, { id: 'toba', origin: 'toba', prestige: 4 }, { id: 'turrialba', origin: 'turrialba', prestige: 5 }];
+const SAMPLE_MIN = 3000, SAMPLE_DAYS = 60, MONTH_CHECKINS = 20, WEEKLY_CRANES = 10;
+const monthKey = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 7);   /* Japan time, like the server */
+const sampleOf = (id) => S.samples.find((s) => s.id === id);
+function grantSample(id, quiet) {
+  if (sampleOf(id)) return false;
+  const r = SAMPLE_LADDER.find((x) => x.id === id), coffee = r ? ART.locations[r.origin].reward : "Roaster's choice";
+  S.samples.push({ id, kind: id === 'welcome' ? 'welcome' : r ? 'origin' : 'monthly', origin: r ? r.origin : '', coffee, earned: Date.now(), expires: Date.now() + SAMPLE_DAYS * 864e5, status: 'earned', local: true });
+  if (!quiet) { SFX.play('achieve'); showModal('<h2>Free coffee earned!</h2>' + img('green_sack', 56) + '<p class="note">A free <b>100 g ' + coffee + '</b> sample from Beju. Redeem it with any bejucoffee.com order of ¥' + fmt(SAMPLE_MIN) + ' or more in the next ' + SAMPLE_DAYS + ' days: it comes in the same box.</p><button class="btn green" data-act="close">Wonderful</button>'); }
+  syncSamples();
+  return true;
+}
+function checkSamples(quiet) {   /* earn anything the player now qualifies for */
+  SAMPLE_LADDER.forEach((r) => { if (r.prestige > 0 && S.prestige >= r.prestige) grantSample(r.id, quiet); });
+  if (S.farms.mogiana.rewarded) grantSample('welcome', quiet);
+  if (((S.checkin.days || {})[monthKey()] || []).length >= MONTH_CHECKINS) grantSample('month-' + monthKey(), quiet);
+}
+const sampleState = (s) => s.status === 'earned' && s.expires <= Date.now() ? 'expired' : s.status;
+const CHECKIN = [{ coins: 200 }, { points: 100 }, { coins: 400 }, { cranes: 1 }, { coins: 800 }, { points: 300 }, { cranes: 3 }];   /* cranes mostly come from real orders, so play gives only a few */
 const dayKey = (d) => d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
 function checkIn() {   /* once per real day: keep the streak going, with a freeze to cover one missed day */
   const today = new Date(), key = dayKey(today), c = S.checkin;
@@ -1191,6 +1215,9 @@ function checkIn() {   /* once per real day: keep the streak going, with a freez
   else if (gap === 2 && c.freezes > 0) { c.freezes -= 1; c.streak += 1; used = true; }
   else c.streak = 1;
   c.last = key;
+  const mk = monthKey(); c.days = c.days || {}; c.days[mk] = (c.days[mk] || []).concat([key]); Object.keys(c.days).sort().slice(0, -3).forEach((k) => { delete c.days[k]; });
+  if (API && NET.status === 'online') api('game-checkin', 'POST', {}).then(() => syncSamples()).catch(() => {});
+  setTimeout(() => checkSamples(), 600);
   const idx = (c.streak - 1) % 7, r = CHECKIN[idx]; earn(r);
   if (idx === 6) c.freezes = Math.min(2, c.freezes + 1);
   const rl = (x) => (x.coins ? x.coins + ' coins' : x.points ? x.points + ' know-how' : x.cranes + ' cranes');
@@ -1315,7 +1342,9 @@ function renderPanel() {
     } else {
       const bn = bottleneck(); if (bn) h += '<div class="bneck">' + bn + '</div>';
       if (S.loc !== 'osaka') {
-        h += '<div><div style="display:flex;justify-content:space-between;align-items:baseline"><h3>Harvest ' + fmt(f.harvested) + ' / 1,000 kg</h3><span class="note">' + (f.rewarded ? 'Reward earned' : 'Reward: free 100 g') + '</span></div><div class="bar"><i style="width:' + Math.round(f.harvested / f.goal * 100) + '%"></i></div><p class="note">' + (f.rewarded ? 'Free 100 g ' + L.reward + ' is on your next order.' : 'Reach 1,000 kg for a free 100 g ' + L.reward + ' with your next bejucoffee.com order.') + '</p></div>';
+        const lad = SAMPLE_LADDER.find((r) => r.origin === S.loc), got = lad && sampleOf(lad.id);
+        if (S.loc === 'mogiana') h += '<div><div style="display:flex;justify-content:space-between;align-items:baseline"><h3>Welcome harvest ' + fmt(f.harvested) + ' / 1,000 kg</h3><span class="note">' + (f.rewarded ? 'Sample earned' : 'Free 100 g') + '</span></div><div class="bar"><i style="width:' + Math.round(f.harvested / f.goal * 100) + '%"></i></div><p class="note">' + (f.rewarded ? 'Your free 100 g ' + L.reward + ' sample is in Shop, Real coffee.' : 'Bring in 1,000 kg for a free 100 g ' + L.reward + ' sample from Beju.') + '</p></div>';
+        else if (lad) h += '<div><div style="display:flex;justify-content:space-between;align-items:baseline"><h3>' + L.name.split(',')[0] + ' sample</h3><span class="note">' + (got ? 'Earned' : 'Prestige ' + S.prestige + ' / ' + lad.prestige) + '</span></div><div class="bar"><i style="width:' + Math.min(100, Math.round(S.prestige / lad.prestige * 100)) + '%"></i></div><p class="note">' + (got ? 'Your free 100 g ' + L.reward + ' sample is in Shop, Real coffee.' : 'Reach prestige ' + lad.prestige + ' for a free 100 g ' + L.reward + ' sample from this origin.') + '</p></div>';
       } else h += '<p class="note">The Osaka roastery garden: rare varieties all year round, through four Japanese seasons.</p>';
       h += row(img('worker_down_0', 22), 'Pickers here: ' + f.workers.length + '/' + maxPickers(f), 'Carrying ' + ART.carry[S.lv.carry - 1].name.toLowerCase() + ' (' + carryKg() + ' kg). You pick 3× faster, but pickers never tire.', btn('Hire', fmt(hireCost()) + ' coins', 'hire', S.coins >= hireCost() && f.workers.length < maxPickers(f)));
       h += row(img('storage_' + S.lv.storage, 44), ART.storage[S.lv.storage - 1].name + ': ' + fmt(stored()) + ' / ' + fmt(cap()) + ' kg', stored() >= cap() ? 'Full! Pickers have stopped. Process or sell cherries.' : 'Cherries from every farm come here.', btn('Mill', 'process', 'tab:mill', true, 'blue'));
@@ -1426,7 +1455,7 @@ function renderPanel() {
     const wk = S.weekly, tot = Math.min(wk.target, wk.team + wk.mine);
     h += '<h2>Weekly roastery order</h2><p class="note">Deliver ' + fmt(wk.target) + ' kg of washed green coffee as a team. Your washed lots count when you sell them. Ends in ' + Math.max(0, 7 - (Math.floor(Date.now() / 864e5) - wk.start)) + ' days.</p>';
     h += '<div class="bar"><i style="width:' + Math.round(tot / wk.target * 100) + '%"></i></div><p class="note">' + fmt(tot) + ' / ' + fmt(wk.target) + ' kg · you: ' + fmt(wk.mine) + ' kg · mika.brews, kenji_pourover and hana.at.home: ' + fmt(wk.team) + ' kg</p>';
-    h += btn(wk.claimed ? 'Claimed' : 'Claim 30 cranes', '', 'weekly', tot >= wk.target && !wk.claimed && wk.mine > 0, 'green');
+    h += btn(wk.claimed ? 'Claimed' : 'Claim ' + WEEKLY_CRANES + ' cranes', '', 'weekly', tot >= wk.target && !wk.claimed && wk.mine > 0, 'green');
   } else if (tab === 'ranks') {
     const mode = S.rankTab || 'season', list = board(mode), pos = list.findIndex((x) => x.you) + 1, t = tierOf(S.prestige), need = prestigeNeed(), ready = level() >= need;
     h += '<div class="me">' + avatar(S.look, 64) + '<div class="me-t">' + plate(S.name, S.look.crest, starsFor(S.prestige)) + '<span class="note">Prestige ' + S.prestige + ' · ' + TIERS[t] + '</span><span class="note">Level ' + level() + ' · ' + fmt(Math.round(S.xp)) + ' know-how · rank #' + pos + ' of ' + list.length + '</span></div></div>';
@@ -1462,11 +1491,14 @@ function renderPanel() {
     }
   } else if (tab === 'shop' && S.shopTab === 'beju') {
     h += shopTabs();
-    h += '<h2>Real coffee, real rewards</h2><p class="note">Every order on bejucoffee.com feeds your farm: 1 crane for every ¥100, and a passport stamp for each new origin. Blends stamp their next origin by share. Finish a farm\'s 1,000 kg harvest and a free 100 g bag goes in your next order.</p>';
+    h += '<h2>Real coffee, real rewards</h2><p class="note">Every order on bejucoffee.com feeds your farm: 1 crane for every ¥100, and a passport stamp for each new origin. Blends stamp their next origin by share. Free 100 g samples come from your Mogiana welcome harvest, each origin\'s prestige milestone and monthly check-ins.</p>';
     h += '<p><a class="btn green" href="https://bejucoffee.com" target="_blank" rel="noopener">Shop at bejucoffee.com</a></p>';
     h += '<h3>Passport</h3><div class="stamps">' + LOCS.map((l) => '<img src="' + url('stamp_' + l) + '" alt="' + ART.locations[l].name + (S.stamps[l] ? ', stamped' : ', not yet') + '" class="' + (S.stamps[l] ? '' : 'off') + '">').join('') + '</div>';
     h += '<h3>What each coffee gives</h3>' + Object.keys(COFFEES).map((k) => { const c = COFFEES[k], next = c.stamps.find((x) => !S.stamps[x]); return row(img(next ? 'stamp_' + next : 'i_crane', 30), c.name, '¥' + fmt(c.price) + ' · ' + Math.round(c.price / 100) + ' cranes' + (next ? ' · stamp: ' + ART.locations[next].name.split(',')[0] : ' · all stamps collected') + (c.method ? ' · unlocks ' + METHODS[c.method].name.toLowerCase() + ' processing' : ''), ''); }).join('');
-    h += '<h3>Free coffee earned</h3>' + (S.rewards.length ? S.rewards.map((r) => row(img('green_sack', 28), r.text, 'From ' + r.from + ', day ' + r.day + '. Added to your next order.', '')).join('') : '<p class="note">None yet. Finish a farm\'s 1,000 kg harvest to earn a free 100 g bag.</p>');
+    const ST = { earned: 'Ready: redeem by ', reserved: 'Waiting for your order to be paid', redeemed: 'Sent with an order', expired: 'Expired', pending: 'Checking with the roastery' };
+    h += '<h3>Free coffee samples</h3><p class="note">Each sample is a free 100 g bag that comes in the box with a bejucoffee.com order of ¥' + fmt(SAMPLE_MIN) + ' or more, one per order, within ' + SAMPLE_DAYS + ' days of earning it.' + (API ? '' : ' (Practice copy: samples become redeemable when Beju Farm launches on bejucoffee.com.)') + '</p>' + (S.samples.length ? S.samples.map((s) => { const st = sampleState(s); return row(img('green_sack', 28), '100 g ' + s.coffee, (s.kind === 'welcome' ? 'Welcome sample' : s.kind === 'monthly' ? 'Monthly check-in sample' : ART.locations[s.origin].name.split(',')[0] + ' origin sample') + ' · ' + (st === 'earned' ? ST.earned + new Date(s.expires).toLocaleDateString() : ST[st] || st), ''); }).join('') : '<p class="note">None yet.</p>');
+    const nextS = SAMPLE_LADDER.find((r) => !sampleOf(r.id)), days = ((S.checkin.days || {})[monthKey()] || []).length;
+    h += '<p class="note">' + (nextS ? 'Next sample: ' + (nextS.prestige ? 'reach prestige ' + nextS.prestige + ' for ' : 'bring in 1,000 kg at Mogiana for ') + ART.locations[nextS.origin].reward + '. ' : '') + 'Monthly sample: ' + days + ' / ' + MONTH_CHECKINS + ' check-in days this month.</p>';
   } else if (tab === 'shop' && S.shopTab === 'chars') {
     h += shopTabs();
     h += '<h2>Farmer</h2><p class="note">' + icon('i_crane') + ' ' + S.cranes + ' cranes. Farm as someone else. Your outfit, crest and background go on top, and other players see your character on the leaderboard.</p>';
@@ -1505,7 +1537,7 @@ function renderPanel() {
     h += '<h2>Test tools</h2><p class="note">For playtesting: everything here stands in for something that will come from real orders or real time.</p>';
     h += '<h3>Simulate a bejucoffee.com order</h3><div class="seg">' + Object.keys(COFFEES).map((k) => '<button type="button" data-act="order:' + k + '">' + COFFEES[k].name + '</button>').join('') + '</div>';
     h += '<div class="stamps">' + LOCS.map((l) => '<img src="' + url('stamp_' + l) + '" alt="' + ART.locations[l].name + (S.stamps[l] ? ', stamped' : ', not yet') + '" class="' + (S.stamps[l] ? '' : 'off') + '">').join('') + '</div>';
-    h += '<h3>Resources</h3><div class="seg"><button type="button" data-act="add:coins">+1,000 coins</button><button type="button" data-act="add:bigcoins">+25,000 coins</button><button type="button" data-act="add:contracts">New contracts</button><button type="button" data-act="add:checkin">Next real day</button><button type="button" data-act="add:drop">Start a drop event</button><button type="button" data-act="add:season">End the season</button><button type="button" data-act="add:guide">Restart guide</button><button type="button" data-act="add:points">+2,000 know-how</button><button type="button" data-act="add:cranes">+50 cranes</button><button type="button" data-act="add:vars">All varieties</button><button type="button" data-act="add:xp">+1 level</button><button type="button" data-act="add:cherries">Fill storage</button><button type="button" data-act="add:stamp">Next passport stamp</button></div>';
+    h += '<h3>Resources</h3><div class="seg"><button type="button" data-act="add:coins">+1,000 coins</button><button type="button" data-act="add:bigcoins">+25,000 coins</button><button type="button" data-act="add:contracts">New contracts</button><button type="button" data-act="add:checkin">Next real day</button><button type="button" data-act="add:drop">Start a drop event</button><button type="button" data-act="add:season">End the season</button><button type="button" data-act="add:guide">Restart guide</button><button type="button" data-act="add:points">+2,000 know-how</button><button type="button" data-act="add:cranes">+50 cranes</button><button type="button" data-act="add:vars">All varieties</button><button type="button" data-act="add:xp">+1 level</button><button type="button" data-act="add:cherries">Fill storage</button><button type="button" data-act="add:stamp">Next passport stamp</button><button type="button" data-act="add:sample">Next free sample</button><button type="button" data-act="add:days">+20 check-in days</button></div>';
     h += '<h3>Time</h3><div class="seg"><button type="button" data-act="away:1">Away 1 h</button><button type="button" data-act="away:4">Away 4 h</button><button type="button" data-act="away:12">Away 12 h</button><button type="button" data-act="day">Next day</button></div>';
     h += '<h3>Game speed</h3><div class="seg">' + [1, 3, 10].map((x) => '<button type="button" data-act="speed:' + x + '" aria-pressed="' + (S.speed === x) + '">×' + x + '</button>').join('') + '</div>';
     h += '<h3>Season</h3><div class="seg">' + ['auto', 'harvest', 'rainy', 'spring', 'summer', 'autumn', 'winter'].map((x) => '<button type="button" data-act="season:' + x + '" aria-pressed="' + (S.seasonPick === x) + '">' + x + '</button>').join('') + '</div><p class="note">Harvest and rainy apply to the coffee farms; spring to winter apply to Osaka.</p>';
@@ -1569,7 +1601,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'plant') { const [b, x] = v.split('.'); if (S.vars[x] || (eventDrop() && eventDrop().variety === x)) { replantBed(f, +b, x); closeModal(); guideStep('plant'); toast('Field ' + (+b + 1) + ' planted with ' + ART.varieties[x]); } }
   else if (a === 'var') { const nx = VAR_ORDER.find((x) => !S.vars[x]); if (v === nx && spend('points', VAR[v].cost)) { S.vars[v] = true; guideStep('var'); showModal('<h2>' + ART.varieties[v] + ' unlocked</h2>' + img('bush_' + v + '_ripe', 54) + '<p class="note">' + VAR[v].perk + ' Replant a field in the Farm tab to start growing it.</p><button class="btn green" data-act="close">Plant it</button>'); } }
   else if (a === 'task') { const tk = S.tasks[+v]; if (tk.have >= tk.goal && !tk.done) { tk.done = true; earn(tk.reward); guideStep('task'); toast('Task complete!'); } }
-  else if (a === 'weekly') { S.weekly.claimed = true; S.cranes += 30; showModal('<h2>Order delivered!</h2><p class="note">The team delivered ' + fmt(S.weekly.target) + ' kg of washed coffee to the roastery. +30 cranes and the Co-op Roaster badge.</p><button class="btn green" data-act="close">Hooray</button>'); }
+  else if (a === 'weekly') { S.weekly.claimed = true; S.cranes += WEEKLY_CRANES; showModal('<h2>Order delivered!</h2><p class="note">The team delivered ' + fmt(S.weekly.target) + ' kg of washed coffee to the roastery. +' + WEEKLY_CRANES + ' cranes and the Co-op Roaster badge.</p><button class="btn green" data-act="close">Hooray</button>'); }
   else if (a === 'prestigeAsk') {
     const asleep = LOCS.filter((l) => FARM_LEVEL[l] && S.farms[l].unlocked);
     showModal('<h2>Prestige ' + (S.prestige + 1) + '?</h2><p class="note"><b>You keep</b> coins, cranes, every upgrade, building, manager, variety, process, decoration, hat, outfit and background.</p><p class="note"><b>You lose</b> your level and ' + fmt(S.points) + ' unspent know-how' + (asleep.length ? ', and ' + asleep.map((l) => ART.locations[l].name.split(',')[0]).join(', ') + (asleep.length > 1 ? ' go' : ' goes') + ' dormant until you level back up' : '') + '.</p><p class="note">You gain ' + (S.prestige + 1 < TIERS.length ? 'the ' + TIERS[S.prestige + 1] + ' crest (nameplate and border)' : 'a star on your name') + (SKINS.some((sk, i) => !S.skins[i]) ? ', you pick one new outfit' : '') + ', and you jump above everyone on prestige ' + S.prestige + '.</p>' + btn('Prestige now', '', 'prestige', true, 'green') + '<button class="btn" data-act="close">Not yet</button>');
@@ -1601,7 +1633,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'hat') S.hat = v;
   else if (a === 'order') realOrder(v);
   else if (a === 'add') {
-    if (v === 'coins') S.coins += 1000; if (v === 'bigcoins') S.coins += 25000; if (v === 'drop') { const i = S.event ? (DROPS.findIndex((d) => d.id === S.event.id) + 1) % DROPS.length : 0; startDrop(DROPS[i].id); } if (v === 'season') { const n = new Date(); S.season.key = seasonKey(new Date(n.getFullYear(), n.getMonth() - 1, 1)); seasonTick(); } if (v === 'checkin') { const y = new Date(Date.now() - 86400000); S.checkin.last = dayKey(y); checkIn(); } if (v === 'guide') { S.guide = 0; S.guideN = 0; } if (v === 'contracts') { S.contracts = []; for (let k = 0; k < contractSlots(); k++) S.contracts.push(newContract()); } if (v === 'points') earn({ points: 2000 }); if (v === 'cranes') S.cranes += 50; if (v === 'vars') VAR_ORDER.forEach((x) => { S.vars[x] = true; }); if (v === 'stamp') { const l = ORIGINS.find((o) => !S.stamps[o]); if (l) { S.stamps[l] = true; stampBg(l); } }
+    if (v === 'coins') S.coins += 1000; if (v === 'bigcoins') S.coins += 25000; if (v === 'drop') { const i = S.event ? (DROPS.findIndex((d) => d.id === S.event.id) + 1) % DROPS.length : 0; startDrop(DROPS[i].id); } if (v === 'season') { const n = new Date(); S.season.key = seasonKey(new Date(n.getFullYear(), n.getMonth() - 1, 1)); seasonTick(); } if (v === 'checkin') { const y = new Date(Date.now() - 86400000); S.checkin.last = dayKey(y); checkIn(); } if (v === 'guide') { S.guide = 0; S.guideN = 0; } if (v === 'contracts') { S.contracts = []; for (let k = 0; k < contractSlots(); k++) S.contracts.push(newContract()); } if (v === 'points') earn({ points: 2000 }); if (v === 'cranes') S.cranes += 50; if (v === 'vars') VAR_ORDER.forEach((x) => { S.vars[x] = true; }); if (v === 'sample') { const r = SAMPLE_LADDER.find((x) => !sampleOf(x.id)); if (r) grantSample(r.id); } if (v === 'days') { const mk = monthKey(); S.checkin.days[mk] = (S.checkin.days[mk] || []).concat(Array.from({ length: 20 }, (_, i) => mk + '-x' + i)); checkSamples(); } if (v === 'stamp') { const l = ORIGINS.find((o) => !S.stamps[o]); if (l) { S.stamps[l] = true; stampBg(l); } }
     if (v === 'xp') { const lv = level(); S.xp = XP_AT(lv + 1); levelUp(lv, level()); }
     if (v === 'cherries') { const vv = S.farms[S.loc].beds[0]; S.cherries[vv] = (S.cherries[vv] || 0) + (cap() - stored()); }
   }
@@ -1670,7 +1702,9 @@ async function online() {
     const ev = await api('game-events');
     const live = ev.status === 200 && ev.data.events.find((x) => x.live);
     if (live && (!S.event || S.event.id !== live.id)) startDrop(live.id, live);
-    NET.status = 'online'; cloudSync(); submitScore();
+    NET.status = 'online'; cloudSync(); await submitScore(); syncSamples();
+    const gr = await api('game-grants', 'POST', {}).catch(() => null);
+    if (gr && gr.status === 200) gr.data.grants.forEach((g) => applyGrant({ cranes: g.cranes, coffees: [], order: g.order + (g.reason === 'subscription' ? ' (subscription renewal)' : '') }));
   } catch (e) { NET.status = 'offline'; }
 }
 async function cloudSync(force) {
@@ -1689,6 +1723,13 @@ async function submitScore() {
   const r = await api('game-score', 'POST', body).catch(() => null);
   if (r && r.status === 200) { NET.lastScore = sig; NET.rank = r.data.rank; } else if (r && r.status === 422) NET.scoreError = r.data.error;
 }
+async function syncSamples() {   /* the server's sample list is the real one; local ones it hasn't confirmed show as pending */
+  if (!API || !NET.acct || NET.status !== 'online') return;
+  const r = await api('game-samples', 'POST', {}).catch(() => null);
+  if (!r || r.status !== 200) return;
+  const server = r.data.samples.map((s) => Object.assign(s, { local: false }));
+  S.samples = server.concat(S.samples.filter((s) => s.local && !server.some((x) => x.id === s.id)).map((s) => Object.assign(s, { status: 'pending' })));
+}
 async function liveBoard(mode) {
   if (!API || NET.status !== 'online') return null;
   if (NET.board[mode] && Date.now() - NET.boardAt[mode] < 30000) return NET.board[mode];
@@ -1701,6 +1742,7 @@ setInterval(() => { cloudSync(); submitScore(); }, 30000);
 
 /* ---------- start: offline earnings, intro, loop ---------- */
 const awayMs = Date.now() - (S.last || Date.now());
+checkSamples(true);   /* a save already past a milestone gets its samples */
 refreshAll();
 if (awayMs > 5 * 60 * 1000) away(Math.min(12, Math.round(awayMs / 3600000 * 10) / 10 || 0.1));
 else if (S.intro === 0) showModal('<img src="' + url('worker_down_0', { shirt: ART.shirts[0] }) + '" alt="" style="width:48px;image-rendering:pixelated"><h2>Welcome to Beju Farm</h2><p class="note">Your first coffee farm, in Brazil. Follow the goal under the farm to learn the basics; new tabs open as you go.</p><p class="note"><b>Coins</b> build and hire. <b>Know-how</b> unlocks new coffees, farms and processes. <b>Cranes</b> come from real Beju orders.</p><button class="btn green" data-act="close">Start farming</button>');
