@@ -276,3 +276,9 @@ All of these show in the roastery scene. `RCOS` in `template.html` lists every i
 Farm · Mill · Roastery · Unlock · Daily · Ranks · Shop · Test/Settings.
 - **Farm** has subtabs: Fields (the farm itself), Upgrades (storage, pickers, racks, hearts, the fourth field), Buildings and Staff. The last three appear after the first sale (`S.tabs.upgrades`) and show a dot when something is affordable. `S.farmSub` remembers the page. Old `setTab('upgrades')` calls land on the matching subtab, and `uptab:*` actions still work.
 - **Roastery** is its own tab, locked until the roastery opens (prestige 3 or the Osaka garden). It shows a dot when there's a crack to catch or bags to sell.
+
+## Season fairness, Rookies and Repeat roast
+- **Ties:** the season board breaks ties by who reached the star total first. The client sets `S.season.starsAt`, and the server sets `starsAt` on each row when the stars go up. Season know-how only decides ties after that. Only the first prestige of a season pays stars, as before.
+- **Rookies board:** shows players in their first season (`S.firstSeason`, and `firstSeason` on server rows). Saves and rows from before this change count as veterans. `GET game-score?mode=rookie` serves the board, and `mode=final` also returns `me.rookieRank`. A rookie who finishes in the rookie top 10 gets a "Rookie Champion / Top 3 / Top 10" badge as well as their normal badge.
+- **Repeat roast** (reputation 8): a bin's Repeat button makes it start its next roast by itself, using the roast last chosen for that coffee, whenever a roaster is free (`S.roastery.repeat`). Catching the crack stays manual.
+- **Roastery tab:** hidden until prestige 2 (or until the roastery opens), then shown as locked until prestige 3.

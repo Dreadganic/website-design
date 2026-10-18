@@ -1,28 +1,28 @@
 /* POST /.netlify/functions/game-score  { name, prestige, seasonP, seasonKh, seasonStars, level, points, look }  ->  { ok, rank } or 422 { error }
-   GET  /.netlify/functions/game-score?mode=season|all      ->  { season, top: [...], me? }
+   GET  /.netlify/functions/game-score?mode=season|rookie|all  ->  { season, top: [...], me? }   (rookie: players in their first season)
    GET  /.netlify/functions/game-score?mode=final&season=YYYY-MM  ->  the closed board of a past season, with the caller's final rank
-   The leaderboard. All time ranks by prestige, then level, then points; the season board ranks by season stars, then know-how earned this season.
+   The leaderboard. All time ranks by prestige, then level, then points; the season board ranks by season stars, then by who reached that total first (so a bigger farm doesn't win ties).
    The first request of a new season saves the last season's final board as seasons/<key>, before any player's row moves on to the new season.
    Each submission must be possible since the last one. */
 const G = require("../lib/game");
 
 const rankSort = (key) => (a, b) => b[key] - a[key] || b.level - a.level || b.points - a.points;
-const seasonSort = (a, b) => (b.seasonStars || 0) - (a.seasonStars || 0) || (b.seasonKh || 0) - (a.seasonKh || 0);
+const seasonSort = (a, b) => (b.seasonStars || 0) - (a.seasonStars || 0) || (a.starsAt || Infinity) - (b.starsAt || Infinity) || (b.seasonKh || 0) - (a.seasonKh || 0);
 async function allRows(store) {
   const keys = await store.list("scores/");
   return (await Promise.all(keys.map((k) => store.get(k)))).filter(Boolean);
 }
 async function boardFor(store, mode, season) {
   const rows = await allRows(store);
-  const live = mode === "all" ? rows : rows.filter((r) => r.season === season);
+  const live = mode === "all" ? rows : rows.filter((r) => r.season === season && (mode !== "rookie" || r.firstSeason === season));
   return live.sort(mode === "all" ? rankSort("prestige") : seasonSort);
 }
-const publicRow = (r, i) => ({ rank: i + 1, name: r.name, prestige: r.prestige, seasonP: r.seasonP, seasonKh: r.seasonKh || 0, seasonStars: r.seasonStars || 0, level: r.level, points: r.points, look: r.look });
+const publicRow = (r, i) => ({ rank: i + 1, name: r.name, prestige: r.prestige, seasonP: r.seasonP, seasonKh: r.seasonKh || 0, seasonStars: r.seasonStars || 0, level: r.level, points: r.points, look: r.look, rookie: !!r.firstSeason && r.firstSeason === r.season });
 
 async function closeSeason(store, season, now) {   /* save last season's final standings once, while every row still holds them */
   const prev = G.prevSeason(season), key = "seasons/" + prev;
   if (await store.get(key)) return;
-  const rows = (await boardFor(store, "season", prev)).map((r) => ({ id: r.id, name: r.name, prestige: r.prestige, seasonP: r.seasonP, seasonKh: r.seasonKh || 0, seasonStars: r.seasonStars || 0, level: r.level, points: r.points, look: r.look }));
+  const rows = (await boardFor(store, "season", prev)).map((r) => ({ id: r.id, name: r.name, prestige: r.prestige, seasonP: r.seasonP, seasonKh: r.seasonKh || 0, seasonStars: r.seasonStars || 0, level: r.level, points: r.points, look: r.look, starsAt: r.starsAt || 0, firstSeason: r.firstSeason || "", season: r.season }));
   await store.set(key, { season: prev, closedAt: now, rows });
 }
 
@@ -37,9 +37,10 @@ exports.handler = async (event) => {
       const done = await store.get("seasons/" + q.season);
       if (!done) return G.json(404, { error: q.season >= season ? "season_not_over" : "no_record" });
       const me = await G.authed(event, store), mine = me ? done.rows.findIndex((r) => r.id === me.id) : -1;
-      return G.json(200, { season: q.season, mode: "final", players: done.rows.length, top: done.rows.slice(0, 50).map(publicRow), me: mine > -1 ? publicRow(done.rows[mine], mine) : null }, { "Cache-Control": "public, max-age=300" });
+      const rookies = done.rows.filter((r) => r.firstSeason === q.season), rk = me ? rookies.findIndex((r) => r.id === me.id) : -1;   /* first-season players also get a rookie rank */
+      return G.json(200, { season: q.season, mode: "final", players: done.rows.length, top: done.rows.slice(0, 50).map(publicRow), me: mine > -1 ? Object.assign(publicRow(done.rows[mine], mine), { rookieRank: rk > -1 ? rk + 1 : null }) : null }, { "Cache-Control": "public, max-age=300" });
     }
-    const mode = q.mode === "all" ? "all" : "season";
+    const mode = q.mode === "all" ? "all" : q.mode === "rookie" ? "rookie" : "season";
     const list = await boardFor(store, mode, season), me = await G.authed(event, store);
     const mine = me ? list.findIndex((r) => r.id === me.id) : -1;
     return G.json(200, { season, mode, players: list.length, top: list.slice(0, 50).map(publicRow), me: mine > -1 ? publicRow(list[mine], mine) : null }, { "Cache-Control": "public, max-age=30" });
@@ -56,7 +57,9 @@ exports.handler = async (event) => {
   const next = { prestige: b.prestige | 0, seasonP: nextSeasonP, seasonKh: Math.floor(Number(b.seasonKh) || 0), seasonStars: Math.floor(Number(b.seasonStars) || 0), level: b.level | 0, points: Math.floor(Number(b.points) || 0) };
   const problem = G.checkScore(prev && Object.assign({}, prev, { seasonP: prev.season === season ? prev.seasonP : 0 }), next, now);
   if (problem) return G.json(422, { error: problem });
-  const row = Object.assign(next, { id: me.id, name, look: G.cleanLook(b.look, next.prestige), season, at: now, prestigeAt: !prev || next.prestige > prev.prestige ? now : prev.prestigeAt });
+  const row = Object.assign(next, { id: me.id, name, look: G.cleanLook(b.look, next.prestige), season, at: now, prestigeAt: !prev || next.prestige > prev.prestige ? now : prev.prestigeAt,
+    starsAt: !prev || prev.season !== season || next.seasonStars > (prev.seasonStars || 0) ? now : prev.starsAt,   /* when they reached this star total, for ties */
+    firstSeason: prev ? prev.firstSeason || "" : season });   /* rows from before rookies existed count as veterans */
   await store.set(key, row);
   const list = await boardFor(store, "season", season);
   return G.json(200, { ok: true, rank: list.findIndex((r) => r.id === me.id) + 1, players: list.length });

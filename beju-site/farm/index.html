@@ -1289,7 +1289,7 @@ function star(kind) {
   if (ss.capDay !== day) { ss.capDay = day; ss.caps = {}; }
   let add = STAR_PER[kind] * (kind === 'cup' && rule('tsukimi') ? 2 : 1);
   if (STAR_CAP[kind]) { add = Math.min(add, starCap(kind) - (ss.caps[kind] || 0)); if (add <= 0) return; ss.caps[kind] = (ss.caps[kind] || 0) + add; }
-  const before = tierAt(ss.stars); ss.stars += add;
+  const before = tierAt(ss.stars); ss.stars += add; ss.starsAt = Date.now();   /* ties on the season board go to whoever got there first */
   if (!S.starTip) { S.starTip = true; toast('+' + add + ' season star' + (add > 1 ? 's' : '') + '! Stars fill the season track' + (S.tabs.ranks ? ' in Ranks > Season' : ', which opens with Ranks at level 6')); }
   if (tierAt(ss.stars) > before) {
     if (!S.tierTip && S.tabs.ranks) { S.tierTip = true; showModal(coachCard('Season track', 'You reached <b>tier ' + tierAt(ss.stars) + '</b> of the ' + theme().name + ' season track! Each tier has a reward waiting: tap Claim on it in Ranks > Season. Every 5th tier is a cosmetic, and tier 30 gives a title only this season has.', 'Claim it', 'coachgo:ranks')); }
@@ -1391,7 +1391,7 @@ const bestRoast = (v, m) => (['geisha', 'heirloom'].includes(v) || (m === 'washe
 const RBUYERS = { cafe: { name: 'Specialty café', wants: 'light', mult: 1.5 }, kissa: { name: 'Kissaten', wants: 'dark', mult: 1.45 }, konbini: { name: 'Konbini blend', wants: 'medium', mult: 1.25 } };
 const REP_AT = (l) => Math.round(100 * Math.pow(l - 1, 2));   /* reputation comes per bag, so levels follow how often you roast, not how big the drum is */
 const repLevel = () => { let l = 1; while (l < 20 && (S.roastery.rep || 0) >= REP_AT(l + 1)) l++; return l; };
-const REP_PERKS = { 2: 'Cooling tray: roasts take 20% less time', 3: 'Bigger drum: 80 kg a roast', 4: 'A second roaster', 6: 'Cupping lab: +5 roast quality', 7: 'Bigger drum: 160 kg a roast', 10: 'House blends: blend two bags under a Beju name', 12: 'Bigger drum: 320 kg a roast', 15: 'A third roaster', 20: 'The Master roaster title' };
+const REP_PERKS = { 2: 'Cooling tray: roasts take 20% less time', 3: 'Bigger drum: 80 kg a roast', 4: 'A second roaster', 6: 'Cupping lab: +5 roast quality', 7: 'Bigger drum: 160 kg a roast', 8: 'Repeat roast: a bin can start its next roast by itself', 10: 'House blends: blend two bags under a Beju name', 12: 'Bigger drum: 320 kg a roast', 15: 'A third roaster', 20: 'The Master roaster title' };
 const roastCap = () => { const l = repLevel(); return l >= 12 ? 320 : l >= 7 ? 160 : l >= 3 ? 80 : 40; };
 const roasterCount = () => { const l = repLevel(); return l >= 15 ? 3 : l >= 4 ? 2 : 1; };
 const roastTime = (p) => ROASTS[p].time * (repLevel() >= 2 ? 0.8 : 1);
@@ -1549,18 +1549,20 @@ function toRoastery(i, quiet) {   /* a dry lot goes to the roastery's green stor
   millSold(i, 'to roastery'); S.lots.splice(i, 1); nbAdd(l.v, l.method, 1); S.stats.lotsSold += 1; task('sell', 1);
   if (!quiet) { SFX.play('stamp'); toast(fmtKg(green) + ' kg of green ' + beanName(key) + ' sent to the roastery'); }
 }
-function startRoast(key, profile) {
+function startRoast(key, profile, quiet) {
   const R = S.roastery, b = R.beans[key]; if (!b || b.kg < 0.5 || R.roasters.length >= roasterCount() || !ROASTS[profile]) return;
   const kg = Math.min(roastCap(), b.kg), f = kg / b.kg;
   R.roasters.push({ key, profile, kg, coins: b.coins * f, pts: b.pts * f, cup: b.cup, start: Date.now(), dur: roastTime(profile) * 1000, crack: 0 });
   b.kg -= kg; b.coins -= b.coins * f; b.pts -= b.pts * f; if (b.kg < 0.5) delete R.beans[key];
-  SFX.play('ignite'); toast(ROASTS[profile].name + ' roast started: tap Crack at first crack');
+  R.last = R.last || {}; R.last[key] = profile;
+  SFX.play('ignite'); if (!quiet) toast(ROASTS[profile].name + ' roast started: tap Crack at first crack');
 }
 const roastP = (r) => Math.min(1, (Date.now() - r.start) / r.dur);
 const inCrack = (r) => roastP(r) >= 0.7 && roastP(r) <= 0.86;
 function roasteryTick() {
   const R = S.roastery; if (!R) return;
   if (roasteryOpen() && !R.tip) { R.tip = true; showModal(coachCard('The roastery', 'Beju roasts in Japan, and now you can too! Your mill foreman keeps it stocked with green coffee (change how much in the Roastery), or tap Roast on a dry lot to send one yourself. Roast it light, medium or dark: each coffee has a best roast, marked with a star. Tap <b>Crack</b> at first crack for a better roast. Then sell the bags to cafés, kissaten or konbini for far more than green coffee. Staff don\'t roast, so this one is all yours.', 'Show me', 'roastgo')); }
+  if (repLevel() >= 8 && R.repeat) Object.keys(R.repeat).forEach((k) => { if (R.beans[k] && R.roasters.length < roasterCount()) startRoast(k, R.repeat[k], true); });   /* Repeat roast: a bin starts its next batch when a roaster is free; the crack is still yours */
   for (let i = R.roasters.length - 1; i >= 0; i--) {
     const r = R.roasters[i];
     if (inCrack(r) && !r.warned) { r.warned = true; SFX.play('crack'); if (tab !== 'roast') toast('First crack in the roastery! Tap Crack in the Roastery tab'); }
@@ -1598,12 +1600,12 @@ function roasteryPanel() {
     const p = roastP(r), cr = inCrack(r);
     h += '<div class="rslot' + (cr ? ' crack' : '') + '">' + img('roaster_' + (Math.floor(Date.now() / 300) % 2), 40) + '<div><b>' + fmtKg(r.kg) + ' kg ' + beanName(r.key) + ' · ' + ROASTS[r.profile].name.toLowerCase() + '</b><span class="bar"><i style="width:' + Math.round(p * 100) + '%;background:' + ROASTS[r.profile].col + '"></i></span><small>' + (r.crack === 2 ? 'Missed the crack. ' : cr ? 'First crack: tap now to finish! ' : p < 0.7 ? 'Drying and browning… ' : '') + Math.max(0, Math.ceil((1 - p) * r.dur / 1000)) + ' s left</small></div>' + (r.crack ? '' : btn('Crack', cr ? 'now!' : 'wait', 'crack:' + i, true, cr ? 'gold' : '')) + '</div>';
   }
-  h += '</div><p class="note">Catch first crack for +15 quality, and the roast finishes on the spot.</p>';
+  h += '</div><p class="note">Catch first crack for +15 quality, and the roast finishes on the spot.' + (repLevel() >= 8 ? ' Tap Repeat on a bin to have it start its next roast by itself, using the roast you last chose.' : ' At reputation 8, bins can repeat their roast by themselves.') + '</p>';
   /* green coffee lives in a few bins, so the list never grows past what you can roast */
   const keys = Object.keys(R.beans), free = R.roasters.length < roasterCount(), want = Object.keys(R.want || {});
   h += '<h3>Green coffee bins ' + keys.length + ' / ' + ROAST_BINS + '</h3><div class="racks">' + keys.map((k) => { const b = R.beans[k], [v, m] = k.split('.'), best = bestRoast(v, m);
     return '<div class="rack"><div class="rk-top">' + img('bush_' + v + '_ripe', 22) + '<span><b>' + ART.varieties[v] + '</b><small>' + METHODS[m].name.split(' ')[0].toLowerCase() + ' · ' + fmtKg(b.kg) + ' kg</small></span></div><small>Cup ' + b.cup.toFixed(1) + '</small>' +
-      '<div class="rk-act">' + Object.keys(ROASTS).map((p) => '<button type="button" class="btn' + (p === best ? ' green' : '') + '" data-act="roast:' + k + '|' + p + '"' + (free ? '' : ' disabled') + '>' + ROASTS[p].name + (p === best ? ' ★' : '') + '</button>').join('') + '<button type="button" class="btn" data-act="binsell:' + k + '">Sell green</button></div></div>'; }).join('') +
+      '<div class="rk-act">' + Object.keys(ROASTS).map((p) => '<button type="button" class="btn' + (p === best ? ' green' : '') + '" data-act="roast:' + k + '|' + p + '"' + (free ? '' : ' disabled') + '>' + ROASTS[p].name + (p === best ? ' ★' : '') + '</button>').join('') + (repLevel() >= 8 ? '<button type="button" class="btn' + ((R.repeat || {})[k] ? ' blue' : '') + '" data-act="rrep:' + k + '">' + ((R.repeat || {})[k] ? 'Repeat ' + ROASTS[R.repeat[k]].name.toLowerCase() + ' ✓' : 'Repeat: off') + '</button>' : '') + '<button type="button" class="btn" data-act="binsell:' + k + '">Sell green</button></div></div>'; }).join('') +
     want.map((k) => '<div class="rack"><div class="rk-top">' + img('bush_' + k.split('.')[0] + '_ripe', 22) + '<span><b>' + ART.varieties[k.split('.')[0]] + '</b><small>requested · ' + METHODS[k.split('.')[1]].name.split(' ')[0].toLowerCase() + '</small></span></div><small>Comes when a lot dries</small><div class="rk-act"><button type="button" class="btn" data-act="rreq:' + k + '">Cancel</button></div></div>').join('') +
     Array.from({ length: Math.max(0, ROAST_BINS - keys.length - want.length) }, () => '<div class="rack"><div class="rk-top"><span><b>Empty bin</b><small>for one green coffee</small></span></div><div class="rk-act"><button type="button" class="btn gold" data-act="rreqask">Request beans</button></div></div>').join('') + '</div>';
   h += S.staff.foreman ? '<p class="note"><b>Foreman keeps the bins stocked</b> with this many roasts\' worth of green coffee, using coffees already in a bin or free bins. Requests come first.</p><div class="seg">' + [[0, 'Off'], [2, '2 roasts'], [4, '4 roasts'], [8, '8 roasts']].map(([n, t]) => '<button type="button" data-act="roastfeed:' + n + '" aria-pressed="' + (feedRoasts() === n) + '">' + t + '</button>').join('') + '</div>' : '<p class="note">Request beans for an empty bin, or tap Roast on a dry lot in the Mill. Once you hire a mill foreman, he keeps the bins stocked for you.</p>';
@@ -1663,41 +1665,43 @@ function bots(fin) {   /* fin: as the season stood when it closed */
     const bg = bgs[Math.floor(r() * bgs.length)], ch = r() < 0.45 ? CHAR_IDS[Math.floor(r() * CHAR_IDS.length)] : 'none';
     let seasonKh = Math.round(xp * (seasonP ? 1 : month)); for (let k = prestige - seasonP; k < prestige; k++) seasonKh += XP_AT(PRESTIGE_LEVEL + 8 * k);   /* know-how earned so far this month */
     const seasonStars = Math.round(dom * (6 + ((i * 37) % 17))) + 10 * seasonP;   /* each practice player earns 6-22 stars a day */
-    return { name, prestige, seasonP, seasonKh, seasonStars, level: lv, points: Math.round(xp), look: { crest: tr, skin, bg, char: ch } };
+    return { name, prestige, seasonP, seasonKh, seasonStars, level: lv, points: Math.round(xp), look: { crest: tr, skin, bg, char: ch }, rookie: i % 4 === 1 && prestige <= 5 };
   });
 }
-const seasonSort = (a, b) => (b.seasonStars || 0) - (a.seasonStars || 0) || b.seasonKh - a.seasonKh;
+const seasonSort = (a, b) => (b.seasonStars || 0) - (a.seasonStars || 0) || (a.starsAt || Infinity) - (b.starsAt || Infinity) || b.seasonKh - a.seasonKh;
+const isRookie = () => S.firstSeason === S.season.key;   /* in your first season you also race on the Rookie board */
 function board(mode, fin) {   /* fin: the practice board as it stood when the season closed */
-  const live = !fin && NET.board[mode === 'all' ? 'all' : 'season'];
+  const live = !fin && NET.board[mode];
   if (live && NET.status === 'online') {
-    liveBoard(mode === 'all' ? 'all' : 'season');
-    const rows = live.top.map((r) => ({ name: r.name, prestige: r.prestige, seasonP: r.seasonP, seasonKh: r.seasonKh || 0, seasonStars: r.seasonStars || 0, level: r.level, points: r.points, look: normLook(r.look), you: live.me && r.rank === live.me.rank }));
+    liveBoard(mode);
+    const rows = live.top.map((r) => ({ name: r.name, prestige: r.prestige, seasonP: r.seasonP, seasonKh: r.seasonKh || 0, seasonStars: r.seasonStars || 0, level: r.level, points: r.points, look: normLook(r.look), rookie: !!r.rookie, you: live.me && r.rank === live.me.rank }));
     if (live.me && !rows.some((r) => r.you)) rows.push(Object.assign({}, live.me, { look: normLook(live.me.look), you: true }));
     return rows;
   }
-  if (!fin && API && NET.status === 'online') liveBoard(mode === 'all' ? 'all' : 'season');
-  const me = { name: S.name, prestige: S.prestige, seasonP: S.season.prestige, seasonKh: Math.round(S.season.kh || 0), seasonStars: S.season.stars, level: level(), points: Math.round(S.xp), look: S.look, you: true };
-  /* all time: prestige, then level, then know-how this run. This season: season stars, then know-how earned this season */
-  return bots(fin).concat([me]).sort(mode === 'all' ? (a, b) => b.prestige - a.prestige || b.level - a.level || b.points - a.points : seasonSort);
+  if (!fin && API && NET.status === 'online') liveBoard(mode);
+  const me = { name: S.name, prestige: S.prestige, seasonP: S.season.prestige, seasonKh: Math.round(S.season.kh || 0), seasonStars: S.season.stars, starsAt: S.season.starsAt, level: level(), points: Math.round(S.xp), look: S.look, rookie: isRookie(), you: true };
+  /* all time: prestige, then level, then know-how this run. This season (and the Rookie board of first-season players): season stars, then whoever reached them first */
+  return bots(fin).concat([me]).filter((x) => mode !== 'rookie' || x.rookie).sort(mode === 'all' ? (a, b) => b.prestige - a.prestige || b.level - a.level || b.points - a.points : seasonSort);
 }
 function seasonTick() {   /* a new season closes the old one: unclaimed track tiers are granted, then the final rank comes from the server's record of the closed board */
   if (S.season.key === seasonKey()) return;
   const ss = S.season, old = ss.key, t = theme(old), reached = tierAt(ss.stars);
-  const local = board('season', true).findIndex((x) => x.you) + 1, got = [];
+  const wasRookie = S.firstSeason === old, local = board('season', true).findIndex((x) => x.you) + 1, localRookie = wasRookie ? board('rookie', true).findIndex((x) => x.you) + 1 : 0, got = [];
   for (let n = 1; n <= reached; n++) { const r = grantTier(old, n, true); if (r && r.cosmetic) got.push(r.label); }
   const done = reached >= TRACK_TIERS, played = ss.stars > 0 || (ss.kh || 0) > 0;
   S.season = newSeason();
-  const finish = (rank) => {
+  const finish = (rank, rookieRank) => {
     if (!played && rank > 10) return;
     S.badges.push({ key: old, rank, label: BADGE(rank), theme: t.id, gold: done });
+    if (wasRookie && rookieRank && rookieRank <= 10) S.badges.push({ key: old, rank: rookieRank, label: 'Rookie ' + BADGE(rookieRank), theme: t.id, gold: done });   /* the best newcomers get their own badge */
     const nt = theme();
-    showModal('<h2>' + seasonName(old) + ' season over</h2><p class="note">You finished <b>#' + rank + '</b> with <b>' + ss.stars + ' season stars</b> (track tier ' + reached + ' of ' + TRACK_TIERS + ') and ' + fmt(ss.kh || 0) + ' know-how this season. Your <b>' + BADGE(rank) + '</b> badge' + (done ? ', framed in gold for finishing the track,' : '') + ' is on your profile.</p>' +
+    showModal('<h2>' + seasonName(old) + ' season over</h2><p class="note">You finished <b>#' + rank + '</b> with <b>' + ss.stars + ' season stars</b> (track tier ' + reached + ' of ' + TRACK_TIERS + ') and ' + fmt(ss.kh || 0) + ' know-how this season. Your <b>' + BADGE(rank) + '</b> badge' + (wasRookie && (rookieRank || 99) <= 10 ? ' and a <b>Rookie ' + BADGE(rookieRank) + '</b> badge for finishing #' + rookieRank + ' among first-season farmers' : '') + (done ? ', framed in gold for finishing the track,' : '') + ' is on your profile.</p>' +
       (got.length ? '<p class="note">Track rewards you hadn\'t claimed are now yours: ' + got.join(', ') + '.</p>' : '') +
       '<p class="note">The <b>' + nt.name + '</b> season starts now with a fresh board and track. ' + nt.rule + ' Your farm, prestige, level and looks stay as they are.</p><button class="btn green" data-act="close">Start the ' + nt.name + ' season</button>');
     save();
   };
-  if (API && NET.acct) api('game-score?mode=final&season=' + old).then((r) => finish(r && r.status === 200 && r.data.me ? r.data.me.rank : local)).catch(() => finish(local));
-  else finish(local);
+  if (API && NET.acct) api('game-score?mode=final&season=' + old).then((r) => (r && r.status === 200 && r.data.me ? finish(r.data.me.rank, r.data.me.rookieRank) : finish(local, localRookie))).catch(() => finish(local, localRookie));
+  else finish(local, localRookie);
 }
 /* drop events: each real product launch becomes a week in the game. On the live app the list comes from the server and a push notification announces it */
 const DROPS = [
@@ -1856,7 +1860,7 @@ function fresh() {
     methods: { washed: true, natural: true }, vars: { caturra: true }, staff: { foreman: false, agent: false, rule: 'best' }, decor: {}, contracts: [], nextContract: 0, hat: 'straw', hats: { straw: true }, stamps: {},
     cherries: {}, lots: [], boosts: {}, minutes: 7 * 60 + 30, minutesTotal: 0, day: 1, taps: 0, year: 1, bonus: 0,
     tasks: null, weekly: { mine: 0, team: 1800, target: 4000, start: 1, claimed: false }, samples: [], stats: { picked: 0, sold: 0, lotsSold: 0 },
-    farms: {}, intro: 0, seasonPick: 'auto', speed: 1, sfx: true, music: true, musicVol: 0.45, guide: 0, guideN: 0, guideV: GUIDE_V, tabs: { upgrades: false, unlock: false, orders: false, ranks: false, shop: false }, newTab: null, checkin: { last: '', streak: 0, freezes: 1 }, season: newSeason(), sitems: { bg: {}, charm: {}, title: {} }, roastery: { rep: 0, beans: {}, roasters: [], bags: [] }, rcos: { own: {}, on: { fin: 'classic', room: 'brick', noren: 'indigo', label: 'house', apron: 'plain' }, hide: {}, sold: {}, cracks: 0 }, badges: [], event: null, prestige: 0, name: 'You', look: { crest: 0, skin: 0, bg: 'none', char: 'none', hat: '', charm: '', title: '' }, skins: { 0: true }, chars: {}, bskins: {}, skinPicks: 0, dormant: {}, last: Date.now()
+    farms: {}, intro: 0, seasonPick: 'auto', speed: 1, sfx: true, music: true, musicVol: 0.45, guide: 0, guideN: 0, guideV: GUIDE_V, tabs: { upgrades: false, unlock: false, orders: false, ranks: false, shop: false }, newTab: null, checkin: { last: '', streak: 0, freezes: 1 }, season: newSeason(), sitems: { bg: {}, charm: {}, title: {} }, firstSeason: seasonKey(), roastery: { rep: 0, beans: {}, roasters: [], bags: [] }, rcos: { own: {}, on: { fin: 'classic', room: 'brick', noren: 'indigo', label: 'house', apron: 'plain' }, hide: {}, sold: {}, cracks: 0 }, badges: [], event: null, prestige: 0, name: 'You', look: { crest: 0, skin: 0, bg: 'none', char: 'none', hat: '', charm: '', title: '' }, skins: { 0: true }, chars: {}, bskins: {}, skinPicks: 0, dormant: {}, last: Date.now()
   };
   LOCS.forEach((l) => { st.farms[l] = newFarm(l); });
   return st;
@@ -1888,6 +1892,7 @@ let S = load() || fresh();
   if (S.tabs && S.tabs.upgrades && S.tabs.unlock === undefined) S.tabs.unlock = true;   /* the Unlock tab arrived after this save */
   if (S.upTab === 'vars' || S.upTab === 'farms') S.upTab = 'farm'; if (S.shopTab === 'decor') S.shopTab = 'bskin';   /* when this farm started, for the practice board */
   LOCS.forEach((l) => { const f = S.farms[l]; if (!f.build) f.build = {}; if (f.manager === undefined) f.manager = null; });
+  if (S.firstSeason === undefined) S.firstSeason = '';   /* saves from before rookies count as veterans */
   S.rcos = Object.assign({ own: {}, hide: {}, sold: {}, cracks: 0 }, S.rcos || {}); S.rcos.on = Object.assign({ fin: 'classic', room: 'brick', noren: 'indigo', label: 'house', apron: 'plain' }, S.rcos.on);   /* roastery cosmetics arrived after this save */
 })();
 LOCS.forEach((l) => { const f = S.farms[l]; if (!f.shrubs.length) plant(f); f.workers.forEach((w) => { w.state = 'seek'; w.path = []; w.target = null; }); });
@@ -2911,8 +2916,9 @@ function unlockReady() {   /* is there an unlock the player can afford right now
 }
 function renderTabs() {
   const dot = { ranks: S.tabs.ranks && Array.from({ length: tierAt(S.season.stars) }, (_, i) => i + 1).some((n) => !S.season.claimed[n]), unlock: unlockReady(), farm: !!golden && tab !== 'farm', orders: S.tasks.some((t) => t.have >= t.goal && !t.done) || (S.weekly.team + S.weekly.mine >= S.weekly.target && !S.weekly.claimed), mill: S.lots.some((l) => l.left <= 0), roast: roasteryOpen() && tab !== 'roast' && (S.roastery.roasters.some((r) => inCrack(r) && !r.crack) || S.roastery.bags.length > 0) };
-  $('tabs').style.gridTemplateColumns = 'repeat(' + TABS.length + ', minmax(0, 1fr))';
-  setHTML($('tabs'), TABS.map(([id, label, ic]) => { const locked = tabLocked(id);
+  const shown = TABS.filter(([id]) => id !== 'roast' || roasteryOpen() || S.prestige >= 2);   /* the Roastery tab appears from prestige 2, so the first sessions stay simple */
+  $('tabs').style.gridTemplateColumns = 'repeat(' + shown.length + ', minmax(0, 1fr))';
+  setHTML($('tabs'), shown.map(([id, label, ic]) => { const locked = tabLocked(id);
     return '<button class="tab' + (S.newTab === id ? ' fresh' : '') + (locked ? ' locked' : '') + '" role="tab" type="button" data-tab="' + id + '" aria-pressed="' + (tab === id) + '"' + (locked ? ' aria-label="' + label + ', locked: ' + TAB_HINT[id] + '"' : '') + '><img src="' + url(ic) + '" alt="">' + (locked ? TAB_SHORT[id] : label) + (locked ? '<i class="lock" aria-hidden="true">🔒</i>' : dot[id] ? '<i class="dot"></i>' : '') + '</button>'; }).join(''));
 }
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; toastT = 2.6; }
@@ -3160,18 +3166,18 @@ function renderPanel() {
       const pic = r.hat ? url('worker_down_0', { hat: ART.hats['s_' + r.hat] }) : url(r.img);
       return '<div class="tier' + (r.cosmetic ? ' cos' : '') + (got ? ' got' : '') + (can ? ' ready' : '') + '"><b>Tier ' + n + '</b><img src="' + pic + '" alt=""><span>' + (r.coins ? fmt(tierCoins(r)) + ' coins' : r.label) + '</span>' + (got ? '<span>Claimed</span>' : can ? '<button type="button" class="btn green" data-act="tier:' + n + '">Claim</button>' : '<span>★ ' + n * TIER_STARS + '</span>') + '</div>';
     }).join('') + '</div>';
-    h += '<p class="note">Seasons follow the calendar month in Japan time. The season board ranks by season stars, then know-how earned this season. Your farm, prestige and level never reset. When the season ends you keep everything you earned, any tiers you reached but did not claim are given to you, and your badge goes on your profile. A year later the season\'s decoration, background, hat, building style and charm return in the Season archive in the Shop.</p>';
+    h += '<p class="note">Seasons follow the calendar month in Japan time. The season board ranks by season stars; ties go to whoever reached that total first. First-season farmers also have their own Rookie board. Your farm, prestige and level never reset. When the season ends you keep everything you earned, any tiers you reached but did not claim are given to you, and your badge goes on your profile. A year later the season\'s decoration, background, hat, building style and charm return in the Season archive in the Shop.</p>';
     } else if (rsub === 'board') {
     h += strip;
     if (S.badges.length) h += '<div class="badges">' + S.badges.slice(-6).map((bd) => '<span class="badge r' + Math.min(bd.rank, 11) + (bd.gold ? ' gold' : '') + '">' + (bd.label || 'Event') + '<small>' + (bd.key ? seasonName(bd.key) : bd.event) + '</small></span>').join('') + '</div>';
-    h += '<h3>Leaderboard</h3><div class="seg">' + [['season', 'This season'], ['all', 'All time']].map(([k, tl]) => '<button type="button" data-act="ranktab:' + k + '" aria-pressed="' + (mode === k) + '">' + tl + '</button>').join('') + '</div><div class="lb">' + list.slice(0, 15).concat(pos > 15 ? [list[pos - 1]] : []).map((x) => {
+    h += '<h3>Leaderboard</h3><div class="seg">' + [['season', 'This season'], ['rookie', 'Rookies'], ['all', 'All time']].map(([k, tl]) => '<button type="button" data-act="ranktab:' + k + '" aria-pressed="' + (mode === k) + '">' + tl + '</button>').join('') + '</div>' + (mode === 'rookie' ? '<p class="note">Farmers in their first season. ' + (isRookie() ? 'That\'s you this month: finish in the top 10 for a Rookie badge.' : 'You\'ve graduated, but you can still watch the newcomers.') + '</p>' : '') + '<div class="lb">' + list.slice(0, 15).concat(pos > 15 ? [list[pos - 1]] : []).map((x) => {
       const r = list.indexOf(x) + 1;
-      return '<div class="lb-row' + (x.you ? ' you' : '') + '"><b class="rk">' + r + '</b>' + avatar(x.look, 40) + '<div class="lb-n">' + plate(x.name, normLook(x.look).crest, starsFor(x.prestige), normLook(x.look).charm) + rBadge(normLook(x.look)) + '<span class="note">' + (normLook(x.look).title ? titleText(normLook(x.look).title) : TIERS[tierOf(x.prestige)]) + '</span></div><div class="lb-s"><b>' + (mode === 'all' ? 'P' + x.prestige : '★ ' + (x.seasonStars || 0)) + '</b><span>' + (mode === 'all' ? 'Lv ' + x.level : fmt(x.seasonKh || 0) + ' kh this season') + '</span><span>' + (mode === 'all' ? fmt(x.points) + ' kh' : 'P' + x.prestige + (x.seasonP ? ' (+' + x.seasonP + ' this season)' : '')) + '</span></div></div>';
+      return '<div class="lb-row' + (x.you ? ' you' : '') + '"><b class="rk">' + r + '</b>' + avatar(x.look, 40) + '<div class="lb-n">' + plate(x.name, normLook(x.look).crest, starsFor(x.prestige), normLook(x.look).charm) + rBadge(normLook(x.look)) + '<span class="note">' + (normLook(x.look).title ? titleText(normLook(x.look).title) : TIERS[tierOf(x.prestige)]) + (x.rookie && mode === 'season' ? ' · Rookie' : '') + '</span></div><div class="lb-s"><b>' + (mode === 'all' ? 'P' + x.prestige : '★ ' + (x.seasonStars || 0)) + '</b><span>' + (mode === 'all' ? 'Lv ' + x.level : fmt(x.seasonKh || 0) + ' kh this season') + '</span><span>' + (mode === 'all' ? fmt(x.points) + ' kh' : 'P' + x.prestige + (x.seasonP ? ' (+' + x.seasonP + ' this season)' : '')) + '</span></div></div>';
     }).join('') + '</div>';
     h += '<p class="note">' + (NET.status === 'online' && NET.board[mode] ? 'Live leaderboard · ' + NET.board[mode].players + ' farmer' + (NET.board[mode].players === 1 ? '' : 's') : 'Practice board: the live leaderboard appears when the game is played on bejucoffee.com.') + '</p>';
     h += '<h3>Your name</h3><div class="seg"><input id="nameIn" maxlength="16" value="' + S.name.replace(/"/g, '') + '" aria-label="Your name on the leaderboard"><button type="button" data-act="rename">Save</button></div>';
     } else {
-    h += '<h3>Prestige</h3><p class="note">The all-time board ranks by prestige first, then level, then know-how earned this run. The season board ranks by season stars, then know-how earned this season, so new and old farmers race on equal terms each month. Each prestige needs 8 more levels than the last (10, 18, 26, 34 ...), and levels past 10 get steadily bigger. Unspent know-how does not carry over, so spend it on research before you prestige.</p>';
+    h += '<h3>Prestige</h3><p class="note">The all-time board ranks by prestige first, then level, then know-how earned this run. The season board ranks by season stars, and ties go to whoever got there first, so new and old farmers race on equal terms each month. Each prestige needs 8 more levels than the last (10, 18, 26, 34 ...), and levels past 10 get steadily bigger. Unspent know-how does not carry over, so spend it on research before you prestige.</p>';
     h += '<div class="bar"><i style="width:' + Math.min(100, Math.round(levelSpan()[1] / need * 100)) + '%"></i></div>';
     h += btn(ready ? 'Prestige to ' + (S.prestige + 1) : 'Prestige at level ' + need, ready ? (S.prestige + 1 < TIERS.length ? 'unlocks the ' + TIERS[S.prestige + 1] + ' crest' : 'adds a star') : 'you are level ' + level(), 'prestigeAsk', ready, 'green');
     h += '<p class="note"><b>Prestige perks</b> (free, and yours for good):</p>' + Object.keys(BUILD_CAPS).map((p) => row(img('build_housing', 26), 'Bigger farms · prestige ' + p, 'Every building can go up to level ' + BUILD_CAPS[p] + '.', S.prestige >= +p ? btn('Yours', '', 'noop', false, 'blue') : btn('Locked', 'Prestige ' + p, 'noop', false))).join('') + Object.keys(PERKS).map((p) => row(img('i_cup', 26), PERKS[p].name + ' · prestige ' + p, PERKS[p].text, S.prestige >= +p ? btn('Yours', '', 'noop', false, 'blue') : btn('Locked', 'Prestige ' + p, 'noop', false))).join('');
@@ -3313,6 +3319,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'toroast') toRoastery(+v);
   else if (a === 'roastfeed') S.roastery.feed = +v || 0;
   else if (a === 'rreqask') roastReqModal();
+  else if (a === 'rrep') { const R = S.roastery, [v2, m2] = v.split('.'); R.repeat = R.repeat || {}; if (R.repeat[v]) delete R.repeat[v]; else if (repLevel() >= 8) { R.repeat[v] = (R.last || {})[v] || bestRoast(v2, m2); toast('This bin now repeats a ' + ROASTS[R.repeat[v]].name.toLowerCase() + ' roast whenever a roaster is free'); } }
   else if (a === 'rreq') { const R = S.roastery, k = v; R.want = R.want || {}; if (R.want[k]) delete R.want[k]; else if (canBin(k)) { R.want[k] = true; closeModal(); requestTickRoast(); } else toast('All ' + ROAST_BINS + ' bins are taken'); }
   else if (a === 'binsell') { const R = S.roastery, b = R.beans[v]; if (b) { delete R.beans[v]; earn({ coins: Math.round(b.coins), points: Math.round(b.pts) }); SFX.play('coins'); toast('Sold ' + fmtKg(b.kg) + ' kg of green ' + beanName(v) + ': +' + fmt(Math.round(b.coins)) + ' coins'); } }
   else if (a === 'sellbags') { const R = S.roastery; let n = 0, c0 = S.coins; for (let i = R.bags.length - 1; i >= 0; i--) { const b = R.bags[i], k = bestBuyer(b), c = bagPrice(b, k), pts = Math.round(b.pts), rep = Math.round(b.q / 10 * (b.blend ? 2 : b.profile === RBUYERS[k].wants ? 1.5 : 1)); R.bags.splice(i, 1); earn({ coins: c, points: pts }); R.rep = (R.rep || 0) + rep; S.rcos.sold[k] = (S.rcos.sold[k] || 0) + 1; n += 1; if (n <= 3) roastGuest(k, true); } SFX.play('coins'); toast('Sold ' + n + ' bags: +' + fmt(S.coins - c0) + ' coins'); }

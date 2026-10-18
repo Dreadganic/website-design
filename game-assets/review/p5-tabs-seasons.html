@@ -101,40 +101,37 @@ ul, ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; g
   </ul>
 </div>
 <div class="card warn">
-  <span class="tag">Worth deciding</span>
+  <span class="tag">Built after this playtest</span>
   <ul>
-    <li><b>Late-game three-tab hop.</b> Most Mill visits late on are for hand-cupping and contracts, and most Roastery visits are to start roasts. A <b>Repeat roast</b> switch on a bin, which starts the next batch with the same roast when a roaster is free, would cut Roastery visits roughly in half. Catching the crack would stay manual. It could open at reputation 8, or as a P9 perk.</li>
-    <li><b>Locked tabs at the start.</b> A new player sees five locked tabs, one of them the Roastery marked P3, which is days away. Hiding the Roastery tab until P2 would make the first sessions look simpler.</li>
+    <li><b>Late-game three-tab hop.</b> Most Mill visits late on are for hand-cupping and contracts, and most Roastery visits are to start roasts. A <b>Repeat roast</b> switch on a bin, which starts the next batch with the same roast when a roaster is free, now opens at reputation 8: a bin can start its next batch by itself, with the roast you last chose. Catching the crack stays manual.</li>
+    <li><b>Locked tabs at the start.</b> A new player sees five locked tabs, one of them the Roastery marked P3, which is days away. The Roastery tab now stays hidden until P2, and shows as locked until it opens.</li>
   </ul>
 </div>
 </section>
 
 <section>
 <h2>Season leaderboards: new players vs veterans</h2>
-<p>Season rank is by season stars, with ties broken by season know-how. Stars come from daily-capped sources: check-in 2, tasks 6, golden bushes 5, hand cups 3, contracts 3 and roasts 3, so 22 a day. On top of that are 15 per weekly order, 5 per drop event and 10 per prestige, with no cap on prestige stars.</p>
+<p>Season rank is by season stars, with ties broken by season know-how. Stars come from daily-capped sources: check-in 2, tasks 6, golden bushes 5, hand cups 3, contracts 3 and roasts 3, so 22 a day. On top of that are 15 per weekly order, 5 per drop event and 10 for your first prestige of the season. Only the first prestige of a season pays stars. An earlier version of this report missed that, and the table below is corrected.</p>
 <div class="tw"><table>
 <thead><tr><th>Player (30-day season)</th><th>Day 7</th><th>Day 14</th><th>Day 30</th></tr></thead>
 <tbody>
-<tr><td>New, from day 1, 2 h a day</td><td class="n">216</td><td class="n">385</td><td class="n">777</td></tr>
+<tr><td>New, from day 1, 2 h a day</td><td class="n">176</td><td class="n">345</td><td class="n">727</td></tr>
 <tr><td>Veteran (P6+), 2 h a day</td><td class="n">169</td><td class="n">338</td><td class="n">730</td></tr>
-<tr><td>New, from day 1, 30 min a day</td><td class="n">169</td><td class="n">310</td><td class="n">638</td></tr>
+<tr><td>New, from day 1, 30 min a day</td><td class="n">129</td><td class="n">280</td><td class="n">598</td></tr>
 <tr><td>Veteran, 30 min a day</td><td class="n">141</td><td class="n">282</td><td class="n">600</td></tr>
-<tr><td>New, from day 15, 2 h a day</td><td class="n">0</td><td class="n">0</td><td class="n">439</td></tr>
+<tr><td>New, from day 15, 2 h a day</td><td class="n">0</td><td class="n">0</td><td class="n">389</td></tr>
 </tbody></table></div>
 <div class="card good">
   <span class="tag">New players are not locked out</span>
-  <p>Because stars are capped per day, an hour or two of play earns as many as six. A veteran's bigger farms earn more coins, but not more stars. A new player who starts on day 1 matches a veteran's daily stars from about day 2, once they've reached P3 and have roasting stars. They also collect 50–60 prestige stars from their first five prestiges, which come quickly. Veterans prestige about once a month at most. So in a newcomer's first season they actually rank above a veteran who plays the same amount.</p>
+  <p>Because stars are capped per day, an hour or two of play earns as many as six. A veteran's bigger farms earn more coins, but not more stars. A new player who starts on day 1 matches a veteran's daily stars from about day 2, once they've reached P3 and have roasting stars. Both get 10 stars for their first prestige of the season. So a newcomer and a veteran who play the same amount finish within a few stars of each other.</p>
 </div>
 <div class="card bad">
-  <span class="tag">Two real problems</span>
-  <ul>
-    <li><b>Ties go to veterans.</b> Everyone who hits every daily cap ends on exactly the same total, and the top of the board will be full of ties. Ties are broken by season know-how, which veterans earn many times faster. So among the most dedicated players, veterans win the top spots. <b>Fix:</b> break ties by who reached the total first. That rewards consistency and ignores farm size.</li>
-    <li><b>Prestige stars swing it the other way.</b> Uncapped prestige stars give newcomers 50–60 stars veterans can't get, enough to decide the top 10 in a newcomer's first month. <b>Fix:</b> cap prestige stars at 3 a season (30 stars). That keeps a welcome boost without making the first month the only one where you can win.</li>
-  </ul>
+  <span class="tag">Fixed: ties went to veterans</span>
+  <p>Everyone who hits every daily cap ends on the same total, so the top of the board fills with ties. Ties were broken by season know-how, which veterans earn many times faster. <b>Now ties go to whoever reached that total first</b>, which rewards consistency and ignores farm size. Prestige stars were already limited to the first prestige of a season, so newcomers don't get a big head start either.</p>
 </div>
 <div class="card warn">
   <span class="tag">Joining mid-season</span>
-  <p>Someone who starts on day 15 can't catch up that season: 439 stars against about 777. That's normal for monthly boards, and the season track rewards are personal, so they still earn everything on it. To give them something to aim for, the board could show a <b>Rookie</b> view of players in their first season, with its own top-10 badge.</p>
+  <p>Someone who starts on day 15 can't catch up that season: 439 stars against about 777. That's normal for monthly boards, and the season track rewards are personal, so they still earn everything on it. <b>Built:</b> a <b>Rookies</b> board for players in their first season. The top 10 at the end of the season get a Rookie badge as well as their normal one.</p>
 </div>
 </section>
 </div>

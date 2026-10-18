@@ -99,14 +99,14 @@ test("claims: a paid order grants cranes and coffees once", async () => {
   assert.equal((await call(claim, "POST", { session_id: "nope" }, a)).status, 400);
 });
 
-test("scores: prestige needs 8 more levels each time, and the season board ranks season stars, then know-how", async () => {
+test("scores: prestige needs 8 more levels each time, and the season board ranks season stars, then who got there first", async () => {
   assert.deepEqual([0, 1, 2, 3].map(G.prestigeNeed), [10, 18, 26, 34]);
   assert.ok(G.XP_AT(11) > G.XP_AT(10) && Math.abs(G.XP_AT(20) / G.XP_AT(19) - 1.22) < 0.01, "levels past 10 grow 1.22x");
   const a = await newPlayer(), b = await newPlayer();
   const s = (kh, pts, st) => ({ name: "Farmer", prestige: 0, seasonP: 0, seasonKh: kh, seasonStars: st || 0, level: G.levelFor(pts), points: pts });
-  await call(score, "POST", s(5000, 5000), a); await call(score, "POST", s(9000, 2000), b);
+  await call(score, "POST", s(5000, 5000), a); clock += 1000; await call(score, "POST", s(9000, 2000), b);
   const board = await call(score, "GET", undefined, a, { mode: "season" });
-  assert.equal(board.body.top[0].seasonKh, 9000, "with equal stars, most know-how this season leads");
+  assert.equal(board.body.top[0].seasonKh, 5000, "with equal stars, whoever reached the total first leads, however much know-how the other has");
   const c = await newPlayer(); await call(score, "POST", { name: "Farmer", prestige: 1, seasonP: 1, seasonKh: 100, seasonStars: 12, level: 1, points: 0 }, c);
   const top = (await call(score, "GET", undefined, a, { mode: "season" })).body.top[0];
   assert.equal(top.seasonStars, 12, "season stars beat any amount of know-how"); assert.equal(top.seasonP, 1);
@@ -165,4 +165,17 @@ test("roastery cosmetics: finishes, the crack master charm and title pass; made-
   assert.deepEqual([r.roaster, r.charm, r.title], ["sakura", "crack", "rr:crack"]);
   const bad = G.cleanLook({ roaster: "<img>", title: "rr:king" }, 0);
   assert.deepEqual([bad.roaster, bad.title], ["", ""]);
+});
+
+
+test("seasons: the rookie board lists only players in their first season, and final ranks include a rookie rank", async () => {
+  const a = await newPlayer();
+  await call(score, "POST", { name: "Rookie", prestige: 0, seasonP: 0, seasonKh: 100, seasonStars: 5, level: G.levelFor(100), points: 100 }, a);
+  await store.set("scores/veteran", { id: "veteran", name: "Old hand", prestige: 6, seasonP: 0, seasonKh: 9e6, seasonStars: 50, level: 40, points: 1e7, look: {}, season: G.seasonKey(clock), at: clock });
+  const rook = await call(score, "GET", undefined, a, { mode: "rookie" }), all = await call(score, "GET", undefined, a, { mode: "season" });
+  assert.deepEqual(rook.body.top.map((r) => r.name), ["Rookie"]); assert.equal(rook.body.top[0].rookie, true);
+  assert.deepEqual(all.body.top.map((r) => r.name), ["Old hand", "Rookie"]);
+  clock = Date.parse("2026-11-02T03:00:00Z"); await call(score, "GET", undefined, a, { mode: "season" });
+  const fin = await call(score, "GET", undefined, a, { mode: "final", season: "2026-10" });
+  assert.deepEqual([fin.body.me.rank, fin.body.me.rookieRank], [2, 1]);
 });
