@@ -44,6 +44,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-
 .clockbox b { font-size: 15px; padding: 0 6px; font-variant-numeric: tabular-nums; }
 .day { width: 38px; height: 38px; border-radius: 19px; background: var(--paper); border: 3px solid var(--edge); display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; box-shadow: 0 2px 0 var(--ink); }
 .day small { font-size: 8px; color: var(--muted); font-weight: 600; } .day b { font-size: 16px; }
+.crackgo { top: 96px; background: linear-gradient(#FFD8A8, #E8803A); border-color: #8A3E14; }
 .goldgo { position: absolute; left: 50%; top: 56px; transform: translateX(-50%); padding: 6px 12px; background: linear-gradient(#FFF4B0, #F2C04A); border: 3px solid #A87818; border-radius: 10px; font: 700 14px var(--pixel); color: var(--ink); cursor: pointer; box-shadow: 0 2px 0 #7A5A10; white-space: nowrap; }
 .nb-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 0; border-top: 1px dashed var(--paper-2); font-size: 14px; }
 .nb-row select { font: inherit; padding: 3px 6px; border: 2px solid var(--edge); border-radius: 6px; background: var(--paper); color: var(--ink); max-width: 60%; }
@@ -333,6 +334,7 @@ canvas.hint { transform: none !important; }
     <button class="sound" id="sfxBtn" type="button" aria-pressed="true" aria-label="Sound effects"><svg width="18" height="16" viewBox="0 0 9 8" shape-rendering="crispEdges" aria-hidden="true"><path fill="currentColor" d="M0 3h2v2H0zM2 2h1v4H2zM3 1h1v6H3zM4 0h1v8H4z"/><path id="sfxWaves" fill="currentColor" d="M6 2h1v1H6zM6 5h1v1H6zM7 3h1v2H7zM8 1h1v1H8zM8 6h1v1H8z"/></svg></button>
     <div class="toast" id="toast" hidden></div>
     <button class="goldgo" id="goldGo" type="button" data-act="goldgo" hidden></button>
+    <button class="goldgo crackgo" id="crackGo" type="button" data-act="crackgo" hidden>First crack! Tap to catch it</button>
   </div>
   <div class="guide" id="guide" hidden></div>
   <div class="garrow" id="garrow" hidden aria-hidden="true"></div>
@@ -759,7 +761,7 @@ function requestTickRoast() {   /* a requested coffee goes to its bin as soon as
 function roastReqModal() {
   const opts = {}; S.lots.forEach((l) => { const k = l.v + '.' + l.method; if (!reqLot(l)) { opts[k] = opts[k] || { dry: 0, drying: 0 }; opts[k][l.left <= 0 ? 'dry' : 'drying'] += 1; } });
   const ks = Object.keys(opts).filter((k) => !S.roastery.beans[k] && !(S.roastery.want || {})[k]);
-  showModal('<h2>Request beans</h2><p class="note">Pick a coffee from the mill for an empty bin. A dry lot comes straight away; a drying one comes when it\'s dry.</p>' + (ks.length ? ks.map((k) => row(img('bush_' + k.split('.')[0] + '_ripe', 28), beanName(k), (opts[k].dry ? opts[k].dry + ' dry' : '') + (opts[k].dry && opts[k].drying ? ' · ' : '') + (opts[k].drying ? opts[k].drying + ' drying' : '') + ' · best roast ' + ROASTS[bestRoast(...k.split('.'))].name.toLowerCase(), btn('Request', '', 'rreq:' + k, true, 'green'))).join('') : '<p class="note">Nothing on the mill racks yet. Start a lot in the Mill, then request it here.</p>') + '<button class="btn" data-act="close">Close</button>');
+  showModal('<h2>Request beans</h2><p class="note">Pick a coffee from the mill for an empty bin. A dry lot comes straight away; a drying one comes when it\'s dry.</p>' + (ks.length ? ks.map((k) => row(img('bush_' + k.split('.')[0] + '_ripe', 28), beanName(k), (opts[k].dry ? opts[k].dry + ' dry' : '') + (opts[k].dry && opts[k].drying ? ' · ' : '') + (opts[k].drying ? opts[k].drying + ' drying' : '') + ' · best roast ' + ROASTS[bestRoast(...k.split('.'))].name.toLowerCase(), btn('Request', '', 'rreq:' + k, true, 'green'))).join('') : '<p class="note">Nothing on the mill racks yet. Start a lot in the Mill, then request it here.</p><button class="btn blue" data-act="millgo">Go to the Mill</button>') + '<button class="btn" data-act="close">Close</button>');
 }
 function toRoastery(i, quiet) {   /* a dry lot goes to the roastery's green store instead of the roastery buyer */
   const l = S.lots[i]; if (!l || l.left > 0 || !roasteryOpen()) return;
@@ -828,7 +830,7 @@ function roasteryPanel() {
     want.map((k) => '<div class="rack"><div class="rk-top">' + img('bush_' + k.split('.')[0] + '_ripe', 22) + '<span><b>' + ART.varieties[k.split('.')[0]] + '</b><small>requested · ' + METHODS[k.split('.')[1]].name.split(' ')[0].toLowerCase() + '</small></span></div><small>Comes when a lot dries</small><div class="rk-act"><button type="button" class="btn" data-act="rreq:' + k + '">Cancel</button></div></div>').join('') +
     Array.from({ length: Math.max(0, ROAST_BINS - keys.length - want.length) }, () => '<div class="rack"><div class="rk-top"><span><b>Empty bin</b><small>for one green coffee</small></span></div><div class="rk-act"><button type="button" class="btn gold" data-act="rreqask">Request beans</button></div></div>').join('') + '</div>';
   h += S.staff.foreman ? '<p class="note"><b>Foreman keeps the bins stocked</b> with this many roasts\' worth of green coffee, using coffees already in a bin or free bins. Requests come first.</p><div class="seg">' + [[0, 'Off'], [2, '2 roasts'], [4, '4 roasts'], [8, '8 roasts']].map(([n, t]) => '<button type="button" data-act="roastfeed:' + n + '" aria-pressed="' + (feedRoasts() === n) + '">' + t + '</button>').join('') + '</div>' : '<p class="note">Request beans for an empty bin, or tap Roast on a dry lot in the Mill. Once you hire a mill foreman, he keeps the bins stocked for you.</p>';
-  h += '<p class="note">Shop charm +' + Math.round(shopCharm() * 100) + '% on every bag, from ' + rCount() + ' roastery cosmetics (Shop › Roastery). Each finished roast gives a season star (up to 3 a day).</p>';
+  h += row(img('rp_maneki_1', 26), 'Shop charm +' + Math.round(shopCharm() * 100) + '%', 'Every roastery cosmetic you own adds 1% to bag prices, up to +20%. You own ' + rCount() + '.', btn('Decorate', 'Shop › Roastery', 'decorgo', true, 'blue')) + '<p class="note">Each finished roast gives a season star (up to 3 a day).</p>';
   return h;
 }
 const charmName = (k) => (k === 'qgrader' ? 'Q grader' : k === 'crack' ? 'Crack master' : themeById(k) ? themeById(k).name : '');
@@ -1287,6 +1289,7 @@ function tick(dt) {
   tickMe(d); tickInside(dt);
   rateC = rateC * Math.pow(0.99, dt) + earnedC * 60 * (1 - Math.pow(0.99, dt)) / Math.max(dt, 1e-3); rateX = rateX * Math.pow(0.99, dt) + earnedX * 60 * (1 - Math.pow(0.99, dt)) / Math.max(dt, 1e-3); earnedC = 0; earnedX = 0;
   requestTick(); roasteryTick(); requestTickRoast();
+  { const cg = $('crackGo'), cr = tab !== 'roast' && S.roastery.roasters.some((r) => inCrack(r) && !r.crack); if (cg.hidden === cr) cg.hidden = !cr; }   /* catch first crack from any tab */
   { const gg = $('goldGo'), away = golden && golden.loc !== S.loc, txt = away ? 'Golden bush at ' + ART.locations[golden.loc].name.split(',')[0] + ' · Go (' + Math.ceil(golden.t) + ' s)' : ''; gg.hidden = !away; if (gg.textContent !== txt) gg.textContent = txt; }   /* Lookout: a Go button when the golden bush is on another farm */
   if (golden) { golden.t -= dt; if (golden.t <= 0) { golden = null; toast('The golden bush faded'); } }
   else if ((S.guide >= GUIDE.length || level() >= 3) && (goldenT -= dt) <= 0) {   /* a golden bush appears every 3-6 minutes while you play */
@@ -1719,7 +1722,7 @@ function travel(dir) {
   let i = LOCS.indexOf(S.loc);
   i = (i + dir + LOCS.length) % LOCS.length;
   S.loc = LOCS[i];
-  if (tab === 'mill') tab = 'farm';   /* the arrows lead back out to the farms */
+  if (tab === 'mill' || tab === 'roast') tab = 'farm';   /* the arrows lead back out to the farms */
   refreshAll();
 }
 $('prevLoc').addEventListener('click', () => travel(-1));
@@ -2351,7 +2354,7 @@ function renderPanel() {
     S.tasks.forEach((t, i) => {
       const r = t.reward, rl = r.coins ? r.coins + ' coins' : r.points ? r.points + ' know-how' : r.cranes + ' cranes';
       const swap = hasPerk('reroll') && !t.done && t.have < t.goal && S.rerollDay !== dayKey(new Date()) ? btn('Swap', 'once a day', 'reroll:' + i, true, 'blue') : '';
-      h += row(img((TASK_KINDS[t.id] || {}).img || 'green_sack', 28), t.text, '<span class="bar" style="display:block"><i style="width:' + Math.round(t.have / t.goal * 100) + '%"></i></span>' + fmt(t.have) + ' / ' + t.goal, (t.done ? btn('Done', '', 'none', false) : btn('Claim', rl, 'task:' + i, t.have >= t.goal, 'green')) + swap);
+      h += row(img((TASK_KINDS[t.id] || {}).img || 'green_sack', 28), t.text, '<span class="bar" style="display:block"><i style="width:' + Math.round(t.have / t.goal * 100) + '%"></i></span>' + fmt(t.have) + ' / ' + t.goal, (t.done ? btn('Done', '', 'none', false) : t.have >= t.goal ? btn('Claim', rl, 'task:' + i, true, 'green') : btn('Go', rl, 'taskgo:' + ({ sell: 'mill', cup: 'mill', contract: 'mill' }[t.id] || 'farm'), true, 'blue')) + swap);
     });
     if (hasPerk('reroll')) h += '<p class="note">Tasting notes: ' + (S.rerollDay === dayKey(new Date()) ? 'you have swapped a task today. Another swap tomorrow.' : 'tap Swap on a task to trade it for a different one, once a day.') + '</p>';
     const wk = S.weekly, tot = Math.min(wk.target, wk.team + wk.mine);
@@ -2582,6 +2585,11 @@ document.addEventListener('click', (e) => {
   else if (a === 'decor') { if (S.decor[v] !== undefined) S.decor[v] = !S.decor[v]; else if (spend('coins', DECOR[v].cost)) { S.decor[v] = true; toast(DECOR[v].name + ' added to your farms'); } }
   else if (a === 'go') { S.loc = v; setTab('farm'); }
   else if (a === 'goldgo') { if (golden) { S.loc = golden.loc; setTab('farm'); } }
+  else if (a === 'decorgo') { S.shopTab = 'roast'; setTab('shop'); }
+  else if (a === 'millgo') { closeModal(); setTab('mill'); }
+  else if (a === 'plantgo') { closeModal(); const home = (VAR_HOME[v] || []).find((l) => S.farms[l].unlocked && !S.dormant[l]); if (home) S.loc = home; S.farmSub = 'fields'; setTab('farm'); toast('Tap a field to plant ' + ART.varieties[v]); }
+  else if (a === 'crackgo') { const i = S.roastery.roasters.findIndex((r) => inCrack(r) && !r.crack); if (i > -1) crackRoast(i); }
+  else if (a === 'taskgo') { S.farmSub = 'fields'; setTab(v); }
   else if (a === 'replantask') showModal('<h2>Replant all</h2><p class="note">Every field on every open farm switches to the coffee you choose and starts again from sprouts. Each farm keeps one native field, or gets one if you own a coffee native there, so terroir stays on.</p>' + VAR_ORDER.filter((x) => S.vars[x]).map((x) => row(img('bush_' + x + '_ripe', 30), ART.varieties[x], VAR[x].kg + ' kg a pick · ×' + VAR[x].value + ' price', btn('Plant everywhere', '', 'replantall:' + x, true, 'green'))).join('') + '<button class="btn" data-act="close">Cancel</button>');
   else if (a === 'replantall') { if (hasPerk('replantall') && S.vars[v]) { const n = replantAll(v); closeModal(); SFX.play('dig'); toast(n ? n + ' field' + (n > 1 ? 's' : '') + ' replanted with ' + ART.varieties[v] : 'Every field already grows ' + ART.varieties[v]); } }
   else if (a === 'bed') {
@@ -2591,7 +2599,7 @@ document.addEventListener('click', (e) => {
     return;
   }
   else if (a === 'plant') { const [b, x] = v.split('.'); if (S.vars[x] || (eventDrop() && eventDrop().variety === x)) { replantBed(f, +b, x); closeModal(); guideStep('plant'); toast('Field ' + (+b + 1) + ' planted with ' + ART.varieties[x]); } }
-  else if (a === 'var') { if (VAR[v] && !S.vars[v] && gateOK('var:' + v) && spend('points', VAR[v].cost)) { S.vars[v] = true; guideStep('var'); showModal('<h2>' + ART.varieties[v] + ' unlocked</h2>' + img('bush_' + v + '_ripe', 54) + '<p class="note">' + VAR[v].perk + ' Replant a field in the Farm tab to start growing it.</p><button class="btn green" data-act="close">Plant it</button>'); } }
+  else if (a === 'var') { if (VAR[v] && !S.vars[v] && gateOK('var:' + v) && spend('points', VAR[v].cost)) { S.vars[v] = true; guideStep('var'); showModal('<h2>' + ART.varieties[v] + ' unlocked</h2>' + img('bush_' + v + '_ripe', 54) + '<p class="note">' + VAR[v].perk + ' Plant it in a field, on its native farm for the terroir bonus.</p><button class="btn green" data-act="plantgo:' + v + '">Plant it</button><button class="btn" data-act="close">Later</button>'); } }
   else if (a === 'task') { const tk = S.tasks[+v]; if (tk.have >= tk.goal && !tk.done) { tk.done = true; earn(rule('shogatsu') && tk.reward.coins ? { coins: tk.reward.coins * 2 } : tk.reward); star('task'); guideStep('task'); toast('Task complete!'); } }
   else if (a === 'weekly') { S.weekly.claimed = true; S.cranes += WEEKLY_CRANES; star('weekly'); showModal('<h2>Order delivered!</h2><p class="note">The team delivered ' + fmt(S.weekly.target) + ' kg of washed coffee to the roastery. +' + WEEKLY_CRANES + ' cranes and the Co-op Roaster badge.</p><button class="btn green" data-act="close">Hooray</button>'); }
   else if (a === 'prestigeAsk') {

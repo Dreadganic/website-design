@@ -24,7 +24,7 @@ const [html, out, target, seed] = [process.argv[2], process.argv[3], +(process.a
     sessions.push({ mins, away: Math.min(h, cap) });
     await p.evaluate((x) => BOT.away(x), Math.min(h, cap));
   }
-  const data = await p.evaluate(() => ({ events: BOT.events, buys: BOT.buys, snaps: BOT.snaps }));
+  const data = await p.evaluate(() => ({ events: BOT.events, buys: BOT.buys, snaps: BOT.snaps, tabs: BOT.tabs }));
   Object.assign(data, { farms, sessions, playH, errs });
   fs.writeFileSync(out, JSON.stringify(data)); console.log('played', playH.toFixed(1), 'h over', sessions.length, 'sessions, prestige', r.p, 'errors', errs.slice(0, 3));
   await b.close();

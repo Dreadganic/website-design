@@ -1,7 +1,16 @@
 /* A bot that plays Beju Farm like an engaged, sensible player. Runs inside the sim build (window.__G). */
 window.BOT = (function () {
   const G = window.__G, cv = document.getElementById('cv');
-  const act = (s) => { const b = document.createElement('button'); b.dataset.act = s; b.style.display = 'none'; document.body.appendChild(b); b.click(); b.remove(); };
+  /* where each action lives in the interface, to measure how much tab hopping a player would do */
+  const LOCOF = (x) => { const a = x.split(':')[0];
+    if (['hire', 'plant', 'bed', 'replantall', 'replantask', 'sellraw', 'mv'].includes(a)) return 'farm:fields'; if (a === 'up') return 'farm:upgrades'; if (a === 'build') return 'farm:build';
+    if (['mgr', 'master', 'foreman', 'agent', 'rule'].includes(a)) return 'farm:staff';
+    if (['lot', 'cup', 'sell', 'deliver', 'toroast', 'sellall', 'cupall', 'reqfill', 'reqskip'].includes(a)) return 'mill';
+    if (['roast', 'crack', 'sellbag', 'sellbags', 'roastfeed', 'rreq', 'binsell', 'blendask', 'blendwith'].includes(a)) return 'roast';
+    if (['var', 'method', 'farm', 'research'].includes(a)) return 'unlock'; if (['task', 'weekly'].includes(a)) return 'orders';
+    if (['prestige', 'prestigeAsk', 'pickskin'].includes(a)) return 'ranks'; if (['decor', 'rbuy', 'buybskin', 'buychar', 'buyhat'].includes(a)) return 'shop'; return null; };
+  const at = (loc) => { if (!loc) return; const T = B.tabs || (B.tabs = {}), p = G.S.prestige, st = T[p] || (T[p] = { cycles: 0, busy: 0, tabs: 0, subs: 0, acts: {}, combos: {}, cracks: 0 }); st.acts[loc] = (st.acts[loc] || 0) + 1; (B.cyc || (B.cyc = new Set())).add(loc); };
+  const act = (s) => { at(LOCOF(s)); const b = document.createElement('button'); b.dataset.act = s; b.style.display = 'none'; document.body.appendChild(b); b.click(); b.remove(); };
   const B = { t: 0, events: [], snaps: [], buys: [], taps: true, lastBuy: 0, gaps: [], cfg: {} };
   let seed = 12345; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };   /* cfg.human: a seeded coin-flip so runs repeat */
   const H = () => !!B.cfg.human;
@@ -12,6 +21,7 @@ window.BOT = (function () {
   function bought(what, cost, cur) { B.buys.push({ t: B.t, what, cost, cur }); if (B.t - B.lastBuy > 120) B.gaps.push([Math.round(B.lastBuy), Math.round(B.t - B.lastBuy)]); B.lastBuy = B.t; }
   function tap() {
     const S = G.S, f = S.farms[S.loc]; if (!B.taps || S.hearts <= 0 || G.stored() >= G.cap()) return;
+    at('farm:fields');
     const r = cv.getBoundingClientRect();
     const ripe = f.shrubs.filter((s) => s.p >= 1).slice(0, 2);
     ripe.forEach((s) => cv.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: r.left + (s.x + 9) / G.W * r.width, clientY: r.top + (s.y + 11) / G.H * r.height })));
@@ -121,7 +131,12 @@ window.BOT = (function () {
     R.roasters.forEach((r, i) => { if (!r.crack && G.inCrack(r) && !r.tried) { r.tried = true; if (!H() || rnd() < 0.7) act('crack:' + i); } });
     for (let i = R.bags.length - 1; i >= 0; i--) { const b = R.bags[i], k = Object.keys(G.RBUYERS).find((x) => b.blend || G.RBUYERS[x].wants === b.profile) || 'konbini'; const c0 = S.coins; act('sellbag:' + i + '.' + k); B.roastCoins = (B.roastCoins || 0) + (S.coins - c0); B.roastSold = (B.roastSold || 0) + 1; }
   }
-  function decide() { closeAll(); G.checkIn(); G.checkTabs(); tap(); active(); mill(); roast(); knowhow(); coins(); prestige(); closeAll(); }
+  function cycleEnd() {   /* one check of the game: which tabs and sub-tabs it needed */
+    const set = B.cyc || new Set(), p = G.S.prestige, T = B.tabs || (B.tabs = {}), st = T[p] || (T[p] = { cycles: 0, busy: 0, tabs: 0, subs: 0, acts: {}, combos: {}, cracks: 0 });
+    st.cycles += 1; if (set.size) { st.busy += 1; const mains = [...new Set([...set].map((x) => x.split(':')[0]))].sort(); st.tabs += mains.length; st.subs += set.size; st.combos[mains.join('+')] = (st.combos[mains.join('+')] || 0) + 1; }
+    B.cyc = new Set();
+  }
+  function decide() { closeAll(); G.checkIn(); G.checkTabs(); tap(); active(); mill(); roast(); knowhow(); coins(); prestige(); closeAll(); cycleEnd(); }
   function snap() {
     const S = G.S;
     B.snaps.push({ t: Math.round(B.t), lv: G.level(), xp: Math.round(S.xp), p: S.prestige, coins: Math.round(S.coins), kh: Math.round(S.points), cranes: S.cranes, farms: G.LOCS.filter(live).length, workers: G.totalWorkers(), lots: S.stats.lotsSold, contracts: S.stats.contracts || 0, cap: G.cap(), racks: G.racks(), stored: Math.round(G.stored()), day: S.day });
