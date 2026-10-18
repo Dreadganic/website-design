@@ -213,3 +213,9 @@ Coins build, know-how unlocks, cranes buy looks, and the tabs follow that rule:
 - Locked rows name what's missing ("Needs Huila at farm level 12 (now 9), and needs prestige 1"). The tutorial's coffee chapter now teaches Yellow Catuai and terroir.
 - Measured: Toba opens at 72-77 min of play (was 57-65), Turrialba at 109-131 min (was 97-107); human bot P4 3.5-3.8 h; efficient bot P5 11.2 h.
 
+## Cupping notebook and buyer requests
+- **Notebook** (Unlock > Notebook): a 9 coffee x 6 process grid. Each pair earns a star at its 1st, 25th and 250th lot sold or delivered; each star adds +0.5 cup score to that pair (up to +1.5). Every process for one coffee earns "<coffee> specialist", every coffee for one process "<process> master", and 25 / 75 / 162 stars earn Cupper, Head cupper and Q grader (plus the Q grader charm). Rosa introduces it at the first star.
+- **Requests:** a named regular (Kenji in Kyoto, Aya in Osaka, Mr Tanaka in Kobe, Mika in Nara, Sora in Tokyo) asks for one hand-cupped lot of a pair, usually one you haven't tried. It pays about six minutes of income and counts twice in the notebook, lasts a real day, and shows in the Mill and the Notebook. Staff never cup, so only you can fill one; the foreman and Sell all dry leave the requested lot on the rack. A new request comes 15 minutes after a fill, or an hour after "Not now".
+- The P7 perk is now the Foreman's ledger, so it isn't confused with the notebook.
+- Measured: efficient bot P5 in 10.5 h (11.2 h before), with 30 of 54 pairs tried and 6 notebook titles.
+
