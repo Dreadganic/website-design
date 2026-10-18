@@ -3,6 +3,8 @@ window.BOT = (function () {
   const G = window.__G, cv = document.getElementById('cv');
   const act = (s) => { const b = document.createElement('button'); b.dataset.act = s; b.style.display = 'none'; document.body.appendChild(b); b.click(); b.remove(); };
   const B = { t: 0, events: [], snaps: [], buys: [], taps: true, lastBuy: 0, gaps: [], cfg: {} };
+  let seed = 12345; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };   /* cfg.human: a seeded coin-flip so runs repeat */
+  const H = () => !!B.cfg.human;
   const log = (e) => B.events.push({ t: Math.round(B.t), lv: G.level(), p: G.S.prestige, e });
   const closeAll = () => { let g = 0; while (!document.getElementById('modal').hidden && g++ < 20) G.closeModal(); };
   const score = (v) => G.VAR[v].kg * G.VAR[v].speed * G.VAR[v].value;
@@ -41,6 +43,10 @@ window.BOT = (function () {
       if (G.researchCost && (!nv || !ok('var:' + nv))) c.push(['research', G.researchCost()]);
       c.sort((a, b) => a[1] - b[1]);
       if (!c.length || c[0][1] > S.points) break;
+      if (H()) {   /* a human doesn't always spend at once, and doesn't always pick the cheapest */
+        if (rnd() < 0.5) break;
+        const aff = c.filter((x) => x[1] <= S.points); const pick = aff[Math.floor(rnd() * aff.length)]; c.splice(c.indexOf(pick), 1); c.unshift(pick);
+      }
       const before = S.points; act(c[0][0]); closeAll(); if (S.points === before) break;
       bought(c[0][0], c[0][1], 'kh'); if (c[0][0] !== 'research') log('unlock ' + c[0][0]);
       if (c[0][0].startsWith('var:')) replant();
@@ -48,8 +54,9 @@ window.BOT = (function () {
     if (!B.cfg.noOsaka && !S.farms.osaka.unlocked && S.cranes >= 60) { act('farm:osaka'); closeAll(); if (S.farms.osaka.unlocked) { log('unlock osaka (cranes)'); replant(); } }
   }
   function replant() {
+    if (H() && rnd() < 0.5) return;   /* sometimes keeps the old coffee for a while */
     const S = G.S, home = S.loc, owned = G.VAR_ORDER.filter((v) => S.vars[v]), best = owned.sort((a, b) => score(b) - score(a))[0];
-    G.LOCS.forEach((l) => { if (!S.farms[l].unlocked || l === 'osaka') return; act('go:' + l);
+    G.LOCS.forEach((l) => { if (!S.farms[l].unlocked || l === 'osaka') return; if (H() && l !== home && rnd() < 0.6) return; act('go:' + l);
       const nat = G.isNative && B.cfg.native !== false ? owned.filter((v) => G.isNative(l, v)).sort((a, b) => score(b) - score(a))[0] : null;   /* keep field 1 native for the terroir bonus */
       S.farms[l].beds.forEach((v, b) => { const want = b === 0 && nat ? nat : best; if (v !== want && (want === nat || score(want) > score(v) * 1.15)) act('plant:' + b + '.' + want); }); });
     act('go:' + home); closeAll();
@@ -69,6 +76,13 @@ window.BOT = (function () {
       ['storage', 'pickers', 'racks', 'hearts'].forEach((k) => { if (S.lv[k] < G.UP[k].max) c.push([S.loc, 'up:' + k, G.UP[k].cost(S.lv[k])]); });
       if (!S.staff.foreman) c.push([S.loc, 'foreman', G.FOREMAN_COST]); else if (!S.staff.agent) c.push([S.loc, 'agent', G.AGENT_COST]);
       c.sort((a, b) => a[2] - b[2]);
+      if (H()) {
+        Object.keys(G.DECOR).forEach((k) => { if (S.decor[k] === undefined) c.push([S.loc, 'decor:' + k, G.DECOR[k].cost]); });
+        if (rnd() < 0.35) break;   /* saving up, or just not looking at the Build tab */
+        const aff = c.filter((x) => x[2] <= S.coins); if (!aff.length) break;
+        const here = aff.filter((x) => x[0] === S.loc), pool = here.length && rnd() < 0.6 ? here : aff;   /* mostly upgrades the farm on screen */
+        const pick = pool[Math.floor(rnd() * pool.length)]; c.splice(c.indexOf(pick), 1); c.unshift(pick);
+      }
       if (!c.length || c[0][2] > S.coins) break;
       const [l, what, cost] = c[0], home = S.loc, before = S.coins;
       if (l !== S.loc) act('go:' + l);
@@ -80,7 +94,8 @@ window.BOT = (function () {
   }
   function prestige() {
     const S = G.S;
-    if (G.level() >= G.prestigeNeed() && (!B.cfg.maxP || S.prestige < B.cfg.maxP)) {
+    if (G.level() >= G.prestigeNeed() && H()) { B.readyAt = B.readyAt || B.t; if (B.t - B.readyAt < 600) return; }   /* thinks it over for ten minutes */
+    if (G.level() >= G.prestigeNeed() && (!B.cfg.maxP || S.prestige < B.cfg.maxP)) { B.readyAt = 0;
       knowhow(); act('prestigeAsk'); act('prestige'); closeAll();
       const sk = [0, 1, 2, 3, 4, 5, 6, 7].find((i) => !S.skins[i]); if (S.skinPicks && sk !== undefined) act('pickskin:' + sk);
       closeAll(); log('PRESTIGE ' + S.prestige + ' (dormant: ' + Object.keys(S.dormant).join(',') + ')');
@@ -88,8 +103,9 @@ window.BOT = (function () {
   }
   function active() {   /* only when cfg.active: cup every lot by hand and tap golden bushes */
     if (!B.cfg.active) return; const S = G.S;
-    S.lots.forEach((l, i) => { if (!l.cupped) act('cup:' + i); });
-    const g = G.golden; if (g) { if (S.loc !== g.loc) act('go:' + g.loc); const s = S.farms[S.loc].shrubs[g.i], r = cv.getBoundingClientRect(); cv.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: r.left + (s.x + 9) / G.W * r.width, clientY: r.top + (s.y + 11) / G.H * r.height })); }
+    S.lots.forEach((l, i) => { if (!l.cupped && (!H() || rnd() < 0.15)) act('cup:' + i); });
+    const g = G.golden; if (g && H() && !g.seen) { g.seen = true; g.miss = rnd() < 0.45; }
+    if (g && !(H() && g.miss)) { if (S.loc !== g.loc) act('go:' + g.loc); const s = S.farms[S.loc].shrubs[g.i], r = cv.getBoundingClientRect(); cv.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: r.left + (s.x + 9) / G.W * r.width, clientY: r.top + (s.y + 11) / G.H * r.height })); }
   }
   function decide() { closeAll(); G.checkIn(); G.checkTabs(); tap(); active(); mill(); knowhow(); coins(); prestige(); closeAll(); }
   function snap() {
