@@ -147,6 +147,23 @@ button, a.btn, [data-act], [data-tab] { touch-action: manipulation; -webkit-tap-
 @keyframes pcup { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 @keyframes pcshake { 0%, 100% { transform: none; } 20% { transform: translate(-6px, 3px); } 40% { transform: translate(5px, -4px); } 60% { transform: translate(-4px, 2px); } 80% { transform: translate(3px, -1px); } }
 @media (prefers-reduced-motion: reduce) { .pc-rays, .pc-flash, .shake { animation: none !important; } .pc-rays { opacity: 1; } .pc-kicker, .pc-num, .pc-crest, .pc-tier, .pc-plate, .pc-sub, .pc-go { animation: none !important; opacity: 1; transform: none; } }
+.rackbar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 8px; }
+.rackbar .btn { flex: 1 1 120px; }
+.rackview { flex: 0 0 auto; }
+.racks { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px; }
+.rack { display: flex; flex-direction: column; gap: 3px; padding: 6px; border: 2px solid var(--paper-2); border-radius: 8px; background: #FBF4E2; min-width: 0; font-size: 11px; }
+.rack.dry { border-color: var(--leaf-ink); background: #EEF5DC; }
+.rack.cup { box-shadow: inset 0 0 0 2px #E8B830; }
+.rk-top { display: flex; gap: 4px; align-items: center; min-width: 0; }
+.rk-top span { display: flex; flex-direction: column; min-width: 0; line-height: 1.15; }
+.rk-top b { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rk-top small, .rack small { color: var(--muted); font-size: 10px; }
+.rack .bar { display: block; height: 6px; }
+.rk-dry { font: 700 11px var(--pixel); color: var(--leaf-ink); }
+.rack .fit { align-self: flex-start; font-size: 10px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rk-act { display: flex; flex-direction: column; gap: 4px; margin-top: auto; }
+.rk-act .btn { width: 100%; min-width: 0; padding: 4px 2px; font-size: 11px; min-height: 0; }
+.rk-cupped { flex: 1; text-align: center; font-size: 10px; font-weight: 700; color: #7A5A10; background: #FFE9A8; border-radius: 6px; padding: 4px 2px; }
 .cupped { font-size: 12px; font-weight: 700; color: #7A5A10; background: #FFE9A8; border: 2px solid #E8B830; border-radius: 6px; padding: 4px 8px; }
 .btn.gold { background: #FFE27A; }
 .garrow { position: fixed; z-index: 30; width: 22px; height: 22px; pointer-events: none; background: #F2C04A; clip-path: polygon(0 0, 100% 0, 50% 100%); filter: drop-shadow(0 0 2px #3E2A1C) drop-shadow(0 2px 0 #3E2A1C); animation: gbob 0.8s ease-in-out infinite; }
@@ -2197,7 +2214,20 @@ function renderPanel() {
     h += '<div class="market">' + img(METHODS[marketPick()].art, 28) + '<span><b>Market today:</b> the roastery pays ×' + MARKET + ' for ' + METHODS[marketPick()].name.toLowerCase() + ' lots. It changes every farm day.</span></div>';
     if (S.tabs.orders) h += '<h3>Buyers waiting · ' + S.contracts.length + '</h3><p class="note">Swipe to see them all. Contracts pay about twice the roastery, and each delivery is paid as it arrives. Lots that fit are tagged below.</p><div class="ccards">' + (S.contracts.length ? S.contracts.map(contractCard).join('') : '<p class="note">No buyers right now. New ones arrive shortly.</p>') + '</div>';
     h += '<h3>Drying racks ' + S.lots.length + ' / ' + racks() + '</h3>';
-    S.lots.forEach((l, i) => {
+    /* with many racks the lots become a grid of small tiles, with one-tap Cup all and Sell all, so nothing needs scrolling */
+    const view = S.millView || (racks() > 4 ? 'grid' : 'list'), toCup = S.lots.filter((l) => !l.cupped).length, dry = S.lots.filter((l) => l.left <= 0).length;
+    if (S.lots.length > 1) h += '<div class="rackbar">' + btn('Cup all', toCup ? toCup + ' lot' + (toCup > 1 ? 's' : '') + ' · +' + Math.round((CUP_PAY - 1) * 100) + '% pay' : 'all cupped', 'cupall', toCup > 0, 'gold') + btn('Sell all dry', dry ? dry + ' lot' + (dry > 1 ? 's' : '') + (S.tabs.orders ? ' · buyers first' : '') : 'none dry yet', 'sellall', dry > 0, 'green') + '<div class="seg rackview">' + [['grid', 'Grid'], ['list', 'List']].map(([k, t]) => '<button type="button" data-act="millview:' + k + '" aria-pressed="' + (view === k) + '">' + t + '</button>').join('') + '</div></div>';
+    if (view === 'grid') {
+      h += '<div class="racks">' + S.lots.map((l, i) => {
+        const m = METHODS[l.method], done = l.left <= 0, fit = S.tabs.orders && S.contracts.find((c) => fits(c, l));
+        return '<div class="rack' + (done ? ' dry' : '') + (l.cupped ? ' cup' : '') + '"><div class="rk-top">' + img(m.art, 24) + '<span><b>' + ART.varieties[l.v] + '</b><small>' + fmt(l.kg) + ' kg · ' + m.name.split(' ')[0].toLowerCase() + '</small></span></div>' +
+          (done ? '<span class="rk-dry">Dry</span>' : '<span class="bar"><i style="width:' + Math.round((1 - l.left / l.total) * 100) + '%"></i></span><small>' + Math.ceil(l.left / 2.5) + ' min</small>') +
+          (fit ? '<span class="fit">for ' + fit.buyer.split(',')[0] + '</span>' : '') +
+          '<div class="rk-act">' + (l.cupped ? '<span class="rk-cupped" title="Hand-cupped">★ cupped</span>' : '<button type="button" class="btn gold" data-act="cup:' + i + '">Cup</button>') +
+          (done ? (fit ? '<button type="button" class="btn blue" data-act="deliver:' + i + '.' + fit.id + '">Deliver</button>' : '<button type="button" class="btn green" data-act="sell:' + i + '">Sell</button>') : '') + '</div></div>';
+      }).join('') + '</div>';
+      if (S.lots.length) h += '<p class="note">Cup adds +' + CUP_BONUS + ' cup score and +' + Math.round((CUP_PAY - 1) * 100) + '% pay. Lots tagged for a buyer deliver to that contract.</p>';
+    } else S.lots.forEach((l, i) => {
       const m = METHODS[l.method], done = l.left <= 0, fit = S.tabs.orders && S.contracts.find((c) => fits(c, l));
       h += row(img(m.art, 36), fmt(l.kg) + ' kg ' + ART.varieties[l.v] + ', ' + m.name.toLowerCase() + (fit ? ' <span class="fit">for ' + fit.buyer.split(',')[0] + '</span>' : ''), done ? 'Dry and ready to sell' : '<span class="bar" style="display:block"><i style="width:' + Math.round((1 - l.left / l.total) * 100) + '%"></i></span> ' + Math.ceil(l.left / 2.5) + ' min left', btn('Sell', done ? 'ready' : 'drying', 'sell:' + i, done, 'green'));
       h += '<div class="seg" style="margin:-4px 0 6px 52px">' + (l.cupped ? '<span class="cupped">Hand-cupped · +' + CUP_BONUS + ' cup · +' + Math.round((CUP_PAY - 1) * 100) + '% pay</span>' : btn('Cup by hand', '+' + CUP_BONUS + ' cup · +' + Math.round((CUP_PAY - 1) * 100) + '% pay', 'cup:' + i, true, 'gold')) + '</div>';
@@ -2440,7 +2470,7 @@ document.addEventListener('click', (e) => {
   setTimeout(() => {   /* sound for the action, once its effect is known */
     const spent = S.coins + S.points + S.cranes < wallet;
     const BUY = { hire: 'hire', up: 'buy', build: 'build', mgr: 'hire', foreman: 'hire', agent: 'hire', var: 'achieve', farm: 'achieve', method: 'achieve', buyhat: 'achieve', master: 'buy', research: 'achieve', buychar: 'achieve', buybskin: 'achieve', boost: 'crane', decor: 'achieve' };
-    const ALWAYS = { ranktab: 'tick', ranksub: 'tick', untab: 'tick', crest: 'tick', skin: 'tick', bg: 'tick', char: 'tick', bskin: 'build', bskinall: 'build', rename: 'tick', mvol: 'tick', uptab: 'tick', shoptab: 'tick', hat: 'tick', rule: 'tick', mv: 'tick', speed: 'tick', season: 'tick', go: 'click', bed: 'click', skip: 'page', plant: 'dig', task: 'coins', weekly: 'crane', order: 'crane', sellraw: 'coins', add: 'xp' };
+    const ALWAYS = { ranktab: 'tick', ranksub: 'tick', millview: 'tick', untab: 'tick', crest: 'tick', skin: 'tick', bg: 'tick', char: 'tick', bskin: 'build', bskinall: 'build', rename: 'tick', mvol: 'tick', uptab: 'tick', shoptab: 'tick', hat: 'tick', rule: 'tick', mv: 'tick', speed: 'tick', season: 'tick', go: 'click', bed: 'click', skip: 'page', plant: 'dig', task: 'coins', weekly: 'crane', order: 'crane', sellraw: 'coins', add: 'xp' };
     if (BUY[a] && spent) SFX.play(BUY[a]); else if (a === 'decor' && decorOwned) SFX.play('tick'); else if (ALWAYS[a]) SFX.play(ALWAYS[a]);
   }, 0);
   if (a === 'hire') { if (f.workers.length < maxPickers(f) && spend('coins', hireCost())) { addWorker(f); guideStep('hire'); toast('A new picker joins you'); } }
@@ -2451,6 +2481,13 @@ document.addEventListener('click', (e) => {
   else if (a === 'mv') S.millV = v;
   else if (a === 'lot') startLot(S.millV, v);
   else if (a === 'sell') sellLot(+v);
+  else if (a === 'millview') S.millView = v;
+  else if (a === 'cupall') { let n = 0; S.lots.forEach((l) => { if (!l.cupped) { l.cupped = true; n += 1; S.stats.cupped = (S.stats.cupped || 0) + 1; star('cup'); } }); if (n) { SFX.play('pour'); toast('Cupped ' + n + ' lot' + (n > 1 ? 's' : '') + ' by hand: +' + CUP_BONUS + ' cup score, +' + Math.round((CUP_PAY - 1) * 100) + '% pay'); } }
+  else if (a === 'sellall') {   /* dry lots go to a matching buyer first, the rest to the roastery */
+    const c0 = S.coins; let n = 0;
+    for (let i = S.lots.length - 1; i >= 0; i--) { const l = S.lots[i]; if (l.left > 0) continue; const c = S.tabs.orders && S.contracts.find((x) => fits(x, l)); if (c) deliver(i, c.id, true); else sellLot(i, true); n += 1; }
+    if (n) { SFX.play('coins'); toast(n + ' lot' + (n > 1 ? 's' : '') + ' sold and delivered: +' + fmt(S.coins - c0) + ' coins'); }
+  }
   else if (a === 'cup') { const l = S.lots[+v]; if (l && !l.cupped) { l.cupped = true; S.stats.cupped = (S.stats.cupped || 0) + 1; star('cup'); SFX.play('pour'); toast('Cupped by hand: +' + CUP_BONUS + ' cup score, +' + Math.round((CUP_PAY - 1) * 100) + '% pay'); } }
   else if (a === 'method') { if (gateOK('method:' + v) && spend('points', METHODS[v].cost)) { S.methods[v] = true; toast(METHODS[v].name + ' unlocked'); } }
   else if (a === 'up') { const before = S.lv[v]; buyUpgrade(v); if (S.lv[v] !== before) guideStep('up:' + v); }

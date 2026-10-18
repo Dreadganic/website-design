@@ -175,3 +175,7 @@ Coins build, know-how unlocks, cranes buy looks, and the tabs follow that rule:
 - Tutorial: a two-step "Native" chapter after the first replant (unlock Yellow Catuai, then plant it at Mogiana).
 - Measured with the bot keeping one native field per farm: P5 in about 10.7 hours of active play at +15% (9.9 at +20%, 11.8 without terroir).
 
+
+## Mill racks at scale
+- Over 4 racks, the drying racks switch to a grid of small tiles (process icon, coffee, kg, drying bar, buyer tag) with Cup, Sell or Deliver buttons on each tile. A Grid / List switch keeps the detailed rows for anyone who prefers them.
+- With 2 or more lots, two bulk buttons sit above the racks: **Cup all** (hand-cups every lot not yet cupped; staff still never cup, so you have to be playing) and **Sell all dry** (each dry lot goes to a matching buyer first, the rest to the roastery).
