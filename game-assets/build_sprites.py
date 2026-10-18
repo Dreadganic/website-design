@@ -2245,10 +2245,21 @@ def estate(loc, tier):
                 for y in range(102, 108):
                     for x in range(4, 100):
                         P(x, y, WATER[1] if (x + y * 2) % 7 else "#FFFFFF")
-                for lx in (78, 94):
-                    R(lx, 64, 2, 24, WOOD[4])
-                box(74, 50, 26, 16, "#4A7AA8"); R(75, 51, 24, 3, "#6A9AC8"); R(74, 48, 26, 2, OUT)
-                box(80, 40, 14, 8, "#2D6A46"); R(82, 42, 10, 1, "#F2C04A")
+                # the water tower stands on the hill behind the beds, so the ceremony stays in view
+                for lx in (58, 70):
+                    R(lx, 12, 2, 14, WOOD[4])
+                for k in range(4):
+                    P(60 + k * 3, 14 + k * 3, WOOD[3]); P(69 - k * 3, 14 + k * 3, WOOD[3])
+                box(55, 2, 18, 11, "#4A7AA8"); R(56, 3, 16, 2, "#6A9AC8"); R(55, 1, 18, 1, OUT)
+                R(71, 13, 1, 13, CONCRETE[3])
+                R(64, 0, 1, 2, OUT); R(65, 0, 3, 1, "#2D6A46")
+                # the ceremony grows: a gate with the Beju sign, a rug and more guests round the jebena
+                R(72, 80, 2, 6, WOOD[4]); R(87, 80, 2, 6, WOOD[4]); R(71, 79, 19, 2, WOOD[3])
+                box(75, 74, 11, 6, "#2D6A46"); R(77, 76, 7, 1, "#F2C04A"); R(77, 78, 5, 1, "#F2C04A")
+                for y in range(60, 66):
+                    for x in range(62, 72):
+                        P(x, y, "#C8302C" if (x + y) % 4 else "#F2C42C")
+                person(64, 60, "#2D6A46", "#F2C42C"); person(94, 62, "#FBF6EA", "#2A2220")
         elif loc == "toba":
             if tier >= 1:   # a long jetty with the trader's boat, and floating fish cages out on the lake
                 for y in range(40, 48):
@@ -2402,7 +2413,7 @@ for _loc in ESTATE_LOCS:
         add_layer("estate_%s_%d" % (_loc, _t), EW, EH, estate(_loc, _t))
 
 # seasonal showpieces: one spot per farm, dressed in the season's colours (here as a generic piece recoloured per season)
-SHOWPIECE_AT = {"mogiana": (6, 92), "huila": (64, 10), "gedeo": (44, 4), "toba": (80, 10), "turrialba": (68, 8), "osaka": (58, 2)}
+SHOWPIECE_AT = {"mogiana": (6, 92), "huila": (64, 10), "gedeo": (38, 4), "toba": (80, 10), "turrialba": (68, 8), "osaka": (58, 2)}
 
 
 def showpiece(kind):
