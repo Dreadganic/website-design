@@ -2060,7 +2060,7 @@ function renderPanel() {
     h += '<h3>Mill staff</h3>';
     h += row(img('green_sack', 34), 'Mill foreman', 'Starts lots on free racks and sells them when they’re dry, even while you’re on another tab.', S.staff.foreman ? btn('Hired', '', 'noop', false, 'blue') : btn('Hire', fmt(FOREMAN_COST) + ' coins', 'foreman', S.coins >= FOREMAN_COST));
     if (S.staff.foreman) h += '<p class="note">Foreman’s process:</p><div class="seg">' + ['best'].concat(Object.keys(METHODS).filter((k) => S.methods[k])).map((k) => '<button type="button" data-act="rule:' + k + '" aria-pressed="' + (S.staff.rule === k) + '">' + (k === 'best' ? 'Best paying' : METHODS[k].name) + '</button>').join('') + '</div>';
-    h += row(img('board', 34), 'Contracts agent', 'Delivers finished lots to matching contracts first, tells the foreman which process buyers want, and adds a fourth contract slot.', S.staff.agent ? btn('Hired', '', 'noop', false, 'blue') : btn('Hire', fmt(AGENT_COST) + ' coins', 'agent', S.staff.foreman && S.coins >= AGENT_COST));
+    h += row(img('board', 34), 'Contracts agent', 'Delivers finished lots to matching contracts first, tells the foreman which process buyers want, and adds a fourth contract slot.' + (S.tabs.orders ? '' : ' Buyers start posting contracts at level 3, so he has nothing to do before then.'), S.staff.agent ? btn('Hired', '', 'noop', false, 'blue') : btn('Hire', fmt(AGENT_COST) + ' coins', 'agent', S.staff.foreman && S.coins >= AGENT_COST));
     if (!S.staff.foreman) h += '<p class="note">Hire the mill foreman before the contracts agent.</p>';
     } else if (ut === 'vars') {
     h += '<h3>Coffee varieties</h3><p class="note">Unlock in order with know-how, then replant any field from the Farm tab. Native varieties grow 20% faster at home.</p>' + VAR_ORDER.map((v) => {
@@ -2220,7 +2220,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'foreman') { if (!S.staff.foreman && spend('coins', FOREMAN_COST)) { S.staff.foreman = true; toast('The mill foreman starts work'); } }
   else if (a === 'agent') { if (S.staff.foreman && !S.staff.agent && spend('coins', AGENT_COST)) { S.staff.agent = true; toast('The contracts agent joins the mill'); } }
   else if (a === 'rule') S.staff.rule = v;
-  else if (a === 'skip') { S.contracts = S.contracts.filter((c) => String(c.id) !== v); S.nextContract = Math.max(S.nextContract, S.minutesTotal + 20); toast('Contract skipped. A new one comes soon.'); }
+  else if (a === 'skip') { S.contracts = S.contracts.filter((c) => String(c.id) !== v); S.nextContract = Math.max(S.nextContract, S.minutesTotal + 2 * REAL_MIN); toast('Contract skipped. A new buyer comes in about 2 minutes.');   /* a real wait, so skipping can't reroll the board for free */ }
   else if (a === 'deliver') { const [i, id] = v.split('.'); deliver(+i, +id); }
   else if (a === 'decor') { if (S.decor[v] !== undefined) S.decor[v] = !S.decor[v]; else if (spend('coins', DECOR[v].cost)) { S.decor[v] = true; toast(DECOR[v].name + ' added to your farms'); } }
   else if (a === 'go') { S.loc = v; setTab('farm'); }
