@@ -109,7 +109,18 @@ window.BOT = (function () {
     const g = G.golden; if (g && H() && !g.seen) { g.seen = true; g.miss = rnd() < 0.45; }
     if (g && !(H() && g.miss)) { if (S.loc !== g.loc) act('go:' + g.loc); const s = S.farms[S.loc].shrubs[g.i], r = cv.getBoundingClientRect(); cv.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: r.left + (s.x + 9) / G.W * r.width, clientY: r.top + (s.y + 11) / G.H * r.height })); }
   }
-  function decide() { closeAll(); G.checkIn(); G.checkTabs(); tap(); active(); mill(); knowhow(); coins(); prestige(); closeAll(); }
+  function roast() {   /* the roastery: keep it fed, roast (usually the best roast), catch the crack, sell bags to the buyer who wants them */
+    if (!G.roasteryOpen || !G.roasteryOpen() || B.cfg.noRoast) return; const S = G.S, R = S.roastery;
+    if (S.staff.foreman && !R.feed) act('roastfeed');
+    if (!S.staff.foreman) S.lots.forEach((l, i) => { if (l.left <= 0 && Object.keys(R.beans).length < 2 && i === 0) act('toroast:' + i); });
+    while (R.roasters.length < G.roasterCount() && Object.keys(R.beans).length) {
+      const k = Object.keys(R.beans).sort((a, b) => R.beans[b].kg - R.beans[a].kg)[0], [v, m] = k.split('.'), best = G.bestRoast(v, m);
+      const p = H() && rnd() < 0.25 ? ['light', 'medium', 'dark'][Math.floor(rnd() * 3)] : best; const n = R.roasters.length; act('roast:' + k + '|' + p); if (R.roasters.length === n) break;
+    }
+    R.roasters.forEach((r, i) => { if (!r.crack && G.inCrack(r) && !r.tried) { r.tried = true; if (!H() || rnd() < 0.7) act('crack:' + i); } });
+    for (let i = R.bags.length - 1; i >= 0; i--) { const b = R.bags[i], k = Object.keys(G.RBUYERS).find((x) => b.blend || G.RBUYERS[x].wants === b.profile) || 'konbini'; const c0 = S.coins; act('sellbag:' + i + '.' + k); B.roastCoins = (B.roastCoins || 0) + (S.coins - c0); B.roastSold = (B.roastSold || 0) + 1; }
+  }
+  function decide() { closeAll(); G.checkIn(); G.checkTabs(); tap(); active(); mill(); roast(); knowhow(); coins(); prestige(); closeAll(); }
   function snap() {
     const S = G.S;
     B.snaps.push({ t: Math.round(B.t), lv: G.level(), xp: Math.round(S.xp), p: S.prestige, coins: Math.round(S.coins), kh: Math.round(S.points), cranes: S.cranes, farms: G.LOCS.filter(live).length, workers: G.totalWorkers(), lots: S.stats.lotsSold, contracts: S.stats.contracts || 0, cap: G.cap(), racks: G.racks(), stored: Math.round(G.stored()), day: S.day });

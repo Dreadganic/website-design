@@ -1325,13 +1325,14 @@ const BLEND_NAMES = ['Casablanca Blend', 'Osaka Morning', 'Kissaten Dark', 'Saku
 const beanName = (key) => { const [v, m] = key.split('.'); return ART.varieties[v] + ' ' + METHODS[m].name.toLowerCase(); };
 const bagName = (b) => (b.blend || beanName(b.key)) + (b.blend ? '' : ' · ' + ROASTS[b.profile].name.toLowerCase());
 const bagPrice = (b, k) => { const rb = RBUYERS[k], want = b.blend || b.profile === rb.wants; return Math.round(b.coins * (want ? rb.mult * (b.blend ? 1.15 : 1) : 1) * (0.6 + b.q / 100)); };
-function toRoastery(i) {   /* a dry lot goes to the roastery's green store instead of the roastery buyer */
+const roasteryFeedWants = () => roasteryOpen() && S.roastery.feed && Object.values(S.roastery.beans).reduce((a, b) => a + b.kg, 0) < roastCap() * roasterCount() * 2;
+function toRoastery(i, quiet) {   /* a dry lot goes to the roastery's green store instead of the roastery buyer */
   const l = S.lots[i]; if (!l || l.left > 0 || !roasteryOpen()) return;
   const green = l.kg * 0.2, r = saleFor(l.v, l.method, green, l), key = l.v + '.' + l.method, R = S.roastery;
   const b = R.beans[key] = R.beans[key] || { kg: 0, coins: 0, pts: 0, cup: 0 };
   b.cup = (b.cup * b.kg + r.cup * green) / (b.kg + green); b.kg += green; b.coins += r.coins; b.pts += r.points;
   S.lots.splice(i, 1); nbAdd(l.v, l.method, 1); S.stats.lotsSold += 1; task('sell', 1);
-  SFX.play('stamp'); toast(fmtKg(green) + ' kg of green ' + beanName(key) + ' sent to the roastery');
+  if (!quiet) { SFX.play('stamp'); toast(fmtKg(green) + ' kg of green ' + beanName(key) + ' sent to the roastery'); }
 }
 function startRoast(key, profile) {
   const R = S.roastery, b = R.beans[key]; if (!b || b.kg < 0.5 || R.roasters.length >= roasterCount() || !ROASTS[profile]) return;
@@ -1372,7 +1373,7 @@ function roasteryPanel() {
     const p = roastP(r), cr = inCrack(r);
     h += '<div class="rslot' + (cr ? ' crack' : '') + '">' + img('roaster_' + (Math.floor(Date.now() / 300) % 2), 40) + '<div><b>' + fmtKg(r.kg) + ' kg ' + beanName(r.key) + ' · ' + ROASTS[r.profile].name.toLowerCase() + '</b><span class="bar"><i style="width:' + Math.round(p * 100) + '%;background:' + ROASTS[r.profile].col + '"></i></span><small>' + (r.crack === 1 ? 'Perfect crack! ' : r.crack === 2 ? 'Missed the crack. ' : cr ? 'First crack: tap now! ' : p < 0.7 ? 'Drying and browning… ' : '') + Math.max(0, Math.ceil((1 - p) * r.dur / 1000)) + ' s left</small></div>' + (r.crack ? '' : btn('Crack', cr ? 'now!' : 'wait', 'crack:' + i, true, cr ? 'gold' : '')) + '</div>';
   }
-  h += '</div><h3>Green coffee</h3>';
+  h += '</div><h3>Green coffee</h3>' + (S.staff.foreman ? '<p class="note">' + btn(S.roastery.feed ? 'On' : 'Off', 'tap to switch', 'roastfeed', true, S.roastery.feed ? 'blue' : '') + ' <b>Foreman keeps the roastery stocked:</b> he sends dry lots here until about two roasts\' worth of green coffee is waiting. You still choose the roast and catch the crack.</p>' : '');
   const keys = Object.keys(R.beans);
   h += keys.length ? keys.map((k) => { const b = R.beans[k], [v, m] = k.split('.'), best = bestRoast(v, m), free = R.roasters.length < roasterCount();
     return '<div class="rrow"><div class="rrow-t">' + img('bush_' + v + '_ripe', 28) + '<div><b>' + beanName(k) + ' · ' + fmtKg(b.kg) + ' kg</b><span>Cup ' + b.cup.toFixed(1) + ' · best roast: ' + ROASTS[best].name.toLowerCase() + '</span></div></div><div class="seg">' + Object.keys(ROASTS).map((p) => btn(ROASTS[p].name + (p === best ? ' ★' : ''), Math.round(roastTime(p)) + ' s', 'roast:' + k + '|' + p, free, p === best ? 'green' : '')).join('') + '</div></div>'; }).join('') : '<p class="note">No green coffee yet. In the Mill, tap Roast on a dry lot to send it here.</p>';
@@ -2157,6 +2158,7 @@ function staffTick() {
   if (!S.staff.foreman) return;
   for (let i = S.lots.length - 1; i >= 0; i--) {
     const l = S.lots[i]; if (l.left > 0 || reqLot(l)) continue;   /* a lot a regular asked for waits for you */
+    if (roasteryFeedWants()) { toRoastery(i, true); continue; }   /* keeps the roastery's green store topped up when asked */
     const c = S.staff.agent && S.tabs.orders && S.contracts.find((x) => fits(x, l));
     if (c) deliver(i, c.id, true); else sellLot(i, true);
   }
@@ -2788,6 +2790,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'millsub') S.millSub = v;
   else if (a === 'roastgo') { closeModal(); S.millSub = 'roast'; setTab('mill'); }
   else if (a === 'toroast') toRoastery(+v);
+  else if (a === 'roastfeed') S.roastery.feed = !S.roastery.feed;
   else if (a === 'roast') { const [k, p] = v.split('|'); startRoast(k, p); }
   else if (a === 'crack') { const r = S.roastery.roasters[+v]; if (r && !r.crack) { r.crack = inCrack(r) ? 1 : 2; SFX.play(r.crack === 1 ? 'achieve' : 'nope'); toast(r.crack === 1 ? 'Perfect crack! +15 quality' : roastP(r) < 0.7 ? 'Too early: listen for the crack at about 70%' : 'Too late: the crack has passed'); } }
   else if (a === 'sellbag') { const [i, k] = v.split('.'), R = S.roastery, b = R.bags[+i]; if (b && RBUYERS[k]) { const c = bagPrice(b, k), pts = Math.round(b.pts * 1.2), rep = Math.round(b.kg * b.q / 100 * (b.blend || b.profile === RBUYERS[k].wants ? 1.5 : 1)); R.bags.splice(+i, 1); earn({ coins: c, points: pts }); R.rep = (R.rep || 0) + rep; SFX.play('coins'); toast('Sold to a ' + RBUYERS[k].name.toLowerCase() + ': +' + fmt(c) + ' coins, +' + fmt(pts) + ' know-how, +' + fmt(rep) + ' reputation'); } }

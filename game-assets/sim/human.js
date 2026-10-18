@@ -15,8 +15,8 @@ const [html, out, target, seed] = [process.argv[2], process.argv[3], +(process.a
     const mins = 20 + Math.floor(rnd() * 26);
     for (let m = 0; m < mins; m += 5) {
       r = await p.evaluate(() => BOT.run(300, 6));
-      farms.push(await p.evaluate(() => { const G = BOT.G, S = G.S; return { t: Math.round(BOT.t), p: S.prestige, lv: G.level(), coins: Math.round(S.coins), kh: Math.round(S.points), racks: G.racks(), cap: G.cap(),
-        f: G.LOCS.filter((l) => S.farms[l].unlocked).map((l) => { const f = S.farms[l]; return { l, asleep: !!S.dormant[l], w: f.workers.length, max: G.maxPickers(f), b: Object.values(f.build).reduce((a, x) => a + x, 0), mgr: !!f.manager, m: f.mastery || 0, field: !!f.field }; }) }; }));
+      farms.push(await p.evaluate(() => { const G = BOT.G, S = G.S; return { t: Math.round(BOT.t), p: S.prestige, lv: G.level(), coins: Math.round(S.coins), kh: Math.round(S.points), racks: G.racks(), cap: G.cap(), rep: S.roastery ? Math.round(S.roastery.rep || 0) : 0, repLv: G.repLevel ? G.repLevel() : 0, roastCoins: Math.round(BOT.roastCoins || 0), roastSold: BOT.roastSold || 0, nb: G.nbTotal ? G.nbTotal() : 0, research: S.research || 0, req: (S.stats || {}).requests || 0, titles: Object.keys((S.sitems || {}).title || {}).length,
+        f: G.LOCS.filter((l) => S.farms[l].unlocked).map((l) => { const f = S.farms[l]; return { l, fl: G.farmLevel ? G.farmLevel(f) : 0, asleep: !!S.dormant[l], w: f.workers.length, max: G.maxPickers(f), b: Object.values(f.build).reduce((a, x) => a + x, 0), mgr: !!f.manager, m: f.mastery || 0, field: !!f.field }; }) }; }));
       if (r.p >= target) break;
     }
     playH += mins / 60;
