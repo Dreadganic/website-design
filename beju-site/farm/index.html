@@ -1317,8 +1317,8 @@ const bestRoast = (v, m) => (['geisha', 'heirloom'].includes(v) || (m === 'washe
 const RBUYERS = { cafe: { name: 'Specialty café', wants: 'light', mult: 1.5 }, kissa: { name: 'Kissaten', wants: 'dark', mult: 1.45 }, konbini: { name: 'Konbini blend', wants: 'medium', mult: 1.25 } };
 const REP_AT = (l) => Math.round(100 * Math.pow(l - 1, 2));   /* reputation comes per bag, so levels follow how often you roast, not how big the drum is */
 const repLevel = () => { let l = 1; while (l < 20 && (S.roastery.rep || 0) >= REP_AT(l + 1)) l++; return l; };
-const REP_PERKS = { 2: 'Cooling tray: roasts take 20% less time', 3: 'Bigger drum: 30 kg a roast', 4: 'A second roaster', 6: 'Cupping lab: +5 roast quality', 7: 'Bigger drum: 60 kg a roast', 10: 'House blends: blend two bags under a Beju name', 12: 'Bigger drum: 120 kg a roast', 15: 'A third roaster', 20: 'The Master roaster title' };
-const roastCap = () => { const l = repLevel(); return l >= 12 ? 120 : l >= 7 ? 60 : l >= 3 ? 30 : 15; };
+const REP_PERKS = { 2: 'Cooling tray: roasts take 20% less time', 3: 'Bigger drum: 80 kg a roast', 4: 'A second roaster', 6: 'Cupping lab: +5 roast quality', 7: 'Bigger drum: 160 kg a roast', 10: 'House blends: blend two bags under a Beju name', 12: 'Bigger drum: 320 kg a roast', 15: 'A third roaster', 20: 'The Master roaster title' };
+const roastCap = () => { const l = repLevel(); return l >= 12 ? 320 : l >= 7 ? 160 : l >= 3 ? 80 : 40; };
 const roasterCount = () => { const l = repLevel(); return l >= 15 ? 3 : l >= 4 ? 2 : 1; };
 const roastTime = (p) => ROASTS[p].time * (repLevel() >= 2 ? 0.8 : 1);
 const BLEND_NAMES = ['Casablanca Blend', 'Osaka Morning', 'Kissaten Dark', 'Sakura Light', 'Crane House Blend', 'Kyoto Evening', 'Beju Breakfast', 'Momiji Roast'];
