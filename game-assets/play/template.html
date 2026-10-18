@@ -625,7 +625,7 @@ function toRoastery(i, quiet) {   /* a dry lot goes to the roastery's green stor
   const green = l.kg * 0.2, r = saleFor(l.v, l.method, green, l), key = l.v + '.' + l.method, R = S.roastery;
   const b = R.beans[key] = R.beans[key] || { kg: 0, coins: 0, pts: 0, cup: 0 };
   b.cup = (b.cup * b.kg + r.cup * green) / (b.kg + green); b.kg += green; b.coins += r.coins; b.pts += r.points;
-  S.lots.splice(i, 1); nbAdd(l.v, l.method, 1); S.stats.lotsSold += 1; task('sell', 1);
+  millSold(i, 'to roastery'); S.lots.splice(i, 1); nbAdd(l.v, l.method, 1); S.stats.lotsSold += 1; task('sell', 1);
   if (!quiet) { SFX.play('stamp'); toast(fmtKg(green) + ' kg of green ' + beanName(key) + ' sent to the roastery'); }
 }
 function startRoast(key, profile) {
@@ -647,6 +647,7 @@ function roasteryTick() {
     const [v, m] = r.key.split('.'), best = bestRoast(v, m) === r.profile;
     const q = Math.max(20, Math.min(100, Math.round(r.cup - 40 + (best ? 15 : -5) + (r.crack === 1 ? 15 : 0) + (repLevel() >= 6 ? 5 : 0))));
     R.bags.push({ key: r.key, profile: r.profile, kg: r.kg, coins: r.coins, pts: r.pts, q });
+    IN.roast.cool[i] = { until: Date.now() + 5000, col: ROASTS[r.profile].col };   /* the beans tip into the cooling tray */
     R.roasters.splice(i, 1); star('roast'); SFX.play('achieve');
     toast(ROASTS[r.profile].name + ' roast done: ' + beanName(r.key) + ', quality ' + q + (r.crack === 1 ? ' (perfect crack)' : ''));
   }
@@ -1127,8 +1128,8 @@ function tick(dt) {
   S.weekly.team = 1500 + 2200 * Math.min(1, (Date.now() / 864e5 - S.weekly.start) / 7);
   S.heartT += d; if (S.heartT >= 2) { S.heartT = 0; if (S.hearts < maxHearts()) S.hearts += 1; }
   S.lots.forEach((l) => { if (l.left > 0) { l.left = Math.max(0, l.left - d); if (!l.left) guideStep('dry'); if (!l.left && !S.staff.foreman) SFX.play('ding'); } });
-  LOCS.forEach((l) => { const f = S.farms[l]; if (f.unlocked && !S.dormant[l]) tickFarm(f, d, l === S.loc); });
-  tickMe(d);
+  LOCS.forEach((l) => { const f = S.farms[l]; if (f.unlocked && !S.dormant[l]) tickFarm(f, d, l === S.loc && tab === 'farm'); });
+  tickMe(d); tickInside(dt);
   rateC = rateC * Math.pow(0.99, dt) + earnedC * 60 * (1 - Math.pow(0.99, dt)) / Math.max(dt, 1e-3); rateX = rateX * Math.pow(0.99, dt) + earnedX * 60 * (1 - Math.pow(0.99, dt)) / Math.max(dt, 1e-3); earnedC = 0; earnedX = 0;
   requestTick(); roasteryTick();
   { const gg = $('goldGo'), away = golden && golden.loc !== S.loc, txt = away ? 'Golden bush at ' + ART.locations[golden.loc].name.split(',')[0] + ' · Go (' + Math.ceil(golden.t) + ' s)' : ''; gg.hidden = !away; if (gg.textContent !== txt) gg.textContent = txt; }   /* Lookout: a Go button when the golden bush is on another farm */
@@ -1150,7 +1151,23 @@ function tick(dt) {
   bursts.forEach((b) => { b.t += dt; b.x += b.vx * dt; b.y += b.vy * dt; b.vy += 120 * dt; });
   for (let i = bursts.length - 1; i >= 0; i--) if (bursts[i].t > 0.6) bursts.splice(i, 1);
 }
+function nameTag(x, y) {   /* your name tag, in your tier's colour, with stars past the top tier */
+  const stars = S.prestige >= TIERS.length ? ' ' + '★'.repeat(Math.min(5, S.prestige - TIERS.length + 1)) : '', label = S.name + stars;
+  ctx.font = '700 12px "Pixelify Sans", monospace'; ctx.textAlign = 'center';
+  const tx = Math.round(x) * 2, ty = (Math.round(y) - 27) * 2, w = ctx.measureText(label).width + 10;
+  ctx.fillStyle = 'rgba(30,20,12,0.72)'; ctx.fillRect(tx - w / 2, ty - 11, w, 15); ctx.fillStyle = TAG_COLOR[tierOf(S.prestige)]; ctx.fillText(label, tx, ty);
+}
+function drawFloats() {
+  ctx.textAlign = 'center'; ctx.font = '700 19px "Zen Kaku Gothic New", system-ui, sans-serif';   /* floating +coins and +kg read best in the body font */
+  floats.forEach((t) => {
+    const y = (t.y - t.t * 12) * 2;
+    ctx.globalAlpha = Math.max(0, 1 - t.t);
+    ctx.fillStyle = '#3E2A1C'; ctx.fillText(t.text, t.x * 2 + 2, y + 2); ctx.fillStyle = '#FFF4DE'; ctx.fillText(t.text, t.x * 2, y);
+  });
+  ctx.globalAlpha = 1;
+}
 function draw(time) {
+  const sc = scene(); if (sc !== 'farm') return drawInside(sc, time);
   const f = S.farms[S.loc], sea = season(S.loc), b = bg(S.loc);
   fx.imageSmoothingEnabled = false;
   if (b.complete && b.naturalWidth) fx.drawImage(b, 0, 0); else { fx.fillStyle = '#7A9A3A'; fx.fillRect(0, 0, W, H); }
@@ -1241,12 +1258,7 @@ function draw(time) {
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(frame, 0, 0, W * 2, H * 2);
   ctx.textAlign = 'center';
-  {   /* your name tag, in your tier's colour, with stars past the top tier */
-    const stars = S.prestige >= TIERS.length ? ' ' + '★'.repeat(Math.min(5, S.prestige - TIERS.length + 1)) : '', label = S.name + stars;
-    ctx.font = '700 12px "Pixelify Sans", monospace'; ctx.textAlign = 'center';
-    const tx = Math.round(me.x) * 2, ty = (Math.round(me.y) - 27) * 2, w = ctx.measureText(label).width + 10;
-    ctx.fillStyle = 'rgba(30,20,12,0.72)'; ctx.fillRect(tx - w / 2, ty - 11, w, 15); ctx.fillStyle = TAG_COLOR[tierOf(S.prestige)]; ctx.fillText(label, tx, ty);
-  }
+  nameTag(me.x, me.y);
   if (asleep) {   /* a wooden sign in the middle of the farm */
     const tx = 'DORMANT · REOPENS AT LEVEL ' + S.dormant[S.loc];
     ctx.font = '700 18px "Zen Kaku Gothic New", system-ui, sans-serif'; const w = ctx.measureText(tx).width + 28;
@@ -1254,18 +1266,269 @@ function draw(time) {
     ctx.fillStyle = '#9C6C3C'; ctx.fillRect(W - w / 2, 226, w, 2); ctx.fillStyle = '#FFF4DE'; ctx.fillText(tx, W, 233);
   }
   if (!f.field) { ctx.font = '700 13px "Pixelify Sans", monospace'; ctx.fillStyle = '#4A2E18'; ctx.fillText('EXPAND', 142 * 2, 173 * 2); }
-  ctx.font = '700 19px "Zen Kaku Gothic New", system-ui, sans-serif';   /* floating +coins and +kg read best in the body font */
-  floats.forEach((t) => {
-    const y = (t.y - t.t * 12) * 2;
-    ctx.globalAlpha = Math.max(0, 1 - t.t);
-    ctx.fillStyle = '#3E2A1C'; ctx.fillText(t.text, t.x * 2 + 2, y + 2); ctx.fillStyle = '#FFF4DE'; ctx.fillText(t.text, t.x * 2, y);
-  });
-  ctx.globalAlpha = 1;
+  drawFloats();
 }
-
+/* ---------- the mill yard and the roastery: what the stage shows on the Mill tab ---------- */
+const scene = () => (tab !== 'mill' ? 'farm' : S.millSub === 'roast' && roasteryOpen() ? 'roast' : 'mill');
+const sceneImgs = {};
+function sceneBg(k) { if (!sceneImgs[k]) { const im = new Image(); im.src = BGS[k]; sceneImgs[k] = im; } return sceneImgs[k]; }
+const RACK_SHOWN = 16, RACK_GAPS = [50, 96, 142], TRUCK = { x: 54, y: 90 };
+const rackAt = (i) => ({ x: 7 + (i % 4) * 46, y: 98 + Math.floor(i / 4) * 26 });
+const BAYS = [8, 38, 68], BAY_Y = 62, SHELF_Y = [11, 27, 43], SHELF_SHOWN = 12, DOOR = { x: 96, y: 238 };
+/* what's on a rack: wet cherries or parchment darkening as they dry, cached as small tiles per process and drying stage */
+const LOT_COL = { washed: ['#EEE2B8', '#C8AC7C'], natural: ['#D4423A', '#4A1E1C'], honey: ['#F2AC44', '#8A4E24'], rum: ['#C4523A', '#5A2A20'], whiskey: ['#CC6A48', '#5E3424'], strawberry: ['#EC5C6C', '#6A2430'] };
+const lotTiles = {};
+const mixCol = (p, q, u) => '#' + [1, 3, 5].map((i) => Math.round(parseInt(p.slice(i, i + 2), 16) * (1 - u) + parseInt(q.slice(i, i + 2), 16) * u).toString(16).padStart(2, '0')).join('');
+function lotTile(method, st) {
+  const k = method + st; if (lotTiles[k]) return lotTiles[k];
+  const c = document.createElement('canvas'); c.width = 36; c.height = 8; const x = c.getContext('2d'), [a, b] = LOT_COL[method] || LOT_COL.washed;
+  let z = method.length * 97 + 13;
+  for (let yy = 0; yy < 8; yy++) for (let xx = 0; xx < 36; xx++) {
+    z = (z * 1103515245 + 12345) & 0x7fffffff; const r = z / 0x7fffffff;
+    let col = mixCol(a, b, Math.min(1, Math.max(0, st / 4 + (r - 0.5) * 0.35)));
+    if (r > 0.9) col = mixCol(col, '#000000', 0.25); else if (r < 0.05) col = mixCol(col, '#FFFFFF', 0.3);
+    x.fillStyle = col; x.fillRect(xx, yy, 1, 1);
+  }
+  return (lotTiles[k] = c);
+}
+const lotSlot = new WeakMap();
+function rackSlots() {   /* each lot keeps its rack until it leaves, so selling one doesn't shuffle the rest along; returns the lot on each rack */
+  const used = new Set(), out = [];
+  S.lots.forEach((l) => { const k = lotSlot.get(l); if (k !== undefined && !used.has(k)) used.add(k); else lotSlot.delete(l); });
+  S.lots.forEach((l) => { if (!lotSlot.has(l)) { let k = 0; while (used.has(k)) k++; lotSlot.set(l, k); used.add(k); } out[lotSlot.get(l)] = l; });
+  return out;
+}
+const lotStage = (l) => (l.left <= 0 ? 4 : Math.min(3, Math.floor((1 - l.left / l.total) * 4)));
+const IN = { mill: { hands: [], fore: null, me: null, carry: [] }, roast: { me: null, help: null, till: null, guests: [], puffs: [], cool: {}, guestT: 20 } };
+const HELP_LOOK = { shirt: ['#5A5A5A', '#3E3E3E', '#2A2A2A'], hat: ['#F8F4EC', '#D8D0BC', '#A89C84'] }, TILL_LOOK = { shirt: ['#4A8E66', '#2D6A46', '#1E4A30'], hat: ['#3E2A1C', '#2E1E14', '#1E140C'] };
+const GUEST_LOOK = { cafe: { shirt: ['#F2C04A', '#D8A030', '#A87818'], hat: ['#5A4A8A', '#463A70', '#2E2650'] }, kissa: { shirt: ['#F4F0E4', '#D8D0BC', '#A89C84'], hat: ['#3E2A1C', '#2E1E14', '#1E140C'] }, konbini: { shirt: ['#78A8E8', '#4878C8', '#305898'], hat: ['#4878C8', '#305898', '#203C68'] } };
+const walker = (x, y, look) => ({ x, y, look, path: [], walk: 0, dir: 'down', flip: false, t: 0, work: 0, state: 'idle' });
+function step(o, d, v) {   /* walks along o.path; true while still walking */
+  const p = o.path[0]; if (!p) return false;
+  const dx = p.x - o.x, dy = p.y - o.y, dist = Math.hypot(dx, dy), s = v * d;
+  if (Math.abs(dx) > Math.abs(dy)) { o.dir = 'side'; o.flip = dx < 0; } else o.dir = dy < 0 ? 'up' : 'down';
+  if (dist <= s) { o.x = p.x; o.y = p.y; o.path.shift(); } else { o.x += dx / dist * s; o.y += dy / dist * s; }
+  o.walk += d; return true;
+}
+/* in the mill people keep to the patio, the aisles between rack rows and the gaps between columns */
+function millRoute(o, to) {
+  if (Math.abs(o.y - to.y) < 2) return [to];
+  const g = RACK_GAPS.reduce((a, x) => (Math.abs(x - (o.x + to.x) / 2) < Math.abs(a - (o.x + to.x) / 2) ? x : a), RACK_GAPS[0]);
+  return [{ x: g, y: o.y }, { x: g, y: to.y }, to];
+}
+const rackFoot = (i) => { const r = rackAt(i); return { x: r.x + 10 + rnd() * 20, y: r.y + 24 }; };
+function millSold(i, text) {   /* a sold lot leaves its rack on someone's shoulder, bound for the truck */
+  const k = lotSlot.get(S.lots[i]); if (scene() !== 'mill' || k === undefined || k >= RACK_SHOWN) return;
+  const r = rackAt(k), c = walker(r.x + 20, r.y + 24, { shirt: ART.shirts[(k + 3) % ART.shirts.length], hat: ART.hats[S.hat] });
+  floats.push({ x: r.x + 20, y: r.y + 2, text, t: 0 });
+  c.path = millRoute(c, TRUCK); IN.mill.carry.push(c); if (IN.mill.carry.length > 6) IN.mill.carry.shift();
+}
+function tickMill(d) {
+  const M = IN.mill, bySlot = rackSlots(), drying = bySlot.slice(0, RACK_SHOWN).map((l, i) => (l && l.left > 0 ? i : -1)).filter((i) => i > -1), full = bySlot.slice(0, RACK_SHOWN).map((l, i) => (l ? i : -1)).filter((i) => i > -1);
+  const n = Math.min(4, Math.ceil(drying.length / 3));
+  while (M.hands.length < n) M.hands.push(walker(70 + M.hands.length * 26, 90, { shirt: ART.shirts[(M.hands.length + 1) % ART.shirts.length], hat: ART.hats[S.hat] }));
+  if (M.hands.length > n) M.hands.length = n;
+  M.hands.forEach((w) => {   /* mill hands rake the drying lots so they dry evenly */
+    if (step(w, d, 22)) return;
+    if (w.state === 'go') { w.state = 'rake'; w.t = 3 + rnd() * 3; w.dir = 'up'; }
+    if (w.state === 'rake') w.work += d;
+    if ((w.t -= d) > 0) return;
+    if (drying.length) { w.path = millRoute(w, rackFoot(drying[Math.floor(rnd() * drying.length)])); w.state = 'go'; }
+    else { w.path = millRoute(w, { x: 70 + rnd() * 76, y: 90 }); w.state = 'idle'; w.t = 2 + rnd() * 3; }
+  });
+  if (S.staff.foreman && !M.fore) M.fore = walker(100, 90, MGR_LOOK);
+  if (M.fore && !step(M.fore, d, 16) && (M.fore.t -= d) <= 0) {   /* the foreman checks the racks and sees lots on to the truck */
+    const f = M.fore, any = full.length ? full[Math.floor(rnd() * full.length)] : -1;
+    f.path = millRoute(f, any > -1 && rnd() < 0.7 ? rackFoot(any) : { x: TRUCK.x + rnd() * 10, y: 90 }); f.t = 2 + rnd() * 3; f.dir = 'up';
+  }
+  if (!M.me) M.me = Object.assign(walker(150, 90), { me: true });
+  if (!step(M.me, d, 20) && (M.me.t -= d) <= 0) {   /* you wander between the cupping table and the racks */
+    const m = M.me; m.t = 3 + rnd() * 4;
+    m.path = millRoute(m, rnd() < 0.4 ? { x: 160 + rnd() * 22, y: 90 } : full.length ? rackFoot(full[Math.floor(rnd() * full.length)]) : { x: 120 + rnd() * 40, y: 90 });
+  }
+  for (let i = M.carry.length - 1; i >= 0; i--) { if (!step(M.carry[i], d, 26)) M.carry.splice(i, 1); }
+}
+const bayFoot = (i) => ({ x: BAYS[i] + 13, y: 128 });
+function roastGuest(kind, buys) {
+  const R = IN.roast; if (R.guests.length >= 4) return;
+  const g = walker(DOOR.x, DOOR.y, GUEST_LOOK[kind] || GUEST_LOOK.cafe); g.buys = buys; g.state = 'in';
+  g.path = [{ x: DOOR.x, y: 184 }, { x: 124 + rnd() * 56, y: 178 }]; R.guests.push(g);
+}
+function tickRoast(d) {
+  const R = IN.roast, RS = S.roastery;
+  if (!R.till) R.till = walker(150, 136, TILL_LOOK);
+  if (!R.help) R.help = walker(44, 176, HELP_LOOK);
+  if (!R.me) R.me = Object.assign(walker(110, 120), { me: true });
+  const busy = RS.roasters.map((r, i) => i).sort((a, b) => inCrack(RS.roasters[b]) - inCrack(RS.roasters[a]));
+  const m = R.me;
+  if (busy.length) {   /* you stand at the roaster that needs you, and listen for the crack */
+    const at = bayFoot(busy[0]);
+    if (!m.path.length && Math.hypot(m.x - at.x, m.y - at.y) > 2) m.path = [at];
+    if (!step(m, d, 26)) m.dir = 'up';
+  } else if (!step(m, d, 20) && (m.t -= d) <= 0) { m.t = 3 + rnd() * 4; m.path = [rnd() < 0.5 ? { x: 110 + rnd() * 70, y: 70 + rnd() * 4 } : { x: 108 + rnd() * 70, y: 112 + rnd() * 16 }]; }
+  const h = R.help;
+  if (step(h, d, 20)) { /* walking */ } else if ((h.t -= d) <= 0) {   /* the assistant hauls green coffee, minds the trays and stocks the shelves */
+    const spots = [{ x: 46, y: 178 }, { x: 110 + rnd() * 70, y: 70 }].concat(Array.from({ length: roasterCount() }, (_, i) => bayFoot(i)));
+    if (repLevel() >= 6) spots.push({ x: 146, y: 110 });
+    h.path = [spots[Math.floor(rnd() * spots.length)]]; h.t = 2 + rnd() * 3; h.state = 'idle';
+  } else { h.dir = h.y < 80 ? 'up' : h.x < 60 && h.y > 160 ? 'side' : 'up'; h.flip = true; h.work += d; }
+  if (RS.bags.length && (R.guestT -= d) <= 0) { R.guestT = 25 + rnd() * 25; roastGuest(Object.keys(RBUYERS)[Math.floor(rnd() * 3)], false); }   /* window shoppers */
+  for (let i = R.guests.length - 1; i >= 0; i--) {
+    const g = R.guests[i];
+    if (step(g, d, 22)) continue;
+    if (g.state === 'in') { g.state = 'shop'; g.t = 2 + rnd() * 2; g.dir = 'up'; }
+    else if (g.state === 'shop' && (g.t -= d) <= 0) { g.state = 'out'; g.carry = g.buys; g.path = [{ x: DOOR.x, y: 184 }, { x: DOOR.x, y: DOOR.y }]; }
+    else if (g.state === 'out') R.guests.splice(i, 1);
+  }
+  RS.roasters.forEach((r, i) => {
+    if (i >= BAYS.length) return;
+    if (rnd() < d * 3) R.puffs.push({ x: BAYS[i] + 21 + rnd() * 2, y: BAY_Y + 3, vx: (rnd() - 0.5) * 3, t: 0, pop: false });
+    if (inCrack(r) && rnd() < d * 14) R.puffs.push({ x: BAYS[i] + 13, y: BAY_Y + 14, vx: (rnd() - 0.5) * 30, vy: -20 - rnd() * 20, t: 0, pop: true });
+  });
+  for (let i = R.puffs.length - 1; i >= 0; i--) {
+    const p = R.puffs[i]; p.t += d;
+    if (p.pop) { p.x += p.vx * d; p.y += p.vy * d; p.vy += 90 * d; if (p.t > 0.5) R.puffs.splice(i, 1); }
+    else { p.x += p.vx * d + Math.sin(p.t * 3) * 0.1; p.y -= 6 * d; if (p.t > 1.8) R.puffs.splice(i, 1); }
+  }
+}
+function tickInside(d) { const sc = scene(); if (sc === 'mill') tickMill(d); else if (sc === 'roast') tickRoast(d); }
+function drawGuy(o) {
+  const moving = o.path.length > 0;
+  let fr = 0;
+  if (moving) fr = o.dir === 'side' ? Math.floor(o.walk * 7) % 2 : WALK[Math.floor(o.walk * 7) % 4];
+  else if (o.state === 'rake') fr = Math.floor(o.work * 3) % 2 ? 1 : 2;
+  if (o.dir === 'side') fr = Math.min(fr, 1);
+  const spr = o.me ? sprite(bodyOf(S.look) + o.dir + '_' + fr, skinLook(S.look.skin)) : sprite('worker_' + o.dir + '_' + fr, o.look);
+  const X = Math.round(o.x) - 8, Y = Math.round(o.y) - 23;
+  fx.fillStyle = 'rgba(42,42,8,0.3)'; fx.beginPath(); fx.ellipse(X + 8, Y + 23, 5, 1.6, 0, 0, 7); fx.fill();
+  if (o.dir === 'side' && o.flip) { fx.save(); fx.translate(X + 16, Y); fx.scale(-1, 1); fx.drawImage(spr, 0, 0); fx.restore(); } else fx.drawImage(spr, X, Y);
+  if (o.look === MGR_LOOK && o.dir !== 'up') { fx.fillStyle = '#3E2A1C'; fx.fillRect(X + 11, Y + 14, 4, 5); fx.fillStyle = '#F8F4EC'; fx.fillRect(X + 12, Y + 15, 2, 3); }
+  return { X, Y };
+}
+function drawMill(time) {
+  const M = IN.mill, things = [], shown = Math.min(RACK_SHOWN, racks()), bySlot = rackSlots();
+  for (let i = 0; i < shown; i++) things.push({ y: rackAt(i).y + 18, rack: i });
+  M.hands.concat(M.fore ? [M.fore] : [], [M.me], M.carry).forEach((o) => o && things.push({ y: o.y, o }));
+  things.sort((a, b) => a.y - b.y);
+  things.forEach((t) => {
+    if (t.o) {
+      const { X, Y } = drawGuy(t.o);
+      if (M.carry.includes(t.o)) { const g = sprite('gsack'); fx.drawImage(g, t.o.flip ? X - 2 : X + 6, Y + 4); }
+      return;
+    }
+    const i = t.rack, r = rackAt(i), l = bySlot[i];
+    fx.drawImage(sprite('mill_rack'), r.x, r.y);
+    if (!l) return;
+    fx.drawImage(lotTile(l.method, lotStage(l)), r.x + 2, r.y + 2);
+    if (l.method === 'washed' && l.left > 0 && Math.floor(time * 2 + i) % 5 === 0) { fx.fillStyle = '#FFFFFF'; fx.fillRect(r.x + 8 + (i * 7) % 22, r.y + 4, 2, 1); }
+    if (l.cupped) { fx.fillStyle = '#3E2A1C'; fx.fillRect(r.x + 32, r.y - 3, 6, 5); fx.fillStyle = '#F8F4EC'; fx.fillRect(r.x + 33, r.y - 2, 4, 3); fx.fillStyle = '#6A3C1C'; fx.fillRect(r.x + 34, r.y - 2, 2, 1); }
+    if (reqLot(l)) { fx.fillStyle = '#F2C04A'; fx.fillRect(r.x + 2, r.y - 3, 3, 1); fx.fillRect(r.x + 3, r.y - 4, 1, 3); }
+    if (l.left <= 0 && Math.floor(time * 3 + i) % 4 === 0) fx.drawImage(sprite('sparkle'), r.x + 16, r.y - 2);
+    if (l.left > 0) { fx.fillStyle = 'rgba(30,20,12,0.55)'; fx.fillRect(r.x + 4, r.y + 13, 32, 2); fx.fillStyle = '#F2C04A'; fx.fillRect(r.x + 4, r.y + 13, Math.round(32 * (1 - l.left / l.total)), 2); }
+  });
+}
+function drawRoast(time) {
+  const R = IN.roast, RS = S.roastery, big = roastCap() >= 160, things = [];
+  RS.bags.slice(0, SHELF_SHOWN).forEach((b, k) => { const x = 106 + (k % 4) * 12, y = SHELF_Y[Math.floor(k / 4)]; fx.drawImage(sprite('bag_' + (b.blend ? 'medium' : b.profile)), x, y); if (b.blend) { fx.fillStyle = '#F2C04A'; fx.fillRect(x + 2, y + 9, 10, 1); } });   /* the shelf's left end, clear of the HUD */
+  const kg = Object.values(RS.beans).reduce((a, b) => a + b.kg, 0), sacks = kg > 0 ? Math.min(12, Math.max(1, Math.ceil(kg / 15))) : 0;
+  for (let k = 0; k < sacks; k++) { const row = Math.floor(k / 3); fx.drawImage(sprite('gsack'), 4 + (k % 3) * 12 + (row % 2) * 6, 182 - row * 7); }
+  if (repLevel() >= 6) fx.drawImage(sprite('cup_lab'), 124, 84);
+  for (let i = 0; i < BAYS.length; i++) {
+    if (i >= roasterCount()) continue;
+    const r = RS.roasters[i], x = BAYS[i];
+    things.push({ y: BAY_Y + 24, draw: () => {
+      fx.drawImage(sprite((big ? 'roasterB_' : 'roaster_') + (r ? Math.floor(time * 3.3) % 2 : 2)), x, BAY_Y);
+      if (repLevel() >= 2) {
+        fx.drawImage(sprite('cool_tray'), x + 1, BAY_Y + 30);
+        const cool = R.cool[i], hot = r && roastP(r) > 0.9 ? ROASTS[r.profile].col : cool && cool.until > Date.now() ? cool.col : null;
+        if (hot) {
+          fx.fillStyle = hot; fx.beginPath(); fx.ellipse(x + 13, BAY_Y + 35.5, 8, 3.5, 0, 0, 7); fx.fill();
+          const a = time * 4; fx.fillStyle = '#D8D8D0'; fx.fillRect(Math.round(x + 13 + Math.cos(a) * 6), Math.round(BAY_Y + 35 + Math.sin(a) * 2.5), 2, 1);
+        }
+      }
+      if (r) {   /* a progress bar with the first-crack window marked in gold */
+        const p = roastP(r);
+        fx.fillStyle = '#2A1E14'; fx.fillRect(x + 1, BAY_Y + 26, 24, 3);
+        fx.fillStyle = '#F2C04A'; fx.fillRect(x + 1 + Math.round(24 * 0.7), BAY_Y + 26, Math.round(24 * 0.16), 3);
+        fx.fillStyle = ROASTS[r.profile].col; fx.fillRect(x + 1, BAY_Y + 27, Math.round(24 * p), 1);
+        fx.fillStyle = '#FFF4DE'; fx.fillRect(x + 1 + Math.round(24 * p), BAY_Y + 26, 1, 3);
+      }
+    } });
+  }
+  [R.till, R.help, R.me].concat(R.guests).forEach((o) => o && things.push({ y: o.y, o }));
+  things.sort((a, b) => a.y - b.y);
+  things.forEach((t) => {
+    if (t.draw) return t.draw();
+    const { X, Y } = drawGuy(t.o);
+    if (t.o.carry) fx.drawImage(sprite('bag_medium'), t.o.flip ? X - 2 : X + 8, Y + 8);
+  });
+  R.puffs.forEach((p) => {
+    if (p.pop) { fx.fillStyle = p.t < 0.2 ? '#F2C04A' : '#7A4A28'; fx.fillRect(Math.round(p.x), Math.round(p.y), 1, 1); return; }
+    fx.globalAlpha = Math.max(0, 0.7 - p.t / 2.6); fx.fillStyle = '#E8E4DC'; fx.fillRect(Math.round(p.x), Math.round(p.y), p.t > 0.8 ? 2 : 1, p.t > 0.8 ? 2 : 1);
+  });
+  fx.globalAlpha = 1;
+}
+function drawInside(sc, time) {
+  const b = sceneBg(sc === 'roast' ? 'roastery' : 'mill');
+  fx.imageSmoothingEnabled = false;
+  if (b.complete && b.naturalWidth) fx.drawImage(b, 0, 0); else { fx.fillStyle = '#C89A64'; fx.fillRect(0, 0, W, H); }
+  if (sc === 'mill') drawMill(time); else drawRoast(time);
+  bursts.forEach((p) => { fx.fillStyle = p.c; fx.fillRect(Math.round(p.x), Math.round(p.y), 1, 1); });
+  const hr = S.minutes / 60, k = sc === 'roast' ? 0.45 : 1;   /* the roastery is indoors, so night only dims it a little */
+  const tint = hr >= 20 || hr < 5 ? 'rgba(30,40,110,' + (0.38 * k).toFixed(2) + ')' : hr >= 17.5 ? 'rgba(240,120,40,' + ((0.08 + (hr - 17.5) * 0.06) * k).toFixed(2) + ')' : hr < 7 ? 'rgba(240,150,170,' + (0.14 * k).toFixed(2) + ')' : null;
+  if (tint) { fx.fillStyle = tint; fx.fillRect(0, 0, W, H); }
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(frame, 0, 0, W * 2, H * 2);
+  ctx.textAlign = 'center';
+  const me = sc === 'roast' ? IN.roast.me : IN.mill.me;
+  if (me) nameTag(me.x, me.y);
+  ctx.font = '700 13px "Pixelify Sans", monospace';
+  if (sc === 'mill') {
+    if (racks() > RACK_SHOWN) { const tx = '+' + (racks() - RACK_SHOWN) + ' more racks', w = ctx.measureText(tx).width + 12; ctx.fillStyle = 'rgba(30,20,12,0.72)'; ctx.fillRect(W - w / 2, 404, w, 18); ctx.fillStyle = '#FFF4DE'; ctx.fillText(tx, W, 417); }
+  } else {
+    S.roastery.roasters.forEach((r, i) => {   /* a flashing call-out while first crack is on */
+      if (i >= BAYS.length || !inCrack(r) || r.crack || Math.floor(time * 4) % 2) return;
+      const tx = 'CRACK!', x = (BAYS[i] + 13) * 2, w = ctx.measureText(tx).width + 10;
+      ctx.fillStyle = '#3E2A1C'; ctx.fillRect(x - w / 2, BAY_Y * 2 - 14, w, 18); ctx.fillStyle = '#F2C04A'; ctx.fillText(tx, x, BAY_Y * 2);
+    });
+    if (S.roastery.bags.length > SHELF_SHOWN) { const tx = '+' + (S.roastery.bags.length - SHELF_SHOWN); ctx.fillStyle = 'rgba(30,20,12,0.72)'; ctx.fillRect(214, 100, 36, 18); ctx.fillStyle = '#FFF4DE'; ctx.fillText(tx, 232, 113); }
+    for (let i = roasterCount(); i < BAYS.length; i++) { const tx = 'REP ' + (i === 1 ? 4 : 15); ctx.fillStyle = 'rgba(62,42,28,0.55)'; ctx.fillText(tx, (BAYS[i] + 13) * 2, (BAY_Y + 16) * 2); }
+  }
+  drawFloats();
+}
+function insideClick(lx, ly) {
+  if (scene() === 'mill') {
+    for (let i = 0; i < Math.min(RACK_SHOWN, racks()); i++) {
+      const r = rackAt(i); if (lx < r.x || lx >= r.x + 40 || ly < r.y - 4 || ly >= r.y + 18) continue;
+      const l = rackSlots()[i], j = S.lots.indexOf(l);
+      if (!l) { SFX.play('knock'); floats.push({ x: r.x + 20, y: r.y, text: 'empty rack', t: 0 }); return; }
+      if (!l.cupped) { cupLot(j); floats.push({ x: r.x + 20, y: r.y, text: 'cupped +' + CUP_BONUS, t: 0 }); return; }
+      if (l.left > 0) { SFX.play('brush'); floats.push({ x: r.x + 20, y: r.y, text: 'drying ' + Math.round((1 - l.left / l.total) * 100) + '%', t: 0 }); return; }
+      if (reqLot(l)) { SFX.play('knock'); floats.push({ x: r.x + 20, y: r.y, text: 'for your regular', t: 0 }); return; }
+      const c = S.tabs.orders && S.contracts.find((x) => fits(x, l));
+      if (c) deliver(j, c.id, true); else sellLot(j, true);
+      SFX.play('coins'); guideStep('sell'); return;
+    }
+    if (lx > 150 && ly > 60 && ly < 82) { if (hasPerk('cupall') && S.lots.some((l) => !l.cupped)) cupAll(); else floats.push({ x: 170, y: 60, text: hasPerk('cupall') ? 'all cupped' : 'tap a rack to cup it', t: 0 }); return; }
+    if (lx < 50 && ly > 50 && ly < 90) { SFX.play('knock'); floats.push({ x: 30, y: 60, text: 'off to Osaka', t: 0 }); }
+    return;
+  }
+  const RS = S.roastery;
+  for (let i = 0; i < BAYS.length; i++) {
+    const x = BAYS[i]; if (lx < x || lx >= x + 26 || ly < BAY_Y || ly >= BAY_Y + 44) continue;
+    if (i >= roasterCount()) { SFX.play('knock'); floats.push({ x: x + 13, y: BAY_Y, text: 'reputation ' + (i === 1 ? 4 : 15), t: 0 }); return; }
+    if (RS.roasters[i]) { crackRoast(i); return; }
+    const keys = Object.keys(RS.beans).sort((a, b) => RS.beans[b].kg - RS.beans[a].kg);
+    if (!keys.length) { SFX.play('knock'); floats.push({ x: x + 13, y: BAY_Y, text: 'no green coffee', t: 0 }); return; }
+    const [v, m] = keys[0].split('.'); startRoast(keys[0], bestRoast(v, m)); return;
+  }
+  if (lx >= 104 && ly < 60) floats.push({ x: lx, y: 50, text: RS.bags.length ? RS.bags.length + ' bag' + (RS.bags.length > 1 ? 's' : '') + ' to sell below' : 'no bags yet', t: 0 });
+  else if (lx < 44 && ly > 168 && ly < 200) floats.push({ x: 24, y: 170, text: fmtKg(Object.values(RS.beans).reduce((a, b) => a + b.kg, 0)) + ' kg green', t: 0 });
+}
 /* ---------- player actions ---------- */
 cv.addEventListener('click', (e) => {
   const r = cv.getBoundingClientRect(), lx = (e.clientX - r.left) / r.width * W, ly = (e.clientY - r.top) / r.height * H;
+  if (scene() !== 'farm') { insideClick(lx, ly); return; }
   const f = S.farms[S.loc];
   const s = f.shrubs.find((x) => lx >= x.x && lx < x.x + 18 && ly >= x.y && ly < x.y + 22);
   if (s && golden && golden.loc === S.loc && f.shrubs.indexOf(s) === golden.i) {   /* golden bush: about two minutes of your current income */
@@ -1297,6 +1560,7 @@ function travel(dir) {
   let i = LOCS.indexOf(S.loc);
   i = (i + dir + LOCS.length) % LOCS.length;
   S.loc = LOCS[i];
+  if (tab === 'mill') tab = 'farm';   /* the arrows lead back out to the farms */
   refreshAll();
 }
 $('prevLoc').addEventListener('click', () => travel(-1));
@@ -1389,6 +1653,21 @@ function saleFor(v, method, green, lot) {
   const bonus = 1 + S.bonus, cup = cupFor(v, method) + (lot && lot.cupped ? CUP_BONUS : 0);
   return { cup, coins: Math.round((lot && lot.cupped ? CUP_PAY : 1) * green * 22 * VAR[v].value * METHODS[method].mult * bonus * (method === marketPick() ? MARKET : 1) * (eventDrop() && (v === eventDrop().variety || method === eventDrop().method) ? EVENT_MULT : 1) * seasonSale(method) * originMult(v, method)), points: Math.round(green * (3 + Math.max(0, cup - 80)) * 0.8 * bonus * researchMult()) };
 }
+function cupLot(i) {
+  const l = S.lots[i]; if (!l || l.cupped) return;
+  l.cupped = true; S.stats.cupped = (S.stats.cupped || 0) + 1; star('cup'); task('cup', 1); SFX.play('pour'); toast('Cupped by hand: +' + CUP_BONUS + ' cup score, +' + Math.round((CUP_PAY - 1) * 100) + '% pay');
+}
+function cupAll() {
+  if (!hasPerk('cupall')) return; let n = 0;
+  S.lots.forEach((l) => { if (!l.cupped) { l.cupped = true; n += 1; S.stats.cupped = (S.stats.cupped || 0) + 1; star('cup'); task('cup', 1); } });
+  if (n) { SFX.play('pour'); toast('Cupped ' + n + ' lot' + (n > 1 ? 's' : '') + ' by hand: +' + CUP_BONUS + ' cup score, +' + Math.round((CUP_PAY - 1) * 100) + '% pay'); }
+}
+function crackRoast(i) {
+  const r = S.roastery.roasters[i]; if (!r || r.crack) return;
+  r.crack = inCrack(r) ? 1 : 2; SFX.play(r.crack === 1 ? 'achieve' : 'nope');
+  toast(r.crack === 1 ? 'Perfect crack! +15 quality' : roastP(r) < 0.7 ? 'Too early: listen for the crack at about 70%' : 'Too late: the crack has passed');
+  if (scene() === 'roast' && i < BAYS.length) floats.push({ x: BAYS[i] + 13, y: BAY_Y - 2, text: r.crack === 1 ? 'perfect!' : roastP(r) < 0.7 ? 'too early' : 'too late', t: 0 });
+}
 function sellLot(i, quiet) {
   const l = S.lots[i]; if (!l || l.left > 0) return;
   const m = METHODS[l.method], green = l.kg * 0.2, r = saleFor(l.v, l.method, green, l);
@@ -1396,7 +1675,7 @@ function sellLot(i, quiet) {
   if (pea) { r.coins *= 2; r.points *= 2; }
   earn({ coins: r.coins, points: r.points });
   if (l.method === 'washed') S.weekly.mine += green;
-  S.lots.splice(i, 1); nbAdd(l.v, l.method, 1);
+  millSold(i, '+' + fmt(r.coins) + ' coins'); S.lots.splice(i, 1); nbAdd(l.v, l.method, 1);
   S.stats.sold += green; S.stats.lotsSold += 1; task('sell', 1);
   SFX.play(quiet ? 'xp' : 'coins', { n: pea ? 9 : 5 });
   if (!quiet) guideStep('sell');
@@ -1433,7 +1712,7 @@ function deliver(i, id, quiet) {
   const green = l.kg * 0.2, use = Math.min(green, c.kg - c.have), spare = green - use;
   c.have += use;
   if (l.method === 'washed') S.weekly.mine += green;
-  S.lots.splice(i, 1); nbAdd(l.v, l.method, 1); S.stats.lotsSold += 1; task('sell', 1); guideStep('deliver');
+  millSold(i, c.buyer.split(' ')[0]); S.lots.splice(i, 1); nbAdd(l.v, l.method, 1); S.stats.lotsSold += 1; task('sell', 1); guideStep('deliver');
   let extra = { coins: 0, points: 0 };
   if (spare > 0.05) { extra = saleFor(l.v, l.method, spare, l); earn(extra); }
   /* each delivery is paid its share straight away, so coffee in a contract that runs out of time is never lost */
@@ -1585,7 +1864,7 @@ function away(hours) {
 let tab = 'farm', toastT = 0;
 const TEST_TOOLS = true;   /* build.py --launch turns this off: the Test tab becomes Settings and the cheats stop working */
 const TABS = [['farm', 'Farm', 'i_worker'], ['mill', 'Mill', 'green_sack'], ['upgrades', 'Build', 'storage_4'], ['unlock', 'Unlock', 'i_points'], ['orders', 'Daily', 'i_cherry'], ['ranks', 'Ranks', 'i_trophy'], ['shop', 'Shop', 'i_crane'], TEST_TOOLS ? ['test', 'Test', 'i_box'] : ['test', 'Settings', 'i_box']];
-function setTab(t) { if (t !== tab) SFX.play('click'); if (S.newTab === t) S.newTab = null; guideStep('tab:' + t); tab = t; renderTabs(); renderPanel(); }
+function setTab(t) { if (t !== tab) SFX.play('click'); if (S.newTab === t) S.newTab = null; guideStep('tab:' + t); tab = t; renderTabs(); renderPanel(); refreshHud(); }
 
 /* free 100 g coffee samples: a welcome bag at Mogiana's first 1,000 kg, one per origin at prestige 2-5, and one a month for
    checking in on 20 days. Each is redeemed with a bejucoffee.com order of SAMPLE_MIN or more within SAMPLE_DAYS. Online, the server's list wins */
@@ -2077,7 +2356,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'lot') startLot(S.millV, v);
   else if (a === 'sell') sellLot(+v);
   else if (a === 'millview') S.millView = v;
-  else if (a === 'cupall') { if (!hasPerk('cupall')) return; let n = 0; S.lots.forEach((l) => { if (!l.cupped) { l.cupped = true; n += 1; S.stats.cupped = (S.stats.cupped || 0) + 1; star('cup'); task('cup', 1); } }); if (n) { SFX.play('pour'); toast('Cupped ' + n + ' lot' + (n > 1 ? 's' : '') + ' by hand: +' + CUP_BONUS + ' cup score, +' + Math.round((CUP_PAY - 1) * 100) + '% pay'); } }
+  else if (a === 'cupall') cupAll();
   else if (a === 'reqfill') {
     const r = S.request, i = r ? S.lots.findIndex((l) => reqLot(l) && l.cupped && l.left <= 0) : -1;
     if (i > -1) { S.lots.splice(i, 1); earn({ coins: r.coins, points: r.points }); S.stats.lotsSold += 1; S.stats.requests = (S.stats.requests || 0) + 1; S.request = null; S.reqNext = Date.now() + 900000; SFX.play('contract'); showModal('<h2>Sent to ' + r.who.split(' at ')[0] + '</h2>' + img('bush_' + r.v + '_ripe', 48) + '<p class="note">"Perfect, exactly what I hoped for." +' + fmt(r.coins) + ' coins and +' + fmt(r.points) + ' know-how. ' + r.who.split(' at ')[0] + ' will be back with another request soon.</p><button class="btn green" data-act="close">Lovely</button>'); nbAdd(r.v, r.m, 2); }
@@ -2087,8 +2366,8 @@ document.addEventListener('click', (e) => {
   else if (a === 'toroast') toRoastery(+v);
   else if (a === 'roastfeed') S.roastery.feed = +v || 0;
   else if (a === 'roast') { const [k, p] = v.split('|'); startRoast(k, p); }
-  else if (a === 'crack') { const r = S.roastery.roasters[+v]; if (r && !r.crack) { r.crack = inCrack(r) ? 1 : 2; SFX.play(r.crack === 1 ? 'achieve' : 'nope'); toast(r.crack === 1 ? 'Perfect crack! +15 quality' : roastP(r) < 0.7 ? 'Too early: listen for the crack at about 70%' : 'Too late: the crack has passed'); } }
-  else if (a === 'sellbag') { const [i, k] = v.split('.'), R = S.roastery, b = R.bags[+i]; if (b && RBUYERS[k]) { const c = bagPrice(b, k), pts = Math.round(b.pts), rep = Math.round(b.q / 10 * (b.blend ? 2 : b.profile === RBUYERS[k].wants ? 1.5 : 1)); R.bags.splice(+i, 1); earn({ coins: c, points: pts }); R.rep = (R.rep || 0) + rep; SFX.play('coins'); toast('Sold to a ' + RBUYERS[k].name.toLowerCase() + ': +' + fmt(c) + ' coins, +' + fmt(pts) + ' know-how, +' + fmt(rep) + ' reputation'); } }
+  else if (a === 'crack') crackRoast(+v);
+  else if (a === 'sellbag') { const [i, k] = v.split('.'), R = S.roastery, b = R.bags[+i]; if (b && RBUYERS[k]) { const c = bagPrice(b, k), pts = Math.round(b.pts), rep = Math.round(b.q / 10 * (b.blend ? 2 : b.profile === RBUYERS[k].wants ? 1.5 : 1)); R.bags.splice(+i, 1); earn({ coins: c, points: pts }); R.rep = (R.rep || 0) + rep; SFX.play('coins'); roastGuest(k, true); toast('Sold to a ' + RBUYERS[k].name.toLowerCase() + ': +' + fmt(c) + ' coins, +' + fmt(pts) + ' know-how, +' + fmt(rep) + ' reputation'); } }
   else if (a === 'blendask') { const R = S.roastery, b = R.bags[+v]; if (b) showModal('<h2>Blend ' + bagName(b) + '</h2><p class="note">Blend it with another bag to make <b>' + BLEND_NAMES[R.blendName || 0] + '</b>. A house blend gets +5 quality and every buyer wants it.</p>' + R.bags.map((x, j) => (j === +v || x.blend ? '' : row(img('bag_' + x.profile, 26), bagName(x) + ' · ' + fmtKg(x.kg) + ' kg', 'Quality ' + x.q, btn('Blend', '', 'blendwith:' + v + '.' + j, true, 'green')))).join('') + '<button class="btn" data-act="close">Cancel</button>'); }
   else if (a === 'blendwith') { const [i, j] = v.split('.').map(Number), R = S.roastery, x = R.bags[i], y = R.bags[j]; if (x && y && i !== j && repLevel() >= 10) { const kg = x.kg + y.kg, nb = { key: x.key, profile: 'blend', blend: BLEND_NAMES[R.blendName || 0], kg, coins: x.coins + y.coins, pts: x.pts + y.pts, q: Math.min(100, Math.round((x.q * x.kg + y.q * y.kg) / kg + 5)) }; R.bags = R.bags.filter((_, k) => k !== i && k !== j); R.bags.push(nb); closeModal(); SFX.play('pour'); toast(nb.blend + ' blended: ' + fmtKg(kg) + ' kg, quality ' + nb.q); } }
   else if (a === 'reqskip') { S.request = null; S.reqNext = Date.now() + 3600000; toast('Maybe next time. A new request comes within the hour.'); }
@@ -2098,7 +2377,7 @@ document.addEventListener('click', (e) => {
     for (let i = S.lots.length - 1; i >= 0; i--) { const l = S.lots[i]; if (l.left > 0 || reqLot(l)) continue; const c = S.tabs.orders && S.contracts.find((x) => fits(x, l)); if (c) deliver(i, c.id, true); else sellLot(i, true); n += 1; }
     if (n) { SFX.play('coins'); toast(n + ' lot' + (n > 1 ? 's' : '') + ' sold and delivered: +' + fmt(S.coins - c0) + ' coins'); }
   }
-  else if (a === 'cup') { const l = S.lots[+v]; if (l && !l.cupped) { l.cupped = true; S.stats.cupped = (S.stats.cupped || 0) + 1; star('cup'); task('cup', 1); SFX.play('pour'); toast('Cupped by hand: +' + CUP_BONUS + ' cup score, +' + Math.round((CUP_PAY - 1) * 100) + '% pay'); } }
+  else if (a === 'cup') cupLot(+v);
   else if (a === 'method') { if (gateOK('method:' + v) && spend('points', METHODS[v].cost)) { S.methods[v] = true; toast(METHODS[v].name + ' unlocked'); } }
   else if (a === 'up') { const before = S.lv[v]; buyUpgrade(v); if (S.lv[v] !== before) guideStep('up:' + v); }
   else if (a === 'guideNext') { if (S.guide < GUIDE.length) guideDone(); }
@@ -2193,6 +2472,11 @@ function refreshHud() {
   $('locBeds').textContent = S.farms[S.loc].unlocked ? fb.filter((v, i) => fb.indexOf(v) === i).map((v) => ART.varieties[v]).join(' · ') : 'Native: ' + L.beds.filter((v, i) => L.beds.indexOf(v) === i).map((v) => ART.varieties[v]).join(' · ');
   const SEA = { harvest: ['Harvest ×1.5', '#D85A3A'], rainy: ['Rainy · flowering', '#4A8AB8'], spring: ['Spring', '#E688A8'], summer: ['Summer ×1.25', '#6CA442'], autumn: ['Autumn', '#D2702C'], winter: ['Winter ×0.5', '#8CA8C8'] }[sea];
   $('seasonChip').textContent = SEA[0] + (S.seasonPick !== 'auto' && sea === S.seasonPick ? ' (test)' : ''); $('seasonChip').title = 'Weather: ' + SEA[0]; $('seasonChip').style.background = SEA[1];
+  const sc = scene(); $('seasonChip').hidden = sc !== 'farm';   /* the Mill tab shows the mill yard or the roastery instead of a farm */
+  if (sc === 'mill') { $('locName').textContent = 'Dry mill'; $('locBeds').textContent = S.lots.length + ' / ' + racks() + ' racks in use · ' + fmtKg(stored()) + ' kg of cherries waiting'; }
+  if (sc === 'roast') { $('locName').textContent = 'Roastery, Osaka'; $('locBeds').textContent = 'Reputation ' + repLevel() + ' · ' + S.roastery.roasters.length + ' / ' + roasterCount() + ' roasting · ' + S.roastery.bags.length + ' bags on the shelf'; }
+  const lab = sc === 'mill' ? 'Your dry mill: lots drying on raised racks. Tap a rack to cup its lot, or to sell it once it is dry.' : sc === 'roast' ? 'Your roastery. Tap a free roaster to roast your largest green coffee at its best roast, and tap a roaster at first crack.' : 'Your farm seen from above. Tap shrubs with ripe cherries to pick them.';
+  if (cv.getAttribute('aria-label') !== lab) cv.setAttribute('aria-label', lab);
   const mh = maxHearts();
   const hshow = Math.min(mh, 10);   /* ten hearts drawn, the rest as a number */
   $('hearts').innerHTML = Array.from({ length: hshow }, (_, i) => '<svg width="14" height="12" viewBox="0 0 7 6" shape-rendering="crispEdges" aria-hidden="true" style="filter:drop-shadow(1px 1px 0 #3E2A1C)"><g fill="' + (i < Math.ceil(S.hearts / mh * hshow) ? '#F07A3A' : '#5A3A2C') + '"><rect x="1" y="0" width="2" height="1"/><rect x="4" y="0" width="2" height="1"/><rect x="0" y="1" width="7" height="2"/><rect x="1" y="3" width="5" height="1"/><rect x="2" y="4" width="3" height="1"/><rect x="3" y="5" width="1" height="1"/></g></svg>').join('') + '<b class="hn">' + S.hearts + '</b>';
@@ -2307,7 +2591,7 @@ function audioStart() {   /* browsers only allow sound after a tap, so everythin
   SFX.unlock(); Cozy.init(SFX.context()); syncMusic();
 }
 document.addEventListener('pointerdown', audioStart, true);
-const trackFor = () => S.loc;   /* every farm plays its own theme, open or not */
+const trackFor = () => (scene() === 'roast' ? 'osaka' : S.loc);   /* every farm plays its own theme, open or not; the roastery plays Osaka's */
 function syncMusic() {
   Cozy.setVolume(S.musicVol); Cozy.setEnabled(S.music);
   const hr = S.minutes / 60; Cozy.setNight(hr >= 19 || hr < 6);

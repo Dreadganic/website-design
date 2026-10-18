@@ -806,6 +806,183 @@ for old in ("farm-bg.png",):
     if os.path.exists(p):
         os.remove(p)
 
+# ---------------- the mill yard and the roastery: scenes for the Mill tab; racks, roasters, bags and people are drawn live on top ----------------
+JUTE = ["#E8D0A0", "#D2B47E", "#B89660", "#967648", "#6E5434"]
+TIN = ["#C8D4DC", "#A8B8C4", "#8A9CAA", "#6C7E8C", "#4E5E6A"]
+
+
+def jute_sack(x0, y0, w=14, h=10, stencil="#2D6A46"):
+    shadow_ellipse(x0 + w / 2 + 1, y0 + h, w / 2, 1.6, 60)
+    for y in range(y0, y0 + h):
+        for x in range(x0, x0 + w):
+            edge = x in (x0, x0 + w - 1) or y in (y0, y0 + h - 1)
+            if edge and (x, y) not in ((x0, y0), (x0 + w - 1, y0), (x0, y0 + h - 1), (x0 + w - 1, y0 + h - 1)):
+                put(x, y, JUTE[4])
+            elif not edge:
+                put(x, y, JUTE[1] if y < y0 + 3 else JUTE[2] if (x + y) % 3 else JUTE[3])
+    for x in range(x0 + 4, x0 + w - 4):
+        put(x, y0 + h // 2, stencil)
+    put(x0 + w // 2, y0 + h // 2 - 1, stencil); put(x0 + w // 2 - 1, y0 + h // 2 + 1, stencil)
+
+
+def scene_mill():
+    """The dry mill: a tin-roofed beneficio with an open door, a concrete patio with the truck and the cupping table, and a yard of raised racks."""
+    grass = GRASS["green"]
+    new_scene(grass[2])
+    rnd = random.Random(31)
+    for y in range(H):
+        for x in range(W):
+            if rnd.random() < 0.08:
+                put(x, y, rnd.choice(grass[1:4]))
+    dirt = DIRT["ochre"]
+    for y in range(92, 208):   # packed earth under the racks
+        for x in range(2, W - 2):
+            edge = y in (92, 207) or x in (2, W - 3)
+            put(x, y, dirt[3] if edge else rnd.choice([dirt[1]] * 12 + [dirt[0], dirt[2]]))
+    for y in range(48, 92):    # the concrete patio
+        for x in range(W):
+            seam = (x % 24 == 0) or (y - 48) % 22 == 0
+            put(x, y, CONCRETE[3] if seam else CONCRETE[1] if (x * 7 + y * 3) % 13 else CONCRETE[2])
+    for x in range(W):
+        put(x, 91, CONCRETE[3]); put(x, 92, dirt[4])
+    tree(18, 14, 18, LEAF, 31); tree(42, 30, 12, LUSH, 32)
+    # the beneficio: corrugated tin roof over plank walls
+    x0, x1 = 56, W
+    shadow_ellipse(124, 50, 70, 4, 60)
+    for y in range(0, 24):
+        for x in range(x0, x1):
+            put(x, y, TIN[4] if y in (0, 23) or x == x0 else TIN[1] if (x - x0) % 6 < 2 else TIN[2] if (x - x0) % 6 < 4 else TIN[3])
+    for x in range(x0, x1):
+        put(x, 24, TIN[4]); put(x, 25, "#3A2A1C")
+    for y in range(26, 48):
+        for x in range(x0, x1):
+            plank = (y - 26) % 5
+            put(x, y, WOOD[4] if x == x0 or plank == 4 else WOOD[1] if plank == 0 else WOOD[2] if (x * 5 + y) % 23 else WOOD[3])
+    for x in range(x0, x1):
+        put(x, 47, WOOD[4])
+    for y in range(28, 48):    # the open door, with the huller and sacks inside
+        for x in range(100, 148):
+            put(x, y, WOOD[4] if x in (100, 147) or y == 28 else "#3A2A1C" if y < 44 else "#4A3626")
+    fill(110, 32, 16, 12, OUT); fill(111, 33, 14, 10, "#C8302C"); fill(111, 33, 14, 2, "#E8584A"); fill(114, 29, 8, 5, OUT); fill(115, 30, 6, 3, "#B8B8B8")
+    fill(118, 37, 4, 3, "#2A2A2A")
+    for (sx, sy) in [(130, 34), (130, 39), (136, 39)]:
+        jute_sack(sx, sy, 10, 6)
+    for (sx, sy) in [(64, 36), (78, 36), (70, 30), (64, 42), (78, 42)]:   # sacks waiting by the wall
+        jute_sack(sx, sy, 14, 9)
+    fill(156, 30, 26, 14, OUT); fill(157, 31, 24, 12, "#2E3A30")   # the price board
+    for (lx, ly, n) in [(159, 33, 14), (159, 36, 18), (159, 39, 10)]:
+        for k in range(n):
+            put(lx + k, ly, "#E8E4D8" if k % 5 else "#2E3A30")
+    # the truck that takes green coffee to Osaka, parked on the patio
+    shadow_ellipse(30, 88, 22, 3, 70)
+    fill(10, 52, 38, 36, OUT)
+    fill(11, 53, 36, 12, "#2D6A46"); fill(11, 53, 36, 2, "#4A8E66"); fill(15, 56, 28, 5, "#9CC8D8"); fill(15, 56, 28, 1, "#D4ECF4")
+    fill(11, 65, 36, 22, "#245638"); fill(13, 67, 32, 18, WOOD[2])
+    for k in range(4):
+        fill(13, 67 + k * 5, 32, 1, WOOD[3])
+    for (wx, wy) in [(8, 56), (46, 56), (8, 78), (46, 78)]:
+        fill(wx, wy, 3, 7, "#2A2A2A")
+    # the cupping table
+    shadow_ellipse(170, 80, 18, 2.5, 60)
+    fill(152, 62, 36, 16, OUT); fill(153, 63, 34, 13, "#F8F4EC"); fill(153, 74, 34, 2, "#DCD6C8")
+    for k in range(5):
+        cx = 157 + k * 7
+        ellipse(cx, 67, 2.6, 2.2, OUT); ellipse(cx, 67, 1.8, 1.4, "#6A3C1C"); put(cx - 1, 66, "#A86A3A")
+    fill(154, 71, 6, 2, "#B8B8B8"); fill(178, 71, 6, 3, "#C8A060")
+    for lx in (154, 185):
+        fill(lx, 78, 2, 4, WOOD[4])
+    # the platform scale beside the door
+    fill(102, 58, 16, 12, OUT); fill(103, 59, 14, 10, "#8A9CAA"); fill(104, 60, 12, 8, "#A8B8C4"); fill(108, 52, 4, 7, OUT); fill(109, 53, 2, 5, "#C8A040")
+    hedgerow_and_bank([LEAF, COFFEE, LUSH, OCHRE], DIRT["ochre"])
+
+
+def scene_roastery():
+    """Beju's roastery in Osaka: three roaster bays on terracotta tiles, shelves for finished bags, a shop counter and a noren door to the street."""
+    new_scene("#C89A64")
+    rnd = random.Random(41)
+    for y in range(60, 206):   # plank floor
+        for x in range(W):
+            plank = (y - 60) % 8
+            put(x, y, "#9C6C3C" if plank == 7 else "#D8AC74" if plank == 0 else "#C89A64" if (x + (y // 8) * 37) % 41 else "#B4844E")
+    for y in range(60, 144):   # terracotta tiles under the roasters
+        for x in range(0, 100):
+            put(x, y, TILE[4] if x % 10 == 0 or (y - 60) % 10 == 0 or x == 99 else TILE[2] if ((x // 10) + (y // 10)) % 2 else TILE[1])
+    for y in range(0, 8):
+        for x in range(W):
+            put(x, y, WOOD[4] if y in (0, 7) else WOOD[3])
+    for y in range(8, 60):     # back wall: brick behind the roasters, plaster behind the shelves
+        for x in range(W):
+            if x < 100:
+                row = (y - 8) // 4
+                mortar = (y - 8) % 4 == 3 or (x + (row % 2) * 5) % 10 == 0
+                put(x, y, "#8A5A44" if mortar else "#B85A3A" if (x * 3 + y) % 7 else "#A04A30")
+            else:
+                put(x, y, "#F2E8D4" if (x + y) % 11 else "#E6DAC2")
+    for y in range(8, 60):
+        for px_ in (0, 99, 100, W - 1):
+            put(px_, y, WOOD[4])
+    for y in range(50, 60):
+        for x in range(100, W - 1):
+            put(x, y, WOOD[2] if y > 50 else WOOD[4])
+    for k, dx in enumerate((20, 50, 80)):   # an exhaust duct for each roaster bay
+        for y in range(8, 64):
+            for x in range(dx - 2, dx + 2):
+                put(x, y, TIN[3] if x == dx - 2 else TIN[1] if x == dx - 1 else TIN[2])
+        for x in range(dx - 3, dx + 3):
+            put(x, 30, TIN[4]); put(x, 46, TIN[4])
+    for sy in (26, 42, 58):    # three shelves for finished bags
+        for x in range(104, W - 4):
+            put(x, sy, WOOD[1]); put(x, sy + 1, WOOD[3]); put(x, sy + 2, "#BCA888")
+        for bx in (106, 146, W - 8):
+            put(bx, sy + 1, WOOD[4]); put(bx, sy + 2, WOOD[4]); put(bx, sy + 3, WOOD[4])
+    fill(106, 10, 14, 12, OUT); fill(107, 11, 12, 10, "#2E3A30")   # a little menu board
+    for k in range(3):
+        for x in range(108, 117):
+            put(x, 13 + k * 3, "#E8E4D8" if (x + k) % 4 else "#2E3A30")
+    # a low tasting table with two cushions, where guests try the roasts
+    shadow_ellipse(170, 116, 13, 2.5, 60)
+    fill(158, 104, 24, 11, OUT); fill(159, 105, 22, 8, WOOD[1]); fill(159, 112, 22, 1, WOOD[3])
+    for (cx, cy) in ((166, 108), (174, 108)):
+        ellipse(cx, cy, 2.4, 1.8, OUT); ellipse(cx, cy, 1.6, 1.1, "#F8F4EC"); put(cx, cy, "#6A3C1C")
+    for (qx, qy) in ((150, 106), (184, 106)):
+        fill(qx - 4, qy, 8, 8, OUT); fill(qx - 3, qy + 1, 6, 6, "#7A4A8A"); fill(qx - 3, qy + 1, 6, 1, "#9A6AAA")
+    # the shop counter, with the till and a jar of beans
+    shadow_ellipse(150, 160, 42, 3, 60)
+    fill(110, 138, 82, 20, OUT); fill(111, 139, 80, 6, WOOD[0]); fill(111, 145, 80, 12, WOOD[2])
+    for x in range(114, 190, 9):
+        fill(x, 146, 1, 11, WOOD[3])
+    fill(170, 132, 14, 9, OUT); fill(171, 133, 12, 7, "#3E3E3E"); fill(172, 134, 10, 3, "#9CC8A8"); fill(171, 140, 12, 1, "#2A2A2A")
+    fill(124, 132, 8, 9, OUT); fill(125, 133, 6, 7, "#D4ECF4"); fill(125, 136, 6, 4, "#6A3C1C"); fill(125, 132, 6, 1, "#C8A040")
+    fill(140, 135, 10, 5, OUT); fill(141, 136, 8, 3, "#F8F4EC")
+    # the shop front: windows on to the street, potted plants and a noren over the door
+    for y in range(206, H):
+        for x in range(W):
+            put(x, y, WOOD[3] if y < 208 else "#3A2A1C" if y > 236 else WOOD[2] if (x + y) % 17 else WOOD[3])
+    for (wx, ww) in ((8, 70), (114, 70)):
+        fill(wx, 210, ww, 24, OUT)
+        for y in range(211, 233):
+            for x in range(wx + 1, wx + ww - 1):
+                put(x, y, "#D4ECF4" if (x - y) % 23 < 3 else "#9CC8D8" if y < 222 else "#86B8CC")
+        for x in range(wx + 1, wx + ww - 1, 17):
+            fill(x, 211, 1, 22, WOOD[4])
+    fill(84, 206, 24, 34, "#5A4632")
+    for x in range(84, 108):   # the noren: indigo cloth in three panels
+        for y in range(204, 216):
+            if (x - 84) % 8 != 7 or y < 207:
+                put(x, y, "#2C3A80" if y > 205 else WOOD[4])
+    for (a, b) in [(95, 209), (96, 209), (94, 210), (97, 210), (95, 211), (96, 211), (95, 212)]:
+        put(a, b, "#F8F4EC")
+    for (pxp, pyp) in ((4, 192), (178, 192)):
+        fill(pxp + 2, pyp + 6, 8, 7, OUT); fill(pxp + 3, pyp + 7, 6, 5, TILE[2])
+        cluster(pxp + 6, pyp + 2, 7, 6, LUSH, pxp, blobs=6, br=(2.5, 4))
+    fill(80, 190, 32, 12, "#8A2A26"); fill(82, 192, 28, 8, "#B8402C")   # a doormat
+    for x in range(84, 108, 4):
+        put(x, 196, "#E8C890")
+
+
+scene_mill(); img.save(os.path.join(HERE, "bg", "mill.png")); rendered[("mill", "")] = img.copy()
+scene_roastery(); img.save(os.path.join(HERE, "bg", "roastery.png")); rendered[("roastery", "")] = img.copy()
+
 # ---------------- coffee varieties ----------------
 VARIETIES = {
     #  name                 ripe [highlight, colour, shade]          unripe                                leaf ramp  shape (w, h, compactness)
@@ -1650,21 +1827,72 @@ def charm_qgrader(p):   # the Q grader charm from the cupping notebook: a gold s
 add_layer("charm_qgrader", 9, 9, charm_qgrader)
 
 # ---------------- the roastery: a drum roaster (two flame frames) and a bag for each roast ----------------
-def roaster(f):
+def roaster(f, big=False):
+    """f 0/1: flame frames while roasting, 2: cold. A big drum (160 kg and up) is black with a brass band."""
+    body = ["#3A3A3A", "#5A5A5A", "#1E1E1E"] if big else ["#C8302C", "#E8584A", "#8A1E1C"]
     def draw(p):
         for x in range(3, 23):
             p(x, 25, "#2A2A0850")
         rect(p, 4, 20, 2, 5, OUT); rect(p, 20, 20, 2, 5, OUT)                       # legs
-        rect(p, 2, 8, 22, 13, OUT); rect(p, 3, 9, 20, 11, "#C8302C"); rect(p, 3, 9, 20, 2, "#E8584A"); rect(p, 3, 18, 20, 2, "#8A1E1C")   # body
+        rect(p, 2, 8, 22, 13, OUT); rect(p, 3, 9, 20, 11, body[0]); rect(p, 3, 9, 20, 2, body[1]); rect(p, 3, 18, 20, 2, body[2])   # body
+        if big:
+            rect(p, 3, 15, 20, 1, "#C8A040")
         rect(p, 8, 10, 10, 8, OUT); rect(p, 9, 11, 8, 6, "#2A2A2A"); rect(p, 10, 12, 3, 2, "#5A4630")   # drum window with beans
         rect(p, 11, 1, 4, 8, OUT); rect(p, 12, 2, 2, 6, "#B8B8B8")                    # chimney
-        rect(p, 18, 3, 6, 6, OUT); rect(p, 19, 4, 4, 4, "#E8B830")                    # hopper
-        flame = ["#F2C04A", "#E8602A"] if f == 0 else ["#E8602A", "#F2C04A"]
-        for i, x in enumerate(range(7, 19, 2)):
-            p(x, 22, flame[i % 2]); p(x + 1, 23, flame[(i + 1) % 2])
+        rect(p, 18, 3, 6, 6, OUT); rect(p, 19, 4, 4, 4, "#E8B830" if not big else "#C8A040")   # hopper
+        if f < 2:
+            flame = ["#F2C04A", "#E8602A"] if f == 0 else ["#E8602A", "#F2C04A"]
+            for i, x in enumerate(range(7, 19, 2)):
+                p(x, 22, flame[i % 2]); p(x + 1, 23, flame[(i + 1) % 2])
         if f == 1:
             p(12, 0, "#DCDCDC"); p(14, 0, "#DCDCDC")                                 # a puff of smoke
     return draw
+
+
+def mill_rack(p):
+    """A raised drying rack: a mesh bed on four legs; the coffee on it is drawn live."""
+    for x in range(2, 40):
+        p(x, 17, "#2A2A0850")
+    for lx in (2, 36):
+        rect(p, lx, 10, 2, 7, WOOD[4]); rect(p, lx + 1, 10, 1, 6, WOOD[3])
+    rect(p, 0, 0, 40, 12, WOOD[4]); rect(p, 1, 1, 38, 1, WOOD[0]); rect(p, 1, 10, 38, 1, WOOD[3])
+    for y in range(2, 10):
+        for x in range(2, 38):
+            p(x, y, "#5A5A50" if (x + y) % 2 else "#787868")
+
+
+def cool_tray(p):
+    """The cooling tray: a round sieve beside each roaster, with a stirring arm."""
+    for x in range(2, 22):
+        p(x, 11, "#2A2A0850")
+    for y in range(12):
+        for x in range(24):
+            d = ((x - 11.5) / 11.5) ** 2 + ((y - 5.5) / 5.5) ** 2
+            if d <= 1:
+                p(x, y, OUT if d > 0.72 else "#9A9A92" if d > 0.55 else "#6A6A62" if (x + y) % 2 else "#7A7A72")
+    rect(p, 11, 1, 2, 5, "#B8B8B8")
+
+
+def gsack(p):
+    for x in range(1, 12):
+        p(x, 10, "#2A2A0850")
+    rect(p, 0, 1, 12, 9, OUT); rect(p, 1, 2, 10, 7, JUTE[2]); rect(p, 1, 2, 10, 2, JUTE[1]); rect(p, 1, 8, 10, 1, JUTE[3])
+    rect(p, 3, 5, 6, 1, "#2D6A46"); p(6, 4, "#2D6A46"); p(5, 6, "#2D6A46")
+    rect(p, 4, 0, 4, 1, OUT)
+
+
+def cup_lab(p):
+    """The cupping lab bench: rows of tasting bowls, a kettle and a scale."""
+    for x in range(2, 44):
+        p(x, 17, "#2A2A0850")
+    rect(p, 0, 0, 44, 12, OUT); rect(p, 1, 1, 42, 9, "#F8F4EC"); rect(p, 1, 10, 42, 1, "#DCD6C8")
+    for lx in (2, 40):
+        rect(p, lx, 12, 2, 5, WOOD[4])
+    for r in range(2):
+        for k in range(5):
+            x, y = 3 + k * 6, 2 + r * 4
+            rect(p, x, y, 4, 3, OUT); rect(p, x + 1, y + 1, 2, 1, "#6A3C1C")
+    rect(p, 34, 2, 7, 6, OUT); rect(p, 35, 3, 5, 4, "#B8B8B8"); p(41, 3, OUT)
 
 
 def roast_bag(col):
@@ -1679,8 +1907,13 @@ def roast_bag(col):
     return draw
 
 
-for _f in (0, 1):
+for _f in (0, 1, 2):
     add_layer("roaster_%d" % _f, 26, 26, roaster(_f))
+    add_layer("roasterB_%d" % _f, 26, 26, roaster(_f, True))
+add_layer("mill_rack", 40, 18, mill_rack)
+add_layer("cool_tray", 24, 12, cool_tray)
+add_layer("gsack", 12, 11, gsack)
+add_layer("cup_lab", 44, 18, cup_lab)
 for _k, _c in (("light", "#B07A4A"), ("medium", "#7A4A28"), ("dark", "#3E2414")):
     add_layer("bag_" + _k, 14, 16, roast_bag(_c))
 add_layer("perk_sign", 20, 20, perk_sign)
