@@ -288,3 +288,18 @@ First crack always opens at 70% of the roast. How long its window lasts depends 
 - **Window length:** `crackSecs(key)` runs from 10 seconds (everyday beans, washed lots) down to 2.5 seconds (Geisha strawberry). It's stored on the roast as a share of its time (`r.cw`).
 - **Where it shows:** bins show "crack wide / normal / tight / very tight", and roasters show the seconds with a gold zone on their bar.
 - **Bot:** the human-like bot catches shorter windows a little less often.
+
+## Building costs, real Beju labels, seasonal roasts, Roasted by Beju cards
+- **Building costs:** each level costs 3 times the last up to level 5, then 2 times (`buildStep`). The late levels are no longer one huge save each.
+- **Real Beju bag labels:** the Beju crest label (10 cranes) and one label per real coffee use `bag_beju`, a pixel version of the real cream bag with the crane and wordmark in that coffee's colour, sampled from `beju-site/images/bags`.
+  - Casablanca #206058, Pink Whiskey #B05850, Rum Barrel #905830, Yirgacheffe #705880, Strawberry #006088.
+  - Each coffee's label unlocks when that coffee is ordered.
+- **Seasonal roasts** (`SEASON_ROAST`): every season has a named recipe, a roast plus sometimes a process (October: Harvest Festival Roast, a medium roast of a natural lot). Season track tier 8 teaches it once the roastery is open.
+  - Matching bags carry the season's label and sell for 20% more until that season ends.
+  - The Roastery tab shows the recipe at the top.
+- **Roasted by Beju cards:** ordering a real coffee stamps its card in Unlock › Notebook (`S.bejuCards`). Each card adds +0.5 cup to its pair:
+  - Casablanca: Mundo Novo natural
+  - Pink Whiskey: Pink Bourbon whiskey
+  - Rum Barrel: Castillo rum
+  - Yirgacheffe: heirloom washed
+  - Strawberry: Catimor strawberry

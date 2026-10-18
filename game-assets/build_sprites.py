@@ -1972,6 +1972,23 @@ def noren_icon(p):   # the noren on shop cards: three cloth panels on a rod, rec
 
 add_layer("noren_icon", 14, 12, noren_icon)
 
+
+def bag_beju(p):   # the real Beju bag: cream, the crane and wordmark in the coffee's colour (recoloured per coffee), a dotted map and a roast dot
+    for x in range(2, 12):
+        p(x, 15, "#2A2A0850")
+    rect(p, 1, 3, 12, 12, OUT); rect(p, 2, 4, 10, 10, "#E8E0D4"); rect(p, 2, 4, 10, 1, "#F4EEE4")
+    rect(p, 3, 1, 8, 3, OUT); rect(p, 4, 2, 6, 1, "#D2C8B6")
+    for (x, y) in [(3, 5), (4, 6), (5, 7), (6, 6), (7, 5), (5, 6), (5, 5)]:   # the crane: wings in a V, head on top
+        p(x, y, "#206058")
+    rect(p, 8, 6, 3, 1, "#206058"); rect(p, 8, 8, 2, 1, "#206058")             # the wordmark, suggested
+    for (x, y) in [(3, 11), (5, 10), (7, 11), (9, 10)]:
+        p(x, y, "#C8BCA8")
+    p(4, 11, "#206058"); p(9, 11, "#206058")
+    rect(p, 10, 12, 2, 1, "#7A4A28")                                             # roast dot
+
+
+add_layer("bag_beju", 14, 16, bag_beju)
+
 # ---------------- the roastery: a drum roaster (two flame frames) and a bag for each roast ----------------
 def roaster(f, big=False):
     """f 0/1: flame frames while roasting, 2: cold. A big drum (160 kg and up) is black with a brass band."""
