@@ -1,0 +1,119 @@
+<title>Roastery Cosmetics Plan</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column like the other reviews; the catalogue as cards, sources as a table, the build order as a numbered list because it is a sequence */
+:root {
+  --bg: #F5F3EE; --panel: #FFFFFF; --fg: #23201B; --muted: #6A6358; --line: #DED8CC;
+  --bean: #6B3F22; --leaf: #2F6B4F; --cherry: #B8323A; --gold: #A8791A; --soft: #EFE9DD;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #171512; --panel: #201D19; --fg: #EDE7DC; --muted: #A79F92; --line: #383229;
+  --bean: #D9A47A; --leaf: #6CC59A; --cherry: #F07880; --gold: #E2B64A; --soft: #2A2620; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #171512; --panel: #201D19; --fg: #EDE7DC; --muted: #A79F92; --line: #383229;
+  --bean: #D9A47A; --leaf: #6CC59A; --cherry: #F07880; --gold: #E2B64A; --soft: #2A2620; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font: 16px/1.6 var(--body); }
+.wrap { max-width: 780px; margin: 0 auto; padding-block: 40px 72px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 36px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(30px, 6vw, 42px); font-weight: 800; }
+h2 { font-size: 24px; font-weight: 800; }
+p { margin: 0; max-width: 66ch; }
+section { display: flex; flex-direction: column; gap: 14px; }
+.eyebrow { font: 600 12px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--bean); }
+.lede { font-size: 18px; color: var(--muted); }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; }
+.kpi b { font: 800 26px/1.1 var(--display); font-variant-numeric: tabular-nums; color: var(--leaf); }
+.kpi span { font-size: 13px; color: var(--muted); }
+.tw { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 12px/1.3 var(--mono); letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; }
+.card .tag { font: 600 12px var(--mono); color: var(--muted); }
+.card.bad { border-left: 4px solid var(--cherry); }
+.card.good { border-left: 4px solid var(--leaf); }
+.card.warn { border-left: 4px solid var(--gold); }
+ul, ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 68ch; }
+.note { font-size: 14px; color: var(--muted); }
+.strip { overflow-x: auto; background: var(--soft); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+.strip img { display: block; max-width: none; height: 78px; image-rendering: pixelated; }
+.labels { display: flex; gap: 0; font: 600 11px/1.3 var(--mono); color: var(--muted); width: 596px; }
+.labels span { width: 85.2px; text-align: center; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.grid2 .card { min-width: 0; }
+h3 { font-family: var(--display); font-size: 17px; margin: 0; }
+</style>
+
+<div class="wrap">
+<header style="display:flex;flex-direction:column;gap:12px">
+  <span class="eyebrow">Design proposal · 18 October 2026 · roastery cosmetics</span>
+  <h1>Roastery cosmetics can fill the empty reputation levels and give late-game coins somewhere to go</h1>
+  <p class="lede">The roastery now has its own scene, so anything a player changes there shows up straight away, like decorations on the farm. This plan covers six kinds of cosmetics, where each one comes from, and the order to build them in. Two problems get solved along the way: ten of the 19 reputation levels after the first give nothing yet, and players sit on large piles of coins between P4 and P5.</p>
+</header>
+
+<section>
+<h2>What players could change</h2>
+<div class="card good">
+  <span class="tag">Roaster finishes · 7 · cheap, they're colour swaps of the current drum</span>
+  <p>The drum, hopper and trim change colour. The brass band for 160 kg drums stays on every finish, so drum size still shows.</p>
+  <div class="strip"><img src="data:image/png;base64,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" alt="Seven roaster finishes: classic red, copper, Beju green, enamel cream, Showa blue, sakura and master gold"><div class="labels"><span>Classic red</span><span>Copper</span><span>Beju green</span><span>Enamel cream</span><span>Showa blue</span><span>Sakura</span><span>Master gold</span></div></div>
+</div>
+<div class="grid2">
+  <div class="card good"><span class="tag">Noren curtains · cheap</span><p>The cloth over the door. Indigo crest is the default. Beju crane, gold, and one for each monthly season (sakura, tanabata, momiji and so on), made from the season colours the same way the season hats and building styles are.</p></div>
+  <div class="card good"><span class="tag">Shop props · 6 sprites</span><p>Three spots: one on the wall, one on the counter, one on the floor. The props: a record player that crackles in time with the music, a waving maneki-neko, a siphon bar, a neon COFFEE sign, a shop cat asleep on the sacks, and hanging plants.</p></div>
+  <div class="card warn"><span class="tag">Shop interiors · 4 · the most art</span><p>New floors and walls for the whole room: <b>Kissaten</b> (dark wood, green velvet booths), <b>Osaka modern</b> (concrete and plywood), <b>Showa retro</b> (checkerboard floor, tin signs) and <b>Machiya</b> (tatami, shoji and an ink-brush menu). Brick and tile stays the default.</p></div>
+  <div class="card good"><span class="tag">Bag labels and aprons · cheap</span><p>Label colours on the bags on the shelf and in customers' hands, and aprons for your assistant and cashier (denim, Beju green, kissaten black, sakura). Real Beju labels are the crossplay version, described below.</p></div>
+</div>
+</section>
+
+<section>
+<h2>Where each one comes from</h2>
+<div class="tw"><table>
+<thead><tr><th>Source</th><th>What it gives</th><th>Why it fits</th></tr></thead>
+<tbody>
+<tr><td><b>Reputation levels</b> (free)</td><td>One cosmetic on each level that has no perk now: 5 copper, 8 record player, 9 Showa blue, 11 Kissaten interior, 13 maneki-neko, 14 Beju green, 16 neon sign, 17 enamel cream, 18 shop cat, 19 crane noren. Master gold comes with the Master roaster title at 20.</td><td>Every reputation level now gives you something, and the roastery keeps changing as it grows.</td></tr>
+<tr><td><b>Shop › Roastery</b> (coins)</td><td>Finishes, props and interiors you haven't earned yet, for 250,000 to 25 million coins. Interiors are the most expensive.</td><td>This is the late-game coin sink the P5 playthrough asked for. Players saving for a level 7 building also have something mid-sized to buy along the way.</td></tr>
+<tr><td><b>Season track</b> (stars)</td><td>That month's noren at tier 12 and bag label at tier 22, replacing two coin tiers. Players without the roastery get the coins as before.</td><td>A new roastery look every month, with no new art for us to draw by hand.</td></tr>
+<tr><td><b>Buyer gifts</b> (bags sold)</td><td>After 25 and 100 bags to one buyer type, a gift. The café gives hanging plants and a barista apron, the kissaten a velvet booth and a black apron, the konbini a neon sign and a striped label.</td><td>The regular buyers idea comes back in a form players can see, because the gifts appear in the shop.</td></tr>
+<tr><td><b>Cranes</b> (real orders)</td><td>Gold noren, plus real Beju bag labels. Order Casablanca Blend and your house blend wears the Casablanca label.</td><td>Ties the roastery to real Beju orders, the same way stamps and the Osaka garden do.</td></tr>
+<tr><td><b>Perfect cracks</b></td><td>100 perfect cracks earns the "Crack master" nameplate charm and title. 500 earns a gold drum window.</td><td>Rewards the one hands-on skill in the roastery.</td></tr>
+</tbody></table></div>
+<p class="note">Everything here is cosmetic. None of it changes prices, speed or quality, so the balance from the P5 playthrough stays as it is.</p>
+</section>
+
+<section>
+<h2>Where it shows</h2>
+<ul>
+  <li><b>In the roastery scene</b>, as soon as it's chosen, the same way building styles show on the farms.</li>
+  <li><b>A Roastery page in the Shop</b>, next to Building styles, with Use and Buy buttons and the source of each locked item ("Reputation 13", "100 bags to kissaten", "Season track tier 12").</li>
+  <li><b>On the leaderboard card</b> (later): your roaster finish as a small badge beside your name. The server only accepts approved cosmetics on the board, so it would need adding to that list. That's a small change.</li>
+</ul>
+</section>
+
+<section>
+<h2>Build order</h2>
+<ol>
+  <li><b>First:</b> roaster finishes, noren (default, crane, gold and the season generator), the six props and their three spots, the reputation-level gifts and Shop › Roastery with coin prices. All of it uses small sprites and colour swaps, so it fits in one round of work.</li>
+  <li><b>Next:</b> buyer gifts, the season track tiers, aprons and bag labels, and perfect-crack titles.</li>
+  <li><b>Last:</b> the four interiors (each a full new background) and real Beju labels through cranes.</li>
+</ol>
+</section>
+
+<section>
+<h2>Decisions for you</h2>
+<ul>
+  <li><b>Coin prices:</b> should Shop › Roastery be the late-game coin sink (250,000 to 25 million coins), or should these cosmetics only be earned?</li>
+  <li><b>Season track:</b> is it OK to swap tiers 12 and 22 from coins to the month's noren and bag label?</li>
+  <li><b>Real labels:</b> may the game use Beju's real bag designs for crane rewards? If so, I'll need the label artwork or a description of it.</li>
+  <li><b>Leaderboard:</b> should the roaster finish show on board cards now, or later?</li>
+</ul>
+</section>
+</div>
