@@ -1325,7 +1325,9 @@ const BLEND_NAMES = ['Casablanca Blend', 'Osaka Morning', 'Kissaten Dark', 'Saku
 const beanName = (key) => { const [v, m] = key.split('.'); return ART.varieties[v] + ' ' + METHODS[m].name.toLowerCase(); };
 const bagName = (b) => (b.blend || beanName(b.key)) + (b.blend ? '' : ' · ' + ROASTS[b.profile].name.toLowerCase());
 const bagPrice = (b, k) => { const rb = RBUYERS[k], want = b.blend || b.profile === rb.wants; return Math.round(b.coins * (want ? rb.mult * (b.blend ? 1.1 : 1) : 1) * (0.7 + b.q / 200)); };
-const roasteryFeedWants = () => roasteryOpen() && S.roastery.feed && Object.values(S.roastery.beans).reduce((a, b) => a + b.kg, 0) < roastCap() * roasterCount() * 2;
+/* how many roasts' worth of green coffee the foreman keeps waiting in the roastery (0 = off); on by default, so you never race him for lots */
+const feedRoasts = () => (S.roastery.feed === true ? 2 : S.roastery.feed === undefined ? 4 : +S.roastery.feed || 0);
+const roasteryFeedWants = () => roasteryOpen() && feedRoasts() > 0 && Object.values(S.roastery.beans).reduce((a, b) => a + b.kg, 0) < roastCap() * roasterCount() * feedRoasts();
 function toRoastery(i, quiet) {   /* a dry lot goes to the roastery's green store instead of the roastery buyer */
   const l = S.lots[i]; if (!l || l.left > 0 || !roasteryOpen()) return;
   const green = l.kg * 0.2, r = saleFor(l.v, l.method, green, l), key = l.v + '.' + l.method, R = S.roastery;
@@ -1345,7 +1347,7 @@ const roastP = (r) => Math.min(1, (Date.now() - r.start) / r.dur);
 const inCrack = (r) => roastP(r) >= 0.7 && roastP(r) <= 0.86;
 function roasteryTick() {
   const R = S.roastery; if (!R) return;
-  if (roasteryOpen() && !R.tip) { R.tip = true; showModal(coachCard('The roastery', 'Beju roasts in Japan, and now you can too! In the Mill, send a dry lot to the roastery instead of selling it. Roast it light, medium or dark: each coffee has a best roast, marked with a star. Tap <b>Crack</b> at first crack for a better roast. Then sell the bags to cafés, kissaten or konbini for far more than green coffee. Staff don\'t roast, so this one is all yours.', 'Show me', 'roastgo')); }
+  if (roasteryOpen() && !R.tip) { R.tip = true; showModal(coachCard('The roastery', 'Beju roasts in Japan, and now you can too! Your mill foreman keeps it stocked with green coffee (change how much in the Roastery), or tap Roast on a dry lot to send one yourself. Roast it light, medium or dark: each coffee has a best roast, marked with a star. Tap <b>Crack</b> at first crack for a better roast. Then sell the bags to cafés, kissaten or konbini for far more than green coffee. Staff don\'t roast, so this one is all yours.', 'Show me', 'roastgo')); }
   for (let i = R.roasters.length - 1; i >= 0; i--) {
     const r = R.roasters[i];
     if (inCrack(r) && !r.warned) { r.warned = true; SFX.play('ding'); if (!(tab === 'mill' && S.millSub === 'roast')) toast('First crack in the roastery! Tap Crack in Mill > Roastery'); }
@@ -1373,7 +1375,7 @@ function roasteryPanel() {
     const p = roastP(r), cr = inCrack(r);
     h += '<div class="rslot' + (cr ? ' crack' : '') + '">' + img('roaster_' + (Math.floor(Date.now() / 300) % 2), 40) + '<div><b>' + fmtKg(r.kg) + ' kg ' + beanName(r.key) + ' · ' + ROASTS[r.profile].name.toLowerCase() + '</b><span class="bar"><i style="width:' + Math.round(p * 100) + '%;background:' + ROASTS[r.profile].col + '"></i></span><small>' + (r.crack === 1 ? 'Perfect crack! ' : r.crack === 2 ? 'Missed the crack. ' : cr ? 'First crack: tap now! ' : p < 0.7 ? 'Drying and browning… ' : '') + Math.max(0, Math.ceil((1 - p) * r.dur / 1000)) + ' s left</small></div>' + (r.crack ? '' : btn('Crack', cr ? 'now!' : 'wait', 'crack:' + i, true, cr ? 'gold' : '')) + '</div>';
   }
-  h += '</div><h3>Green coffee</h3>' + (S.staff.foreman ? '<p class="note">' + btn(S.roastery.feed ? 'On' : 'Off', 'tap to switch', 'roastfeed', true, S.roastery.feed ? 'blue' : '') + ' <b>Foreman keeps the roastery stocked:</b> he sends dry lots here until about two roasts\' worth of green coffee is waiting. You still choose the roast and catch the crack.</p>' : '');
+  h += '</div><h3>Green coffee</h3>' + (S.staff.foreman ? '<p class="note"><b>Foreman keeps the roastery stocked</b> with this many roasts\' worth of green coffee waiting, so you don\'t have to catch lots before he sells them. You still choose the roast and catch the crack.</p><div class="seg">' + [[0, 'Off'], [2, '2 roasts'], [4, '4 roasts'], [8, '8 roasts']].map(([n, t]) => '<button type="button" data-act="roastfeed:' + n + '" aria-pressed="' + (feedRoasts() === n) + '">' + t + '</button>').join('') + '</div>' : '<p class="note">Tap Roast on a dry lot in the Mill to send it here. Once you hire a mill foreman, he can keep the roastery stocked for you.</p>');
   const keys = Object.keys(R.beans);
   h += keys.length ? keys.map((k) => { const b = R.beans[k], [v, m] = k.split('.'), best = bestRoast(v, m), free = R.roasters.length < roasterCount();
     return '<div class="rrow"><div class="rrow-t">' + img('bush_' + v + '_ripe', 28) + '<div><b>' + beanName(k) + ' · ' + fmtKg(b.kg) + ' kg</b><span>Cup ' + b.cup.toFixed(1) + ' · best roast: ' + ROASTS[best].name.toLowerCase() + '</span></div></div><div class="seg">' + Object.keys(ROASTS).map((p) => btn(ROASTS[p].name + (p === best ? ' ★' : ''), Math.round(roastTime(p)) + ' s', 'roast:' + k + '|' + p, free, p === best ? 'green' : '')).join('') + '</div></div>'; }).join('') : '<p class="note">No green coffee yet. In the Mill, tap Roast on a dry lot to send it here.</p>';
@@ -2508,6 +2510,7 @@ function renderPanel() {
       if (done && S.tabs.orders) S.contracts.filter((c) => fits(c, l)).forEach((c) => { h += '<div class="seg" style="margin:-4px 0 6px 52px">' + btn('Deliver to ' + c.buyer.split(',')[0], fmt(Math.min(l.kg * 0.2, c.kg - c.have)) + ' kg · contract', 'deliver:' + i + '.' + c.id, true, 'blue') + '</div>'; });
     });
     if (!S.lots.length) h += '<p class="note">No lots drying yet.</p>';
+    if (S.staff.foreman && roasteryOpen()) h += '<p class="note">' + (feedRoasts() ? 'Your foreman sends dry lots to the roastery until ' + feedRoasts() + ' roasts\' worth of green coffee is waiting, then sells the rest.' : 'Your foreman sells every dry lot; switch on roastery stocking in Mill > Roastery to keep it fed.') + '</p>';
     if (S.staff.foreman) h += '<p class="note">Your mill foreman starts and sells lots for you' + (S.staff.agent ? ', and your contracts agent delivers to matching contracts first' : '') + '. Staff never cup by hand, so cupping lots yourself still adds +' + CUP_BONUS + ' cup and +' + Math.round((CUP_PAY - 1) * 100) + '% pay.</p>';
     if (S.staff.foreman && S.lots.length < racks() && stored() >= 10) h += '<p class="note">Free racks: your foreman starts a lot once one coffee reaches ' + fmt(Math.max(10, cap() * 0.25)) + ' kg, sooner when a buyer wants it, when half the racks are empty, or after a rack sits empty for a minute. Bigger lots dry in the same time, so waiting pays.</p>';
     h += '<h3>Start a lot</h3>';
@@ -2790,7 +2793,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'millsub') S.millSub = v;
   else if (a === 'roastgo') { closeModal(); S.millSub = 'roast'; setTab('mill'); }
   else if (a === 'toroast') toRoastery(+v);
-  else if (a === 'roastfeed') S.roastery.feed = !S.roastery.feed;
+  else if (a === 'roastfeed') S.roastery.feed = +v || 0;
   else if (a === 'roast') { const [k, p] = v.split('|'); startRoast(k, p); }
   else if (a === 'crack') { const r = S.roastery.roasters[+v]; if (r && !r.crack) { r.crack = inCrack(r) ? 1 : 2; SFX.play(r.crack === 1 ? 'achieve' : 'nope'); toast(r.crack === 1 ? 'Perfect crack! +15 quality' : roastP(r) < 0.7 ? 'Too early: listen for the crack at about 70%' : 'Too late: the crack has passed'); } }
   else if (a === 'sellbag') { const [i, k] = v.split('.'), R = S.roastery, b = R.bags[+i]; if (b && RBUYERS[k]) { const c = bagPrice(b, k), pts = Math.round(b.pts), rep = Math.round(b.q / 10 * (b.blend ? 2 : b.profile === RBUYERS[k].wants ? 1.5 : 1)); R.bags.splice(+i, 1); earn({ coins: c, points: pts }); R.rep = (R.rep || 0) + rep; SFX.play('coins'); toast('Sold to a ' + RBUYERS[k].name.toLowerCase() + ': +' + fmt(c) + ' coins, +' + fmt(pts) + ' know-how, +' + fmt(rep) + ' reputation'); } }
