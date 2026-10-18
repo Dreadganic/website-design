@@ -11,7 +11,7 @@ Writes, into game-assets/:
 Run:  python3 game-assets/build_sprites.py
 """
 import json, math, os, random
-from PIL import Image
+from PIL import Image, ImageChops
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 W, H = 192, 240
@@ -693,74 +693,535 @@ def hedgerow_and_bank(ramps, dirt, snow=False):
             put(x + 1, 224, SNOWY[0]); put(x + 2, 224, SNOWY[0])
 
 
+# ---------------- estate projects, painted into each farm's scene ----------------
+# Each farm's drying area (left of the farmhouse, above the path) is laid out for its final stage first, in plots, so every stage
+# fills its own plot and nothing is painted over something else. The scene is drawn again with the estate in it, so ground,
+# shadows, trees and seasons all match; only the changed part is saved (bg/est-<farm>-<season>-<stage>.png, with its offset).
+BRICK = ["#C8705A", "#A85A44", "#8A4634"]
+
+
+def R(x, y, w, h, c, a=None):
+    for j in range(int(h)):
+        for i in range(int(w)):
+            put(int(x) + i, int(y) + j, c, a)
+
+
+def box(x, y, w, h, c, o=OUT):
+    R(x, y, w, h, o); R(x + 1, y + 1, w - 2, h - 2, c)
+
+
+def soft_shadow(x, y, w, h=3):   # a contact shadow along a building's foot, fading out
+    for j in range(h):
+        R(x + j, y + j, w - j, 1, "#2A2A08", 70 - j * 18)
+
+
+def front_roof(x, y, w, h, ramp, snow=False, eave=OUT):   # a tiled roof seen from the front: tile rows, darker towards the eave
+    R(x, y, w, h, eave)
+    for j in range(1, h - 1):
+        for i in range(1, w - 1):
+            c = ramp[2] if j % 3 == 0 else ramp[0] if j < h // 2 else ramp[1]
+            if i % 4 == 0 and j % 3:
+                c = ramp[1] if j < h // 2 else ramp[2]
+            put(x + i, y + j, SNOWY[1 if (i + j) % 5 else 2] if snow and j < h // 2 + 1 else c)
+
+
+def tin_roof(x, y, w, h, ramp, snow=False):   # corrugated metal
+    R(x, y, w, h, OUT)
+    for j in range(1, h - 1):
+        for i in range(1, w - 1):
+            put(x + i, y + j, SNOWY[1] if snow and j < h - 3 else ramp[(i // 2) % 2] if j < h - 2 else ramp[2])
+
+
+def person(x, y, shirt, hat="#F4DE9C", skin="#E2A882"):
+    R(x, y, 4, 2, hat); R(x + 1, y + 2, 2, 2, skin); R(x, y + 4, 4, 3, shirt); R(x, y + 7, 1, 2, "#4A3A2A"); R(x + 3, y + 7, 1, 2, "#4A3A2A")
+
+
+def smoke(x, y, n=4):
+    for k in range(n):
+        R(x + (k % 2) * 2 - k // 2, y - k * 3, 2 + k // 2, 2, "#F4F4F4" if k % 2 else "#E0E0E0", 200 - k * 30)
+
+
+def lights(x0, x1, y, sag=2):
+    cols = ["#FF6A6A", "#FFE07A", "#7ED0F0", "#9AE07A"]
+    for i, x in enumerate(range(x0, x1)):
+        yy = y + int(sag * math.sin((x - x0) / max(1, x1 - x0) * math.pi))
+        put(x, yy, OUT)
+        if i % 4 == 2:
+            put(x, yy + 1, cols[(i // 4) % 4])
+
+
+def bunting(x0, x1, y):
+    cols = ["#E83A30", "#F2C04A", "#3E8A4A", "#3A6AC8"]
+    for i, x in enumerate(range(x0, x1)):
+        put(x, y, OUT)
+        k = i % 6
+        if k < 4:
+            R(x, y + 1, 1, 3 - int(abs(k - 1.5)), cols[(i // 6) % 4])
+
+
+def e_barrel(x, y):
+    box(x, y, 7, 8, "#8A5A30"); R(x + 1, y + 2, 5, 1, "#3A2418"); R(x + 1, y + 5, 5, 1, "#3A2418"); R(x + 2, y + 1, 2, 1, "#B07A4A")
+
+
+def e_sack(x, y):
+    R(x, y, 6, 5, OUT); R(x + 1, y + 1, 4, 3, JUTE_E[2]); put(x + 2, y + 2, "#2D6A46")
+
+
+JUTE_E = ["#E8D0A0", "#D2B47E", "#B89660", "#967648", "#6E5434"]
+
+
+def dirt_pad(x0, y0, w, h, dirt, seed=1):   # bare packed earth for a building to stand on, with a ragged edge that blends into the grass
+    rnd = random.Random(seed)
+    for y in range(y0 - 2, y0 + h + 2):
+        for x in range(x0 - 2, x0 + w + 2):
+            dx = max(x0 - x, 0, x - (x0 + w - 1)); dy = max(y0 - y, 0, y - (y0 + h - 1))
+            d = dx + dy
+            if d == 0 or (d <= 2 and rnd.random() < 0.55 - d * 0.18):
+                edge = d > 0 or x in (x0, x0 + w - 1) or y in (y0, y0 + h - 1)
+                put(x, y, dirt[3] if edge and (x + y) % 2 else dirt[2] if edge else rnd.choice([dirt[1]] * 10 + [dirt[0], dirt[2]]))
+
+
+def stepping(points, c=STONE):
+    for (x, y) in points:
+        R(x, y, 4, 2, c[1]); R(x, y, 4, 1, c[0]); put(x + 3, y + 1, c[2])
+
+
+def patio(x0, y0, w, h, state, split=0.5):   # the painted terreiro: raked rows, red cherry on one side and dried coffee on the other
+    soft_shadow(x0 + 2, y0 + h, w, 3)
+    rnd = random.Random(x0 + y0 * 3)
+    for y in range(y0, y0 + h):
+        for x in range(x0, x0 + w):
+            edge = x in (x0, x0 + w - 1) or y in (y0, y0 + h - 1)
+            rim = x in (x0 + 1, x0 + w - 2) or y in (y0 + 1, y0 + h - 2)
+            row = (y - y0 - 3) % 7
+            if edge:
+                c = CONCRETE[3]
+            elif rim or row in (5, 6):
+                c = CONCRETE[0] if (x + y) % 9 else CONCRETE[1]
+            elif state == "wet":
+                c = "#5C8CB4" if (x + y) % 9 else "#4A7AA2"   # tarps over the rows in the rainy season
+            else:
+                c = rnd.choice(["#C8402C", "#B23428", "#D85A40"]) if x < x0 + w * split else rnd.choice(["#6A3A22", "#7E4628", "#5A2E1C"])
+            put(x, y, c)
+
+
+def rake_worker(x, y, shirt, hat="#F4DE9C"):
+    person(x, y, shirt, hat); R(x + 4, y + 3, 1, 7, WOOD[3]); R(x + 2, y + 10, 5, 1, WOOD[4])
+
+
+def stilt_house(x0, y0, w, roof_h, wall_h, stilt_h, snow=False, sweep=6):   # the Batak shape: carved red, white and black front and a saddle roof with swept ends
+    soft_shadow(x0 + 2, y0 + roof_h + wall_h + stilt_h, w - 2, 3)
+    for x in range(x0 + 3, x0 + w - 3, 6):
+        R(x, y0 + roof_h + wall_h, 2, stilt_h, WOOD[4]); put(x + 1, y0 + roof_h + wall_h, WOOD[3])
+    fy = y0 + roof_h
+    for y in range(fy, fy + wall_h):
+        for x in range(x0 + 1, x0 + w - 1):
+            k = (x + ((y - fy) // 3) * 3) % 9
+            c = "#B8302A" if k < 3 else "#F2ECDC" if k < 6 else "#2A2220"
+            if y in (fy, fy + wall_h - 1) or x in (x0 + 1, x0 + w - 2):
+                c = OUT
+            put(x, y, c)
+    roof = ["#7A6E62", "#5E544A", "#4A4038", "#383028"]
+    for y in range(y0, fy + 1):
+        t = (fy - y) / max(1, roof_h)
+        lift = int(sweep * t ** 2)
+        left, right = x0 - 2 - lift, x0 + w + 2 + lift
+        sag = int(3 * math.sin(math.pi * 0.5))
+        for x in range(left, right):
+            mid = abs((x - (x0 + w / 2)) / ((right - left) / 2))
+            if y < y0 + int((1 - mid ** 2) * 3):
+                continue
+            edge = x in (left, right - 1) or y == fy
+            c = OUT if edge else (SNOWY[1] if snow and y < y0 + roof_h * 0.6 else roof[1] if (x + y * 3) % 7 else roof[2])
+            put(x, y, c)
+
+
+def pagoda(cx, base_y, snow=False):
+    soft_shadow(cx - 14, base_y, 30, 3)
+    R(cx - 15, base_y - 3, 30, 3, STONE[2]); R(cx - 15, base_y - 3, 30, 1, STONE[0])   # stone plinth
+    y = base_y - 3
+    for k, (w, h) in enumerate(((22, 11), (17, 9), (12, 8))):
+        top = y - h
+        box(cx - w // 2 + 2, top, w - 4, h, "#B8302A")
+        R(cx - 1, top + 3, 3, h - 3, "#2A1E14") if k == 0 else R(cx - 1, top + 3, 3, 3, "#F2C04A")
+        for j in range(4):   # each storey's roof sweeps out over the one below
+            ex = 3 - j
+            R(cx - w // 2 - ex, top - 4 + j, w + 2 * ex, 1, OUT if j in (0, 3) else (SNOWY[1] if snow else "#4A4A42"))
+        y = top - 4
+    R(cx - 1, y - 9, 2, 9, "#C8A040"); R(cx - 3, y - 6, 6, 1, "#C8A040"); R(cx - 3, y - 3, 6, 1, "#C8A040")
+
+
+def est_mogiana(n, state, dirt, snow=False):
+    wet = state != "full"
+    if n == 1:
+        patio(4, 30, 96, 62, "wet" if wet else "full")
+        bunting(4, 100, 29)
+        rake_worker(30, 52, "#E8603A"); rake_worker(70, 40, "#3A6AC8", "#F8F4EC")
+    else:   # the patio gives its right side to the dryer house
+        top = 30 if n == 2 else 64
+        patio(4, top, 58, 92 - top, "wet" if wet else "full", split=0.55)
+        if n == 2:
+            bunting(4, 62, top - 1)
+        rake_worker(18, top + (10 if n == 2 else 6), "#E8603A"); rake_worker(42, top + (34 if n == 2 else 12), "#3A6AC8", "#F8F4EC")
+    if n >= 2:   # the dryer house: brick, a tin roof, two guardiola drums through the big door, a chimney
+        dirt_pad(64, 86, 34, 6, dirt, 4)
+        soft_shadow(66, 86, 32)
+        box(66, 50, 32, 37, BRICK[0])
+        for y in range(51, 86):
+            for x in range(67, 97):
+                if (y - 51) % 4 == 3 or (x + ((y - 51) // 4) * 3) % 8 == 0:
+                    put(x, y, BRICK[2])
+        R(70, 58, 24, 28, "#2A1E14")
+        for dy in (60, 73):
+            box(71, dy, 22, 10, "#9AA4AC"); R(72, dy + 1, 20, 3, "#C8D0D6"); R(72, dy + 7, 20, 2, "#6E7882")
+            for x in range(74, 92, 4):
+                R(x, dy + 1, 1, 8, "#6E7882")
+        R(68, 62, 2, 4, "#F2A040"); put(68, 63, "#FFE07A")
+        tin_roof(63, 41, 38, 10, ["#C85A40", "#A84630", "#7A3020"], snow)
+        box(90, 26, 6, 16, BRICK[1]); R(89, 25, 8, 2, OUT)
+        smoke(91, 22)
+        e_sack(62, 82); e_sack(56 if n == 3 else 60, 86)
+    if n >= 3:   # the tasting house faces the patio: white walls, columns, arched blue windows, a Beju sign over the door
+        soft_shadow(7, 60, 52)
+        box(6, 40, 54, 21, "#FBF8F2"); R(7, 56, 52, 4, "#EEE8DC")
+        for cx in range(8, 60, 9):
+            R(cx, 41, 2, 19, "#FFFFFF"); put(cx + 1, 41, "#D8D0C4")
+        for wx in (11, 20, 41, 50):
+            R(wx, 45, 5, 9, OUT); R(wx + 1, 46, 3, 8, "#2E6AB0"); put(wx + 2, 47, "#9ACAF8")
+        box(29, 46, 8, 15, "#7A4A28"); R(32, 47, 1, 14, "#5A3418")
+        box(26, 41, 14, 5, "#2D6A46"); R(28, 43, 10, 1, "#F2C04A")
+        front_roof(3, 29, 60, 12, ["#E89068", "#CC6C48", "#8E3E28"], snow)
+        R(26, 61, 14, 2, STONE[1]); R(26, 61, 14, 1, STONE[0])   # steps down to the patio
+        for (fx, col) in ((8, "#F06A98"), (54, "#F2C04A")):
+            R(fx, 59, 6, 3, WOOD[3]); R(fx + 1, 57, 4, 2, "#5A9C3C"); put(fx + 2, 57, col); put(fx + 4, 58, col)
+
+
+def est_huila(n, state, dirt, snow=False):
+    full = state == "full"
+    # two tunnels side by side down the patio, the same footprint at every stage
+    if n == 3:
+        marquesina(4, 32, 92, 28, "full" if full else "empty")
+    else:
+        marquesina(4, 32, 92, 28, "full" if full else "empty"); marquesina(4, 64, 92, 28, "full" if full else "empty")
+        person(36, 84, "#D04838"); person(66, 84, "#F2C04A", "#3E2A1C")
+    if n >= 2:   # solar drying: amber roofs and a row of panels along each ridge, a farm sign
+        for (y0, h) in ((32, 28),) + (((64, 28),) if n == 2 else ()):
+            for y in range(y0, y0 + h):
+                for x in range(4, 96):
+                    if (x + y) % 3 == 0:
+                        put(x, y, "#F2B04A", 70)
+            for x in range(8, 92, 8):
+                box(x, y0 - 3, 7, 4, "#2A4A8A"); put(x + 2, y0 - 2, "#9ACAF8"); put(x + 3, y0 - 2, "#9ACAF8")
+    if n >= 3:   # the micro-lot greenhouse takes the second tunnel's place: a white frame, a glass gable and rows of seedlings
+        soft_shadow(6, 93, 90)
+        R(4, 66, 92, 27, "#F4F8F8")
+        for y in range(67, 92):
+            for x in range(5, 95):
+                put(x, y, "#D8EEF0" if (x - 5) % 10 else "#F8FCFC")
+        for k in range(2):
+            for i in range(11):
+                x, y = 8 + i * 8, 76 + k * 8
+                R(x, y + 3, 5, 2, "#8E5C38"); R(x + 2, y, 1, 3, "#3E8036"); put(x + 1, y, "#5A9C3C"); put(x + 3, y - 1, "#7EB84C"); put(x + 1, y + 1, "#F06A98"); put(x + 3, y + 1, "#F06A98")
+        for x in range(4, 96):   # the gable: glass panes rising to a ridge
+            a = int(6 * (1 - abs((x - 50) / 46)))
+            for y in range(66 - a, 67):
+                put(x, y, "#F8FCFC" if y == 66 - a else "#C8E4EA")
+            put(x, 66 - a, "#8AA8B4")
+        R(4, 66, 92, 1, "#8AA8B4"); R(4, 92, 92, 1, "#8AA8B4")
+        box(43, 84, 14, 9, "#F2C04A"); R(46, 86, 8, 7, "#E8F4F4"); R(49, 86, 1, 7, "#8AA8B4")
+        box(38, 69, 24, 6, "#2D6A46"); R(40, 71, 20, 1, "#F2C04A")
+        lights(4, 96, 62, 2)
+        person(24, 93, "#D04838"); person(72, 93, "#F2C04A", "#3E2A1C")
+
+
+def est_gedeo(n, state, dirt, snow=False):
+    st = "full" if state == "full" else "tarp"
+    beds_w = 86 if n == 1 else 52
+    rows = 3 if n < 3 else 2
+    for k in range(rows):
+        drying_bed(6, 26 + k * 22, beds_w, 12, st)
+    # shade cloth on posts over the beds, with the women turning the cherries
+    for k in range(rows):
+        y0 = 22 + k * 22
+        for x in (6, 6 + beds_w // 2, 6 + beds_w - 2):
+            R(x, y0, 1, 16, WOOD[4])
+        for y in range(y0, y0 + 3):
+            for x in range(6, 6 + beds_w):
+                put(x, y, "#3E8036" if (x + y) % 2 else "#2C662C")
+    if n == 1:
+        person(22, 82, "#F2C42C", "#3E8A3A"); person(50, 82, "#C8302C", "#F2C42C"); person(76, 82, "#FBF6EA", "#C8302C")
+    else:
+        person(14, 82 if n == 2 else 60, "#F2C42C", "#3E8A3A"); person(40, 82 if n == 2 else 60, "#C8302C", "#F2C42C")
+    if n >= 2:   # the ceremony compound: a woven fence, a round hut, fresh grass and people round the jebena
+        cx, cy, rx, ry = 86, 60, 24, 27
+        for y in range(cy - ry, cy + ry + 1):
+            for x in range(cx - rx, cx + rx + 1):
+                d = ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2
+                if d <= 1:
+                    put(x, y, dirt[1] if (x * 3 + y) % 7 else dirt[2])
+        for y in range(cy + 2, cy + 20):
+            for x in range(cx - 16, cx + 17):
+                if ((x - cx) / 17) ** 2 + ((y - cy - 11) / 9) ** 2 <= 1 and (x * 7 + y * 3) % 5 < 3:
+                    put(x, y, "#6CA442" if (x + y) % 2 else "#88BC54")   # fresh grass strewn for the ceremony
+        soft_shadow(76, 50, 22)
+        box(77, 40, 18, 11, "#B07A4A"); R(84, 44, 5, 7, "#3A2418")
+        for y in range(26, 41):
+            w = int((y - 26) * 0.75)
+            for x in range(86 - w, 86 + w + 1):
+                put(x, y, THATCH[5] if x in (86 - w, 86 + w) or y == 40 else (SNOWY[1] if snow else THATCH[1] if (x + y) % 3 else THATCH[2]))
+        R(83, 64, 6, 4, "#E8602A"); R(84, 60, 3, 4, OUT); R(85, 61, 1, 2, "#2A2220"); smoke(85, 57, 3)
+        person(72, 64, "#FBF6EA", "#3E8A3A"); person(96, 66, "#F2C42C", "#C8302C"); person(84, 72, "#C8302C", "#2A2220")
+        gate = n >= 3
+        for i in range(0, 360, 5):
+            a = math.radians(i)
+            if 75 < i < 105:
+                continue
+            x, y = int(cx + (rx - 1) * math.cos(a)), int(cy + (ry - 1) * math.sin(a))
+            R(x, y - 2, 1, 4, WOOD[3]); put(x, y - 3, WOOD[4])
+        if gate:   # the Beju gate at the opening
+            R(78, 78, 2, 10, WOOD[4]); R(93, 78, 2, 10, WOOD[4]); R(76, 77, 21, 2, WOOD[3])
+            box(81, 72, 11, 6, "#2D6A46"); R(83, 74, 7, 1, "#F2C04A")
+    if n >= 3:   # the co-op washing station on the bottom plot: three tanks, a channel and a small water tower
+        dirt_pad(6, 70, 56, 22, dirt, 7)
+        R(6, 72, 54, 18, CONCRETE[3]); R(7, 73, 52, 16, CONCRETE[1])
+        for k in range(3):
+            tx = 9 + k * 13
+            box(tx, 75, 11, 9, CONCRETE[3]); R(tx + 1, 76, 9, 7, "#C8A060" if k != 1 else WATER[2])
+            for i in range(5):
+                put(tx + 2 + (i * 3) % 7, 77 + (i * 2) % 5, "#E8C890")
+        for y in range(85, 88):
+            for x in range(8, 58):
+                put(x, y, WATER[1] if (x + y * 2) % 7 else "#FFFFFF")
+        R(57, 62, 1, 10, OUT); R(58, 62, 4, 3, "#2D6A46"); put(59, 63, "#F2C04A")
+
+
+def est_toba(n, state, dirt, snow=False):
+    full = state == "full"
+    # the long jetty and the trader's boat, out on the water
+    for y in range(40, 48):
+        for x in range(10, 74):
+            put(x, y, (WOOD[1] if y < 46 else WOOD[3]) if x % 5 else WOOD[3])
+    for x in range(12, 72, 10):
+        R(x, 48, 2, 3, WOOD[4])
+    boat_y = 56
+    for x in range(8, 38):
+        t = (x - 8) / 30
+        top = boat_y - int(4 * (abs(t - 0.5) * 2) ** 2)
+        for y in range(top, boat_y + 6):
+            put(x, y, OUT if y in (top, boat_y + 5) or x in (8, 37) else ("#3A6AC8" if n >= 3 else "#B8302A") if y < top + 2 else "#F2C04A" if y == top + 2 else WOOD[2])
+    e_sack(16, boat_y - 2); e_sack(24, boat_y - 2)
+    if n < 3:   # floating fish cages
+        for (cx, cy) in ((10, 66), (28, 70), (12, 84)):
+            R(cx, cy, 13, 9, "#F2C04A"); R(cx + 2, cy + 2, 9, 5, WATER[3]); put(cx + 5, cy + 4, "#B8C8D0"); put(cx + 7, cy + 3, "#B8C8D0")
+    if n >= 2:   # the rice barn (sopo) on the sand, with mats of coffee drying beside it
+        dirt_pad(62, 70, 26, 3, dirt, 9)
+        stilt_house(64, 40, 22, 13, 8, 9, snow, sweep=5)
+    if n >= 3:   # the guesthouse on stilts over the water, with lanterns along the jetty and visitors
+        for x in range(16, 46, 6):
+            R(x, 88, 2, 6, WOOD[4])
+        stilt_house(14, 64, 32, 12, 12, 0, snow, sweep=6)
+        R(27, 80, 6, 8, "#3A2418")
+        for y in range(94, 96):
+            for x in range(12, 50):
+                put(x, y, WATER[0] if (x + y) % 3 else "#FFFFFF")
+        lights(10, 74, 36, 1)
+        person(50, 31, "#7ED0A8", "#3A4C9C"); person(58, 31, "#F8B8CC"); person(66, 31, "#F2C04A", "#2A2220")
+
+
+def est_turrialba(n, state, dirt, snow=False):
+    full = state == "full"
+    # the wet mill stays on the left; the right side is the hillside, the ponds and later the café
+    wet_mill_compact(6, 42, "full" if full else "empty")
+    if n >= 1:   # settling ponds and a water wheel on the mill's end wall
+        ponds = ((66, 66, 30, 12), (66, 80, 30, 12)) if n < 3 else ((60, 74, 16, 16),)
+        for (x0, y0, w, h) in ponds:
+            box(x0, y0, w, h, WATER[1], CONCRETE[3])
+            for (a, b) in ((4, 3), (w - 9, h - 5), (w // 2, 2)):
+                R(x0 + a, y0 + b, 3, 2, "#5A9C3C"); put(x0 + a + 1, y0 + b, "#F8B8CC")
+        wx, wy = 58, 66
+        for y in range(wy - 9, wy + 10):
+            for x in range(wx - 9, wx + 10):
+                d = math.hypot(x - wx, y - wy)
+                if 7.5 <= d <= 9:
+                    put(x, y, WOOD[4])
+        for i in range(0, 360, 45):
+            a = math.radians(i)
+            R(int(wx + 7 * math.cos(a)), int(wy + 7 * math.sin(a)), 2, 2, WOOD[2])
+        R(wx - 1, wy - 1, 3, 3, WOOD[4])
+    if n >= 2:   # the barrel cellar dug into a grassy hillside on the top right, with an ox cart
+        for y in range(30, 64):
+            for x in range(60, 100):
+                if ((x - 82) / 22) ** 2 + ((y - 64) / 30) ** 2 <= 1:
+                    edge = ((x - 82) / 20.5) ** 2 + ((y - 64) / 28.5) ** 2 > 1
+                    put(x, y, "#427E30" if edge else (SNOWY[1] if snow else "#5A9C3C" if (x * 3 + y) % 7 else "#6CA442"))
+        for y in range(44, 64):
+            for x in range(74, 92):
+                if ((x - 83) / 9) ** 2 + ((y - 64) / 20) ** 2 <= 1:
+                    put(x, y, STONE[2] if (x * 3 + y) % 5 else STONE[3])
+        R(79, 52, 9, 12, OUT); R(80, 53, 7, 11, "#5A3418"); R(80, 53, 7, 1, WOOD[1]); put(85, 58, "#F2C04A")
+        for (bx, by) in ((64, 56), (69, 57), (91, 56)):
+            e_barrel(bx, by)
+        if n == 2:
+            box(70, 98 - 30, 1, 1, OUT)
+    if n >= 3:   # the café deck beside the pond, with umbrellas and string lights
+        R(78, 74, 22, 16, WOOD[3]); R(78, 74, 22, 1, WOOD[4])
+        for x in range(78, 100, 3):
+            put(x, 75, WOOD[1])
+        for y in range(76, 90, 3):
+            R(79, y, 20, 1, WOOD[2])
+        for x in range(78, 100, 5):
+            R(x, 70, 1, 4, WOOD[4])
+        R(78, 70, 22, 1, WOOD[4])
+        for (ux, col) in ((80, "#D85A40"), (90, "#F2C04A")):
+            R(ux + 3, 76, 1, 8, OUT)
+            for j in range(4):
+                R(ux + 3 - j, 72 + j, 1 + 2 * j, 1, col if j < 3 else OUT)
+            box(ux + 1, 84, 6, 4, "#F8F4EC")
+        person(82, 79, "#7890E0", "#3E2A1C"); person(92, 80, "#F07888")
+        soft_shadow(78, 90, 22, 2)
+        lights(78, 100, 68, 1)
+
+
+def wet_mill_compact(x0, y0, state):   # the wet mill, narrowed to leave room for the ponds and the hillside
+    shadow_ellipse(x0 + 26, y0 + 46, 26, 3, 55)
+    fill(x0, y0, 50, 44, CONCRETE[3]); fill(x0 + 1, y0 + 1, 48, 42, CONCRETE[1])
+    for k in range(2):
+        tx = x0 + 4 + k * 22
+        fill(tx, y0 + 4, 18, 20, CONCRETE[3]); fill(tx + 2, y0 + 6, 14, 16, "#C8A060" if state == "full" else WATER[2])
+        if state == "full":
+            for i in range(20):
+                put(tx + 3 + (i * 7) % 12, y0 + 7 + (i * 5) % 14, "#E8C890")
+    for y in range(y0 + 30, y0 + 38):
+        for x in range(x0 + 4, x0 + 50):
+            put(x, y, WATER[1] if (x + y * 2) % 7 else "#FFFFFF")
+
+
+def est_osaka(n, season, dirt, snow=False):
+    # plot A, the koi pond: bigger, with a red taiko bridge and stepping stones to the path
+    cx, cy, rx, ry = 27, 82, 23, 14
+    pond(cx, cy, rx, ry, frozen=snow)
+    for x in range(10, 45):
+        a = int(6 * math.sin((x - 10) / 34 * math.pi))
+        R(x, 79 - a, 1, 4, "#C8302C"); put(x, 78 - a, OUT); put(x, 83 - a, OUT)
+        if x % 4 == 2:
+            R(x, 75 - a, 1, 3, "#8A1E1C")
+    stepping([(46, 96), (52, 99), (58, 101)])
+    if n >= 2:   # plot B, the machiya roaster shop: dark lattice, a tiled roof, a noren and red lanterns
+        soft_shadow(5, 64, 32)
+        box(4, 42, 32, 23, "#4A3020")
+        for x in range(5, 35, 3):
+            R(x, 45, 1, 19, "#6A4A30")
+        R(12, 45, 16, 7, "#2C3A80")
+        for x in range(12, 28, 5):
+            R(x + 4, 45, 1, 7, "#4A3020")
+        R(18, 47, 4, 2, "#F8F4EC")
+        for lx in (6, 30):
+            R(lx, 44, 3, 5, OUT); R(lx + 1, 45, 1, 3, "#E83A30")
+        box(13, 55, 14, 10, "#2A1E14"); R(15, 57, 5, 7, "#C8302C"); R(21, 57, 4, 7, "#8A6A40")
+        front_roof(2, 32, 36, 11, ["#5A5A50", "#4A4A42", "#2E2E28"], snow)
+    if n >= 3:   # plot C, the Zen garden where the drying beds were: raked gravel inside a moss border, stones and the pagoda
+        gx0, gy0, gx1, gy1 = 54, 46, 100, 96
+        for y in range(gy0 - 2, gy1 + 3):
+            for x in range(gx0 - 2, gx1 + 3):
+                d = ((x - (gx0 + gx1) / 2) / ((gx1 - gx0) / 2 + 2)) ** 4 + ((y - (gy0 + gy1) / 2) / ((gy1 - gy0) / 2 + 2)) ** 4
+                if d > 1:
+                    continue
+                if d > 0.78:
+                    put(x, y, (SNOWY[2] if snow else "#5A8C3A") if (x + y) % 3 else (SNOWY[3] if snow else "#4A7A30"))   # moss border
+                else:
+                    wave = int(2 * math.sin(x * 0.35 + y * 0.05))
+                    put(x, y, (SNOWY[1] if snow else "#E2DED2") if (y + wave) % 3 else (SNOWY[2] if snow else "#C8C4B8"))
+        for (sx, sy, r) in ((60, 88, 3), (92, 90, 2), (96, 60, 2)):
+            for y in range(sy - r, sy + r + 1):
+                for x in range(sx - r - 1, sx + r + 2):
+                    if ((x - sx) / (r + 1)) ** 2 + ((y - sy) / r) ** 2 <= 1:
+                        put(x, y, STONE[3] if y > sy else STONE[2])
+            for k in range(r + 3):   # raked rings around each stone
+                a = k / (r + 3) * math.tau
+        pagoda(77, 90, snow)
+
+
 # ---------------- the scenes ----------------
-def scene_osaka(season):
+def scene_osaka(season, est=0):
     snow = season == "winter"
     grass = GRASS["snow" if snow else "autumn" if season == "autumn" else "lush" if season == "summer" else "green"]
     new_scene(grass[2])
     ground(grass, DIRT["ochre"], 1, leaves=["#E45C4C", "#EE9A3C", "#F8C860"] if season == "autumn" else ["#FAD2DF", "#F2B0C6"] if season == "spring" else None,
            snow=snow, flowers=0 if snow else 40 if season == "spring" else 20)
     beds(snow)
-    drying_bed(56, 52, state="snow" if snow else "full"); drying_bed(56, 74, state="snow" if snow else "full")
-    pond(24, 86, 19, 11, frozen=snow)
+    if est < 3:
+        drying_bed(56, 52, state="snow" if snow else "full"); drying_bed(56, 74, state="snow" if snow else "full")
+    if est:
+        est_osaka(est, season, DIRT["ochre"], snow)
+    else:
+        pond(24, 86, 19, 11, frozen=snow)
     house_japan(108, -6, snow)
     stone_lantern(100, 70)
     if season == "spring":
-        tree(18, 12, 20, SAKURA, 1); tree(48, 40, 16, SAKURA, 2); tree(92, 26, 13, LEAF, 4)
+        tree(18, 12, 20, SAKURA, 1); tree(*((52, 30, 12) if est >= 2 else (48, 40, 16)), SAKURA, 2); tree(92, 26, 13, LEAF, 4)
         tree(176, 88, 14, LEAF, 3); tree(4, 132, 12, SAKURA, 5); tree(190, 140, 12, LEAF, 6)
     elif season == "summer":
-        tree(18, 12, 20, LUSH, 1); tree(48, 40, 16, LUSH, 2); tree(92, 26, 13, LEAF, 4)
+        tree(18, 12, 20, LUSH, 1); tree(*((52, 30, 12) if est >= 2 else (48, 40, 16)), LUSH, 2); tree(92, 26, 13, LEAF, 4)
         tree(176, 88, 14, LUSH, 3); tree(4, 132, 12, LEAF, 5); tree(190, 140, 12, LUSH, 6)
     elif season == "autumn":
-        tree(18, 12, 20, AUTUMN, 1); tree(48, 40, 16, MAPLE, 2); tree(92, 26, 13, MAPLE, 4)
+        tree(18, 12, 20, AUTUMN, 1); tree(*((52, 30, 12) if est >= 2 else (48, 40, 16)), MAPLE, 2); tree(92, 26, 13, MAPLE, 4)
         tree(176, 88, 14, AUTUMN, 3); tree(4, 132, 12, MAPLE, 5); tree(190, 140, 12, AUTUMN, 6)
     else:
-        bare_tree(18, 12, 18, 1); bare_tree(48, 40, 15, 2); pine(92, 22, 13, 4, snow=True)
+        bare_tree(18, 12, 18, 1); bare_tree(*((52, 30, 12) if est >= 2 else (48, 40, 15)), 2); pine(92, 22, 13, 4, snow=True)
         pine(176, 84, 14, 3, snow=True); bare_tree(4, 132, 11, 5); pine(190, 136, 12, 6, snow=True)
     hedge = [[SNOWY[1], SNOWY[2], LEAF[3], LEAF[4], LEAF[5]]] if False else ([LEAF, OCHRE, LEAF, COFFEE] if season != "autumn" else [AUTUMN, OCHRE, MAPLE, LEAF])
     hedgerow_and_bank(hedge, DIRT["ochre"], snow)
 
 
-def scene_huila(season):
+def scene_huila(season, est=0):
     harvest = season == "harvest"
     grass = GRASS["green" if harvest else "lush"]
     new_scene(grass[2])
     ground(grass, DIRT["ochre"] if harvest else DIRT["wet"], 3, puddles=not harvest, flowers=24 if harvest else 40)
     beds()
-    marquesina(4, 38, 92, 40, "full" if harvest else "empty")
+    if est:
+        est_huila(est, "full" if harvest else "empty", DIRT["ochre"])
+    else:
+        marquesina(4, 38, 92, 40, "full" if harvest else "empty")
     house_finca(108, -4)
     paddle_plant(14, 18, 18, 1); paddle_plant(44, 10, 14, 2); paddle_plant(90, 18, 12, 3)
     tree(176, 92, 14, LUSH if not harvest else LEAF, 3); paddle_plant(6, 136, 13, 5); tree(190, 140, 12, LEAF, 6)
     hedgerow_and_bank([LEAF, COFFEE, LUSH, OCHRE], DIRT["ochre"])
 
 
-def scene_mogiana(season):
+def scene_mogiana(season, est=0):
     harvest = season == "harvest"
     grass = GRASS["dry" if harvest else "lush"]
     new_scene(grass[2])
     ground(grass, DIRT["red"], 5, dirt_q=0.78, puddles=not harvest, flowers=12 if harvest else 30)
     beds()
-    terreiro(4, 30, 96, 62, "full" if harvest else "wet")
+    if est:
+        est_mogiana(est, "full" if harvest else "wet", DIRT["red"])
+    else:
+        terreiro(4, 30, 96, 62, "full" if harvest else "wet")
     house_fazenda(106, -6)
     tree(14, 12, 16, IPE if harvest else LUSH, 1); tree(84, 12, 12, IPE if harvest else LEAF, 2)
     palm(178, 86, 14, 3); tree(4, 136, 12, IPE if harvest else LEAF, 5); palm(188, 132, 12, 6)
     hedgerow_and_bank([OCHRE, LEAF, OCHRE, COFFEE], DIRT["red"])
 
 
-def scene_gedeo(season):
+def scene_gedeo(season, est=0):
     harvest = season == "harvest"
     grass = GRASS["dry" if harvest else "lush"]
     new_scene(grass[2])
     ground(grass, DIRT["rust"], 7, puddles=not harvest, flowers=10 if harvest else 34)
     beds()
-    african_beds(6, 26, 3, "full" if harvest else "tarp")
+    if est:
+        est_gedeo(est, "full" if harvest else "tarp", DIRT["rust"])
+    else:
+        african_beds(6, 26, 3, "full" if harvest else "tarp")
     tukul(150, 32, 30)
     paddle_plant(102, 18, 14, 1, midrib="#B8402C"); paddle_plant(186, 88, 13, 2, midrib="#B8402C")
     acacia(18, 10, 18, 3, LEAF if harvest else LUSH); acacia(4, 140, 12, 4, LEAF); paddle_plant(190, 140, 11, 5, midrib="#B8402C")
     hedgerow_and_bank([OCHRE, LEAF, COFFEE, OCHRE], DIRT["rust"])
 
 
-def scene_toba(season):
+def scene_toba(season, est=0):
     harvest = season == "harvest"
     grass = GRASS["green" if harvest else "lush"]
     new_scene(grass[2])
@@ -768,18 +1229,23 @@ def scene_toba(season):
     lake(0, 0, 100, 96)
     beds()
     drying_bed(62, 74, 34, 14, "full" if harvest else "tarp")
+    if est:
+        est_toba(est, "full" if harvest else "tarp", DIRT["volcanic"])
     house_batak(106, -4)
-    palm(98, 30, 14, 1); palm(178, 90, 14, 2); palm(6, 136, 12, 3); tree(190, 140, 12, LUSH, 4)
+    palm(*((102, 22) if est >= 2 else (98, 30)), 14, 1); palm(178, 90, 14, 2); palm(6, 136, 12, 3); tree(190, 140, 12, LUSH, 4)
     hedgerow_and_bank([LUSH, COFFEE, LEAF, LUSH], DIRT["volcanic"])
 
 
-def scene_turrialba(season):
+def scene_turrialba(season, est=0):
     harvest = season == "harvest"
     grass = GRASS["lush"]
     new_scene(grass[2])
     ground(grass, DIRT["volcanic"] if not harvest else DIRT["ochre"], 11, puddles=not harvest, flowers=30)
     beds()
-    wet_mill(6, 40, "full" if harvest else "empty")
+    if est:
+        est_turrialba(est, "full" if harvest else "empty", DIRT["volcanic"] if not harvest else DIRT["ochre"])
+    else:
+        wet_mill(6, 40, "full" if harvest else "empty")
     house_tico(110, -6)
     tree(16, 12, 16, PORO if harvest else LUSH, 1); paddle_plant(60, 14, 14, 2); tree(96, 22, 11, PORO if harvest else LEAF, 3)
     tree(178, 90, 14, PORO if harvest else LUSH, 4); paddle_plant(6, 136, 13, 5); tree(190, 140, 12, LUSH, 6)
@@ -796,11 +1262,18 @@ SCENES = {
 }
 os.makedirs(os.path.join(HERE, "bg"), exist_ok=True)
 rendered = {}
+ESTBG = {}   # estate stage crops: where each one sits in its scene
 for loc, (fn, seasons) in SCENES.items():
     for s in seasons:
         fn(s)
         img.save(os.path.join(HERE, "bg", "%s-%s.png" % (loc, s)))
         rendered[(loc, s)] = img.copy()
+        for n in (1, 2, 3):   # each estate stage: the scene drawn again with it, saved as just the part that changed
+            fn(s, n)
+            box_ = ImageChops.difference(rendered[(loc, s)].convert("RGB"), img.convert("RGB")).getbbox()
+            name = "est-%s-%s-%d" % (loc, s, n)
+            img.crop(box_).save(os.path.join(HERE, "bg", name + ".png"))
+            ESTBG[name] = [box_[0], box_[1]]
 for old in ("farm-bg.png",):
     p = os.path.join(HERE, old)
     if os.path.exists(p):
@@ -2055,365 +2528,8 @@ for _loc in HOUSE_AT:
         add_layer("house_up_%s_%d" % (_loc, _t), 120, 92, house_up(_loc, _t))
 
 
-# ---------------- estate projects: each farm's drying area grows in three stages (farm level 30, 40, 50) ----------------
-EW, EH = 104, 112
-BRICK = ["#C8705A", "#A85A44", "#8A4634"]
-
-
-def estate(loc, tier):
-    """Each farm's drying area, rebuilt in three stages. Later stages paint over earlier ones, so stage 3 transforms the whole space."""
-    def draw(p):
-        P = lambda x, y, c: p(x, y, c) if 0 <= x < EW and 0 <= y < EH else None
-        def R(x, y, w, h, c):
-            x, y, w, h = int(x), int(y), int(w), int(h)
-            for i in range(w):
-                for j in range(h):
-                    P(x + i, y + j, c)
-        def box(x, y, w, h, fillc, out=OUT):
-            R(x, y, w, h, out); R(x + 1, y + 1, w - 2, h - 2, fillc)
-        def shadow(x, y, w, h=2):
-            for i in range(w):
-                for j in range(h):
-                    P(x + i, y + j, "#2A2A0848")
-        def tiles(x, y, w, h, ramp):   # a tiled roof seen from the front: rows of tiles, darker towards the eave
-            R(x, y, w, h, OUT)
-            for j in range(1, h - 1):
-                for i in range(1, w - 1):
-                    P(x + i, y + j, ramp[2] if j % 3 == 0 else ramp[0] if j < h // 2 else ramp[1])
-        def tin(x, y, w, h, ramp):     # corrugated metal
-            R(x, y, w, h, OUT)
-            for j in range(1, h - 1):
-                for i in range(1, w - 1):
-                    P(x + i, y + j, ramp[(i // 2) % 2] if j < h - 2 else ramp[2])
-        def person(x, y, shirt, hat="#F4DE9C", skin="#E2A882"):
-            R(x, y, 4, 2, hat); R(x + 1, y + 2, 2, 2, skin); R(x, y + 4, 4, 3, shirt); R(x, y + 7, 1, 2, "#4A3A2A"); R(x + 3, y + 7, 1, 2, "#4A3A2A")
-        def smoke(x, y, n=5):
-            for k in range(n):
-                R(x + (k % 2) * 2 - k // 2, y - k * 3, 2 + k // 2, 2, "#F4F4F4" if k % 2 else "#E0E0E0")
-        def lights(x0, x1, y, sag=2):
-            cols = ["#FF6A6A", "#FFE07A", "#7ED0F0", "#9AE07A"]
-            for i, x in enumerate(range(x0, x1)):
-                yy = y + int(sag * math.sin((x - x0) / max(1, x1 - x0) * math.pi))
-                P(x, yy, "#3E2A1C")
-                if i % 4 == 0:
-                    P(x, yy + 1, cols[(i // 4) % 4])
-        def bunting(x0, x1, y):
-            cols = ["#E83A30", "#F2C04A", "#3E8A4A", "#3A6AC8"]
-            for i, x in enumerate(range(x0, x1)):
-                P(x, y, "#3E2A1C")
-                if i % 6 < 4:
-                    k = i % 6
-                    R(x, y + 1, 1, 3 - abs(k - 1.5) // 1, cols[(i // 6) % 4])
-        def palm_small(x, y):
-            R(x + 3, y + 4, 2, 10, WOOD[3])
-            for (a, b) in ((-4, 0), (-2, -1), (0, -2), (2, -2), (4, -1), (6, 0), (8, 1), (-6, 1)):
-                R(x + 3 + a, y + 2 + b, 3, 2, "#5A9C3C")
-        def barrel(x, y):
-            box(x, y, 7, 8, "#8A5A30"); R(x + 1, y + 2, 5, 1, "#3A2418"); R(x + 1, y + 5, 5, 1, "#3A2418"); R(x + 2, y + 1, 2, 1, "#B07A4A")
-        def sack(x, y):
-            R(x, y, 6, 5, OUT); R(x + 1, y + 1, 4, 3, JUTE[2]); P(x + 2, y + 2, "#2D6A46")
-
-        if loc == "mogiana":
-            if tier >= 1:   # a fresh, busy terreiro: new rows of red cherries and dried coffee, bunting, rakers and a loaded wheelbarrow
-                for y in range(33, 90):
-                    for x in range(6, 98):
-                        row = (y - 33) % 7
-                        P(x, y, "#D8D2C8" if row in (0, 6) else ("#C8402C" if (x * 3 + y) % 5 else "#E05A40") if x < 52 else ("#6A3A22" if (x + y) % 4 else "#8A5030"))
-                bunting(4, 100, 31)
-                person(30, 60, "#E8603A"); R(34, 63, 1, 8, WOOD[3]); R(32, 71, 5, 1, WOOD[4])
-                person(70, 46, "#3A6AC8", "#F8F4EC"); R(74, 49, 1, 8, WOOD[3]); R(72, 57, 5, 1, WOOD[4])
-                for x in range(4, 100):
-                    P(x, 92, "#F8F4EC"); P(x, 93, "#C8C0B4")
-                R(80, 98, 12, 6, OUT); R(81, 99, 10, 4, "#9AA4AC"); sack(82, 94); sack(87, 95); R(78, 101, 3, 1, WOOD[4]); P(90, 104, OUT)
-            if tier >= 2:   # a brick dryer house on the patio: two guardiola drums inside, a tall chimney and steam
-                shadow(54, 92, 48, 3)
-                box(54, 46, 48, 46, BRICK[0])
-                for y in range(47, 91):
-                    for x in range(55, 101):
-                        if (y - 47) % 4 == 3 or (x + ((y - 47) // 4) * 3) % 8 == 0:
-                            P(x, y, BRICK[2])
-                R(58, 58, 40, 30, "#2A1E14")
-                for dy in (60, 74):
-                    box(60, dy, 36, 11, "#9AA4AC"); R(61, dy + 1, 34, 3, "#C8D0D6"); R(61, dy + 8, 34, 2, "#6E7882")
-                    for x in range(64, 94, 5):
-                        R(x, dy + 1, 1, 9, "#6E7882")
-                    R(57, dy + 3, 3, 5, "#F2A040"); P(58, dy + 5, "#FFE07A")
-                tin(52, 38, 52, 10, ["#C85A40", "#A84630", "#7A3020"])
-                box(92, 16, 7, 24, BRICK[1]); R(92, 16, 7, 2, OUT)
-                smoke(94, 13, 5)
-            if tier >= 3:   # the fazenda tasting house: columns, arched blue windows, a terracotta roof, a fountain and palms
-                shadow(4, 80, 48, 3)
-                box(4, 44, 48, 36, "#FBF8F2"); R(5, 72, 46, 7, "#EEE8DC")
-                for wx in (8, 20, 40):
-                    box(wx, 52, 8, 12, "#2E6AB0"); R(wx + 1, 51, 6, 1, "#2E6AB0"); R(wx + 3, 53, 2, 10, "#F4E8C8")
-                box(29, 58, 8, 22, "#7A4A28"); R(29, 57, 8, 1, OUT)
-                for cx in range(5, 52, 8):
-                    R(cx, 44, 2, 36, "#FFFFFF"); P(cx + 1, 44, "#D8D0C4")
-                tiles(2, 30, 52, 15, ["#E89068", "#CC6C48", "#8E3E28"])
-                box(16, 25, 24, 7, "#2D6A46"); R(18, 27, 20, 1, "#F2C04A"); R(21, 29, 14, 1, "#F2C04A")
-                for y in range(86, 104):
-                    for x in range(14, 44):
-                        d = ((x - 29) / 15) ** 2 + ((y - 95) / 8) ** 2
-                        if d <= 1:
-                            P(x, y, STONE[1] if d > 0.7 else WATER[1] if d > 0.25 else WATER[0])
-                R(28, 88, 3, 6, STONE[2]); R(27, 86, 5, 2, "#E4F6F8"); P(26, 88, "#E4F6F8"); P(32, 88, "#E4F6F8")
-                palm_small(0, 84); palm_small(46, 84)
-        elif loc == "huila":
-            if tier >= 1:   # a second drying tunnel the full width, banana plants at its ends
-                shadow(4, 108, 92)
-                R(4, 88, 92, 20, WOOD[4]); R(5, 89, 90, 18, WOOD[2])
-                for y in range(90, 106):
-                    for x in range(6, 94):
-                        P(x, y, ["#C64034", "#A82E2C", "#8A2426", "#D86048", "#F06A98"][(x * 7 + y * 3) % 5])
-                for x in range(4, 96):
-                    a = 9 * math.sin((x - 4) / 92 * math.pi)
-                    for y in range(int(88 - a), 89):
-                        P(x, y, "#E4F4F8" if (x + y) % 5 else "#BCE0EC")
-                    P(x, int(88 - a), "#8AA8B4")
-                for bx in (0, 96):
-                    R(bx + 3, 92, 2, 14, "#7E9A3A")
-                    for (a, b) in ((-3, 0), (3, 1), (-2, 4), (4, 5), (0, -2)):
-                        R(bx + 3 + a, 90 + b, 4, 2, "#5A9C3C")
-                person(40, 80, "#D04838"); person(70, 80, "#F2C04A", "#3E2A1C")
-            if tier >= 2:   # solar drying: the top tunnel turns into an amber parabolic dryer with panels along both roofs
-                for y in range(30, 78):
-                    for x in range(4, 96):
-                        if (x + y) % 3 == 0:
-                            P(x, y, "#F2B04A60")
-                for (y0, x0, w) in ((32, 6, 88), (79, 6, 88)):
-                    for x in range(x0, x0 + w, 8):
-                        box(x, y0, 7, 5, "#2A4A8A"); P(x + 2, y0 + 1, "#9ACAF8"); P(x + 3, y0 + 1, "#9ACAF8")
-                box(84, 20, 14, 10, "#F8F4EC"); R(86, 22, 10, 2, "#2D6A46"); R(86, 25, 6, 1, "#D04838")
-            if tier >= 3:   # the micro-lot greenhouse replaces the second tunnel: glass, Pink Bourbon seedlings and a gold sign
-                shadow(2, 110, 98)
-                box(2, 82, 98, 28, "#D4ECF4")
-                for x in range(3, 99, 8):
-                    R(x, 83, 1, 26, "#8AA8B4")
-                R(2, 82, 98, 3, "#A8C8D4"); R(2, 82, 98, 1, OUT)
-                for k in range(22):
-                    x, y = 6 + (k % 11) * 8, 88 + (k // 11) * 10
-                    R(x, y + 4, 5, 2, "#8E5C38"); R(x + 2, y + 1, 1, 3, "#3E8036"); P(x + 1, y + 1, "#5A9C3C"); P(x + 3, y, "#7EB84C"); P(x + 1, y + 3, "#F06A98"); P(x + 3, y + 2, "#F06A98")
-                box(36, 76, 30, 8, "#F2C04A"); R(38, 78, 26, 1, "#7A5410"); R(42, 80, 18, 1, "#7A5410")
-                lights(4, 96, 36, 3)
-        elif loc == "gedeo":
-            if tier >= 1:   # shade cloth over the beds, a fourth bed and women turning the cherries
-                for (y0, y1) in ((44, 64), (66, 86)):
-                    for x in (6, 48, 90):
-                        R(x, y0, 2, y1 - y0, WOOD[4])
-                    for y in range(y0, y0 + 4):
-                        for x in range(6, 92):
-                            P(x, y, "#3E8036" if (x + y) % 2 else "#2C662C")
-                shadow(6, 106, 86)
-                R(6, 92, 86, 12, WOOD[4]); R(7, 93, 84, 10, WOOD[1])
-                for y in range(94, 102):
-                    for x in range(8, 90):
-                        P(x, y, ["#C64034", "#A82E2C", "#8A2426", "#D86048", "#6E2A20"][(x * 5 + y * 7) % 5])
-                person(24, 82, "#F2C42C", "#3E8A3A"); person(52, 82, "#C8302C", "#F2C42C"); person(76, 82, "#FBF6EA", "#C8302C")
-            if tier >= 2:   # the ceremony compound: a woven fence, a big tukul, fresh grass and people round the jebena
-                for y in range(30, 84):
-                    for x in range(56, 104):
-                        if ((x - 80) / 24) ** 2 + ((y - 57) / 27) ** 2 <= 1:
-                            P(x, y, "#C89A64" if (x + y) % 3 else "#B48A54")
-                for i in range(0, 360, 6):
-                    a = math.radians(i)
-                    x, y = int(80 + 23 * math.cos(a)), int(57 + 26 * math.sin(a))
-                    if 70 < i < 110:
-                        continue
-                    R(x, y - 2, 1, 4, WOOD[3]); P(x, y - 3, WOOD[4])
-                for y in range(64, 80):
-                    for x in range(64, 96):
-                        if (x * 7 + y * 3) % 5 < 2:
-                            P(x, y, "#6CA442")
-                shadow(70, 58, 22)
-                box(72, 46, 18, 12, "#B07A4A"); R(79, 50, 5, 8, "#3A2418")
-                for y in range(30, 47):
-                    w = int((y - 30) * 0.7)
-                    for x in range(81 - w, 81 + w + 1):
-                        P(x, y, THATCH[5] if x in (81 - w, 81 + w) or y == 46 else THATCH[1] if (x + y) % 3 else THATCH[2])
-                R(79, 68, 5, 4, "#E8602A"); R(80, 64, 3, 4, OUT); R(81, 65, 1, 2, "#2A2220"); smoke(81, 61, 4)
-                person(68, 68, "#FBF6EA", "#3E8A3A"); person(88, 70, "#F2C42C", "#C8302C"); person(76, 74, "#C8302C", "#2A2220")
-            if tier >= 3:   # the co-op washing station: fermentation tanks, long channels and a water tower
-                for y in range(84, 112):
-                    for x in range(2, 104):
-                        P(x, y, CONCRETE[1] if (x + y) % 7 else CONCRETE[2])
-                R(2, 84, 102, 1, CONCRETE[3])
-                for k in range(3):
-                    tx = 6 + k * 22
-                    box(tx, 87, 18, 12, CONCRETE[3]); R(tx + 1, 88, 16, 10, "#C8A060" if k != 1 else WATER[2])
-                    for i in range(8):
-                        P(tx + 3 + (i * 5) % 12, 90 + (i * 3) % 7, "#E8C890")
-                for y in range(102, 108):
-                    for x in range(4, 100):
-                        P(x, y, WATER[1] if (x + y * 2) % 7 else "#FFFFFF")
-                # the water tower stands on the hill behind the beds, so the ceremony stays in view
-                for lx in (58, 70):
-                    R(lx, 12, 2, 14, WOOD[4])
-                for k in range(4):
-                    P(60 + k * 3, 14 + k * 3, WOOD[3]); P(69 - k * 3, 14 + k * 3, WOOD[3])
-                box(55, 2, 18, 11, "#4A7AA8"); R(56, 3, 16, 2, "#6A9AC8"); R(55, 1, 18, 1, OUT)
-                R(71, 13, 1, 13, CONCRETE[3])
-                R(64, 0, 1, 2, OUT); R(65, 0, 3, 1, "#2D6A46")
-                # the ceremony grows: a gate with the Beju sign, a rug and more guests round the jebena
-                R(72, 80, 2, 6, WOOD[4]); R(87, 80, 2, 6, WOOD[4]); R(71, 79, 19, 2, WOOD[3])
-                box(75, 74, 11, 6, "#2D6A46"); R(77, 76, 7, 1, "#F2C04A"); R(77, 78, 5, 1, "#F2C04A")
-                for y in range(60, 66):
-                    for x in range(62, 72):
-                        P(x, y, "#C8302C" if (x + y) % 4 else "#F2C42C")
-                person(64, 60, "#2D6A46", "#F2C42C"); person(94, 62, "#FBF6EA", "#2A2220")
-        elif loc == "toba":
-            if tier >= 1:   # a long jetty with the trader's boat, and floating fish cages out on the lake
-                for y in range(40, 48):
-                    for x in range(10, 36):
-                        P(x, y, (WOOD[1] if y < 46 else WOOD[3]) if x % 5 else WOOD[3])
-                for x in (12, 22, 32):
-                    R(x, 48, 2, 4, WOOD[4])
-                for x in range(6, 40):
-                    t = (x - 6) / 34
-                    top = 52 - int(4 * (abs(t - 0.5) * 2) ** 2)
-                    for y in range(top, 59):
-                        P(x, y, OUT if y in (top, 58) or x in (6, 39) else "#B8302A" if y < top + 2 else "#F2ECDC" if y == top + 2 else WOOD[2])
-                sack(16, 50); sack(24, 50)
-                for (cx, cy) in ((6, 66), (24, 70), (8, 86), (28, 90)):
-                    R(cx, cy, 14, 10, "#F2C04A"); R(cx + 2, cy + 2, 10, 6, WATER[3]); P(cx + 5, cy + 4, "#B8C8D0"); P(cx + 8, cy + 5, "#B8C8D0")
-            if tier >= 2:   # a Batak rice barn (sopo) on stilts on the sand, with drying mats
-                shadow(60, 78, 34)
-                for x in range(64, 92, 6):
-                    R(x, 66, 2, 12, WOOD[4])
-                box(60, 54, 34, 13, "#F2ECDC")
-                for x in range(61, 93):
-                    k = (x // 3) % 3
-                    R(x, 57, 1, 6, ["#B8302A", "#F2ECDC", "#2A2220"][k])
-                for y in range(36, 55):
-                    lift = int(7 * ((54 - y) / 18) ** 2)
-                    for x in range(58 - lift, 96 + lift):
-                        P(x, y, OUT if y == 54 or x in (58 - lift, 95 + lift) else "#5E544A" if (x + y) % 4 else "#4A4038")
-                for k in range(3):
-                    R(56 + k * 14, 96, 12, 8, "#C8A060"); R(57 + k * 14, 97, 10, 6, "#5A3418")
-            if tier >= 3:   # a guesthouse on stilts over the water, a painted ferry and lanterns along the jetty
-                for x in range(8, 44, 7):
-                    R(x, 84, 2, 14, WOOD[4])
-                box(6, 70, 40, 15, "#F2ECDC")
-                for x in range(7, 45):
-                    R(x, 74, 1, 6, ["#B8302A", "#F2ECDC", "#2A2220"][(x // 3) % 3])
-                R(22, 78, 6, 7, "#3A2418")
-                for y in range(52, 71):
-                    lift = int(8 * ((70 - y) / 18) ** 2)
-                    for x in range(4 - lift, 48 + lift):
-                        P(x, y, OUT if y == 70 or x in (4 - lift, 47 + lift) else "#5E544A" if (x + y) % 4 else "#4A4038")
-                for x in range(4, 44):   # the ferry, bigger and painted
-                    t = (x - 4) / 40
-                    top = 52 - int(5 * (abs(t - 0.5) * 2) ** 2)
-                    for y in range(top, 61):
-                        P(x, y, OUT if y in (top, 60) or x in (4, 43) else "#3A6AC8" if y < top + 3 else "#F2C04A" if y == top + 3 else "#F8F4EC")
-                R(14, 46, 16, 6, "#B8302A"); R(15, 47, 14, 4, "#F8F4EC"); R(15, 47, 14, 1, "#B8302A")
-                lights(10, 72, 38, 1)
-                person(48, 30, "#7ED0A8", "#3A4C9C"); person(56, 30, "#F8B8CC", "#F4DE9C"); person(64, 30, "#F2C04A", "#2A2220")
-        elif loc == "turrialba":
-            if tier >= 1:   # settling ponds with lilies, and a water wheel turning at the mill
-                for (cx, cy) in ((16, 96), (42, 96)):
-                    box(cx - 12, cy - 8, 26, 16, WATER[1], CONCRETE[3])
-                    for (a, b) in ((-6, -3), (4, 2), (-2, 4)):
-                        R(cx + a, cy + b, 3, 2, "#5A9C3C"); P(cx + a + 1, cy + b, "#F8B8CC")
-                for i in range(0, 360, 30):
-                    a = math.radians(i)
-                    R(int(6 + 9 * math.cos(a)), int(58 + 9 * math.sin(a)), 2, 2, WOOD[3])
-                for y in range(48, 69):
-                    for x in range(-4, 17):
-                        d = math.hypot(x - 6, y - 58)
-                        if 8 <= d <= 9.5:
-                            P(x, y, WOOD[4])
-                R(5, 57, 3, 3, WOOD[4])
-            if tier >= 2:   # the barrel cellar dug into a green hillside, barrels stacked and a painted ox cart
-                for y in range(78, 112):
-                    for x in range(56, 104):
-                        if ((x - 80) / 26) ** 2 + ((y - 112) / 32) ** 2 <= 1:
-                            P(x, y, "#5A9C3C" if (x * 3 + y) % 7 else "#427E30")
-                for y in range(88, 110):
-                    for x in range(70, 90):
-                        if ((x - 80) / 10) ** 2 + ((y - 110) / 22) ** 2 <= 1:
-                            P(x, y, STONE[2] if (x * 3 + y) % 5 else STONE[3])
-                R(75, 96, 10, 14, OUT); R(76, 97, 8, 13, "#5A3418"); R(76, 97, 8, 1, WOOD[1]); P(82, 104, "#F2C04A")
-                for (bx, by) in ((58, 100), (64, 100), (61, 93), (92, 101)):
-                    barrel(bx, by)
-                box(36, 76, 16, 9, "#D85A40"); R(37, 77, 14, 1, "#F2C04A"); R(37, 80, 14, 1, "#3A6AC8")
-                for (wx, wy) in ((38, 84), (48, 84)):
-                    for i in range(0, 360, 45):
-                        a = math.radians(i)
-                        P(int(wx + 3 * math.cos(a)), int(wy + 3 * math.sin(a)), "#F2C04A")
-                    P(wx, wy, "#B8302A")
-                R(52, 80, 6, 1, WOOD[4])
-            if tier >= 3:   # the café terrace: a deck with railings, umbrellas, string lights and visitors
-                R(2, 98, 52, 14, WOOD[3]); R(2, 98, 52, 1, WOOD[4])
-                for x in range(2, 54, 3):
-                    P(x, 99, WOOD[1])
-                for x in range(2, 54, 6):
-                    R(x, 94, 1, 4, WOOD[4])
-                R(2, 94, 52, 1, WOOD[4])
-                for (ux, col) in ((8, "#D85A40"), (24, "#F2C04A"), (40, "#3A6AC8")):
-                    R(ux + 3, 88, 1, 12, OUT)
-                    for j in range(5):
-                        R(ux + 3 - j, 82 + j, 1 + 2 * j, 1, col if j < 4 else OUT)
-                    box(ux, 104, 8, 5, "#F8F4EC")
-                person(14, 99, "#7890E0", "#3E2A1C"); person(32, 99, "#F07888", "#F4DE9C")
-                lights(2, 54, 78, 2)
-        elif loc == "osaka":
-            if tier >= 1:   # a big koi pond with an arched taiko bridge, stepping stones and rocks
-                for y in range(64, 108):
-                    for x in range(0, 56):
-                        d = ((x - 27) / 27) ** 2 + ((y - 86) / 19) ** 2
-                        if d <= 1:
-                            P(x, y, STONE[1] if d > 0.85 else WATER[3] if d > 0.6 else WATER[2] if d > 0.3 else WATER[1])
-                for x in range(12, 44):
-                    a = int(7 * math.sin((x - 12) / 32 * math.pi))
-                    R(x, 82 - a, 1, 5, "#C8302C"); P(x, 81 - a, OUT); P(x, 87 - a, OUT)
-                    if x % 4 == 0:
-                        R(x, 78 - a, 1, 3, "#8A1E1C")
-                for (x, y, c) in ((6, 94, "#F08838"), (36, 100, "#FFFFFF"), (44, 76, "#F08838"), (18, 98, "#F2C04A")):
-                    R(x, y, 5, 2, c); P(x + 5, y, c)
-                for (sx, sy) in ((52, 100), (58, 104), (64, 106)):
-                    R(sx, sy, 5, 3, STONE[2]); R(sx, sy, 5, 1, STONE[0])
-            if tier >= 2:   # a machiya roaster shop: dark lattice, a tiled roof, a noren and red lanterns
-                shadow(4, 66, 46, 3)
-                box(4, 40, 46, 26, "#4A3020")
-                for x in range(5, 49, 3):
-                    R(x, 44, 1, 21, "#6A4A30")
-                tiles(2, 30, 50, 12, ["#5A5A50", "#4A4A42", "#2E2E28"])
-                R(18, 46, 18, 8, "#2C3A80")
-                for x in range(18, 36, 6):
-                    R(x + 5, 46, 1, 8, "#4A3020")
-                R(24, 48, 4, 3, "#F8F4EC")
-                for lx in (8, 42):
-                    R(lx, 44, 4, 6, OUT); R(lx + 1, 45, 2, 4, "#E83A30"); P(lx + 1, 43, OUT)
-                box(16, 56, 22, 10, "#2A1E14"); R(19, 58, 8, 6, "#C8302C"); R(29, 58, 6, 6, "#8A6A40")
-            if tier >= 3:   # the Zen garden takes over the drying beds, with a three-tier pagoda rising above it
-                for y in range(48, 112):
-                    for x in range(54, 104):
-                        P(x, y, "#DCD8CC" if (y + int(2 * math.sin(x * 0.3))) % 3 else "#BCB8AC")
-                R(54, 48, 50, 1, WOOD[3])
-                for (cx, cy, r) in ((60, 100, 4), (98, 104, 3), (90, 96, 2)):
-                    for y in range(cy - r, cy + r + 1):
-                        for x in range(cx - r - 1, cx + r + 2):
-                            if ((x - cx) / (r + 1)) ** 2 + ((y - cy) / r) ** 2 <= 1:
-                                P(x, y, STONE[3] if y > cy else STONE[2])
-                shadow(66, 92, 30, 3)
-                for k, (y0, w) in enumerate(((78, 30), (62, 24), (46, 18))):   # three storeys, each with a sweeping roof
-                    cx = 81
-                    box(cx - w // 2 + 3, y0, w - 6, 14, "#B8302A")
-                    R(cx - 2, y0 + 5, 4, 9 if k == 0 else 6, "#2A1E14")
-                    for j in range(5):
-                        ex = (4 - j) // 2
-                        R(cx - w // 2 - ex - 1, y0 - 5 + j, w + 2 * ex + 2, 1, OUT if j in (0, 4) else "#4A4A42")
-                R(80, 30, 2, 12, "#C8A040"); R(78, 34, 6, 1, "#C8A040"); R(78, 38, 6, 1, "#C8A040")
-    return draw
-
-
-ESTATE_LOCS = ["mogiana", "huila", "gedeo", "toba", "turrialba", "osaka"]
-for _loc in ESTATE_LOCS:
-    for _t in (1, 2, 3):
-        add_layer("estate_%s_%d" % (_loc, _t), EW, EH, estate(_loc, _t))
-
 # seasonal showpieces: one spot per farm, dressed in the season's colours (here as a generic piece recoloured per season)
-SHOWPIECE_AT = {"mogiana": (84, 84), "huila": (2, 30), "gedeo": (2, 96), "toba": (88, 34), "turrialba": (86, 40), "osaka": (86, 32)}
+SHOWPIECE_AT = {"mogiana": (100, 72), "huila": (96, 62), "gedeo": (2, 96), "toba": (50, 66), "turrialba": (90, 36), "osaka": (86, 32)}
 
 
 def showpiece(kind):
@@ -2799,7 +2915,7 @@ for cid, (name, home, cost, sp, hp, hands, feet, tail, tcol, tcol2) in CHARS.ite
 
 SHRUBS = [(bx + 6 + c * 18, by + r * 17) for (bx, by) in BEDS[:3] for r in range(2) for c in range(4)]
 with open(os.path.join(HERE, "sprites.json"), "w") as f:
-    json.dump({"sprites": S, "shirts": SHIRTS, "shrubs": SHRUBS, "locations": LOCATIONS, "storage": STORAGE, "carry": CARRY, "hats": HATS, "buildings": BUILDINGS, "chars": CHAR_INFO, "bskins": BSKIN_INFO, "seasons": SEASON_INFO, "stampColors": STAMP_COLORS, "beds": BEDS,
+    json.dump({"sprites": S, "shirts": SHIRTS, "shrubs": SHRUBS, "locations": LOCATIONS, "storage": STORAGE, "carry": CARRY, "hats": HATS, "buildings": BUILDINGS, "chars": CHAR_INFO, "bskins": BSKIN_INFO, "seasons": SEASON_INFO, "stampColors": STAMP_COLORS, "beds": BEDS, "estbg": ESTBG,
                "varieties": {k: v[0] for k, v in VARIETIES.items()}}, f, separators=(",", ":"))
 
 # sheet of non-shrub sprites

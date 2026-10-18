@@ -58,7 +58,7 @@ b .n, h2 .n, h3 .n, .row .grow b .n, .tile b .n { color: inherit; font-size: 1.1
 .estate { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; margin: 6px 0; border: 2px solid #C8A060; border-radius: 8px; background: #FBF0D8; }
 .es-top { display: flex; gap: 10px; align-items: center; }
 .es-top > div { display: flex; flex-direction: column; gap: 2px; }
-.es-pic { width: 78px; height: 84px; image-rendering: pixelated; border-radius: 6px; border: 2px solid #C8A060; flex: none; }
+.es-pic { width: 84px; height: 84px; image-rendering: pixelated; border-radius: 6px; border: 2px solid #C8A060; flex: none; }
 .es-st { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
 .es-st li { color: var(--muted); } .es-st li .es-d { margin-top: 1px; } .es-st li.done { color: var(--ink); } .es-st li.done b::after { content: ' ✓'; color: #2D6A46; } .es-st li.next { color: var(--ink); }
 .fit.gold { background: #F2C04A; color: #3A2418; }
@@ -464,8 +464,8 @@ const koiOn = () => Date.now() < ((S.estate || {}).koiUntil || 0);
 const KOI_EVERY = 3 * 3600e3, AGE_STEP = 2 * 3600e3, BOAT_EVERY = 120 * 150;   /* the boat calls every 2 hours of play (150 farm minutes a real minute) */
 const cellarSlots = () => (estOn('turrialba', 3) ? 4 : estOn('turrialba', 2) ? 2 : 0);
 const agedCup = (c) => Math.min(3, 0.5 * Math.floor((Date.now() - c.at) / AGE_STEP));
-const SHOWPIECE = { mogiana: [84, 84, 'tree'], huila: [2, 30, 'banner'], gedeo: [2, 96, 'banner'], toba: [88, 34, 'banner'], turrialba: [86, 40, 'tree'], osaka: [86, 32, 'tree'] };   /* each farm's seasonal showpiece spot */
-const ESTATE_SMOKE = { mogiana: [2, 95, 12], gedeo: [2, 82, 60] };   /* chimneys that puff: from stage, x, y */
+const SHOWPIECE = { mogiana: [100, 72, 'tree'], huila: [96, 62, 'banner'], gedeo: [2, 96, 'banner'], toba: [50, 66, 'banner'], turrialba: [90, 36, 'tree'], osaka: [86, 32, 'tree'] };   /* each farm's seasonal showpiece spot */
+const ESTATE_SMOKE = { mogiana: [2, 92, 21], gedeo: [2, 85, 56] };   /* chimneys that puff: from stage, x, y */
 const spieceOn = () => (S.spieceOn && (S.spiece || {})[S.spieceOn] ? S.spieceOn : null);
 function holdCeremony() {
   const E = S.estate, day = dayKey(new Date()); if (!estOn('gedeo', 2) || E.cerDay === day) return;
@@ -505,9 +505,10 @@ function unageLot(j) {   /* bring an aged lot back to the racks, its extra cup k
 }
 const estImgs = {};
 function estatePic(loc, n) {   /* the farm's drying area at stage n, for the card */
-  const k = loc + n + (bg(loc).complete ? 'b' : ''); if (estImgs[k]) return estImgs[k];
-  const c = document.createElement('canvas'); c.width = 104; c.height = 112; const x = c.getContext('2d'), b = bg(loc);
-  if (b.complete && b.naturalWidth) x.drawImage(b, 0, 0); if (n && ART.sprites['estate_' + loc + '_' + n]) x.drawImage(sprite('estate_' + loc + '_' + n), 0, 0);
+  const e = n ? estBg(loc, n) : null, ready = bg(loc).complete && (!e || e.im.complete), k = loc + season(loc) + n; if (ready && estImgs[k]) return estImgs[k];
+  const c = document.createElement('canvas'); c.width = 104; c.height = 104; const x = c.getContext('2d'), b = bg(loc);
+  if (b.complete && b.naturalWidth) x.drawImage(b, 0, 0, 104, 104, 0, 0, 104, 104); if (e && e.im.complete) x.drawImage(e.im, e.x, e.y);
+  if (!ready) return c.toDataURL();
   return (estImgs[k] = c.toDataURL());
 }
 const minsLeft = (ms) => { const m = Math.max(1, Math.ceil(ms / 60e3)); return m >= 60 ? Math.floor(m / 60) + ' h ' + (m % 60) + ' min' : m + ' min'; };
@@ -1346,6 +1347,10 @@ function season(loc) {
 }
 const growth = (loc) => (({ harvest: 1.5, winter: 0.5, summer: 1.25, rainy: rule('tsuyu') ? 1.25 : 1 })[season(loc)] || 1) * (rule('sakura') ? 1.1 : 1);   /* the Tsuyu and Sakura season rules */
 const bgImgs = {};
+function estBg(loc, n) {   /* an estate stage: the changed part of the farm's scene, and where it goes */
+  const k = 'est-' + loc + '-' + season(loc) + '-' + n, at = ART.estbg[k]; if (!at || !BGS[k]) return null;
+  if (!bgImgs[k]) { const im = new Image(); im.src = BGS[k]; bgImgs[k] = im; } return { im: bgImgs[k], x: at[0], y: at[1] };
+}
 function bg(loc) { const k = loc + '-' + season(loc); if (!bgImgs[k]) { const im = new Image(); im.src = BGS[k]; bgImgs[k] = im; } return bgImgs[k]; }
 
 /* ---------- tasks and the weekly team order ---------- */
@@ -1513,12 +1518,12 @@ function draw(time) {
   const f = S.farms[S.loc], sea = season(S.loc), b = bg(S.loc);
   fx.imageSmoothingEnabled = false;
   if (b.complete && b.naturalWidth) fx.drawImage(b, 0, 0); else { fx.fillStyle = '#7A9A3A'; fx.fillRect(0, 0, W, H); }
-  { const ht = f.unlocked ? houseTier(farmLevel(f)) : 0; if (ht && ART.sprites['house_up_' + S.loc + '_' + ht]) fx.drawImage(sprite('house_up_' + S.loc + '_' + ht), 72, 0); }
   const es = f.unlocked ? est(S.loc) : 0;
-  if (es && ART.sprites['estate_' + S.loc + '_' + es]) fx.drawImage(sprite('estate_' + S.loc + '_' + es), 0, 0);   /* the estate project */
+  if (es) { const e = estBg(S.loc, es); if (e && e.im.complete) fx.drawImage(e.im, e.x, e.y); }   /* the estate project, painted into the scene */
+  { const ht = f.unlocked ? houseTier(farmLevel(f)) : 0; if (ht && ART.sprites['house_up_' + S.loc + '_' + ht]) fx.drawImage(sprite('house_up_' + S.loc + '_' + ht), 72, 0); }
   { const sm = ESTATE_SMOKE[S.loc]; if (sm && es >= sm[0]) for (let k = 0; k < 3; k++) { const ph = (time * 0.5 + k / 3) % 1; fx.fillStyle = 'rgba(244,244,244,' + (0.8 - ph * 0.8).toFixed(2) + ')'; fx.fillRect(Math.round(sm[1] + Math.sin((time + k) * 2) * 2 - ph * 3), Math.round(sm[2] - ph * 14), 2 + Math.round(ph * 3), 2); } }
-  if (S.loc === 'gedeo' && es >= 2 && cerOn()) for (let k = 0; k < 4; k++) { const ph = (time * 0.4 + k / 4) % 1; fx.fillStyle = 'rgba(232,96,42,' + (0.9 - ph).toFixed(2) + ')'; fx.fillRect(Math.round(76 + k * 3 + Math.sin(time * 3 + k) * 2), Math.round(70 - ph * 18), 1, 1); }   /* sparks over the ceremony */
-  if (S.loc === 'osaka' && sea !== 'winter') { const a = time * (koiOn() ? 1.2 : 0.6), big = es >= 1, kx = (big ? 27 : 24) + Math.cos(a) * (big ? 16 : 9), ky = (big ? 95 : 86) + Math.sin(a) * (big ? 6 : 4); fx.fillStyle = '#F08838'; fx.fillRect(Math.round(kx), Math.round(ky), 4, 2); if (big) { fx.fillStyle = '#FFFFFF'; fx.fillRect(Math.round(27 + Math.cos(-a * 0.8) * 12), Math.round(93 + Math.sin(-a * 0.8) * 5), 4, 2); } }
+  if (S.loc === 'gedeo' && es >= 2 && cerOn()) for (let k = 0; k < 4; k++) { const ph = (time * 0.4 + k / 4) % 1; fx.fillStyle = 'rgba(232,96,42,' + (0.9 - ph).toFixed(2) + ')'; fx.fillRect(Math.round(81 + k * 3 + Math.sin(time * 3 + k) * 2), Math.round(64 - ph * 18), 1, 1); }   /* sparks over the ceremony */
+  if (S.loc === 'osaka' && sea !== 'winter') { const a = time * (koiOn() ? 1.2 : 0.6), big = es >= 1, kx = (big ? 27 : 24) + Math.cos(a) * (big ? 15 : 9), ky = (big ? 87 : 86) + Math.sin(a) * (big ? 5 : 4); fx.fillStyle = '#F08838'; fx.fillRect(Math.round(kx), Math.round(ky), 4, 2); if (big) { fx.fillStyle = '#FFFFFF'; fx.fillRect(Math.round(27 + Math.cos(-a * 0.8) * 11), Math.round(88 + Math.sin(-a * 0.8) * 4), 4, 2); } }
   { const sp = spieceOn(); if (sp && f.unlocked) { const th = themeById(sp), [sx, sy, sk] = SHOWPIECE[S.loc]; fx.drawImage(sprite('showpiece_' + sk, { swap: { '#3E8A4A': th.main, '#E8B830': th.accent } }), sx, sy); } }   /* the season's showpiece */
   if (S.decor.bunting) for (let x = 8; x < 184; x += 24) fx.drawImage(sprite('deco_bunting'), x, 103);
   BUILD_ORDER.forEach((k, i) => {
