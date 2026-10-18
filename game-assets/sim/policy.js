@@ -112,7 +112,7 @@ window.BOT = (function () {
   }
   function roast() {   /* the roastery: keep it fed, roast (usually the best roast), catch the crack, sell bags to the buyer who wants them */
     if (!G.roasteryOpen || !G.roasteryOpen() || B.cfg.noRoast) return; const S = G.S, R = S.roastery;
-    if (S.staff.foreman && !R.feed) act('roastfeed');
+    if (S.staff.foreman && R.feed === 0) act('roastfeed:4');   /* foreman stocking is on by default; switch it back on if it was turned off */
     if (!S.staff.foreman) S.lots.forEach((l, i) => { if (l.left <= 0 && Object.keys(R.beans).length < 2 && i === 0) act('toroast:' + i); });
     while (R.roasters.length < G.roasterCount() && Object.keys(R.beans).length) {
       const k = Object.keys(R.beans).sort((a, b) => R.beans[b].kg - R.beans[a].kg)[0], [v, m] = k.split('.'), best = G.bestRoast(v, m);
