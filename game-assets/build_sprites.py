@@ -1601,6 +1601,35 @@ for _m, _t in SEASON_THEMES.items():
     SEASON_INFO[_m] = {k: _t[k] for k in ("id", "name", "title", "main", "accent", "deep", "rule")}
 
 
+# ---------------- the Golden Crane prestige perk: a gold Beju sign on every farm and a red-crowned crane flying over ----------------
+def perk_sign(p):
+    for x in range(4, 16):
+        p(x, 19, "#2A2A0850")
+    rect(p, 9, 10, 2, 9, OUT); rect(p, 9, 10, 1, 9, WOOD[2])
+    rect(p, 1, 0, 18, 11, OUT); rect(p, 2, 1, 16, 9, "#E8B830"); rect(p, 2, 1, 16, 1, "#FFF2A8"); rect(p, 2, 9, 16, 1, "#A87818")
+    for (x, y) in [(6, 4), (7, 3), (8, 4), (9, 5), (10, 5), (11, 4), (12, 3), (13, 4), (9, 6), (10, 6), (9, 7)]:
+        p(x, y, "#FFFFFF")
+    p(10, 4, "#D8302C")
+
+
+def crane_fly(f):
+    def draw(p):
+        up = f == 0
+        for x in range(2, 11):
+            p(x, 3, "#FFFFFF")
+        p(11, 2, "#FFFFFF"); p(12, 2, "#D8302C"); p(12, 1, "#2A2A2A"); p(1, 3, "#2A2A2A"); p(0, 4, "#2A2A2A")
+        for i, x in enumerate(range(4, 9)):
+            y = 2 - (i if i < 3 else 4 - i) if up else 4 + (i if i < 3 else 4 - i)
+            p(x, y, "#FFFFFF"); p(x, y + (1 if up else -1), "#F2F2F2")
+        p(4 if up else 4, 0 if up else 6, "#2A2A2A")
+    return draw
+
+
+add_layer("perk_sign", 20, 20, perk_sign)
+for _f in (0, 1):
+    add_layer("crane_fly_%d" % _f, 13, 7, crane_fly(_f))
+
+
 def board(p):
     for x in (4, 19):
         rect(p, x, 14, 2, 9, WOOD[3])

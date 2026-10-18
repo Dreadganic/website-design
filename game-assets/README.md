@@ -182,4 +182,10 @@ Coins build, know-how unlocks, cranes buy looks, and the tabs follow that rule:
 
 ## Prestige perks
 - Free, permanent conveniences that arrive with a prestige (`PERKS` in the template), timed for when the farm outgrows doing that job by hand. They show in the prestige preview, the prestige popup and a list under Ranks > Prestige & looks.
-- P2: Head cupper's table (Cup all). In the bot run, racks go from 6-9 in the P1 run to 10-17 in the P2 run, which is when tapping each lot becomes a chore.
+- P1 Seed catalogue: Replant all switches every field on every open farm to one coffee; each farm keeps one native field, or gets one if you own a native there.
+- P2 Head cupper's table: Cup all. In the bot run, racks go from 6-9 in the P1 run to 10-17 in the P2 run, which is when tapping each lot becomes a chore.
+- P3 Night shift: offline time capped at 18 hours instead of 12.
+- P4 Old friends: Huila and Gedeo stay awake through a prestige; Toba and Turrialba still sleep until their levels.
+- P5 Lookout: golden bushes can appear on any open farm, with a Go button over the farm view.
+- P8 Golden Crane: a gold Beju sign on every farm and a red-crowned crane crossing the sky every 45 seconds (cosmetic).
+- Measured with the bot (active, to P5): 10.3 hours with the perks, against 10.7 before.

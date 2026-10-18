@@ -44,6 +44,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-
 .clockbox b { font-size: 15px; padding: 0 6px; font-variant-numeric: tabular-nums; }
 .day { width: 38px; height: 38px; border-radius: 19px; background: var(--paper); border: 3px solid var(--edge); display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; box-shadow: 0 2px 0 var(--ink); }
 .day small { font-size: 8px; color: var(--muted); font-weight: 600; } .day b { font-size: 16px; }
+.goldgo { position: absolute; left: 50%; top: 56px; transform: translateX(-50%); padding: 6px 12px; background: linear-gradient(#FFF4B0, #F2C04A); border: 3px solid #A87818; border-radius: 10px; font: 700 14px var(--pixel); color: var(--ink); cursor: pointer; box-shadow: 0 2px 0 #7A5A10; white-space: nowrap; }
 .toast { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); max-width: 92%; padding: 8px 12px; background: var(--paper); border: 3px solid var(--edge); border-radius: 10px; font-size: 15px; text-align: center; box-shadow: 0 3px 0 #1E140C; pointer-events: none; }
 .tabs { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
 .tab { height: 46px; border: 3px solid var(--edge); border-radius: 8px; background: var(--paper-2); color: var(--ink); font-size: 10.5px; letter-spacing: -0.02em; padding: 0 1px; min-width: 0; overflow: hidden; font-weight: 700; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; position: relative; }
@@ -297,6 +298,7 @@ canvas.hint { transform: none !important; }
     <button class="sound music" id="musicBtn" type="button" aria-pressed="true" aria-label="Music"><svg width="16" height="16" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><path fill="currentColor" d="M3 0h5v2H4v4H3zM7 2h1v4H7zM1 5h3v3H1zM5 4h3v3H5z"/><path class="slash" fill="currentColor" d="M0 0h1v1H0zM1 1h1v1H1zM2 2h1v1H2zM5 5h1v1H5zM6 6h1v1H6zM7 7h1v1H7z"/></svg></button>
     <button class="sound" id="sfxBtn" type="button" aria-pressed="true" aria-label="Sound effects"><svg width="18" height="16" viewBox="0 0 9 8" shape-rendering="crispEdges" aria-hidden="true"><path fill="currentColor" d="M0 3h2v2H0zM2 2h1v4H2zM3 1h1v6H3zM4 0h1v8H4z"/><path id="sfxWaves" fill="currentColor" d="M6 2h1v1H6zM6 5h1v1H6zM7 3h1v2H7zM8 1h1v1H8zM8 6h1v1H8z"/></svg></button>
     <div class="toast" id="toast" hidden></div>
+    <button class="goldgo" id="goldGo" type="button" data-act="goldgo" hidden></button>
   </div>
   <div class="guide" id="guide" hidden></div>
   <div class="garrow" id="garrow" hidden aria-hidden="true"></div>
@@ -393,7 +395,30 @@ const daysLeft = () => Math.max(1, Math.ceil((seasonEnds() - Date.now()) / 86400
 const lastHarvest = () => daysLeft() <= 3;   /* the last 3 days: golden bushes come twice as often */
 const rule = (id) => theme().id === id;
 /* prestige perks: free, permanent conveniences that arrive with a prestige, timed for when the farm outgrows doing that job by hand */
-const PERKS = { 2: { id: 'cupall', name: 'Head cupper\'s table', text: 'Cup all: hand-cup every lot on your racks in one tap.' } };
+const PERKS = {
+  1: { id: 'replantall', name: 'Seed catalogue', text: 'Replant all: switch every field on every farm to one coffee in one tap. Each farm keeps (or gets) a native field for terroir.' },
+  2: { id: 'cupall', name: 'Head cupper\'s table', text: 'Cup all: hand-cup every lot on your racks in one tap.' },
+  3: { id: 'nightshift', name: 'Night shift', text: 'Your farm keeps working for up to 18 hours while you\'re away, up from 12.' },
+  4: { id: 'awake', name: 'Old friends', text: 'After a prestige, Huila and Gedeo keep working straight away; only Toba and Turrialba sleep until you level back up.' },
+  5: { id: 'lookout', name: 'Lookout', text: 'Golden bushes can appear on any open farm, and a Go button takes you there.' },
+  8: { id: 'goldsign', name: 'Golden Crane', text: 'A gold Beju sign on every farm, and a red-crowned crane that flies over your fields.' }
+};
+const AWAKE = ['huila', 'gedeo'];   /* the farms Old friends keeps awake through a prestige */
+const awayCap = () => (hasPerk('nightshift') ? 18 : 12);
+function replantAll(v) {   /* the Seed catalogue perk: every field on every open farm, except one native field per farm */
+  let n = 0;
+  LOCS.forEach((l) => {
+    const f = S.farms[l]; if (!f.unlocked) return;
+    const beds = f.field ? 4 : 3;
+    let keep = isNative(l, v) ? -1 : f.beds.slice(0, beds).findIndex((x) => isNative(l, x));
+    if (keep < 0 && !isNative(l, v)) {   /* no native field yet: plant the best native you own in field 1 */
+      const nat = VAR_ORDER.filter((x) => S.vars[x] && isNative(l, x)).sort((a, b) => VAR[b].value - VAR[a].value)[0];
+      if (nat) { keep = 0; if (f.beds[0] !== nat) { replantBed(f, 0, nat); n += 1; } }
+    }
+    for (let b = 0; b < beds; b++) if (b !== keep && f.beds[b] !== v) { replantBed(f, b, v); n += 1; }
+  });
+  return n;
+}
 const hasPerk = (id) => Object.keys(PERKS).some((p) => PERKS[p].id === id && S.prestige >= +p);
 const perkAt = (p) => PERKS[p] || null;
 const prestigeNeed = () => PRESTIGE_LEVEL + 8 * S.prestige;   /* 10, 18, 26, 34 ... and each level past 10 costs 1.22x the last */
@@ -881,11 +906,13 @@ function tick(dt) {
   LOCS.forEach((l) => { const f = S.farms[l]; if (f.unlocked && !S.dormant[l]) tickFarm(f, d, l === S.loc); });
   tickMe(d);
   rateC = rateC * Math.pow(0.99, dt) + earnedC * 60 * (1 - Math.pow(0.99, dt)) / Math.max(dt, 1e-3); rateX = rateX * Math.pow(0.99, dt) + earnedX * 60 * (1 - Math.pow(0.99, dt)) / Math.max(dt, 1e-3); earnedC = 0; earnedX = 0;
+  { const gg = $('goldGo'), away = golden && golden.loc !== S.loc, txt = away ? 'Golden bush at ' + ART.locations[golden.loc].name.split(',')[0] + ' · Go (' + Math.ceil(golden.t) + ' s)' : ''; gg.hidden = !away; if (gg.textContent !== txt) gg.textContent = txt; }   /* Lookout: a Go button when the golden bush is on another farm */
   if (golden) { golden.t -= dt; if (golden.t <= 0) { golden = null; toast('The golden bush faded'); } }
   else if ((S.guide >= GUIDE.length || level() >= 3) && (goldenT -= dt) <= 0) {   /* a golden bush appears every 3-6 minutes while you play */
     goldenT = (180 + Math.random() * 180) * (rule('tanabata') ? 0.8 : 1) * (lastHarvest() ? 0.5 : 1);   /* Tanabata and the season's last 3 days bring them sooner */
-    const gs = rule('lights') ? 45 : 30;
-    const fs = S.farms[S.loc]; if (fs.unlocked && !S.dormant[S.loc]) { golden = { loc: S.loc, i: Math.floor(Math.random() * fs.shrubs.length), t: gs }; SFX.play('achieve'); toast('A golden bush appeared on the farm! Tap it within ' + gs + ' s'); if (!S.goldenTip && $('modal').hidden) { S.goldenTip = true; showModal(coachCard('Golden bush', 'See that glowing bush? Golden bushes turn up every few minutes while you play, and only last 30 seconds. Tap one for about two minutes of your income at once. Your staff can\'t pick them for you.', 'I\'ll find it')); } }
+    const gs = rule('lights') ? 45 : 30, open = LOCS.filter((l) => S.farms[l].unlocked && !S.dormant[l] && S.farms[l].shrubs.length);
+    const gl = hasPerk('lookout') && open.length ? open[Math.floor(Math.random() * open.length)] : S.loc;   /* Lookout: any open farm */
+    const fs = S.farms[gl]; if (fs.unlocked && !S.dormant[gl]) { golden = { loc: gl, i: Math.floor(Math.random() * fs.shrubs.length), t: gs }; SFX.play('achieve'); toast(gl === S.loc ? 'A golden bush appeared on the farm! Tap it within ' + gs + ' s' : 'A golden bush appeared at ' + ART.locations[gl].name.split(',')[0] + '! Tap Go within ' + gs + ' s'); if (!S.goldenTip && $('modal').hidden) { S.goldenTip = true; showModal(coachCard('Golden bush', 'See that glowing bush? Golden bushes turn up every few minutes while you play, and only last 30 seconds. Tap one for about two minutes of your income at once. Your staff can\'t pick them for you.', 'I\'ll find it')); } }
   }
   if (fireworks > 0) {   /* level-up fireworks: coloured bursts popping over your farmer */
     fireworks -= dt; fwT -= dt;
@@ -910,6 +937,11 @@ function draw(time) {
     fx.fillStyle = '#F2C04A'; for (let j = 0; j < n; j++) fx.fillRect(SLOTS[i] + 22 - j * 3, 221, 2, 2);
   });
   Object.keys(DECOR_AT).forEach((k) => { if (S.decor[k]) DECOR_AT[k].forEach(([x, y]) => fx.drawImage(sprite('deco_' + k), x, y)); });
+  if (hasPerk('goldsign')) {   /* Golden Crane: the gold sign, and a crane crossing the sky every 45 seconds */
+    fx.drawImage(sprite('perk_sign'), 170, 197);
+    const ct = (Date.now() / 1000) % 45;
+    if (ct < 9) fx.drawImage(sprite('crane_fly_' + (Math.floor(Date.now() / 260) % 2)), Math.round(-14 + ct / 9 * (W + 28)), Math.round(14 + Math.sin(ct * 1.3) * 3));
+  }
   Object.keys(S.decor).filter((k) => k.startsWith('s_') && S.decor[k]).slice(0, SEASON_DECO_AT.length).forEach((k, i) => fx.drawImage(sprite('deco_' + k), SEASON_DECO_AT[i][0], SEASON_DECO_AT[i][1]));   /* season decorations, up to three at once */
   if (f.field && S.loc !== 'osaka') fx.drawImage(sprite('bed_open'), 104, 160);
   const asleep = !!S.dormant[S.loc];
@@ -1265,7 +1297,7 @@ function prestige() {
   S.look.crest = t;   /* the new crest goes on straight away */
   if (SKINS.some((sk, i) => !S.skins[i])) S.skinPicks += 1;   /* and the player picks one new outfit */
   S.xp = 0; S.points = 0;
-  LOCS.forEach((l) => { if (FARM_LEVEL[l] && S.farms[l].unlocked) S.dormant[l] = FARM_LEVEL[l]; });
+  LOCS.forEach((l) => { if (FARM_LEVEL[l] && S.farms[l].unlocked && !(hasPerk('awake') && AWAKE.includes(l))) S.dormant[l] = FARM_LEVEL[l]; });
   setTimeout(() => checkSamples(), 300);
   const asleep = Object.keys(S.dormant);
   showModal(avatar(S.look, 64) + '<h2>Prestige ' + S.prestige + '</h2>' + plate(S.name, S.look.crest, starsFor(S.prestige)) + '<p class="note">' + (S.prestige < TIERS.length ? 'New crest: <b>' + TIERS[t] + '</b>. Its nameplate and border are yours and already on.' : 'You are past the top tier: every prestige adds a star to your name.') + '</p>' + (perkAt(S.prestige) ? '<p class="rule"><b>New perk: ' + perkAt(S.prestige).name + '.</b> ' + perkAt(S.prestige).text + '</p>' : '') + skinPicker() +
@@ -1501,6 +1533,7 @@ function renderPanel() {
       h += row(img('worker_down_0', 22), 'Pickers here: ' + f.workers.length + '/' + maxPickers(f), 'Carrying ' + ART.carry[S.lv.carry - 1].name.toLowerCase() + ' (' + carryKg() + ' kg). You pick 3× faster, but pickers never tire.', btn('Hire', fmt(hireCost()) + ' coins', 'hire', S.coins >= hireCost() && f.workers.length < maxPickers(f)));
       h += row(img('storage_' + S.lv.storage, 44), ART.storage[S.lv.storage - 1].name + ': ' + fmt(stored()) + ' / ' + fmt(cap()) + ' kg', stored() >= cap() ? 'Full! Pickers have stopped. Process or sell cherries.' : 'Cherries from every farm come here.', btn('Mill', 'process', 'tab:mill', true, 'blue'));
       h += '<h3>Fields</h3>' + (terroir(f) > 1 ? '<p class="rule"><b>Terroir on:</b> a native field here means every pick on this farm brings in 15% more cherries.</p>' : '<p class="rule"><b>Terroir off:</b> plant a native coffee (' + nativeNames(f.loc) + ') in any field and every pick on this farm brings in 15% more cherries.</p>');
+      h += hasPerk('replantall') ? btn('Replant all', 'every farm, natives kept', 'replantask', true, 'blue') : btn('Replant all', 'prestige 1 perk', 'noop', false);
       h += f.beds.slice(0, f.field ? 4 : 3).map((v, b) => row(img('bush_' + v + '_ripe', 30), 'Field ' + (b + 1) + ': ' + ART.varieties[v] + (isNative(f.loc, v) ? ' · native' : ''), VAR[v].kg + ' kg a pick · ' + (isNative(f.loc, v) ? 'grows 20% faster here and keeps the terroir bonus · ' : '') + VAR[v].perk, btn('Replant', '', 'bed:' + b, true, 'blue'))).join('');
       h += row(img('i_cherry', 28), 'Sell fresh cherries', 'Quick coins, 2 per kg. Processing pays far more.', btn('Sell all', fmt(stored() * 2) + ' coins', 'sellraw', stored() > 0));
     }
@@ -1815,6 +1848,9 @@ document.addEventListener('click', (e) => {
   else if (a === 'deliver') { const [i, id] = v.split('.'); deliver(+i, +id); }
   else if (a === 'decor') { if (S.decor[v] !== undefined) S.decor[v] = !S.decor[v]; else if (spend('coins', DECOR[v].cost)) { S.decor[v] = true; toast(DECOR[v].name + ' added to your farms'); } }
   else if (a === 'go') { S.loc = v; setTab('farm'); }
+  else if (a === 'goldgo') { if (golden) { S.loc = golden.loc; setTab('farm'); } }
+  else if (a === 'replantask') showModal('<h2>Replant all</h2><p class="note">Every field on every open farm switches to the coffee you choose and starts again from sprouts. Each farm keeps one native field, or gets one if you own a coffee native there, so terroir stays on.</p>' + VAR_ORDER.filter((x) => S.vars[x]).map((x) => row(img('bush_' + x + '_ripe', 30), ART.varieties[x], VAR[x].kg + ' kg a pick · ×' + VAR[x].value + ' price', btn('Plant everywhere', '', 'replantall:' + x, true, 'green'))).join('') + '<button class="btn" data-act="close">Cancel</button>');
+  else if (a === 'replantall') { if (hasPerk('replantall') && S.vars[v]) { const n = replantAll(v); closeModal(); SFX.play('dig'); toast(n ? n + ' field' + (n > 1 ? 's' : '') + ' replanted with ' + ART.varieties[v] : 'Every field already grows ' + ART.varieties[v]); } }
   else if (a === 'bed') {
     const b = +v, cur = f.beds[b];
     const lastNative = isNative(f.loc, cur) && f.beds.slice(0, f.field ? 4 : 3).filter((x) => isNative(f.loc, x)).length === 1;
@@ -1826,7 +1862,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'task') { const tk = S.tasks[+v]; if (tk.have >= tk.goal && !tk.done) { tk.done = true; earn(rule('shogatsu') && tk.reward.coins ? { coins: tk.reward.coins * 2 } : tk.reward); star('task'); guideStep('task'); toast('Task complete!'); } }
   else if (a === 'weekly') { S.weekly.claimed = true; S.cranes += WEEKLY_CRANES; star('weekly'); showModal('<h2>Order delivered!</h2><p class="note">The team delivered ' + fmt(S.weekly.target) + ' kg of washed coffee to the roastery. +' + WEEKLY_CRANES + ' cranes and the Co-op Roaster badge.</p><button class="btn green" data-act="close">Hooray</button>'); }
   else if (a === 'prestigeAsk') {
-    const asleep = LOCS.filter((l) => FARM_LEVEL[l] && S.farms[l].unlocked);
+    const asleep = LOCS.filter((l) => FARM_LEVEL[l] && S.farms[l].unlocked && !((hasPerk('awake') || perkAt(S.prestige + 1) === PERKS[4]) && AWAKE.includes(l)));
     showModal('<h2>Prestige ' + (S.prestige + 1) + '?</h2><p class="note"><b>You keep</b> coins, cranes, every upgrade, building, manager, variety, process, decoration, hat, outfit and background.</p><p class="note"><b>You lose</b> your level and ' + fmt(S.points) + ' unspent know-how' + (asleep.length ? ', and ' + asleep.map((l) => ART.locations[l].name.split(',')[0]).join(', ') + (asleep.length > 1 ? ' go' : ' goes') + ' dormant until you level back up' : '') + '.</p><p class="note">You gain ' + (S.prestige + 1 < TIERS.length ? 'the ' + TIERS[S.prestige + 1] + ' crest (nameplate and border)' : 'a star on your name') + (SKINS.some((sk, i) => !S.skins[i]) ? ', you pick one new outfit' : '') + (perkAt(S.prestige + 1) ? ', the <b>' + perkAt(S.prestige + 1).name + '</b> perk (' + perkAt(S.prestige + 1).text + ')' : '') + ', and you jump above everyone on prestige ' + S.prestige + '.</p>' + btn('Prestige now', '', 'prestige', true, 'green') + '<button class="btn" data-act="close">Not yet</button>');
     return;
   }
@@ -1968,7 +2004,7 @@ setInterval(() => { cloudSync(); submitScore(); }, 30000);
 const awayMs = Date.now() - (S.last || Date.now());
 checkSamples(true);   /* a save already past a milestone gets its samples */
 refreshAll();
-if (awayMs > 5 * 60 * 1000) away(Math.min(12, Math.round(awayMs / 3600000 * 10) / 10 || 0.1));
+if (awayMs > 5 * 60 * 1000) away(Math.min(awayCap(), Math.round(awayMs / 3600000 * 10) / 10 || 0.1));
 else if (S.intro === 0) showModal('<img src="' + url('worker_down_0', { shirt: ART.shirts[0] }) + '" alt="" style="width:48px;image-rendering:pixelated"><h2>Welcome to Beju Farm</h2><p class="note">Your first coffee farm, in Brazil. Follow the goal under the farm to learn the basics; new tabs open as you go.</p><p class="note"><b>Coins</b> build and hire. <b>Know-how</b> unlocks new coffees, farms and processes. <b>Cranes</b> come from real Beju orders.</p><button class="btn green" data-act="close">Start farming</button>');
 let last = performance.now(), uiT = 0, saveT = 0;
 function loop(t) {
