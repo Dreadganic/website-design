@@ -64,9 +64,42 @@ const SFX = (function () {
   function timpani(t, gain) { tone(t, { f: 98, f2: 82, glide: 0.4, gain, dur: 0.55 }); hiss(t, { type: 'lowpass', f: 300, gain: gain * 0.5, dur: 0.18 }); }
 
   const S = {
-    harvest(t, p) {   /* leaves rustle, then the cherries pop into your basket */
-      for (let i = 0; i < 3; i++) hiss(t + R(0, 0.04), { f: R(2400, 4200) * p, q: 0.9, gain: R(0.12, 0.2), dur: R(0.06, 0.11) });
-      tone(t + 0.05, { f: 520 * p, f2: 1100 * p, glide: 0.05, gain: 0.22, dur: 0.09 });
+    harvest(t, p) {   /* a branch shakes, cherries drop into the basket one after another, and a small bright pluck says "got them" */
+      for (let i = 0; i < 4; i++) hiss(t + R(0, 0.06), { f: R(2200, 4400) * p, q: 0.8, gain: R(0.1, 0.18), dur: R(0.07, 0.13) });
+      hiss(t, { f: 900 * p, f2: 1600 * p, q: 0.6, gain: 0.06, dur: 0.16, attack: 0.02 });
+      const n = 3 + Math.floor(Math.random() * 2);
+      for (let i = 0; i < n; i++) {   /* each cherry: a soft woody plop on the basket weave */
+        const d = 0.07 + i * R(0.045, 0.065), f = R(300, 420) * p * (1 - i * 0.04);
+        tone(t + d, { f: f * 1.9, f2: f, glide: 0.03, gain: 0.13 - i * 0.015, dur: 0.06, wave: 'triangle' });
+        hiss(t + d, { f: R(1200, 1800) * p, q: 3, gain: 0.07, dur: 0.025 });
+      }
+      tone(t + 0.07 + n * 0.055, { f: 1320 * p, f2: 1760 * p, glide: 0.04, gain: 0.07, dur: 0.16, verb: true });
+    },
+    cup(t, p) {   /* cupping: the spoon breaks the crust with a clink, then a quick aerating slurp */
+      bell(t, 2650 * p, 0.07, 0.22); tone(t, { f: 4150 * p, gain: 0.03, dur: 0.12 });
+      hiss(t + 0.02, { type: 'lowpass', f: 900 * p, gain: 0.05, dur: 0.08 });
+      hiss(t + 0.2, { f: 700 * p, f2: 3200 * p, q: 1.6, gain: 0.16, dur: 0.32, attack: 0.08 });
+      hiss(t + 0.24, { f: 5200 * p, q: 0.8, gain: 0.05, dur: 0.22, attack: 0.06 });
+      tone(t + 0.62, { f: 2650 * p, gain: 0.025, dur: 0.15, verb: true });
+    },
+    crack(t, p) {   /* first crack: dry popcorn snaps scattered through the drum's rumble */
+      hiss(t, { type: 'lowpass', f: 260, gain: 0.05, dur: 0.75, attack: 0.08 });
+      const n = 6 + Math.floor(Math.random() * 5);
+      for (let i = 0; i < n; i++) {
+        const d = Math.pow(Math.random(), 1.4) * 0.7, f = R(1600, 3400) * p;
+        hiss(t + d, { type: 'highpass', f: R(2500, 4500), gain: R(0.12, 0.26), dur: 0.009 });
+        tone(t + d, { f, f2: f * 0.55, glide: 0.02, gain: R(0.06, 0.12), dur: 0.03, wave: 'triangle' });
+      }
+    },
+    drop(t, p) {   /* a finished roast pours into the cooling tray: a rattling shower of beans that settles */
+      for (let i = 0; i < 46; i++) { const d = Math.pow(Math.random(), 0.7) * 0.9; hiss(t + d, { f: R(900, 2600) * p, q: 5, gain: R(0.08, 0.2) * (1 - d * 0.8), dur: 0.016 }); }
+      hiss(t, { f: 700 * p, q: 0.5, gain: 0.08, dur: 0.9, attack: 0.05 });
+      tone(t, { f: 110 * p, f2: 80 * p, gain: 0.1, dur: 0.25 });
+    },
+    ignite(t, p) {   /* the roaster's gas burner catches: a click, then a soft roar */
+      hiss(t, { type: 'highpass', f: 3500, gain: 0.15, dur: 0.012 });
+      hiss(t + 0.06, { type: 'lowpass', f: 320 * p, f2: 520 * p, gain: 0.16, dur: 0.6, attack: 0.12 });
+      hiss(t + 0.06, { f: 1400 * p, q: 0.5, gain: 0.04, dur: 0.5, attack: 0.1 });
     },
     brush(t, p) { hiss(t, { f: 1800 * p, q: 0.8, gain: 0.18, dur: 0.09 }); hiss(t + 0.03, { f: 2600 * p, q: 1, gain: 0.1, dur: 0.06 }); },
     pop(t, p) { tone(t, { f: 700 * p, f2: 1250 * p, glide: 0.04, gain: 0.22, dur: 0.07 }); },
@@ -121,7 +154,7 @@ const SFX = (function () {
     woof(t, p) { [0, 0.19].forEach((d, i) => { const q = p * (i ? 0.94 : 1); tone(t + d, { f: 430 * q, f2: 250 * q, glide: 0.1, gain: 0.2, dur: 0.12, wave: 'sawtooth' }); hiss(t + d, { f: 900 * q, q: 2, gain: 0.15, dur: 0.1 }); }); },
     splash(t, p) { hiss(t, { f: 1200 * p, f2: 500 * p, q: 0.6, gain: 0.18, dur: 0.35, attack: 0.01 }); for (let i = 0; i < 6; i++) tone(t + R(0.05, 0.3), { f: R(900, 1800) * p, f2: R(1800, 2600) * p, glide: 0.03, gain: 0.04, dur: 0.05 }); }
   };
-  const GAP = { thud: 0.18, xp: 0.05, ding: 0.4, brush: 0.05, harvest: 0.03 };   /* don't let busy sounds pile up */
+  const GAP = { thud: 0.18, xp: 0.05, ding: 0.4, brush: 0.05, harvest: 0.03, crack: 0.6, cup: 0.12 };   /* don't let busy sounds pile up */
 
   function play(name, opt) {
     if (!enabled || !S[name] || !init()) return;

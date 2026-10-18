@@ -409,9 +409,42 @@ const SFX = (function () {
   function timpani(t, gain) { tone(t, { f: 98, f2: 82, glide: 0.4, gain, dur: 0.55 }); hiss(t, { type: 'lowpass', f: 300, gain: gain * 0.5, dur: 0.18 }); }
 
   const S = {
-    harvest(t, p) {   /* leaves rustle, then the cherries pop into your basket */
-      for (let i = 0; i < 3; i++) hiss(t + R(0, 0.04), { f: R(2400, 4200) * p, q: 0.9, gain: R(0.12, 0.2), dur: R(0.06, 0.11) });
-      tone(t + 0.05, { f: 520 * p, f2: 1100 * p, glide: 0.05, gain: 0.22, dur: 0.09 });
+    harvest(t, p) {   /* a branch shakes, cherries drop into the basket one after another, and a small bright pluck says "got them" */
+      for (let i = 0; i < 4; i++) hiss(t + R(0, 0.06), { f: R(2200, 4400) * p, q: 0.8, gain: R(0.1, 0.18), dur: R(0.07, 0.13) });
+      hiss(t, { f: 900 * p, f2: 1600 * p, q: 0.6, gain: 0.06, dur: 0.16, attack: 0.02 });
+      const n = 3 + Math.floor(Math.random() * 2);
+      for (let i = 0; i < n; i++) {   /* each cherry: a soft woody plop on the basket weave */
+        const d = 0.07 + i * R(0.045, 0.065), f = R(300, 420) * p * (1 - i * 0.04);
+        tone(t + d, { f: f * 1.9, f2: f, glide: 0.03, gain: 0.13 - i * 0.015, dur: 0.06, wave: 'triangle' });
+        hiss(t + d, { f: R(1200, 1800) * p, q: 3, gain: 0.07, dur: 0.025 });
+      }
+      tone(t + 0.07 + n * 0.055, { f: 1320 * p, f2: 1760 * p, glide: 0.04, gain: 0.07, dur: 0.16, verb: true });
+    },
+    cup(t, p) {   /* cupping: the spoon breaks the crust with a clink, then a quick aerating slurp */
+      bell(t, 2650 * p, 0.07, 0.22); tone(t, { f: 4150 * p, gain: 0.03, dur: 0.12 });
+      hiss(t + 0.02, { type: 'lowpass', f: 900 * p, gain: 0.05, dur: 0.08 });
+      hiss(t + 0.2, { f: 700 * p, f2: 3200 * p, q: 1.6, gain: 0.16, dur: 0.32, attack: 0.08 });
+      hiss(t + 0.24, { f: 5200 * p, q: 0.8, gain: 0.05, dur: 0.22, attack: 0.06 });
+      tone(t + 0.62, { f: 2650 * p, gain: 0.025, dur: 0.15, verb: true });
+    },
+    crack(t, p) {   /* first crack: dry popcorn snaps scattered through the drum's rumble */
+      hiss(t, { type: 'lowpass', f: 260, gain: 0.05, dur: 0.75, attack: 0.08 });
+      const n = 6 + Math.floor(Math.random() * 5);
+      for (let i = 0; i < n; i++) {
+        const d = Math.pow(Math.random(), 1.4) * 0.7, f = R(1600, 3400) * p;
+        hiss(t + d, { type: 'highpass', f: R(2500, 4500), gain: R(0.12, 0.26), dur: 0.009 });
+        tone(t + d, { f, f2: f * 0.55, glide: 0.02, gain: R(0.06, 0.12), dur: 0.03, wave: 'triangle' });
+      }
+    },
+    drop(t, p) {   /* a finished roast pours into the cooling tray: a rattling shower of beans that settles */
+      for (let i = 0; i < 46; i++) { const d = Math.pow(Math.random(), 0.7) * 0.9; hiss(t + d, { f: R(900, 2600) * p, q: 5, gain: R(0.08, 0.2) * (1 - d * 0.8), dur: 0.016 }); }
+      hiss(t, { f: 700 * p, q: 0.5, gain: 0.08, dur: 0.9, attack: 0.05 });
+      tone(t, { f: 110 * p, f2: 80 * p, gain: 0.1, dur: 0.25 });
+    },
+    ignite(t, p) {   /* the roaster's gas burner catches: a click, then a soft roar */
+      hiss(t, { type: 'highpass', f: 3500, gain: 0.15, dur: 0.012 });
+      hiss(t + 0.06, { type: 'lowpass', f: 320 * p, f2: 520 * p, gain: 0.16, dur: 0.6, attack: 0.12 });
+      hiss(t + 0.06, { f: 1400 * p, q: 0.5, gain: 0.04, dur: 0.5, attack: 0.1 });
     },
     brush(t, p) { hiss(t, { f: 1800 * p, q: 0.8, gain: 0.18, dur: 0.09 }); hiss(t + 0.03, { f: 2600 * p, q: 1, gain: 0.1, dur: 0.06 }); },
     pop(t, p) { tone(t, { f: 700 * p, f2: 1250 * p, glide: 0.04, gain: 0.22, dur: 0.07 }); },
@@ -466,7 +499,7 @@ const SFX = (function () {
     woof(t, p) { [0, 0.19].forEach((d, i) => { const q = p * (i ? 0.94 : 1); tone(t + d, { f: 430 * q, f2: 250 * q, glide: 0.1, gain: 0.2, dur: 0.12, wave: 'sawtooth' }); hiss(t + d, { f: 900 * q, q: 2, gain: 0.15, dur: 0.1 }); }); },
     splash(t, p) { hiss(t, { f: 1200 * p, f2: 500 * p, q: 0.6, gain: 0.18, dur: 0.35, attack: 0.01 }); for (let i = 0; i < 6; i++) tone(t + R(0.05, 0.3), { f: R(900, 1800) * p, f2: R(1800, 2600) * p, glide: 0.03, gain: 0.04, dur: 0.05 }); }
   };
-  const GAP = { thud: 0.18, xp: 0.05, ding: 0.4, brush: 0.05, harvest: 0.03 };   /* don't let busy sounds pile up */
+  const GAP = { thud: 0.18, xp: 0.05, ding: 0.4, brush: 0.05, harvest: 0.03, crack: 0.6, cup: 0.12 };   /* don't let busy sounds pile up */
 
   function play(name, opt) {
     if (!enabled || !S[name] || !init()) return;
@@ -584,6 +617,18 @@ const SONGS = [
         lead: ['D5:12 E5:2 F5:2', 'F5:8 E5:4 D5:4', 'C5:12 A4:4', 'G4:4 A4:4 C5:8', 'D5:8 F5:4 A5:4', 'G5:8 F5:4 D5:4', 'Bb4:6 C5:2 D5:4 G5:4', 'E5:12 C#5:4'] },
       B: { name: 'B', chords: [['Bb'], ['F'], ['C'], ['Dm'], ['Bb'], ['F'], ['Gm'], ['A']],
         lead: ['F5:4 G5:4 A5:8', 'C6:8 A5:4 F5:4', 'G5:12 E5:4', 'F5:6 E5:2 D5:8', 'D5:4 F5:4 Bb5:8', 'A5:6 G5:2 F5:4 C5:4', 'D5:4 G5:4 F5:4 E5:4', 'A4:8 C#5:4 E5:4'] }
+    }, form: ['intro', 'A', 'B', 'A'] },
+
+  { id: 'roastery', farm: 'Roastery, Osaka', title: 'Kissaten Blue', blurb: 'Kissaten jazz · F major',
+    about: 'For the roastery: the slow jazz of an Osaka kissaten after closing, with a vibraphone melody, warm Rhodes chords, a walking upright bass, brushes and a little vinyl crackle, all on a lazy swing.',
+    parts: ['Vibraphone melody with motor tremolo', 'Rhodes shell chords', 'Walking upright bass', 'Brushes, ride and vinyl crackle'],
+    bpm: 84, beat: 4, bar: 16, lead: { duty: 0.5, decay: 6, floor: 0.5, vib: 8, gain: 0.14 }, arp: { style: 'broken', duty: 0.25, gain: 0.06 }, bass: { style: 'walk', gain: 0.19 }, noise: { style: 'brush', gain: 0.05 },
+    sections: {
+      intro: { name: 'Intro', chords: [['Fmaj7'], ['Dm7'], ['Gm7'], ['C7']], lead: ['-:16', '-:16', '-:16', '-:8 C5:2 D5:2 E5:4'] },
+      A: { name: 'A', chords: [['Gm7', 'C7'], ['Fmaj7'], ['Dm7', 'G7'], ['Gm7', 'C7'], ['Am7', 'D7'], ['Gm7', 'C7'], ['Fmaj7', 'D7'], ['Gm7', 'C7']],
+        lead: ['A4:2 C5:2 F5:4 E5:2 D5:2 C5:4', 'A4:6 G4:2 A4:8', 'F5:2 E5:2 D5:4 B4:4 G4:4', 'Bb4:6 A4:2 G4:4 E4:4', 'C5:2 E5:2 G5:4 F#5:4 D5:4', 'F5:6 E5:2 D5:4 Bb4:4', 'A4:8 F#4:4 A4:4', 'G4:4 A4:2 Bb4:2 C5:4 E5:4'] },
+      B: { name: 'B', chords: [['Bbmaj7'], ['Bbm6'], ['Am7'], ['D7'], ['Gm7'], ['C7'], ['Fmaj7', 'Dm7'], ['Gm7', 'C7']],
+        lead: ['D5:4 F5:4 A5:6 G5:2', 'F5:4 Db5:4 Bb4:8', 'C5:4 E5:4 G5:6 E5:2', 'F#5:6 E5:2 D5:4 C5:4', 'Bb4:4 D5:4 F5:4 A5:4', 'G5:6 F5:2 E5:4 C5:4', 'A5:8 F5:4 D5:4', 'G5:4 F5:2 E5:2 D5:4 C5:4'] }
     }, form: ['intro', 'A', 'B', 'A'] }
 ];
 
@@ -839,7 +884,8 @@ const STYLE = {
   gedeo:     { tempo: 0.86, lead: 'krar',       comp: 'broken', perc: 'handdrum', about: 'A plucked krar lyre bends into each note over felt piano in a rolling 6/8 and a soft hand drum.' },
   toba:      { tempo: 0.88, lead: 'flute',      comp: 'hasapi', perc: 'gong',     about: 'A bamboo flute floats over the plucked hasapi lute, with a far-off gong every two bars.' },
   turrialba: { tempo: 0.82, lead: 'mallet',     comp: 'mallet', perc: null,       about: 'Soft marimba mallets roll the long notes, swaying between 6/8 and 3/4.' },
-  osaka:     { tempo: 0.9,  lead: 'shakuhachi', comp: 'koto',   perc: 'taiko',    about: 'A breathy shakuhachi over rolled koto chords and strings, with taiko heard from across the valley.' }
+  osaka:     { tempo: 0.9,  lead: 'shakuhachi', comp: 'koto',   perc: 'taiko',    about: 'A breathy shakuhachi over rolled koto chords and strings, with taiko heard from across the valley.' },
+  roastery:  { tempo: 0.86, lead: 'vibes',      comp: 'jazz',   perc: 'brush',    walk: true, swing: 0.32, about: 'Vibraphone over Rhodes shells, a walking upright bass and brushes, swung lazily like a kissaten record.' }
 };
 
 /* ---------------- arranging ---------------- */
@@ -849,6 +895,7 @@ const COMP = {
   offbeat(o, c, s0, part) { for (let k = 2; k < part; k += 4) o.push({ s: s0 + k, d: 1, ms: c.tones.slice(0, 3).map((t) => t + 12), inst: 'guitar', vel: 0.5, up: true }); },
   hasapi(o, c, s0, part) { const pat = part === 16 ? [0, 2, 3, 2, 1, 2, 3, 2] : [0, 2, 3, 2]; pat.forEach((k, i) => o.push({ s: s0 + i * 2, d: 2, m: c.tones[k] + 12, inst: 'hasapi', vel: i % 2 ? 0.5 : 0.7 })); },
   mallet(o, c, s0, part) { const pat = part === 12 ? [0, 2, 1, 2, 3, 2] : [0, 2, 1]; pat.forEach((k, i) => o.push({ s: s0 + i * 2, d: 2, m: c.tones[k], inst: 'mallet', vel: i ? 0.45 : 0.6 })); },
+  jazz(o, c, s0, part) { const v = [c.tones[1], c.tones[3], c.tones[0] + 14]; (part === 16 ? [0, 10] : [0]).forEach((k, i) => o.push({ s: s0 + k, d: k ? 4 : 6, ms: v, inst: 'rhodes', vel: i ? 0.45 : 0.6 })); },
   koto(o, c, s0, part) { for (let h = 0; h < part; h += 8) o.push({ s: s0 + h, d: 6, ms: [c.tones[0], c.tones[1], c.tones[2], c.tones[0] + 12], inst: 'koto', vel: 0.6, roll: 0.07 }); }
 };
 const PERC = {
@@ -856,6 +903,7 @@ const PERC = {
   scrape(o, t0, B) { for (let k = 0; k < B; k += 8) o.push({ s: t0 + k, kind: 'scrape', vel: 0.45 }); },
   handdrum(o, t0) { o.push({ s: t0, kind: 'drum', vel: 0.7 }); o.push({ s: t0 + 6, kind: 'drum', vel: 0.45 }); },
   gong(o, t0, B, bar) { if (bar % 2 === 0) o.push({ s: t0, kind: 'gong', vel: 0.6 }); },
+  brush(o, t0) { [4, 12].forEach((k) => o.push({ s: t0 + k, kind: 'swish', vel: 0.6 })); [0, 4, 6, 8, 12, 14].forEach((k) => o.push({ s: t0 + k, kind: 'ride', vel: k % 4 ? 0.35 : 0.55 })); for (let i = 0; i < 3; i++) o.push({ s: t0 + Math.floor(Math.random() * 16), kind: 'vinyl', vel: 0.5 }); },
   taiko(o, t0, B, bar) { o.push({ s: t0, kind: 'taiko', vel: 0.8 }); if (bar % 4 === 3) [10, 12, 14].forEach((k, i) => o.push({ s: t0 + k, kind: 'taiko', vel: 0.3 + i * 0.12 })); }
 };
 function build(song) {
@@ -872,7 +920,8 @@ function build(song) {
       chs.forEach((name, ci) => {
         const c = U.chord(name), s0 = t0 + ci * part;
         ev.pad.push({ s: s0, d: part, ms: c.tones.slice(0, 3) });
-        if (!first) ev.bass.push({ s: s0, d: part, m: c.low });
+        if (st.walk && !first) { const third = c.tones[1] - c.root, top = c.tones[3] - c.root; (part === 16 ? [0, third, 7, top > 11 ? 9 : top] : [0, 7]).forEach((iv, k) => ev.bass.push({ s: s0 + k * 4, d: 4, m: c.low + iv, walk: true })); }   /* a walking upright: one note a beat */
+        else if (!first) ev.bass.push({ s: s0, d: part, m: c.low });
         COMP[st.comp](ev.comp, c, s0, part, bar);
       });
       if (st.perc && !first) PERC[st.perc](ev.perc, t0, B, bar);
@@ -959,9 +1008,27 @@ function pad(t, ms, dur) {   /* a warm bed of slightly detuned saws, swelling in
   g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v, t + Math.min(1.4, dur * 0.6)); g.gain.setValueAtTime(v, t + dur); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
   ms.forEach((m, i) => [-6, 6].forEach((dt) => { const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = hz(m); o.detune.value = dt + R(-2, 2); const pg = ac.createGain(); pg.gain.value = 1; o.connect(pg); pg.connect(lp); o.start(t + i * 0.01); o.stop(t + len + 0.05); }));
 }
+function vibes(t, m, vel, pan) {   /* vibraphone: a pure bar tone with a soft mallet tick, through a slow motor tremolo */
+  const f = hz(m), g = out(pan), trem = ac.createGain(), l = ac.createOscillator(), lg = ac.createGain();
+  trem.gain.value = 0.75; l.frequency.value = 5.2; lg.gain.value = 0.25; l.connect(lg); lg.connect(trem.gain); trem.connect(g);
+  partial(t, f, 'sine', 0.19 * vel, 2.6, trem); partial(t, f * 4, 'sine', 0.035 * vel, 0.25, trem); partial(t, f * 10, 'sine', 0.01 * vel, 0.04, trem);
+  l.start(t); l.stop(t + 2.7);
+}
+function upright(t, m, vel) {   /* upright bass: a round plucked note with a woody thump */
+  const f = hz(m), g = out(-0.05), lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900; lp.connect(g);
+  partial(t, f, 'sine', 0.2 * vel, 0.75, lp); partial(t, f * 2, 'triangle', 0.06 * vel, 0.3, lp); partial(t, f * 3, 'sine', 0.02 * vel, 0.12, lp);
+}
 function bass(t, m, dur) { const g = out(0), f = hz(m); partial(t, f, 'sine', 0.16, Math.min(dur + 0.6, 4), g); partial(t, f * 2, 'triangle', 0.03, Math.min(dur, 1.5), g); }
 function perc(t, kind, vel) {
   const g = out(R(-0.2, 0.2));
+  if (kind === 'swish' || kind === 'ride' || kind === 'vinyl') {   /* brushes on the snare, the ride cymbal, and dust on the record */
+    const n = ac.createBufferSource(), f = ac.createBiquadFilter(); n.buffer = noise; n.connect(f); f.connect(g);
+    const [type, fr, len, v, att] = { swish: ['bandpass', 3200, 0.2, 0.035, 0.07], ride: ['highpass', 7000, 0.16, 0.025, 0.003], vinyl: ['highpass', 4000, 0.006, 0.03, 0.001] }[kind];
+    f.type = type; f.frequency.value = fr; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v * vel, t + att); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    n.start(t, Math.random() * 0.5); n.stop(t + len + 0.02);
+    if (kind === 'ride') partial(t, 5400, 'sine', 0.006 * vel, 0.3, g);
+    return;
+  }
   if (kind === 'shaker' || kind === 'scrape') {
     const n = ac.createBufferSource(), f = ac.createBiquadFilter(); n.buffer = noise; f.type = 'bandpass'; f.frequency.value = kind === 'shaker' ? 6000 : 3000; f.Q.value = 1.2; n.connect(f); f.connect(g);
     const len = kind === 'shaker' ? 0.07 : 0.22, v = 0.05 * vel; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v, t + len * 0.4); g.gain.exponentialRampToValueAtTime(0.0001, t + len); n.start(t, Math.random() * 0.5); n.stop(t + len + 0.02); return;
@@ -977,6 +1044,7 @@ function lead(e, t, st) {
   const dur = e.d * st, v = e.vel * (night ? 0.8 : 1);
   switch (e.inst) {
     case 'piano': return piano(t, e.m, v, 0.12);
+    case 'vibes': return vibes(t, e.m, v, 0.12);
     case 'epiano': return epiano(t, e.m, v, 0.12);
     case 'melodica': return blown(t, e.m, dur, v, 0.12, { reed: true, attack: 0.05, vib: 6, vibRate: 5.5 });
     case 'flute': return blown(t, e.m, dur, v, 0.12, { breath: 0.5, vib: 10 });
@@ -989,6 +1057,7 @@ function comp(e, t) {
   const v = e.vel * (night ? 0.75 : 1);
   if (e.inst === 'piano') return piano(t, e.m, v * 0.85, -0.2);
   if (e.inst === 'mallet') return mallet(t, e.m, v, -0.2);
+  if (e.inst === 'rhodes') { e.ms.forEach((m, i) => epiano(t + i * 0.012, m, v * 0.5, -0.2 + i * 0.1)); return; }
   if (e.ms) { const gap = e.roll || (e.up ? 0.012 : 0.018), list = e.up ? e.ms.slice().reverse() : e.ms; list.forEach((m, i) => pluck(t + i * gap, m, v * 0.8, -0.25 + i * 0.12, e.inst)); return; }
   pluck(t, e.m, v, -0.2, e.inst);
 }
@@ -1002,11 +1071,11 @@ function schedule() {
   const sc = song.cscore, st = sixteenth();
   while (nextT < ac.currentTime + 0.2) {
     (sc.by[step] || []).forEach(([ch, e]) => {
-      const t = nextT + (ch === 'pad' || ch === 'bass' ? 0 : R(0, 0.018));   /* a human hand is never exactly on the grid */
+      const t = nextT + (ch === 'pad' || ch === 'bass' ? 0 : R(0, 0.018)) + (song.cozy.swing && step % 4 === 2 ? st * song.cozy.swing : 0);   /* a human hand is never exactly on the grid; jazz swings the off-beats */
       if (ch === 'lead') lead(e, t, st);
       else if (ch === 'comp') comp(e, t);
       else if (ch === 'pad') pad(t, e.ms, e.d * st);
-      else if (ch === 'bass') bass(t, e.m, e.d * st);
+      else if (ch === 'bass') { if (e.walk) upright(t, e.m, 0.9); else bass(t, e.m, e.d * st); }
       else if (!night || e.kind === 'gong') perc(t, e.kind, e.vel);
     });
     placed.push([nextT, step]); if (placed.length > 64) placed.shift();
@@ -1341,7 +1410,7 @@ function startRoast(key, profile) {
   const kg = Math.min(roastCap(), b.kg), f = kg / b.kg;
   R.roasters.push({ key, profile, kg, coins: b.coins * f, pts: b.pts * f, cup: b.cup, start: Date.now(), dur: roastTime(profile) * 1000, crack: 0 });
   b.kg -= kg; b.coins -= b.coins * f; b.pts -= b.pts * f; if (b.kg < 0.5) delete R.beans[key];
-  SFX.play('pour'); toast(ROASTS[profile].name + ' roast started: tap Crack at first crack');
+  SFX.play('ignite'); toast(ROASTS[profile].name + ' roast started: tap Crack at first crack');
 }
 const roastP = (r) => Math.min(1, (Date.now() - r.start) / r.dur);
 const inCrack = (r) => roastP(r) >= 0.7 && roastP(r) <= 0.86;
@@ -1350,13 +1419,13 @@ function roasteryTick() {
   if (roasteryOpen() && !R.tip) { R.tip = true; showModal(coachCard('The roastery', 'Beju roasts in Japan, and now you can too! Your mill foreman keeps it stocked with green coffee (change how much in the Roastery), or tap Roast on a dry lot to send one yourself. Roast it light, medium or dark: each coffee has a best roast, marked with a star. Tap <b>Crack</b> at first crack for a better roast. Then sell the bags to cafés, kissaten or konbini for far more than green coffee. Staff don\'t roast, so this one is all yours.', 'Show me', 'roastgo')); }
   for (let i = R.roasters.length - 1; i >= 0; i--) {
     const r = R.roasters[i];
-    if (inCrack(r) && !r.warned) { r.warned = true; SFX.play('ding'); if (!(tab === 'mill' && S.millSub === 'roast')) toast('First crack in the roastery! Tap Crack in Mill > Roastery'); }
+    if (inCrack(r) && !r.warned) { r.warned = true; SFX.play('crack'); if (!(tab === 'mill' && S.millSub === 'roast')) toast('First crack in the roastery! Tap Crack in Mill > Roastery'); }
     if (roastP(r) < 1) continue;
     const [v, m] = r.key.split('.'), best = bestRoast(v, m) === r.profile;
     const q = Math.max(20, Math.min(100, Math.round(r.cup - 40 + (best ? 15 : -5) + (r.crack === 1 ? 15 : 0) + (repLevel() >= 6 ? 5 : 0))));
     R.bags.push({ key: r.key, profile: r.profile, kg: r.kg, coins: r.coins, pts: r.pts, q });
     IN.roast.cool[i] = { until: Date.now() + 5000, col: ROASTS[r.profile].col };   /* the beans tip into the cooling tray */
-    R.roasters.splice(i, 1); star('roast'); SFX.play('achieve');
+    R.roasters.splice(i, 1); star('roast'); SFX.play('drop');
     toast(ROASTS[r.profile].name + ' roast done: ' + beanName(r.key) + ', quality ' + q + (r.crack === 1 ? ' (perfect crack)' : ''));
   }
   const lv = repLevel(); if ((R.lvSeen || 1) < lv) {
@@ -2091,6 +2160,7 @@ function tickRoast(d) {
   RS.roasters.forEach((r, i) => {
     if (i >= BAYS.length) return;
     if (rnd() < d * 3) R.puffs.push({ x: BAYS[i] + 21 + rnd() * 2, y: BAY_Y + 3, vx: (rnd() - 0.5) * 3, t: 0, pop: false });
+    if (inCrack(r) && !r.crack && rnd() < d * 1.2) SFX.play('crack');   /* the beans keep popping until you catch it */
     if (inCrack(r) && rnd() < d * 14) R.puffs.push({ x: BAYS[i] + 13, y: BAY_Y + 14, vx: (rnd() - 0.5) * 30, vy: -20 - rnd() * 20, t: 0, pop: true });
   });
   for (let i = R.puffs.length - 1; i >= 0; i--) {
@@ -2363,12 +2433,12 @@ function saleFor(v, method, green, lot) {
 }
 function cupLot(i) {
   const l = S.lots[i]; if (!l || l.cupped) return;
-  l.cupped = true; S.stats.cupped = (S.stats.cupped || 0) + 1; star('cup'); task('cup', 1); SFX.play('pour'); toast('Cupped by hand: +' + CUP_BONUS + ' cup score, +' + Math.round((CUP_PAY - 1) * 100) + '% pay');
+  l.cupped = true; S.stats.cupped = (S.stats.cupped || 0) + 1; star('cup'); task('cup', 1); SFX.play('cup'); toast('Cupped by hand: +' + CUP_BONUS + ' cup score, +' + Math.round((CUP_PAY - 1) * 100) + '% pay');
 }
 function cupAll() {
   if (!hasPerk('cupall')) return; let n = 0;
   S.lots.forEach((l) => { if (!l.cupped) { l.cupped = true; n += 1; S.stats.cupped = (S.stats.cupped || 0) + 1; star('cup'); task('cup', 1); } });
-  if (n) { SFX.play('pour'); toast('Cupped ' + n + ' lot' + (n > 1 ? 's' : '') + ' by hand: +' + CUP_BONUS + ' cup score, +' + Math.round((CUP_PAY - 1) * 100) + '% pay'); }
+  if (n) { SFX.play('cup'); toast('Cupped ' + n + ' lot' + (n > 1 ? 's' : '') + ' by hand: +' + CUP_BONUS + ' cup score, +' + Math.round((CUP_PAY - 1) * 100) + '% pay'); }
 }
 function crackRoast(i) {
   const r = S.roastery.roasters[i]; if (!r || r.crack) return;
@@ -3299,7 +3369,7 @@ function audioStart() {   /* browsers only allow sound after a tap, so everythin
   SFX.unlock(); Cozy.init(SFX.context()); syncMusic();
 }
 document.addEventListener('pointerdown', audioStart, true);
-const trackFor = () => (scene() === 'roast' ? 'osaka' : S.loc);   /* every farm plays its own theme, open or not; the roastery plays Osaka's */
+const trackFor = () => (scene() === 'roast' ? 'roastery' : S.loc);   /* every farm plays its own theme, open or not; the roastery has its own kissaten jazz */
 function syncMusic() {
   Cozy.setVolume(S.musicVol); Cozy.setEnabled(S.music);
   const hr = S.minutes / 60; Cozy.setNight(hr >= 19 || hr < 6);

@@ -94,6 +94,18 @@ const SONGS = [
         lead: ['D5:12 E5:2 F5:2', 'F5:8 E5:4 D5:4', 'C5:12 A4:4', 'G4:4 A4:4 C5:8', 'D5:8 F5:4 A5:4', 'G5:8 F5:4 D5:4', 'Bb4:6 C5:2 D5:4 G5:4', 'E5:12 C#5:4'] },
       B: { name: 'B', chords: [['Bb'], ['F'], ['C'], ['Dm'], ['Bb'], ['F'], ['Gm'], ['A']],
         lead: ['F5:4 G5:4 A5:8', 'C6:8 A5:4 F5:4', 'G5:12 E5:4', 'F5:6 E5:2 D5:8', 'D5:4 F5:4 Bb5:8', 'A5:6 G5:2 F5:4 C5:4', 'D5:4 G5:4 F5:4 E5:4', 'A4:8 C#5:4 E5:4'] }
+    }, form: ['intro', 'A', 'B', 'A'] },
+
+  { id: 'roastery', farm: 'Roastery, Osaka', title: 'Kissaten Blue', blurb: 'Kissaten jazz · F major',
+    about: 'For the roastery: the slow jazz of an Osaka kissaten after closing, with a vibraphone melody, warm Rhodes chords, a walking upright bass, brushes and a little vinyl crackle, all on a lazy swing.',
+    parts: ['Vibraphone melody with motor tremolo', 'Rhodes shell chords', 'Walking upright bass', 'Brushes, ride and vinyl crackle'],
+    bpm: 84, beat: 4, bar: 16, lead: { duty: 0.5, decay: 6, floor: 0.5, vib: 8, gain: 0.14 }, arp: { style: 'broken', duty: 0.25, gain: 0.06 }, bass: { style: 'walk', gain: 0.19 }, noise: { style: 'brush', gain: 0.05 },
+    sections: {
+      intro: { name: 'Intro', chords: [['Fmaj7'], ['Dm7'], ['Gm7'], ['C7']], lead: ['-:16', '-:16', '-:16', '-:8 C5:2 D5:2 E5:4'] },
+      A: { name: 'A', chords: [['Gm7', 'C7'], ['Fmaj7'], ['Dm7', 'G7'], ['Gm7', 'C7'], ['Am7', 'D7'], ['Gm7', 'C7'], ['Fmaj7', 'D7'], ['Gm7', 'C7']],
+        lead: ['A4:2 C5:2 F5:4 E5:2 D5:2 C5:4', 'A4:6 G4:2 A4:8', 'F5:2 E5:2 D5:4 B4:4 G4:4', 'Bb4:6 A4:2 G4:4 E4:4', 'C5:2 E5:2 G5:4 F#5:4 D5:4', 'F5:6 E5:2 D5:4 Bb4:4', 'A4:8 F#4:4 A4:4', 'G4:4 A4:2 Bb4:2 C5:4 E5:4'] },
+      B: { name: 'B', chords: [['Bbmaj7'], ['Bbm6'], ['Am7'], ['D7'], ['Gm7'], ['C7'], ['Fmaj7', 'Dm7'], ['Gm7', 'C7']],
+        lead: ['D5:4 F5:4 A5:6 G5:2', 'F5:4 Db5:4 Bb4:8', 'C5:4 E5:4 G5:6 E5:2', 'F#5:6 E5:2 D5:4 C5:4', 'Bb4:4 D5:4 F5:4 A5:4', 'G5:6 F5:2 E5:4 C5:4', 'A5:8 F5:4 D5:4', 'G5:4 F5:2 E5:2 D5:4 C5:4'] }
     }, form: ['intro', 'A', 'B', 'A'] }
 ];
 

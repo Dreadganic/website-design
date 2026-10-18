@@ -633,7 +633,7 @@ function startRoast(key, profile) {
   const kg = Math.min(roastCap(), b.kg), f = kg / b.kg;
   R.roasters.push({ key, profile, kg, coins: b.coins * f, pts: b.pts * f, cup: b.cup, start: Date.now(), dur: roastTime(profile) * 1000, crack: 0 });
   b.kg -= kg; b.coins -= b.coins * f; b.pts -= b.pts * f; if (b.kg < 0.5) delete R.beans[key];
-  SFX.play('pour'); toast(ROASTS[profile].name + ' roast started: tap Crack at first crack');
+  SFX.play('ignite'); toast(ROASTS[profile].name + ' roast started: tap Crack at first crack');
 }
 const roastP = (r) => Math.min(1, (Date.now() - r.start) / r.dur);
 const inCrack = (r) => roastP(r) >= 0.7 && roastP(r) <= 0.86;
@@ -642,13 +642,13 @@ function roasteryTick() {
   if (roasteryOpen() && !R.tip) { R.tip = true; showModal(coachCard('The roastery', 'Beju roasts in Japan, and now you can too! Your mill foreman keeps it stocked with green coffee (change how much in the Roastery), or tap Roast on a dry lot to send one yourself. Roast it light, medium or dark: each coffee has a best roast, marked with a star. Tap <b>Crack</b> at first crack for a better roast. Then sell the bags to cafés, kissaten or konbini for far more than green coffee. Staff don\'t roast, so this one is all yours.', 'Show me', 'roastgo')); }
   for (let i = R.roasters.length - 1; i >= 0; i--) {
     const r = R.roasters[i];
-    if (inCrack(r) && !r.warned) { r.warned = true; SFX.play('ding'); if (!(tab === 'mill' && S.millSub === 'roast')) toast('First crack in the roastery! Tap Crack in Mill > Roastery'); }
+    if (inCrack(r) && !r.warned) { r.warned = true; SFX.play('crack'); if (!(tab === 'mill' && S.millSub === 'roast')) toast('First crack in the roastery! Tap Crack in Mill > Roastery'); }
     if (roastP(r) < 1) continue;
     const [v, m] = r.key.split('.'), best = bestRoast(v, m) === r.profile;
     const q = Math.max(20, Math.min(100, Math.round(r.cup - 40 + (best ? 15 : -5) + (r.crack === 1 ? 15 : 0) + (repLevel() >= 6 ? 5 : 0))));
     R.bags.push({ key: r.key, profile: r.profile, kg: r.kg, coins: r.coins, pts: r.pts, q });
     IN.roast.cool[i] = { until: Date.now() + 5000, col: ROASTS[r.profile].col };   /* the beans tip into the cooling tray */
-    R.roasters.splice(i, 1); star('roast'); SFX.play('achieve');
+    R.roasters.splice(i, 1); star('roast'); SFX.play('drop');
     toast(ROASTS[r.profile].name + ' roast done: ' + beanName(r.key) + ', quality ' + q + (r.crack === 1 ? ' (perfect crack)' : ''));
   }
   const lv = repLevel(); if ((R.lvSeen || 1) < lv) {
@@ -1383,6 +1383,7 @@ function tickRoast(d) {
   RS.roasters.forEach((r, i) => {
     if (i >= BAYS.length) return;
     if (rnd() < d * 3) R.puffs.push({ x: BAYS[i] + 21 + rnd() * 2, y: BAY_Y + 3, vx: (rnd() - 0.5) * 3, t: 0, pop: false });
+    if (inCrack(r) && !r.crack && rnd() < d * 1.2) SFX.play('crack');   /* the beans keep popping until you catch it */
     if (inCrack(r) && rnd() < d * 14) R.puffs.push({ x: BAYS[i] + 13, y: BAY_Y + 14, vx: (rnd() - 0.5) * 30, vy: -20 - rnd() * 20, t: 0, pop: true });
   });
   for (let i = R.puffs.length - 1; i >= 0; i--) {
@@ -1655,12 +1656,12 @@ function saleFor(v, method, green, lot) {
 }
 function cupLot(i) {
   const l = S.lots[i]; if (!l || l.cupped) return;
-  l.cupped = true; S.stats.cupped = (S.stats.cupped || 0) + 1; star('cup'); task('cup', 1); SFX.play('pour'); toast('Cupped by hand: +' + CUP_BONUS + ' cup score, +' + Math.round((CUP_PAY - 1) * 100) + '% pay');
+  l.cupped = true; S.stats.cupped = (S.stats.cupped || 0) + 1; star('cup'); task('cup', 1); SFX.play('cup'); toast('Cupped by hand: +' + CUP_BONUS + ' cup score, +' + Math.round((CUP_PAY - 1) * 100) + '% pay');
 }
 function cupAll() {
   if (!hasPerk('cupall')) return; let n = 0;
   S.lots.forEach((l) => { if (!l.cupped) { l.cupped = true; n += 1; S.stats.cupped = (S.stats.cupped || 0) + 1; star('cup'); task('cup', 1); } });
-  if (n) { SFX.play('pour'); toast('Cupped ' + n + ' lot' + (n > 1 ? 's' : '') + ' by hand: +' + CUP_BONUS + ' cup score, +' + Math.round((CUP_PAY - 1) * 100) + '% pay'); }
+  if (n) { SFX.play('cup'); toast('Cupped ' + n + ' lot' + (n > 1 ? 's' : '') + ' by hand: +' + CUP_BONUS + ' cup score, +' + Math.round((CUP_PAY - 1) * 100) + '% pay'); }
 }
 function crackRoast(i) {
   const r = S.roastery.roasters[i]; if (!r || r.crack) return;
@@ -2591,7 +2592,7 @@ function audioStart() {   /* browsers only allow sound after a tap, so everythin
   SFX.unlock(); Cozy.init(SFX.context()); syncMusic();
 }
 document.addEventListener('pointerdown', audioStart, true);
-const trackFor = () => (scene() === 'roast' ? 'osaka' : S.loc);   /* every farm plays its own theme, open or not; the roastery plays Osaka's */
+const trackFor = () => (scene() === 'roast' ? 'roastery' : S.loc);   /* every farm plays its own theme, open or not; the roastery has its own kissaten jazz */
 function syncMusic() {
   Cozy.setVolume(S.musicVol); Cozy.setEnabled(S.music);
   const hr = S.minutes / 60; Cozy.setNight(hr >= 19 || hr < 6);

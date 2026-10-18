@@ -15,7 +15,8 @@ const STYLE = {
   gedeo:     { tempo: 0.86, lead: 'krar',       comp: 'broken', perc: 'handdrum', about: 'A plucked krar lyre bends into each note over felt piano in a rolling 6/8 and a soft hand drum.' },
   toba:      { tempo: 0.88, lead: 'flute',      comp: 'hasapi', perc: 'gong',     about: 'A bamboo flute floats over the plucked hasapi lute, with a far-off gong every two bars.' },
   turrialba: { tempo: 0.82, lead: 'mallet',     comp: 'mallet', perc: null,       about: 'Soft marimba mallets roll the long notes, swaying between 6/8 and 3/4.' },
-  osaka:     { tempo: 0.9,  lead: 'shakuhachi', comp: 'koto',   perc: 'taiko',    about: 'A breathy shakuhachi over rolled koto chords and strings, with taiko heard from across the valley.' }
+  osaka:     { tempo: 0.9,  lead: 'shakuhachi', comp: 'koto',   perc: 'taiko',    about: 'A breathy shakuhachi over rolled koto chords and strings, with taiko heard from across the valley.' },
+  roastery:  { tempo: 0.86, lead: 'vibes',      comp: 'jazz',   perc: 'brush',    walk: true, swing: 0.32, about: 'Vibraphone over Rhodes shells, a walking upright bass and brushes, swung lazily like a kissaten record.' }
 };
 
 /* ---------------- arranging ---------------- */
@@ -25,6 +26,7 @@ const COMP = {
   offbeat(o, c, s0, part) { for (let k = 2; k < part; k += 4) o.push({ s: s0 + k, d: 1, ms: c.tones.slice(0, 3).map((t) => t + 12), inst: 'guitar', vel: 0.5, up: true }); },
   hasapi(o, c, s0, part) { const pat = part === 16 ? [0, 2, 3, 2, 1, 2, 3, 2] : [0, 2, 3, 2]; pat.forEach((k, i) => o.push({ s: s0 + i * 2, d: 2, m: c.tones[k] + 12, inst: 'hasapi', vel: i % 2 ? 0.5 : 0.7 })); },
   mallet(o, c, s0, part) { const pat = part === 12 ? [0, 2, 1, 2, 3, 2] : [0, 2, 1]; pat.forEach((k, i) => o.push({ s: s0 + i * 2, d: 2, m: c.tones[k], inst: 'mallet', vel: i ? 0.45 : 0.6 })); },
+  jazz(o, c, s0, part) { const v = [c.tones[1], c.tones[3], c.tones[0] + 14]; (part === 16 ? [0, 10] : [0]).forEach((k, i) => o.push({ s: s0 + k, d: k ? 4 : 6, ms: v, inst: 'rhodes', vel: i ? 0.45 : 0.6 })); },
   koto(o, c, s0, part) { for (let h = 0; h < part; h += 8) o.push({ s: s0 + h, d: 6, ms: [c.tones[0], c.tones[1], c.tones[2], c.tones[0] + 12], inst: 'koto', vel: 0.6, roll: 0.07 }); }
 };
 const PERC = {
@@ -32,6 +34,7 @@ const PERC = {
   scrape(o, t0, B) { for (let k = 0; k < B; k += 8) o.push({ s: t0 + k, kind: 'scrape', vel: 0.45 }); },
   handdrum(o, t0) { o.push({ s: t0, kind: 'drum', vel: 0.7 }); o.push({ s: t0 + 6, kind: 'drum', vel: 0.45 }); },
   gong(o, t0, B, bar) { if (bar % 2 === 0) o.push({ s: t0, kind: 'gong', vel: 0.6 }); },
+  brush(o, t0) { [4, 12].forEach((k) => o.push({ s: t0 + k, kind: 'swish', vel: 0.6 })); [0, 4, 6, 8, 12, 14].forEach((k) => o.push({ s: t0 + k, kind: 'ride', vel: k % 4 ? 0.35 : 0.55 })); for (let i = 0; i < 3; i++) o.push({ s: t0 + Math.floor(Math.random() * 16), kind: 'vinyl', vel: 0.5 }); },
   taiko(o, t0, B, bar) { o.push({ s: t0, kind: 'taiko', vel: 0.8 }); if (bar % 4 === 3) [10, 12, 14].forEach((k, i) => o.push({ s: t0 + k, kind: 'taiko', vel: 0.3 + i * 0.12 })); }
 };
 function build(song) {
@@ -48,7 +51,8 @@ function build(song) {
       chs.forEach((name, ci) => {
         const c = U.chord(name), s0 = t0 + ci * part;
         ev.pad.push({ s: s0, d: part, ms: c.tones.slice(0, 3) });
-        if (!first) ev.bass.push({ s: s0, d: part, m: c.low });
+        if (st.walk && !first) { const third = c.tones[1] - c.root, top = c.tones[3] - c.root; (part === 16 ? [0, third, 7, top > 11 ? 9 : top] : [0, 7]).forEach((iv, k) => ev.bass.push({ s: s0 + k * 4, d: 4, m: c.low + iv, walk: true })); }   /* a walking upright: one note a beat */
+        else if (!first) ev.bass.push({ s: s0, d: part, m: c.low });
         COMP[st.comp](ev.comp, c, s0, part, bar);
       });
       if (st.perc && !first) PERC[st.perc](ev.perc, t0, B, bar);
@@ -135,9 +139,27 @@ function pad(t, ms, dur) {   /* a warm bed of slightly detuned saws, swelling in
   g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v, t + Math.min(1.4, dur * 0.6)); g.gain.setValueAtTime(v, t + dur); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
   ms.forEach((m, i) => [-6, 6].forEach((dt) => { const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = hz(m); o.detune.value = dt + R(-2, 2); const pg = ac.createGain(); pg.gain.value = 1; o.connect(pg); pg.connect(lp); o.start(t + i * 0.01); o.stop(t + len + 0.05); }));
 }
+function vibes(t, m, vel, pan) {   /* vibraphone: a pure bar tone with a soft mallet tick, through a slow motor tremolo */
+  const f = hz(m), g = out(pan), trem = ac.createGain(), l = ac.createOscillator(), lg = ac.createGain();
+  trem.gain.value = 0.75; l.frequency.value = 5.2; lg.gain.value = 0.25; l.connect(lg); lg.connect(trem.gain); trem.connect(g);
+  partial(t, f, 'sine', 0.19 * vel, 2.6, trem); partial(t, f * 4, 'sine', 0.035 * vel, 0.25, trem); partial(t, f * 10, 'sine', 0.01 * vel, 0.04, trem);
+  l.start(t); l.stop(t + 2.7);
+}
+function upright(t, m, vel) {   /* upright bass: a round plucked note with a woody thump */
+  const f = hz(m), g = out(-0.05), lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900; lp.connect(g);
+  partial(t, f, 'sine', 0.2 * vel, 0.75, lp); partial(t, f * 2, 'triangle', 0.06 * vel, 0.3, lp); partial(t, f * 3, 'sine', 0.02 * vel, 0.12, lp);
+}
 function bass(t, m, dur) { const g = out(0), f = hz(m); partial(t, f, 'sine', 0.16, Math.min(dur + 0.6, 4), g); partial(t, f * 2, 'triangle', 0.03, Math.min(dur, 1.5), g); }
 function perc(t, kind, vel) {
   const g = out(R(-0.2, 0.2));
+  if (kind === 'swish' || kind === 'ride' || kind === 'vinyl') {   /* brushes on the snare, the ride cymbal, and dust on the record */
+    const n = ac.createBufferSource(), f = ac.createBiquadFilter(); n.buffer = noise; n.connect(f); f.connect(g);
+    const [type, fr, len, v, att] = { swish: ['bandpass', 3200, 0.2, 0.035, 0.07], ride: ['highpass', 7000, 0.16, 0.025, 0.003], vinyl: ['highpass', 4000, 0.006, 0.03, 0.001] }[kind];
+    f.type = type; f.frequency.value = fr; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v * vel, t + att); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    n.start(t, Math.random() * 0.5); n.stop(t + len + 0.02);
+    if (kind === 'ride') partial(t, 5400, 'sine', 0.006 * vel, 0.3, g);
+    return;
+  }
   if (kind === 'shaker' || kind === 'scrape') {
     const n = ac.createBufferSource(), f = ac.createBiquadFilter(); n.buffer = noise; f.type = 'bandpass'; f.frequency.value = kind === 'shaker' ? 6000 : 3000; f.Q.value = 1.2; n.connect(f); f.connect(g);
     const len = kind === 'shaker' ? 0.07 : 0.22, v = 0.05 * vel; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v, t + len * 0.4); g.gain.exponentialRampToValueAtTime(0.0001, t + len); n.start(t, Math.random() * 0.5); n.stop(t + len + 0.02); return;
@@ -153,6 +175,7 @@ function lead(e, t, st) {
   const dur = e.d * st, v = e.vel * (night ? 0.8 : 1);
   switch (e.inst) {
     case 'piano': return piano(t, e.m, v, 0.12);
+    case 'vibes': return vibes(t, e.m, v, 0.12);
     case 'epiano': return epiano(t, e.m, v, 0.12);
     case 'melodica': return blown(t, e.m, dur, v, 0.12, { reed: true, attack: 0.05, vib: 6, vibRate: 5.5 });
     case 'flute': return blown(t, e.m, dur, v, 0.12, { breath: 0.5, vib: 10 });
@@ -165,6 +188,7 @@ function comp(e, t) {
   const v = e.vel * (night ? 0.75 : 1);
   if (e.inst === 'piano') return piano(t, e.m, v * 0.85, -0.2);
   if (e.inst === 'mallet') return mallet(t, e.m, v, -0.2);
+  if (e.inst === 'rhodes') { e.ms.forEach((m, i) => epiano(t + i * 0.012, m, v * 0.5, -0.2 + i * 0.1)); return; }
   if (e.ms) { const gap = e.roll || (e.up ? 0.012 : 0.018), list = e.up ? e.ms.slice().reverse() : e.ms; list.forEach((m, i) => pluck(t + i * gap, m, v * 0.8, -0.25 + i * 0.12, e.inst)); return; }
   pluck(t, e.m, v, -0.2, e.inst);
 }
@@ -178,11 +202,11 @@ function schedule() {
   const sc = song.cscore, st = sixteenth();
   while (nextT < ac.currentTime + 0.2) {
     (sc.by[step] || []).forEach(([ch, e]) => {
-      const t = nextT + (ch === 'pad' || ch === 'bass' ? 0 : R(0, 0.018));   /* a human hand is never exactly on the grid */
+      const t = nextT + (ch === 'pad' || ch === 'bass' ? 0 : R(0, 0.018)) + (song.cozy.swing && step % 4 === 2 ? st * song.cozy.swing : 0);   /* a human hand is never exactly on the grid; jazz swings the off-beats */
       if (ch === 'lead') lead(e, t, st);
       else if (ch === 'comp') comp(e, t);
       else if (ch === 'pad') pad(t, e.ms, e.d * st);
-      else if (ch === 'bass') bass(t, e.m, e.d * st);
+      else if (ch === 'bass') { if (e.walk) upright(t, e.m, 0.9); else bass(t, e.m, e.d * st); }
       else if (!night || e.kind === 'gong') perc(t, e.kind, e.vel);
     });
     placed.push([nextT, step]); if (placed.length > 64) placed.shift();
