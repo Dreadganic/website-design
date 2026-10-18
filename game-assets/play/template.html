@@ -571,6 +571,7 @@ const UP = {
 const SAVE_KEY = 'beju-farm-save-v3';
 const $ = (id) => document.getElementById(id);
 const fmt = (n) => Math.floor(n).toLocaleString('en-US');
+const fmtKg = (n) => (Math.round(n * 10) / 10).toLocaleString('en-US', { maximumFractionDigits: 1 });   /* kilos to one decimal place */
 
 /* ---------- sprites: palette grids drawn once into canvases; icons also as image urls for the panels ---------- */
 const cache = {};
@@ -981,7 +982,7 @@ cv.addEventListener('click', (e) => {
     s.p = 0; s.claim = null; S.hearts -= 1; S.taps += 1; task('pick', 1); guideStep('pick');
     const kg = store(f, s.v, VAR[s.v].kg * (rule('akimatsuri') ? 1.2 : 1));
     SFX.play('harvest');
-    floats.push({ x: s.x + 9, y: s.y, text: '+' + kg + ' kg', t: 0 });
+    floats.push({ x: s.x + 9, y: s.y, text: '+' + fmtKg(kg) + ' kg', t: 0 });
     for (let i = 0; i < 7; i++) bursts.push({ x: s.x + 9, y: s.y + 8, vx: (rnd() - 0.5) * 60, vy: -30 - rnd() * 40, t: 0, c: i % 2 ? '#E83A30' : '#3E8036' });
     if (S.intro === 0) { S.intro = 1; }
     return;
