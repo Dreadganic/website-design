@@ -194,3 +194,11 @@ Coins build, know-how unlocks, cranes buy looks, and the tabs follow that rule:
 
 ## Readable numbers
 - The pixel font stays for words (headings, tabs, button labels, names), but every run of digits in the panels and popups is set in the body font (Zen Kaku Gothic New, bold, even-width digits) by `numify` in the template. HUD counters, toasts, button costs, stats and the floating +coins / +kg text use the body font too.
+
+## Farm levels, bigger farms and buildings that always count
+- **Farm levels:** each farm's level is its building levels + 2 for the manager + 1 for the fourth field + its mastery. Milestones: 5 the origin building style (Mogiana Fazenda, Huila Cafetero, Gedeo Highland, Toba Bamboo, Turrialba Tico, Osaka Kyoto), 10 +10% on that origin's process from any farm (Mogiana natural, Huila whiskey and rum, Gedeo washed, Toba strawberry, Turrialba honey, Osaka Geisha), 15 a gold passport stamp, 25 that bonus becomes +20%. The Farm tab shows the farm's level and next milestone; the old "Farm level" bar (really your player level) now reads "Level".
+- **Bigger farms:** buildings cap at level 5, 7 from P4, 9 from P6, 10 from P8 (shown in the prestige preview, popup and perk list).
+- **Wet mill and shade trees** add up across farms with diminishing returns (60% x (1 - 0.85^levels) faster washed drying; 4 x (1 - 0.85^levels) cup), so every level counts. Before, levels past 6 wet mills and 10 shade levels did nothing.
+- **Huila** costs 1,500 know-how (was 800), so it opens around minute 12.
+- Measured: human bot P4 in 3.1-3.5 h of play (unchanged), efficient bot P5 in 10.1 h (was 10.3); no coins wasted on capped buildings (was about 3 million a run); coins after P4 go into level 6-7 buildings.
+
