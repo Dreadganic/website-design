@@ -206,3 +206,10 @@ Coins build, know-how unlocks, cranes buy looks, and the tabs follow that rule:
 - Farm mastery (coins) adds a flat +1% picking speed on that farm per level, and research (know-how) a flat +1% know-how from every sale per level. Both keep their rising prices, so they only pay once everything else is bought. Before, mastery gave +10% a level and research +0.3 cup score a level (about +3% know-how, outside the 95 cup cap).
 - Measured: efficient bot P5 in 11.7 h of active play (was 10.1 h); human bot P4 unchanged at 3.1-3.5 h.
 
+## Farm-gated unlocks
+- Farms need the previous farm built up (`FARM_REQ`): Huila needs Mogiana at farm level 6; Gedeo, Huila at 18 (plus P1); Toba, Gedeo at 24 (plus P2); Turrialba, Toba at 30 (plus P3).
+- Coffees come from farms where they're native (`VAR_HOME`) and can be unlocked in any order once available: Mogiana brings Yellow Catuai, Mundo Novo and Yellow Bourbon; Huila Castillo and Pink Bourbon (P1); Gedeo Heirloom (P2); Lake Toba Catimor (now 2,000 know-how); Turrialba or Osaka Geisha.
+- Rum and whiskey barrels need Huila at farm level 12 (plus P1 / P2); strawberry infused needs Lake Toba at 12 (plus P3). Ordering the real coffee still unlocks them at once.
+- Locked rows name what's missing ("Needs Huila at farm level 12 (now 9), and needs prestige 1"). The tutorial's coffee chapter now teaches Yellow Catuai and terroir.
+- Measured: Toba opens at 72-77 min of play (was 57-65), Turrialba at 109-131 min (was 97-107); human bot P4 3.5-3.8 h; efficient bot P5 11.2 h.
+

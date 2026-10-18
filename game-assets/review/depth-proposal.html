@@ -1,0 +1,146 @@
+<title>Beju Farm Depth Proposal</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column like the other reviews; the roastery loop is a numbered flow because the steps happen in order */
+:root {
+  --bg: #F5F3EE; --panel: #FFFFFF; --fg: #23201B; --muted: #6A6358; --line: #DED8CC;
+  --bean: #6B3F22; --leaf: #2F6B4F; --cherry: #B8323A; --gold: #A8791A; --soft: #EFE9DD;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #171512; --panel: #201D19; --fg: #EDE7DC; --muted: #A79F92; --line: #383229;
+  --bean: #D9A47A; --leaf: #6CC59A; --cherry: #F07880; --gold: #E2B64A; --soft: #2A2620; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #171512; --panel: #201D19; --fg: #EDE7DC; --muted: #A79F92; --line: #383229;
+  --bean: #D9A47A; --leaf: #6CC59A; --cherry: #F07880; --gold: #E2B64A; --soft: #2A2620; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font: 16px/1.6 var(--body); }
+.wrap { max-width: 780px; margin: 0 auto; padding-block: 40px 72px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 36px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(30px, 6vw, 42px); font-weight: 800; }
+h2 { font-size: 24px; font-weight: 800; }
+h3 { font-size: 17px; font-weight: 600; }
+p { margin: 0; max-width: 66ch; }
+section { display: flex; flex-direction: column; gap: 14px; }
+.eyebrow { font: 600 12px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--bean); }
+.lede { font-size: 18px; color: var(--muted); }
+.tw { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 12px/1.3 var(--mono); letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+.card .tag { font: 600 12px var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.card.big { border-left: 4px solid var(--gold); }
+.card.ok { border-left: 4px solid var(--leaf); }
+ol.flow { list-style: none; counter-reset: s; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+ol.flow li { counter-increment: s; display: grid; grid-template-columns: 30px 1fr; gap: 10px; align-items: start; }
+ol.flow li::before { content: counter(s); font: 800 16px/28px var(--display); text-align: center; width: 28px; height: 28px; border-radius: 50%; background: var(--soft); color: var(--bean); }
+ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 68ch; }
+.note { font-size: 14px; color: var(--muted); }
+</style>
+
+<div class="wrap">
+<header style="display:flex;flex-direction:column;gap:12px">
+  <span class="eyebrow">Design proposal · 18 October 2026 · after Phase A</span>
+  <h1>Gates reorder the game but can't lengthen it: the next step is more to do, not more locks</h1>
+  <p class="lede">Phase A is in the game. Farms need the farm before them built up, coffees come from the farms where they're native, and the barrel and infused processes come from origin farm levels. The bots show it smoothed the order within each run, but stretched the time to open everything by only about 15 minutes. Prestige runs are short and coins come quickly, so locks fill fast. What the game needs now is depth: the cupping notebook and regular buyers (Phase B), then the roastery (Phase C).</p>
+</header>
+
+<section>
+<h2>Phase A, measured</h2>
+<div class="tw"><table>
+<thead><tr><th></th><th>Before A</th><th>After A</th></tr></thead>
+<tbody>
+<tr><td>First run unlocks (human bot)</td><td>honey, Huila, 4 coffees</td><td>honey, Huila, 4 coffees (Castillo now comes with Huila)</td></tr>
+<tr><td>First barrel process</td><td class="n">P1</td><td class="n">P1, once Huila reaches farm level 12</td></tr>
+<tr><td>Toba opens (play time)</td><td class="n">57–65 min</td><td class="n">72–77 min, bringing Catimor with it</td></tr>
+<tr><td>Turrialba opens (play time)</td><td class="n">97–107 min</td><td class="n">109–131 min</td></tr>
+<tr><td>Human bot to P4</td><td class="n">3.1–3.5 h</td><td class="n">3.5–3.8 h</td></tr>
+<tr><td>Efficient bot to P5</td><td class="n">11.7 h</td><td class="n">11.2 h</td></tr>
+</tbody></table></div>
+<p>What it fixed: every farm now matters to the next, coffees feel like a farm's own, and coins spent on buildings now push you towards new places. What it couldn't fix: the whole map is still open in about two hours of play, because P1 to P3 take about 25–45 minutes each. Slowing those runs further would make the early game a grind, which the genre avoids. The answer is to give players more to do once the map is open.</p>
+</section>
+
+<section>
+<h2>Phase B: depth on what's already there</h2>
+<div class="card ok">
+  <span class="tag">B1 · Cupping notebook · medium, no new art</span>
+  <p>A collection log of every coffee and process pair: 9 coffees by 6 processes, 54 entries, like Old School RuneScape's collection log or Hay Day's achievements.</p>
+  <ul>
+    <li><b>Stars per pair:</b> 1 lot sold, 25 lots and 250 lots. Each star gives that pair +0.5 cup score, up to +1.5, so learning a coffee makes it better.</li>
+    <li><b>Completion rewards:</b> every process for one coffee earns a title ("Pink Bourbon specialist"). Every coffee for one process earns a badge. Totals of 25, 75 and 162 stars earn character backgrounds and a "Q grader" crest charm.</li>
+    <li><b>Why it works:</b> it gives a reason to plant old coffees and try unusual pairs, Catimor honey for example, long after the map is open. 162 stars is months of goals at a casual pace.</li>
+    <li><b>Where:</b> a Notebook sub-tab in Unlock, as a 9 × 6 grid of small tiles.</li>
+  </ul>
+</div>
+<div class="card ok">
+  <span class="tag">B2 · Regular buyers · medium, small art</span>
+  <p>The contract buyers already have names. Each one remembers you.</p>
+  <ul>
+    <li><b>Loyalty:</b> each delivery raises that buyer's loyalty, levels 1 to 5.
+      <ul>
+        <li>Level 2: their premium contract (+25% pay).</li>
+        <li>Level 3: a standing weekly order.</li>
+        <li>Level 4: a thank-you postcard for the passport.</li>
+        <li>Level 5: their own small perk, such as a Kyoto kissaten paying extra for dark, natural Brazilian lots.</li>
+      </ul>
+    </li>
+    <li><b>Why it works:</b> contracts stop being interchangeable cards and become relationships. That suits the cosy genre and the brand's story of real people drinking the coffee.</li>
+  </ul>
+</div>
+<div class="card ok">
+  <span class="tag">B3 · Origin stories · small, writing only</span>
+  <p>Each farm milestone (levels 5, 10, 15, 25) brings a short Rosa card with a real fact about that origin: its altitude, harvest months or why it favours that process. It ends with a link to the matching Beju coffee. That's 20 cards of brand storytelling, and it gives the crossplay a reason in the story.</p>
+</div>
+</section>
+
+<section>
+<h2>Phase C: the roastery, a new layer for the mid-game</h2>
+<div class="card big">
+  <span class="tag">Large · new tab, new art, opens at prestige 3</span>
+  <p>Beju roasts in Japan, so the game should too. From P3 (about day 2 for a regular player, week 1 for a casual one), green coffee can go to your own roastery instead of the roastery buyer.</p>
+  <h3>The loop</h3>
+  <ol class="flow">
+    <li><span><b>Send green coffee to the roastery.</b> Any dry lot can go to the roaster's queue instead of being sold.</span></li>
+    <li><span><b>Pick a roast:</b> light, medium or dark. Each coffee has a best roast: Geisha and washed Heirloom shine light, Brazilian naturals go dark. A tasting note card shows how close you were.</span></li>
+    <li><span><b>Roast and rest.</b> It takes a few minutes, with a crack sound and a cooling tray. Tapping at first crack, a timing moment, improves the roast. That's active play the staff can't do.</span></li>
+    <li><span><b>Sell to Japanese buyers.</b> Kissaten want dark, specialty cafés want light, konbini blends want medium in volume. Roasted coffee pays about 1.5 to 2 times green, plus roastery reputation.</span></li>
+    <li><span><b>Grow the roastery.</b> Reputation levels 1 to 20 unlock a bigger roaster, a second roaster, a cupping lab and new buyer types. At reputation 10 you can blend two coffees into a house blend you name, like Beju's real Casablanca Blend.</span></li>
+  </ol>
+  <h3>How it fits</h3>
+  <ul>
+    <li><b>Farms stay the engine;</b> the roastery is where you make your name. It gives late-game coins and coffees a new use, which is why it sits after the map opens.</li>
+    <li><b>Season themes</b> get seasonal blends (a Momiji dark roast, a Sakura light roast) as season track rewards.</li>
+    <li><b>Perks:</b> a head roaster arrives later as a prestige perk to automate it, as Cup all did for cupping.</li>
+    <li><b>Crossplay:</b> the Osaka garden becomes the roastery's courtyard. Real orders could stamp a "roasted by Beju" card into the notebook.</li>
+  </ul>
+  <h3>What it needs</h3>
+  <ul>
+    <li>Art: a roastery scene (a small Osaka shop interior), a roaster with animation frames, a cooling tray, bags for each roast, and 3 to 4 buyer portraits.</li>
+    <li>A Roastery tab, or a Mill / Roastery switch, plus save fields and a few server checks for reputation on the board.</li>
+    <li>Bot support and pacing sims, since it adds an income source.</li>
+  </ul>
+</div>
+</section>
+
+<section>
+<h2>Order and decisions</h2>
+<ol class="flow">
+  <li><span><b>B1 Cupping notebook</b> first: the biggest gain in long-term goals for the least work.</span></li>
+  <li><span><b>B2 Regular buyers</b> and <b>B3 origin stories</b> next. B3 needs your sign-off on the coffee facts.</span></li>
+  <li><span><b>C Roastery</b> once B is in and measured.</span></li>
+</ol>
+<p><b>Decisions for you before C:</b></p>
+<ul>
+  <li><b>Unlock:</b> should the roastery open at P3, or with the Osaka garden (cranes)? P3 reaches everyone. Osaka ties it to real orders but locks most players out.</li>
+  <li><b>Reputation board:</b> should roastery reputation count on the season board, or stay personal?</li>
+  <li><b>Blend names:</b> can players name blends freely (with the same filter as player names), or should they pick from Beju-style names?</li>
+  <li><b>Real blends:</b> may the game reference real Beju blends like Casablanca by name?</li>
+</ul>
+</section>
+</div>
