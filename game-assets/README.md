@@ -202,3 +202,7 @@ Coins build, know-how unlocks, cranes buy looks, and the tabs follow that rule:
 - **Huila** costs 1,500 know-how (was 800), so it opens around minute 12.
 - Measured: human bot P4 in 3.1-3.5 h of play (unchanged), efficient bot P5 in 10.1 h (was 10.3); no coins wasted on capped buildings (was about 3 million a run); coins after P4 go into level 6-7 buildings.
 
+## Endless upgrades
+- Farm mastery (coins) adds a flat +1% picking speed on that farm per level, and research (know-how) a flat +1% know-how from every sale per level. Both keep their rising prices, so they only pay once everything else is bought. Before, mastery gave +10% a level and research +0.3 cup score a level (about +3% know-how, outside the 95 cup cap).
+- Measured: efficient bot P5 in 11.7 h of active play (was 10.1 h); human bot P4 unchanged at 3.1-3.5 h.
+
