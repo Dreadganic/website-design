@@ -282,3 +282,8 @@ Farm · Mill · Roastery · Unlock · Daily · Ranks · Shop · Test/Settings.
 - **Rookies board:** shows players in their first season (`S.firstSeason`, and `firstSeason` on server rows). Saves and rows from before this change count as veterans. `GET game-score?mode=rookie` serves the board, and `mode=final` also returns `me.rookieRank`. A rookie who finishes in the rookie top 10 gets a "Rookie Champion / Top 3 / Top 10" badge as well as their normal badge.
 - **Repeat roast** (reputation 8): a bin's Repeat button makes it start its next roast by itself, using the roast last chosen for that coffee, whenever a roaster is free (`S.roastery.repeat`). Catching the crack stays manual.
 - **Roastery tab:** hidden until prestige 2 (or until the roastery opens), then shown as locked until prestige 3.
+
+## Crack difficulty
+Each roast gets its own first-crack window (`r.cw`, from `crackWin(key)`), starting at 70% of the roast. Its length depends on how rare the bean is (`CRACK_BEAN`: Catimor 0 up to Geisha 1) and how demanding the process is (`CRACK_METHOD`: washed 0 up to strawberry infused 1). It runs from 22% of the roast (Catimor or Caturra washed, about 15 s) down to 7% (Geisha strawberry, about 4 s on a light roast).
+- **Where it shows:** bins show "crack wide / normal / tight / very tight", and roasters show the window in seconds with a gold zone on their bar. The scene's bar matches.
+- **Bot:** the human-like bot catches tighter windows less often (35% plus 3 times the window, up to 90%).
