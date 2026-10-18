@@ -1616,7 +1616,7 @@ function roasteryPanel() {
   h += '<h3>Bags to sell ' + R.bags.length + '</h3>';
   if (R.bags.length > 1) h += '<div class="rackbar">' + btn('Sell all', 'each to the buyer who wants it', 'sellbags', true, 'green') + '</div>';
   h += R.bags.length ? '<div class="racks">' + R.bags.map((b, i) => { const best = bestBuyer(b);
-    return '<div class="rack dry"><div class="rk-top">' + '<img src="' + bagUrl(b.blend ? 'medium' : b.profile, bagLabelOf(b)) + '" alt="" style="width:20px;image-rendering:pixelated"><span><b>' + (b.blend || ART.varieties[b.key.split('.')[0]]) + '</b><small>' + (b.blend ? 'house blend' : ROASTS[b.profile].name.toLowerCase() + ' · ' + METHODS[b.key.split('.')[1]].name.split(' ')[0].toLowerCase()) + ' · ' + fmtKg(b.kg) + ' kg</small></span></div><small>Quality ' + b.q + '</small>' +
+    return '<div class="rack dry"><div class="rk-top">' + '<img src="' + bagUrl(b.blend ? 'medium' : b.profile, bagLabelOf(b)) + '" alt="" style="width:20px;image-rendering:pixelated"><span><b>' + (b.blend || ART.varieties[b.key.split('.')[0]]) + '</b><small>' + (b.blend ? 'house blend' : ROASTS[b.profile].name.toLowerCase() + ' · ' + METHODS[b.key.split('.')[1]].name.split(' ')[0].toLowerCase()) + ' · ' + fmtKg(b.kg) + ' kg</small></span></div><small>Quality ' + b.q + '</small>' + (b.seasonal ? '<span class="fit">★ ' + b.seasonal + (b.skey === S.season.key ? ' +20%' : '') + '</span>' : '') +
       '<div class="rk-act">' + Object.keys(RBUYERS).map((k) => '<button type="button" class="btn' + (k === best ? ' green' : '') + '" data-act="sellbag:' + i + '.' + k + '">' + BUYER_SHORT[k].replace(/^./, (c) => c.toUpperCase()) + (k === best ? ' ★ ' : ' ') + fmtShort(bagPrice(b, k)) + '</button>').join('') +
       (lv >= 10 && !b.blend && R.bags.filter((x) => !x.blend).length > 1 ? '<button type="button" class="btn blue" data-act="blendask:' + i + '">Blend</button>' : '') + '</div></div>'; }).join('') + '</div>' : '<p class="note">Finished roasts appear here. Cafés want light, kissaten dark, konbini medium (★ marks who pays most).</p>';
   if (lv >= 10) h += '<p class="note">House blend name: <select data-blendname="1" aria-label="Blend name">' + BLEND_NAMES.map((n, i) => '<option value="' + i + '"' + ((R.blendName || 0) === i ? ' selected' : '') + '>' + n + '</option>').join('') + '</select></p>';
@@ -2838,7 +2838,7 @@ function away(hours) {
 /* ---------- interface ---------- */
 let tab = 'farm', toastT = 0;
 const TEST_TOOLS = true;   /* build.py --launch turns this off: the Test tab becomes Settings and the cheats stop working */
-const TABS = [['farm', 'Farm', 'i_worker'], ['mill', 'Mill', 'green_sack'], ['roast', 'Roastery', 'roaster_0'], ['unlock', 'Unlock', 'i_points'], ['orders', 'Daily', 'i_cherry'], ['ranks', 'Ranks', 'i_trophy'], ['shop', 'Shop', 'i_crane'], TEST_TOOLS ? ['test', 'Test', 'i_box'] : ['test', 'Settings', 'i_box']];
+const TABS = [['farm', 'Farm', 'i_worker'], ['mill', 'Mill', 'green_sack'], ['roast', 'Roast', 'roaster_0'], ['unlock', 'Unlock', 'i_points'], ['orders', 'Daily', 'i_cherry'], ['ranks', 'Ranks', 'i_trophy'], ['shop', 'Shop', 'i_crane'], TEST_TOOLS ? ['test', 'Test', 'i_box'] : ['test', 'Settings', 'i_box']];
 function setTab(t) { if (t === 'upgrades') { S.farmSub = S.upTab === 'build' || S.upTab === 'staff' ? S.upTab : 'upgrades'; t = 'farm'; }   /* Build lives inside the Farm tab now */
   if (t !== tab) SFX.play('click'); if (S.newTab === t) S.newTab = null; guideStep('tab:' + t); tab = t; renderTabs(); renderPanel(); refreshHud(); }
 
