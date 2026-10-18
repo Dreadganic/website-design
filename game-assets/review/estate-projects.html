@@ -1,0 +1,111 @@
+<title>Estate Projects</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column like the other reviews; one card per farm, because each farm is its own project; shared rules as a table */
+:root {
+  --bg: #F5F3EE; --panel: #FFFFFF; --fg: #23201B; --muted: #6A6358; --line: #DED8CC;
+  --bean: #6B3F22; --leaf: #2F6B4F; --cherry: #B8323A; --gold: #A8791A; --soft: #EFE9DD;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #171512; --panel: #201D19; --fg: #EDE7DC; --muted: #A79F92; --line: #383229;
+  --bean: #D9A47A; --leaf: #6CC59A; --cherry: #F07880; --gold: #E2B64A; --soft: #2A2620; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #171512; --panel: #201D19; --fg: #EDE7DC; --muted: #A79F92; --line: #383229;
+  --bean: #D9A47A; --leaf: #6CC59A; --cherry: #F07880; --gold: #E2B64A; --soft: #2A2620; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font: 16px/1.6 var(--body); }
+.wrap { max-width: 780px; margin: 0 auto; padding-block: 40px 72px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 36px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(30px, 6vw, 42px); font-weight: 800; }
+h2 { font-size: 24px; font-weight: 800; }
+p { margin: 0; max-width: 66ch; }
+section { display: flex; flex-direction: column; gap: 14px; }
+.eyebrow { font: 600 12px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--bean); }
+.lede { font-size: 18px; color: var(--muted); }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; }
+.kpi b { font: 800 26px/1.1 var(--display); font-variant-numeric: tabular-nums; color: var(--leaf); }
+.kpi span { font-size: 13px; color: var(--muted); }
+.tw { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 12px/1.3 var(--mono); letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; }
+.card .tag { font: 600 12px var(--mono); color: var(--muted); }
+.card.bad { border-left: 4px solid var(--cherry); }
+.card.good { border-left: 4px solid var(--leaf); }
+.card.warn { border-left: 4px solid var(--gold); }
+ul, ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 68ch; }
+.note { font-size: 14px; color: var(--muted); }
+</style>
+<div class="wrap">
+<header style="display:flex;flex-direction:column;gap:12px">
+  <span class="eyebrow">Design proposal · 18 October 2026 · late-game uses for each farm's drying area</span>
+  <h1>Estate projects: each farm's drying area becomes a late-game project with its own mechanic</h1>
+  <p class="lede">Each farm has a painted area beside its house that does nothing today. The idea is to make it that farm's <b>estate project</b>. It's built up in three stages from farm level 30, it changes the scene as it grows, and each farm adds one new thing to do that comes from its real coffee culture, rather than just another percentage. Each area also gets a showpiece spot that changes with the season.</p>
+</header>
+
+<section>
+<h2>How it works for every farm</h2>
+<div class="tw"><table>
+<thead><tr><th></th><th>Rule</th></tr></thead>
+<tbody>
+<tr><td>When</td><td>From prestige 4, once a farm reaches farm level 30. Stages two and three need farm levels 40 and 50, so they spread over P4 to P7.</td></tr>
+<tr><td>Cost</td><td>Coins and know-how. For example, 2M coins and 50k know-how for stage 1, 10M and 250k for stage 2, 40M and 1M for stage 3, scaled by the farm's cost multiplier. That gives the late-game coin pile and the endless know-how somewhere new to go.</td></tr>
+<tr><td>Where</td><td>Farm › Fields gets an "Estate project" card for that farm, and tapping the area in the scene opens it.</td></tr>
+<tr><td>Kept</td><td>Through prestige, like buildings. A dormant farm's project pauses until the farm wakes.</td></tr>
+<tr><td>Visuals</td><td>Overlay sprites over the painted area, like the farmhouse upgrades, plus one small animation per farm (raking, smoke, a boat, running water or koi).</td></tr>
+</tbody></table></div>
+</section>
+
+<section>
+<h2>The six projects</h2>
+<div class="card good"><span class="tag">Mogiana, Brazil · the terreiro</span><p><b>New mechanic: patio drying.</b> Natural lots can be sent to the patio to dry in the sun. Your mill racks are freed up and the lot dries for free while you're away.</p>
+<div class="tw"><table><thead><tr><th>Farm lv</th><th>Stage</th><th>What you see</th><th>What it does</th></tr></thead><tbody><tr><td class="n">30</td><td><b>Bigger terreiro</b></td><td>The patio widens to the field edge, and a worker rakes the rows</td><td>Two patio lots dry at once, outside the mill racks</td></tr><tr><td class="n">40</td><td><b>Guardiola dryer</b></td><td>A rotating drum dryer with steam beside the patio</td><td>Patio lots dry 40% faster</td></tr><tr><td class="n">50</td><td><b>Fazenda tasting room</b></td><td>A small terraced room with a Beju sign</td><td>Natural lots from Brazilian coffees cup +1</td></tr></tbody></table></div>
+<p class="note"><b>Seasonal showpiece spot:</b> a big ipê tree at the patio corner, which flowers in the season's colour.</p></div><div class="card good"><span class="tag">Huila, Colombia · the marquesina</span><p><b>New mechanic: micro-lots.</b> Any honey or barrel lot from Huila has a small chance to come out as a <b>micro-lot</b>: a gold-tagged lot that sells for 2× and gives a notebook star.</p>
+<div class="tw"><table><thead><tr><th>Farm lv</th><th>Stage</th><th>What you see</th><th>What it does</th></tr></thead><tbody><tr><td class="n">30</td><td><b>Second marquesina</b></td><td>A second drying tunnel beside the first</td><td>Micro-lot chance 5%</td></tr><tr><td class="n">40</td><td><b>Solar dryer</b></td><td>Panels on the tunnel roofs, with a glint at midday</td><td>Honey lots dry 30% faster, from any farm</td></tr><tr><td class="n">50</td><td><b>Micro-lot greenhouse</b></td><td>A glasshouse of Pink Bourbon seedlings</td><td>Micro-lot chance 12%; Pink Bourbon fields grow 20% faster</td></tr></tbody></table></div>
+<p class="note"><b>Seasonal showpiece spot:</b> a hanging basket of the season's flowers on the tunnel arch.</p></div><div class="card good"><span class="tag">Gedeo, Ethiopia · the raised beds</span><p><b>New mechanic: coffee ceremony.</b> Once a real day you can hold a <b>jebena buna</b> ceremony at the hut. It gives a 30-minute boost: golden bushes twice as often and +20% picking on every farm.</p>
+<div class="tw"><table><thead><tr><th>Farm lv</th><th>Stage</th><th>What you see</th><th>What it does</th></tr></thead><tbody><tr><td class="n">30</td><td><b>More raised beds</b></td><td>A fourth and fifth bed, with women turning the cherries</td><td>Heirloom fields pick +15% kg</td></tr><tr><td class="n">40</td><td><b>Ceremony hut</b></td><td>A small hut with a jebena pot and incense smoke</td><td>Unlocks the daily coffee ceremony</td></tr><tr><td class="n">50</td><td><b>Co-op washing station</b></td><td>Channels and a sorting table run by the co-op</td><td>Washed lots cup +1; the ceremony lasts 45 minutes</td></tr></tbody></table></div>
+<p class="note"><b>Seasonal showpiece spot:</b> a coloured woven mat and basket by the beds, in the season's colours.</p></div><div class="card good"><span class="tag">Lake Toba, Sumatra · the lakeshore and jetty</span><p><b>New mechanic: the trader's boat.</b> A boat pulls up at the jetty every 2 hours of play with a <b>special order</b>: a rare coffee and process, a big quantity, and a reward of 2–3× the usual price plus cranes now and then.</p>
+<div class="tw"><table><thead><tr><th>Farm lv</th><th>Stage</th><th>What you see</th><th>What it does</th></tr></thead><tbody><tr><td class="n">30</td><td><b>Longer jetty</b></td><td>The jetty reaches further out, with a boat moored</td><td>The trader's boat starts visiting</td></tr><tr><td class="n">40</td><td><b>Wet-hulling shed</b></td><td>A giling basah shed with drying mats on the sand</td><td>Strawberry-infused and natural lots dry 30% faster</td></tr><tr><td class="n">50</td><td><b>Lakeside guesthouse</b></td><td>A Batak-style guesthouse with visitors on the jetty</td><td>Visitors buy roasted bags: a fourth roastery buyer paying ×1.35 for any roast</td></tr></tbody></table></div>
+<p class="note"><b>Seasonal showpiece spot:</b> a traditional boat on the lake, painted in the season's colours.</p></div><div class="card good"><span class="tag">Turrialba, Costa Rica · the wet mill</span><p><b>New mechanic: the barrel cellar.</b> Lots can be laid down in barrels to <b>age</b>. They gain +0.5 cup for every 2 hours, up to +3, and sell for more the longer they rest, offline time included. It's idle-friendly: set it before bed and collect in the morning.</p>
+<div class="tw"><table><thead><tr><th>Farm lv</th><th>Stage</th><th>What you see</th><th>What it does</th></tr></thead><tbody><tr><td class="n">30</td><td><b>Water recycling</b></td><td>Settling ponds next to the channels, with clear water running</td><td>Washed lots dry 25% faster, from any farm</td></tr><tr><td class="n">40</td><td><b>Barrel cellar</b></td><td>A stone cellar door in the hillside, barrels stacked outside</td><td>Two aging slots</td></tr><tr><td class="n">50</td><td><b>Volcano-view café</b></td><td>A small café terrace looking at the volcano</td><td>Four aging slots; aged lots get +15% from the roastery</td></tr></tbody></table></div>
+<p class="note"><b>Seasonal showpiece spot:</b> a painted Costa Rican ox cart (carreta) by the mill, its pattern changing with the season.</p></div><div class="card good"><span class="tag">Osaka garden · the drying beds, pond and lantern</span><p><b>New mechanic: koi pond.</b> Tap the pond to feed the koi once every few hours. A happy pond widens your crack windows by +1 second and, now and then, a golden koi gives a burst of cranes.</p>
+<div class="tw"><table><thead><tr><th>Farm lv</th><th>Stage</th><th>What you see</th><th>What it does</th></tr></thead><tbody><tr><td class="n">30</td><td><b>Bigger koi pond</b></td><td>The pond doubles, with more koi and a stone bridge</td><td>Feeding gives +1 s to crack windows for an hour</td></tr><tr><td class="n">40</td><td><b>Garden roaster kiosk</b></td><td>A small roaster under a wooden roof by the beds</td><td>A fourth roaster bay in the roastery</td></tr><tr><td class="n">50</td><td><b>Zen garden</b></td><td>Raked gravel and stones that change with the season</td><td>Season stars from roasting cap at 5 a day instead of 3</td></tr></tbody></table></div>
+<p class="note"><b>Seasonal showpiece spot:</b> the garden's centre stone, dressed for the season (kadomatsu for New Year, tanzaku wishes for Tanabata, a moon offering for Tsukimi).</p></div>
+</section>
+
+<section>
+<h2>Seasonal showpieces</h2>
+<div class="card warn">
+  <span class="tag">A new kind of season track reward</span>
+  <p>Each farm's area gets one showpiece spot, so there are six per farm map. The season track's tier 15 reward (now the season hat) could move to tier 18, with tier 15 becoming that season's <b>showpiece set</b>. It dresses all six farms' spots in the season's theme at once: sakura blossom in April, carp streamers in May, wish strips in July, maple in November. You keep every set you've earned and choose which one is shown, as with building styles. Older sets can be bought from the archive with cranes, like other past-season items.</p>
+</div>
+</section>
+
+<section>
+<h2>Why this fits the late-game problems</h2>
+<ul>
+  <li><b>Something to aim for from P4 to P7.</b> There are 18 stages across six farms, each a visible change. They fill the long stretches the 120-hour playtest found.</li>
+  <li><b>New things to do, not just bigger numbers.</b> Patio drying, micro-lots, a daily ceremony, a visiting trader, barrels that age overnight and koi to feed each give a reason to visit that farm again.</li>
+  <li><b>Good for idle play.</b> Barrel aging and patio drying both reward time away from the game.</li>
+  <li><b>On brand.</b> Each project comes from that origin's real coffee culture, which also gives the origin stories (still on hold) a natural place to appear.</li>
+</ul>
+</section>
+
+<section>
+<h2>Suggested order</h2>
+<ol>
+  <li><b>The shared system and two projects:</b> the trader's boat at Toba and the barrel cellar at Turrialba. They're the most distinctive and idle-friendly.</li>
+  <li><b>Next:</b> the koi pond at Osaka and the ceremony at Gedeo, which are the daily or tap-in moments.</li>
+  <li><b>Then:</b> patio drying at Mogiana and micro-lots at Huila.</li>
+  <li><b>Last:</b> seasonal showpieces, with art for each of the 12 seasons.</li>
+</ol>
+</section>
+</div>
