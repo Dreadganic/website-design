@@ -37,10 +37,11 @@ window.BOT = (function () {
     while (guard++ < 10) {
       const c = [];
       const ok = (k) => !G.gateOK || G.gateOK(k);   /* unlocks that wait for a prestige */
-      const nv = G.VAR_ORDER.find((v) => !S.vars[v]); if (nv && nv !== 'geisha' && ok('var:' + nv)) c.push(['var:' + nv, G.VAR[nv].cost]);
+      G.VAR_ORDER.forEach((v) => { if (!S.vars[v] && v !== 'geisha' && ok('var:' + v)) c.push(['var:' + v, G.VAR[v].cost]); });   /* coffees open as their home farms do */
+      const nv = G.VAR_ORDER.find((v) => !S.vars[v] && v !== 'geisha' && ok('var:' + v));
       Object.keys(G.METHODS).forEach((m) => { if (!S.methods[m] && G.METHODS[m].cost && ok('method:' + m)) c.push(['method:' + m, G.METHODS[m].cost]); });
       G.LOCS.forEach((l) => { if (G.canOpen(l)) c.push(['farm:' + l, G.FARM_COST[l]]); });
-      if (G.researchCost && (!nv || !ok('var:' + nv))) c.push(['research', G.researchCost()]);
+      if (G.researchCost && !nv) c.push(['research', G.researchCost()]);
       c.sort((a, b) => a[1] - b[1]);
       if (!c.length || c[0][1] > S.points) break;
       if (H()) {   /* a human doesn't always spend at once, and doesn't always pick the cheapest */

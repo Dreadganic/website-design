@@ -1045,10 +1045,10 @@ const STAGES = ['sprout', 'young', 'flower', 'green', 'ripe'];
 const WALK = [1, 0, 2, 0];
 /* coffee varieties unlock in this order with points; each has its own yield, speed, price and perk.
    kg = cherries per pick, speed = growth speed, value = price multiplier, cup = cup score bonus by process */
-const VAR_ORDER = ['caturra', 'catimor', 'catuai', 'castillo', 'mundonovo', 'yellowbourbon', 'pinkbourbon', 'heirloom', 'geisha'];
+const VAR_ORDER = ['caturra', 'catuai', 'castillo', 'catimor', 'mundonovo', 'yellowbourbon', 'pinkbourbon', 'heirloom', 'geisha'];
 const VAR = {
   caturra: { cost: 0, kg: 3, speed: 1, value: 1, perk: 'The everyday bean. Reliable, nothing fancy.' },
-  catimor: { cost: 150, kg: 3, speed: 1.35, value: 0.9, perk: 'Fast grower: ripens 35% sooner, sells a little lower.' },
+  catimor: { cost: 2000, kg: 3, speed: 1.35, value: 0.9, perk: 'Fast grower: ripens 35% sooner, sells a little lower.' },
   catuai: { cost: 400, kg: 4, speed: 1, value: 1.1, perk: 'Compact and heavy: 4 kg every pick.' },
   castillo: { cost: 1000, kg: 3, speed: 1, value: 1, allSeason: true, perk: 'Rust-proof: grows at harvest speed in all weather.' },
   mundonovo: { cost: 2500, kg: 5, speed: 0.8, value: 1, perk: 'Tall giant: 5 kg every pick, grows 20% slower.' },
@@ -1367,8 +1367,20 @@ const METHODS = {
 /* unlock pacing: process prices follow what they pay, like the coffees, and the big unlocks wait for a prestige,
    so each run opens something new instead of the whole game arriving in the first half hour. Ordering the real coffee still unlocks its process straight away */
 const GATE = { 'method:rum': 1, 'method:whiskey': 2, 'method:strawberry': 3, 'var:pinkbourbon': 1, 'var:heirloom': 2, 'farm:gedeo': 1, 'farm:toba': 2, 'farm:turrialba': 3 };
-const gateOK = (key) => (S.prestige || 0) >= (GATE[key] || 0);
-const gateNote = (key) => 'Opens at prestige ' + GATE[key];
+/* farm-gated unlocks: a farm needs the one before it built up, coffees come from farms where they're native,
+   and the barrel and infused processes come from their origin farm's level. Know-how still pays; these say when */
+const FARM_REQ = { 'farm:huila': ['mogiana', 6], 'farm:gedeo': ['huila', 18], 'farm:toba': ['gedeo', 24], 'farm:turrialba': ['toba', 30], 'method:rum': ['huila', 12], 'method:whiskey': ['huila', 12], 'method:strawberry': ['toba', 12] };
+const VAR_HOME = { catuai: ['mogiana'], mundonovo: ['mogiana'], yellowbourbon: ['mogiana', 'osaka'], castillo: ['huila'], pinkbourbon: ['huila', 'osaka'], heirloom: ['gedeo'], catimor: ['toba'], geisha: ['turrialba', 'osaka'] };
+const fname = (l) => ART.locations[l].name.split(',')[0];
+function unlockReq(key) {   /* { ok, short: a button label, why: a sentence } for anything gated */
+  const miss = [], v = key.slice(4), fr = FARM_REQ[key], p = GATE[key] || 0;
+  if (key.startsWith('var:') && VAR_HOME[v] && !VAR_HOME[v].some((l) => S.farms[l].unlocked)) miss.push(['Open ' + fname(VAR_HOME[v][0]), 'native to ' + VAR_HOME[v].map(fname).join(' and ') + ': open ' + fname(VAR_HOME[v][0]) + ' first']);
+  if (fr) { const lv = S.farms[fr[0]].unlocked ? farmLevel(S.farms[fr[0]]) : 0; if (lv < fr[1]) miss.push([fname(fr[0]) + ' Lv ' + fr[1], 'needs ' + fname(fr[0]) + ' at farm level ' + fr[1] + ' (now ' + lv + ')']); }
+  if ((S.prestige || 0) < p) miss.push(['Prestige ' + p, 'needs prestige ' + p]);
+  return { ok: !miss.length, short: miss.length ? miss[0][0] : '', why: miss.length ? (miss.map((m) => m[1]).join(', and ')).replace(/^./, (c) => c.toUpperCase()) : '' };
+}
+const gateOK = (key) => unlockReq(key).ok;
+const gateNote = (key) => unlockReq(key).why;
 /* Real Beju coffees: buying one gives cranes, its origin's passport stamp (one per order line; a blend stamps its next origin by share) and any process it unlocks */
 const COFFEES = {
   casablanca: { name: 'Casablanca Blend', price: 3000, stamps: ['mogiana', 'huila', 'turrialba'] },
@@ -1446,14 +1458,10 @@ const GUIDE = [
     say: 'The Build tab is open now: coins go on your farm, buildings and staff there. A bigger store holds more cherries, so your pickers keep working longer, even while you\'re away.' },
   { ch: 'Grow', text: 'Train your pickers in the Build tab', ev: 'up:pickers', target: '[data-act="up:pickers"], [data-act="uptab:farm"], .tab[data-tab="upgrades"]', reward: { points: 100 }, done: () => S.lv.pickers > 1,
     say: 'Training makes every picker walk and pick faster. At levels 4 and 8 they get bigger baskets too.' },
-  { ch: 'Coffees', text: 'Unlock Catimor in the Unlock tab', ev: 'var', target: '[data-act="var:catimor"], [data-act="untab:coffees"], .tab[data-tab="unlock"]', reward: { coins: 200 }, done: () => S.vars.catimor,
-    say: 'New coffees grow faster, carry more or sell for more. Know-how pays for them in the new Unlock tab, along with processes, farms and research.' },
-  { ch: 'Coffees', text: 'Replant a field with Catimor', ev: 'plant', target: '[data-act^="bed:"], .tab[data-tab="farm"]', reward: { points: 100 },
-    say: 'On the Farm tab, tap Replant on a field and choose the new coffee. The field starts again from sprouts, so replant when it suits you.' },
-  { ch: 'Native', text: 'Unlock ' + ART.varieties.catuai + ' in the Unlock tab', ev: 'var', target: '[data-act="var:catuai"], [data-act="untab:coffees"], .tab[data-tab="unlock"]', reward: { coins: 200 }, done: () => S.vars.catuai,
-    say: 'Every farm has native coffees that grow best in its own soil. Mogiana\'s natives are ' + ['catuai', 'mundonovo', 'yellowbourbon'].map((v) => ART.varieties[v]).join(', ') + ', and ' + ART.varieties.catuai + ' is next in the Unlock tab.' },
-  { ch: 'Native', text: 'Plant ' + ART.varieties.catuai + ' in a field at Mogiana', ev: 'plant', target: '[data-act^="bed:"], .tab[data-tab="farm"]', reward: { points: 150 }, done: () => terroir(S.farms.mogiana) > 1,
-    say: 'A native field grows 20% faster. Better still, while a farm has at least one native field, every pick there brings in 15% more cherries. That\'s terroir. Keep one native patch on every farm, even when fancier coffees come along.' },
+  { ch: 'Coffees', text: 'Unlock ' + ART.varieties.catuai + ' in the Unlock tab', ev: 'var', target: '[data-act="var:catuai"], [data-act="untab:coffees"], .tab[data-tab="unlock"]', reward: { coins: 200 }, done: () => S.vars.catuai,
+    say: 'New coffees grow faster, carry more or sell for more. Each one comes from a farm where it\'s native: Mogiana\'s are ' + ['catuai', 'mundonovo', 'yellowbourbon'].map((v) => ART.varieties[v]).join(', ') + '. Know-how pays for them in the Unlock tab.' },
+  { ch: 'Coffees', text: 'Plant ' + ART.varieties.catuai + ' in a field at Mogiana', ev: 'plant', target: '[data-act^="bed:"], .tab[data-tab="farm"]', reward: { points: 150 }, done: () => terroir(S.farms.mogiana) > 1,
+    say: 'On the Farm tab, tap Replant on a field and choose it. A native field grows 20% faster, and while a farm has one, every pick there brings in 15% more cherries. That\'s terroir. Keep one native patch on every farm.' },
   { ch: 'Buyers', text: 'Keep selling until you reach level 3', ev: 'level', target: '.tab[data-tab="mill"]', reward: {}, done: () => level() >= 3,
     say: 'Every level brings a reward. At level 3, buyers start posting contracts in the Mill. Keep processing and selling lots to get there.' },
   { ch: 'Buyers', text: 'Deliver a lot to a buyer contract in the Mill', ev: 'deliver', target: '[data-act^="deliver:"], .tab[data-tab="mill"]', reward: { coins: 300 }, done: () => (S.stats.contracts || 0) > 0,
@@ -2234,8 +2242,8 @@ function checkTabs() {
 const numify = (html) => ('>' + html + '<').replace(/>([^<]+)</g, (m, t) => '>' + t.split(/(&#?\w+;)/).map((p) => (p[0] === '&' ? p : p.replace(/\d[\d,.:]*\d|\d/g, '<span class="n">$&</span>'))).join('') + '<').slice(1, -1);
 function setHTML(el, html) { if (el.__html === html) return false; el.__html = html; el.innerHTML = numify(html); return true; }   /* rebuilding unchanged buttons swallows taps */
 function unlockReady() {   /* is there an unlock the player can afford right now? */
-  const nv = VAR_ORDER.find((v) => !S.vars[v]), nf = LOCS.find((l) => canOpen(l));
-  return S.tabs.unlock && ((nv && nv !== 'geisha' && gateOK('var:' + nv) && S.points >= VAR[nv].cost) || Object.keys(METHODS).some((k) => !S.methods[k] && METHODS[k].cost && gateOK('method:' + k) && S.points >= METHODS[k].cost) || (nf && S.points >= FARM_COST[nf]) || (!S.farms.osaka.unlocked && S.cranes >= OSAKA_CRANES));
+  const nf = LOCS.find((l) => canOpen(l));
+  return S.tabs.unlock && (VAR_ORDER.some((v) => !S.vars[v] && gateOK('var:' + v) && S.points >= VAR[v].cost) || Object.keys(METHODS).some((k) => !S.methods[k] && METHODS[k].cost && gateOK('method:' + k) && S.points >= METHODS[k].cost) || (nf && S.points >= FARM_COST[nf]) || (!S.farms.osaka.unlocked && S.cranes >= OSAKA_CRANES));
 }
 function renderTabs() {
   const dot = { ranks: S.tabs.ranks && Array.from({ length: tierAt(S.season.stars) }, (_, i) => i + 1).some((n) => !S.season.claimed[n]), unlock: unlockReady(), farm: !!golden && tab !== 'farm', orders: S.tasks.some((t) => t.have >= t.goal && !t.done) || (S.weekly.team + S.weekly.mine >= S.weekly.target && !S.weekly.claimed), mill: S.lots.some((l) => l.left <= 0) };
@@ -2406,26 +2414,26 @@ function renderPanel() {
     if (!S.staff.foreman) h += '<p class="note">Hire the mill foreman before the contracts agent.</p>';
     }
   } else if (tab === 'unlock') {
-    const nt = ['coffees', 'processes', 'farms', 'research'].includes(S.unTab) ? S.unTab : 'coffees', nextVar = VAR_ORDER.find((v) => !S.vars[v]), nextFarm = LOCS.find((l) => canOpen(l));
-    const ready = { coffees: !!nextVar && nextVar !== 'geisha' && gateOK('var:' + nextVar) && S.points >= VAR[nextVar].cost, processes: Object.keys(METHODS).some((k) => !S.methods[k] && METHODS[k].cost && gateOK('method:' + k) && S.points >= METHODS[k].cost), farms: (!!nextFarm && S.points >= FARM_COST[nextFarm]) || (!S.farms.osaka.unlocked && S.cranes >= OSAKA_CRANES), research: S.points >= researchCost() };
+    const nt = ['coffees', 'processes', 'farms', 'research'].includes(S.unTab) ? S.unTab : 'coffees', nextFarm = LOCS.find((l) => canOpen(l));
+    const ready = { coffees: VAR_ORDER.some((v) => !S.vars[v] && gateOK('var:' + v) && S.points >= VAR[v].cost), processes: Object.keys(METHODS).some((k) => !S.methods[k] && METHODS[k].cost && gateOK('method:' + k) && S.points >= METHODS[k].cost), farms: (!!nextFarm && S.points >= FARM_COST[nextFarm]) || (!S.farms.osaka.unlocked && S.cranes >= OSAKA_CRANES), research: S.points >= researchCost() };
     h += '<h2>Unlocks</h2><p class="note">' + icon('i_points') + ' ' + fmt(S.points) + ' know-how to spend. Know-how resets when you prestige, so spend it here first.</p>';
     h += '<div class="seg subtabs">' + [['coffees', 'Coffees'], ['processes', 'Process'], ['farms', 'Farms'], ['research', 'Research']].map(([k, tl]) => '<button type="button" data-act="untab:' + k + '" aria-pressed="' + (nt === k) + '">' + tl + (ready[k] ? ' <i class="dot" aria-label="something to unlock"></i>' : '') + '</button>').join('') + '</div>';
     if (nt === 'coffees') {
-    h += '<p class="note">Unlock coffees in order, then replant any field from the Farm tab. Native varieties grow 20% faster at home, and one native field gives that farm +15% cherries from every pick (terroir), so older coffees stay useful.</p>' + VAR_ORDER.map((v) => {
-      const have = S.vars[v], isNext = v === nextVar, vr = VAR[v];
-      return row(img('bush_' + v + (have || isNext ? '_ripe' : '_sprout'), 34), ART.varieties[v] + ' · ' + vr.kg + ' kg · ×' + vr.value, vr.perk + (!have && GATE['var:' + v] && !gateOK('var:' + v) ? ' ' + gateNote('var:' + v) + ', then ' + fmt(vr.cost) + ' know-how.' : ''), have ? btn('Owned', '', 'noop', false, 'blue') : isNext && !gateOK('var:' + v) ? btn('Locked', 'Prestige ' + GATE['var:' + v], 'noop', false) : isNext ? btn('Unlock', fmt(vr.cost) + ' know-how', 'var:' + v, S.points >= vr.cost, 'green') : btn('Locked', fmt(vr.cost) + ' know-how', 'noop', false));
+    h += '<p class="note">Each coffee comes from a farm where it\'s native, so opening a farm brings new coffees. Replant any field from the Farm tab. Natives grow 20% faster at home, and one native field gives that farm +15% cherries from every pick (terroir).</p>' + VAR_ORDER.map((v) => {
+      const have = S.vars[v], vr = VAR[v], rq = unlockReq('var:' + v);
+      return row(img('bush_' + v + (have || rq.ok ? '_ripe' : '_sprout'), 34), ART.varieties[v] + ' · ' + vr.kg + ' kg · ×' + vr.value, vr.perk + (!have && !rq.ok ? ' ' + rq.why + ', then ' + fmt(vr.cost) + ' know-how.' : ''), have ? btn('Owned', '', 'noop', false, 'blue') : !rq.ok ? btn('Locked', rq.short, 'noop', false) : btn('Unlock', fmt(vr.cost) + ' know-how', 'var:' + v, S.points >= vr.cost, 'green'));
     }).join('');
     } else if (nt === 'processes') {
-    h += '<p class="note">A process sets how long a lot dries, what it pays and its cup score. Unlock once and use it on every farm. The barrel and infused processes open one per prestige, or straight away when you order that coffee on bejucoffee.com.</p>' + Object.keys(METHODS).map((k) => {
+    h += '<p class="note">A process sets how long a lot dries, what it pays and its cup score. Unlock once and use it on every farm. The barrel processes come from Huila and strawberry infused from Lake Toba once those farms are built up, or straight away when you order that coffee on bejucoffee.com.</p>' + Object.keys(METHODS).map((k) => {
       const m = METHODS[k], ok = S.methods[k];
-      return row(img(m.art, 34), m.name + ' · ×' + m.mult + ' pay', 'Cup score ' + m.cup + ' · dries in ' + Math.round(m.time / 2.5) + ' min' + (ok || !m.cost || gateOK('method:' + k) ? '' : '. ' + gateNote('method:' + k) + ', then ' + fmt(m.cost) + ' know-how') + (ok || !m.coffee ? '' : '. Or order ' + COFFEES[m.coffee].name + ' on bejucoffee.com to unlock it now'), ok ? btn('Owned', '', 'noop', false, 'blue') : m.cost && !gateOK('method:' + k) ? btn('Locked', 'Prestige ' + GATE['method:' + k], 'noop', false) : m.cost ? btn('Unlock', fmt(m.cost) + ' know-how', 'method:' + k, S.points >= m.cost, 'green') : btn('Locked', '', 'noop', false));
+      return row(img(m.art, 34), m.name + ' · ×' + m.mult + ' pay', 'Cup score ' + m.cup + ' · dries in ' + Math.round(m.time / 2.5) + ' min' + (ok || !m.cost || gateOK('method:' + k) ? '' : '. ' + gateNote('method:' + k) + ', then ' + fmt(m.cost) + ' know-how') + (ok || !m.coffee ? '' : '. Or order ' + COFFEES[m.coffee].name + ' on bejucoffee.com to unlock it now'), ok ? btn('Owned', '', 'noop', false, 'blue') : m.cost && !gateOK('method:' + k) ? btn('Locked', unlockReq('method:' + k).short, 'noop', false) : m.cost ? btn('Unlock', fmt(m.cost) + ' know-how', 'method:' + k, S.points >= m.cost, 'green') : btn('Locked', '', 'noop', false));
     }).join('');
     } else if (nt === 'farms') {
-    h += '<p class="note">Farms open in order with know-how. The Osaka garden is cranes only.</p>' + LOCS.map((l) => {
+    h += '<p class="note">Farms open in order: each needs the farm before it built up to a farm level, then know-how. The Osaka garden is cranes only.</p>' + LOCS.map((l) => {
       const f2 = S.farms[l], nm = ART.locations[l].name;
       if (f2.unlocked) return row(img('stamp_' + l, 36), nm, S.dormant[l] ? 'Dormant until level ' + S.dormant[l] : l === START ? 'Your first farm' : 'Open', btn('Visit', '', 'go:' + l, true, 'blue'));
       if (l === 'osaka') return row(img('stamp_' + l, 36), nm, 'Cranes only: earned from real coffee orders', btn('Open', OSAKA_CRANES + ' cranes', 'farm:osaka', S.cranes >= OSAKA_CRANES));
-      if (!canOpen(l)) return row(img('stamp_' + l, 36), nm, S.farms[prevFarm(l)].unlocked ? gateNote('farm:' + l) + ', then ' + fmt(FARM_COST[l]) + ' know-how. Each prestige opens more of the world.' : 'Open ' + ART.locations[prevFarm(l)].name.split(',')[0] + ' first', btn('Locked', S.farms[prevFarm(l)].unlocked && GATE['farm:' + l] ? 'Prestige ' + GATE['farm:' + l] : fmt(FARM_COST[l]) + ' know-how', 'noop', false));
+      if (!canOpen(l)) return row(img('stamp_' + l, 36), nm, S.farms[prevFarm(l)].unlocked ? gateNote('farm:' + l) + ', then ' + fmt(FARM_COST[l]) + ' know-how. Building up each farm opens the next.' : 'Open ' + ART.locations[prevFarm(l)].name.split(',')[0] + ' first', btn('Locked', S.farms[prevFarm(l)].unlocked ? unlockReq('farm:' + l).short : fmt(FARM_COST[l]) + ' know-how', 'noop', false));
       return row(img('stamp_' + l, 36), nm, 'Next farm: open with know-how', btn('Open', fmt(FARM_COST[l]) + ' know-how', 'farm:' + l, S.points >= FARM_COST[l]));
     }).join('');
     } else {
@@ -2653,7 +2661,7 @@ document.addEventListener('click', (e) => {
     return;
   }
   else if (a === 'plant') { const [b, x] = v.split('.'); if (S.vars[x] || (eventDrop() && eventDrop().variety === x)) { replantBed(f, +b, x); closeModal(); guideStep('plant'); toast('Field ' + (+b + 1) + ' planted with ' + ART.varieties[x]); } }
-  else if (a === 'var') { const nx = VAR_ORDER.find((x) => !S.vars[x]); if (v === nx && gateOK('var:' + v) && spend('points', VAR[v].cost)) { S.vars[v] = true; guideStep('var'); showModal('<h2>' + ART.varieties[v] + ' unlocked</h2>' + img('bush_' + v + '_ripe', 54) + '<p class="note">' + VAR[v].perk + ' Replant a field in the Farm tab to start growing it.</p><button class="btn green" data-act="close">Plant it</button>'); } }
+  else if (a === 'var') { if (VAR[v] && !S.vars[v] && gateOK('var:' + v) && spend('points', VAR[v].cost)) { S.vars[v] = true; guideStep('var'); showModal('<h2>' + ART.varieties[v] + ' unlocked</h2>' + img('bush_' + v + '_ripe', 54) + '<p class="note">' + VAR[v].perk + ' Replant a field in the Farm tab to start growing it.</p><button class="btn green" data-act="close">Plant it</button>'); } }
   else if (a === 'task') { const tk = S.tasks[+v]; if (tk.have >= tk.goal && !tk.done) { tk.done = true; earn(rule('shogatsu') && tk.reward.coins ? { coins: tk.reward.coins * 2 } : tk.reward); star('task'); guideStep('task'); toast('Task complete!'); } }
   else if (a === 'weekly') { S.weekly.claimed = true; S.cranes += WEEKLY_CRANES; star('weekly'); showModal('<h2>Order delivered!</h2><p class="note">The team delivered ' + fmt(S.weekly.target) + ' kg of washed coffee to the roastery. +' + WEEKLY_CRANES + ' cranes and the Co-op Roaster badge.</p><button class="btn green" data-act="close">Hooray</button>'); }
   else if (a === 'prestigeAsk') {
