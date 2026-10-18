@@ -1,0 +1,155 @@
+<title>Beju Farm Rewards Review</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column, tables in their own scroll boxes, findings as numbered cards */
+:root {
+  --bg: #F5F3EE; --panel: #FFFFFF; --fg: #23201B; --muted: #6A6358; --line: #DED8CC;
+  --bean: #6B3F22; --leaf: #2F6B4F; --cherry: #B8323A; --gold: #A8791A; --soft: #EFE9DD;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #171512; --panel: #201D19; --fg: #EDE7DC; --muted: #A79F92; --line: #383229;
+  --bean: #D9A47A; --leaf: #6CC59A; --cherry: #F07880; --gold: #E2B64A; --soft: #2A2620; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #171512; --panel: #201D19; --fg: #EDE7DC; --muted: #A79F92; --line: #383229;
+  --bean: #D9A47A; --leaf: #6CC59A; --cherry: #F07880; --gold: #E2B64A; --soft: #2A2620; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font: 16px/1.6 var(--body); }
+.wrap { max-width: 780px; margin: 0 auto; padding-block: 40px 72px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 36px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(30px, 6vw, 42px); font-weight: 800; }
+h2 { font-size: 24px; font-weight: 800; }
+h3 { font-size: 17px; font-weight: 600; }
+p { margin: 0; max-width: 66ch; }
+section { display: flex; flex-direction: column; gap: 14px; }
+.eyebrow { font: 600 12px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--bean); }
+.lede { font-size: 18px; color: var(--muted); }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; }
+.kpi b { font: 800 26px/1.1 var(--display); font-variant-numeric: tabular-nums; color: var(--cherry); }
+.kpi span { font-size: 13px; color: var(--muted); }
+.tw { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 12px/1.3 var(--mono); letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+tr.us td { background: var(--soft); font-weight: 600; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; }
+.card .tag { font: 600 12px var(--mono); color: var(--muted); }
+.card.bad { border-left: 4px solid var(--cherry); }
+.card.good { border-left: 4px solid var(--leaf); }
+ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 68ch; }
+.note { font-size: 14px; color: var(--muted); }
+a { color: var(--leaf); }
+code { font: 13px var(--mono); background: var(--soft); padding: 1px 5px; border-radius: 4px; }
+</style>
+
+<div class="wrap">
+<header style="display:flex;flex-direction:column;gap:12px">
+  <span class="eyebrow">Game review · 18 October 2026 · measured with the playtest bot</span>
+  <h1>Free coffee comes too easily, and cranes don't need orders</h1>
+  <p class="lede">Beju Farm's loop works: a game people return to, real orders that feed it, and real coffee as the prize. The two links to real money are out of balance, though. Free samples come in under an hour and can't be redeemed yet. Cranes from play outpace cranes from orders about ten to one.</p>
+</header>
+
+<section>
+  <div class="kpis">
+    <div class="kpi"><b>50 min</b><span>of play to earn all 5 free 100 g samples</span></div>
+    <div class="kpi"><b>¥7,000–11,250</b><span>retail value of those samples, with no purchase needed</span></div>
+    <div class="kpi"><b>~60 / week</b><span>cranes from play alone after week one (100 in week one)</span></div>
+    <div class="kpi"><b>30</b><span>cranes from a ¥3,000 order (50 with a first-time stamp)</span></div>
+  </div>
+  <p class="note">The bot played the current build as an active player and as a casual one (three 10-minute sessions a day). It plays faster than people do, so read times as lower bounds. Sample values use Beju's 200 g prices of ¥2,800–4,500.</p>
+</section>
+
+<section>
+  <span class="eyebrow">How the systems connect today</span>
+  <h2>The loop between the shop and the farm</h2>
+  <div class="tw"><table>
+    <thead><tr><th>Link</th><th>What happens now</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>Order → cranes</td><td>1 crane per ¥100 plus 20 per new passport stamp, claimed on the server against the paid Stripe session, once per order.</td><td>Works</td></tr>
+      <tr><td>Order → gameplay</td><td>Pink Whiskey, Rum Barrel and Strawberry orders unlock their processes; each origin gives a stamp and a character background.</td><td>Works, a strong idea</td></tr>
+      <tr><td>Cranes → spending</td><td>Osaka garden, boosts, characters, building styles and hats. All cosmetic or in-game, so there's no real-world cost.</td><td>Works</td></tr>
+      <tr><td>Play → free coffee</td><td>Each origin farm's first 1,000 kg adds a free 100 g bag "to your next order".</td><td>Too fast, and there's no way to redeem</td></tr>
+      <tr><td>Thank-you page → game</td><td>The claim link works (<code>/farm/?claim=…</code>) but nothing on the site offers it.</td><td>Missing</td></tr>
+      <tr><td>Subscriptions → cranes</td><td>Only the first checkout can be claimed; renewals add nothing.</td><td>Missing</td></tr>
+      <tr><td>Site → game</td><td>/farm/ is unlisted and not linked anywhere yet.</td><td>Deliberate for now</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <span class="eyebrow">Findings</span>
+  <h2>What the playtest showed</h2>
+  <div class="card bad"><span class="tag">1 · Samples</span><h3>All five free bags in under an hour</h3><p>Active play earned the Mogiana, Huila, Gedeo, Lake Toba and Turrialba samples at 12, 18, 30, 30 and 48 minutes. A casual player had all five within 1.7 days. Farms open quickly and 1,000 kg is a small harvest once pickers are hired, so the goal never slows down.</p></div>
+  <div class="card bad"><span class="tag">2 · Redemption</span><h3>Samples live only on the device</h3><p>An earned sample is a line saved in the browser. Nothing on the server records it, and nothing at checkout adds it to an order. Clearing the browser earns all five again. Before samples are promised to customers, they need a server record and a clear way to redeem them.</p></div>
+  <div class="card bad"><span class="tag">3 · Cranes</span><h3>Play gives about ten times what orders give</h3><p>Daily tasks (3 a day), the weekly order (30), check-ins and level milestones added up to 100 cranes in week one and about 60 a week after. That equals ¥6,000–10,000 of orders every week. A customer buying one ¥3,000 bag a month gets 30. The "cranes only" Osaka garden opens within a week without any order, so ordering coffee barely changes the game.</p></div>
+  <div class="card good"><span class="tag">4 · What works</span><h3>Real coffees that change the game</h3><p>Orders that unlock processes, stamps that unlock backgrounds, and cranes that only buy cosmetics are the right shape. They give orders real meaning in the game without costing Beju anything per crane. Server-side claims stop the same order being claimed twice.</p></div>
+</section>
+
+<section>
+  <span class="eyebrow">Market leaders</span>
+  <h2>How play-for-real-rewards programmes pace it</h2>
+  <div class="tw"><table>
+    <thead><tr><th>Programme</th><th>Real reward</th><th>What it takes</th><th>Lesson</th></tr></thead>
+    <tbody>
+      <tr><td>Pinduoduo Duo Duo Orchard</td><td>A box of real fruit</td><td>Grow a virtual tree with daily watering and tasks; reported at over a million kg of fruit sent a day.</td><td>Sustained daily play earns the prize; tasks and purchases speed it up.</td></tr>
+      <tr><td>Alipay Ant Forest</td><td>A real tree planted</td><td>About a month of everyday green actions for one tree, by one long-time user's account; energy disappears if not collected within 72 hours.</td><td>Weeks, not minutes, plus expiring energy that pulls people back.</td></tr>
+      <tr><td>Shopee Farm / Tanam</td><td>Vouchers and coins</td><td>Water a crop several times a day until it ripens; seeds refresh twice daily; friends speed it up.</td><td>Rewards tied to coming back, and to spending in the store.</td></tr>
+      <tr><td>Starbucks Rewards Japan</td><td>Free drink or beans up to ¥700</td><td>About 1 star per ¥54 and 150 stars, so roughly ¥8,100 of spend: about 8–9% back.</td><td>The currency for real goods is earned by buying.</td></tr>
+      <tr class="us"><td>Beju Farm today</td><td>Five 100 g bags</td><td>About 50 minutes of play, no purchase.</td><td>Faster and more generous than any of them.</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">Figures come from press coverage, community accounts and help pages, not audited data. The common pattern: a quick first reward to hook people, then real rewards that take weeks of returning or come with a purchase.</p>
+</section>
+
+<section>
+  <span class="eyebrow">Recommendations</span>
+  <h2>A reward ladder people earn and redeem with orders</h2>
+  <div class="card"><span class="tag">A · Sample ladder</span><h3>One welcome bag, then one bag per prestige milestone</h3>
+    <ul>
+      <li><b>Welcome sample:</b> Mogiana's first 1,000 kg, as now (about 12 minutes). It's the hook, and it comes with the first order.</li>
+      <li><b>Origin samples:</b> Huila at prestige 2, Gedeo at prestige 3, Lake Toba at prestige 4, Turrialba at prestige 5. For the casual bot that's about day 1, 3, 7 and 14. For people it's likely 2–3 times longer, so roughly a month for all five.</li>
+      <li><b>Monthly sample, after the ladder:</b> check in on 20 days of a month to earn one sample for that month. It rewards loyalty like a streak, and the cost is capped at one bag per customer per month.</li>
+    </ul>
+    <p class="note">Prestige is already tuned, checked by the server and paced by the level curve, so samples inherit that pacing instead of needing their own balance.</p></div>
+  <div class="card"><span class="tag">B · Redemption</span><h3>Redeem with an order, checked on the server</h3>
+    <ul>
+      <li>One sample per order of ¥3,000 or more, chosen at checkout or added automatically.</li>
+      <li>The server checks the player's recorded prestige or check-ins before allowing it, so editing the save does nothing.</li>
+      <li>An earned sample lasts 60 days, giving a gentle reason to order and a cap on outstanding promises.</li>
+    </ul>
+    <p class="note">With every sample attached to a ¥3,000+ order, the cost works like a 10–15% loyalty reward on those orders at retail value, and less at cost price. Starbucks Japan gives back about 8–9%.</p></div>
+  <div class="card"><span class="tag">C · Cranes</span><h3>Make orders the main source of cranes</h3>
+    <ul>
+      <li>Daily "sell 2 lots" task: 3 cranes down to 1. Weekly team order: 30 down to 10. Check-in streak cranes: 2 and 5 down to 1 and 3.</li>
+      <li>That brings play to roughly 15–20 cranes a week, so a ¥3,000 bag (30, or 50 with a new stamp) equals about two weeks of play.</li>
+      <li>Osaka then takes about a month of play, or one order and a week. Real orders become the fast lane, as intended.</li>
+    </ul></div>
+  <div class="card"><span class="tag">D · Website</span><h3>Close the gaps between the shop and the game</h3>
+    <ul>
+      <li>Thank-you page: an "Add this order to Beju Farm" button linking to <code>/farm/?claim=</code> with the session ID.</li>
+      <li>Checkout: a "Free 100 g from your farm" option when a sample is waiting.</li>
+      <li>Subscriptions: award cranes on each paid renewal through the Stripe webhook.</li>
+      <li>When you're ready to launch, link the farm from the footer and the thank-you page, and say on product pages what each coffee unlocks.</li>
+    </ul></div>
+</section>
+
+<section>
+  <span class="eyebrow">Sources</span>
+  <ul class="note">
+    <li><a href="https://ccx.smu.edu.sg/sites/cmp.smu.edu.sg/files/ami/8_AMI14_PinDuoDuo.pdf" target="_blank" rel="noopener">SMU case study: Pinduoduo and Duo Duo Orchard</a></li>
+    <li><a href="https://www.globenewswire.com/de/news-release/2021/02/26/2183134/0/en/pinduoduo-recognized-for-work-on-alleviating-poverty-in-china.html" target="_blank" rel="noopener">GlobeNewswire: Pinduoduo, free fruit volumes (2021)</a></li>
+    <li><a href="https://www.eco-business.com/news/do-mobile-payment-games-spur-green-living/" target="_blank" rel="noopener">Eco-Business: Ant Forest and green living</a></li>
+    <li><a href="https://dialogue.earth/en/forests/11672-can-mobile-payment-apps-spur-green-living/" target="_blank" rel="noopener">Dialogue Earth: can mobile payment apps spur green living</a></li>
+    <li><a href="https://shopee.ph/blog/shopee-game-tips/amp/" target="_blank" rel="noopener">Shopee Philippines: game tips (Shopee Farm)</a></li>
+    <li><a href="https://shopee.com.my/blog/prizes-to-win-on-shopee/" target="_blank" rel="noopener">Shopee Malaysia: prizes to win on Shopee</a></li>
+    <li><a href="https://soranews24.com/2024/06/09/starbucks-japan-has-a-miniature-collection-but-youll-need-patience-to-get-it/amp/" target="_blank" rel="noopener">SoraNews24: Starbucks Japan stars per yen (2024)</a></li>
+    <li><a href="https://news.mynavi.jp/article/20230126-2573533/" target="_blank" rel="noopener">Mynavi: Starbucks Rewards Japan renewal tiers (2023)</a></li>
+  </ul>
+</section>
+</div>
