@@ -13,6 +13,9 @@ t = open(os.path.join(HERE, "template.html")).read()
 sfx = open(os.path.join(ROOT, "audio", "sfx.js")).read()
 music = open(os.path.join(ROOT, "audio", "music.js")).read()
 cozy = open(os.path.join(ROOT, "audio", "cozy.js")).read()
+if "--launch" in sys.argv:   # the public game: no Test tab cheats
+    assert "const TEST_TOOLS = true;" in t
+    t = t.replace("const TEST_TOOLS = true;", "const TEST_TOOLS = false;")
 t = t.replace("__SFX__", sfx).replace("__MUSIC__", music).replace("__COZY__", cozy).replace("__ART__", json.dumps(art, separators=(",", ":"))).replace("__BGS__", json.dumps(bgs, separators=(",", ":")))
 if "--site" in sys.argv:   # a full page for bejucoffee.com/farm/, kept out of search results
     title = t[:t.index("</title>") + 8] if t.startswith("<title>") else ""

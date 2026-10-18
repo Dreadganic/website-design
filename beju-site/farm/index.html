@@ -1889,7 +1889,8 @@ function away(hours) {
 
 /* ---------- interface ---------- */
 let tab = 'farm', toastT = 0;
-const TABS = [['farm', 'Farm', 'i_worker'], ['mill', 'Mill', 'green_sack'], ['upgrades', 'Build', 'storage_4'], ['unlock', 'Unlock', 'i_points'], ['orders', 'Daily', 'i_cherry'], ['ranks', 'Ranks', 'i_trophy'], ['shop', 'Shop', 'i_crane'], ['test', 'Test', 'i_box']];
+const TEST_TOOLS = true;   /* build.py --launch turns this off: the Test tab becomes Settings and the cheats stop working */
+const TABS = [['farm', 'Farm', 'i_worker'], ['mill', 'Mill', 'green_sack'], ['upgrades', 'Build', 'storage_4'], ['unlock', 'Unlock', 'i_points'], ['orders', 'Daily', 'i_cherry'], ['ranks', 'Ranks', 'i_trophy'], ['shop', 'Shop', 'i_crane'], TEST_TOOLS ? ['test', 'Test', 'i_box'] : ['test', 'Settings', 'i_box']];
 function setTab(t) { if (t !== tab) SFX.play('click'); if (S.newTab === t) S.newTab = null; guideStep('tab:' + t); tab = t; renderTabs(); renderPanel(); }
 
 /* free 100 g coffee samples: a welcome bag at Mogiana's first 1,000 kg, one per origin at prestige 2-5, and one a month for
@@ -2236,11 +2237,16 @@ function renderPanel() {
     });
   } else if (tab === 'shop') {
     h += shopTabs();
-    h += '<h2>Boosts</h2><p class="note">' + icon('i_crane') + ' ' + S.cranes + ' cranes. Earn 1 crane per ¥100 spent on bejucoffee.com and 20 for each new passport stamp (try it in the Test tab).</p>' + (S.farms.osaka.unlocked ? '' : row(img('stamp_osaka', 30), 'Osaka roastery garden', 'Rare varieties all year, four seasons. Cranes only.', btn('Open', OSAKA_CRANES + ' cranes', 'farm:osaka', S.cranes >= OSAKA_CRANES)));
+    h += '<h2>Boosts</h2><p class="note">' + icon('i_crane') + ' ' + S.cranes + ' cranes. Earn 1 crane per ¥100 spent on bejucoffee.com and 20 for each new passport stamp' + (TEST_TOOLS ? ' (try it in the Test tab)' : '') + '.</p>' + (S.farms.osaka.unlocked ? '' : row(img('stamp_osaka', 30), 'Osaka roastery garden', 'Rare varieties all year, four seasons. Cranes only.', btn('Open', OSAKA_CRANES + ' cranes', 'farm:osaka', S.cranes >= OSAKA_CRANES)));
     [['grow', 'Growth ×2 for 30 min', 'Every farm grows twice as fast', 5, 'sparkle'], ['pick', 'Pickers ×2 for 30 min', 'Every picker works twice as fast', 5, 'worker_side_1'], ['hearts', 'Refill hearts', 'Back to full stamina', 2, 'i_heart'], ['points', '+500 know-how', 'For varieties, farms and processes', 10, 'i_points'], ['dry', 'Instant drying', 'Every lot on the racks finishes now', 6, 'proc_natural']].forEach(([k, t, sub, c, a]) => {
       const active = (k === 'grow' || k === 'pick') && S.boosts[k] > S.minutesTotal;
       h += row(img(a, 30), t, active ? 'Active: ' + Math.ceil((S.boosts[k] - S.minutesTotal) / REAL_MIN) + ' min left' : sub, btn('Use', c + ' cranes', 'boost:' + k, S.cranes >= c));
     });
+  } else if (!TEST_TOOLS) {
+    h += '<h2>Settings</h2>';
+    h += '<h3>Music volume</h3><div class="seg">' + [['0.25', 'Quiet'], ['0.45', 'Normal'], ['0.7', 'Loud']].map(([v, tl]) => '<button type="button" data-act="mvol:' + v + '" aria-pressed="' + (String(S.musicVol) === v) + '">' + tl + '</button>').join('') + '</div><p class="note">Sound effects and music switch on and off with the buttons on the farm.</p>';
+    h += '<h3>Your farm online</h3><p class="note">' + (NET.status === 'online' ? 'Saved online, so you can carry on from another device. Player ' + NET.acct.player + '.' : 'Offline: progress saves in this browser.') + '</p>';
+    h += '<h3>Start again</h3><div class="seg"><button type="button" data-act="reset">Reset the game</button></div><p class="note">Clears this farm from this browser. Free samples you have earned stay with your online account.</p>';
   } else {
     h += '<h2>Test tools</h2><p class="note">For playtesting: everything here stands in for something that will come from real orders or real time.</p>';
     h += '<h3>Simulate a bejucoffee.com order</h3><div class="seg">' + Object.keys(COFFEES).map((k) => '<button type="button" data-act="order:' + k + '">' + COFFEES[k].name + '</button>').join('') + '</div>';
@@ -2264,6 +2270,7 @@ document.addEventListener('click', (e) => {
   const f = S.farms[S.loc];
   if (a === 'close') { SFX.play('close'); closeModal(); return; }
   if (a === 'pcer') { SFX.play('page'); $('pcer').hidden = true; return; }
+  if (!TEST_TOOLS && ['add', 'order', 'away', 'day', 'speed', 'season'].includes(a)) return;   /* no cheats in the public game */
   const wallet = S.coins + S.points + S.cranes, decorOwned = S.decor[v] !== undefined;
   setTimeout(() => {   /* sound for the action, once its effect is known */
     const spent = S.coins + S.points + S.cranes < wallet;
