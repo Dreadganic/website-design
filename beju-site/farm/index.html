@@ -1113,7 +1113,9 @@ const withHere = (k, n) => sumBuild(k) - ((S.farms[S.loc].build || {})[k] || 0) 
 /* managers */
 const MANAGER_COST = (loc) => Math.round(4000 * farmMult(loc) / 10) * 10;
 const FOREMAN_COST = 6000, AGENT_COST = 15000;
-/* upgrades that never run out: farm mastery (coins, +10% picking on that farm each level) and cupping research (know-how, +0.3 cup score on every lot) */
+/* upgrades that never run out, kept small so they only pay once everything else is bought: farm mastery (coins, +1% picking on that farm each level) and cupping research (know-how, +1% know-how from every sale each level) */
+const masteryMult = (f) => 1 + 0.01 * (f.mastery || 0);
+const researchMult = () => 1 + 0.01 * (S.research || 0);
 const masterCost = (loc) => Math.round(20000 * farmMult(loc) * Math.pow(1.45, S.farms[loc].mastery || 0) / 10) * 10;
 const researchCost = () => Math.round(3000 * Math.pow(1.4, S.research || 0) / 10) * 10;
 const MGR_LOOK = { shirt: ['#F4F0E4', '#D8D0BC', '#A89C84'], hat: ['#3E5A48', '#2D4A3A', '#1E3428'] };
@@ -1606,7 +1608,7 @@ function store(f, v, kg) {
 function tickFarm(f, d, visible) {
   const g = d * (S.boosts.grow > S.minutesTotal ? 2 : 1);
   f.shrubs.forEach((s) => { if (s.p < 1) s.p = Math.min(1, s.p + g * varGrowth(f, s.v) / s.g); });
-  const full = stored() >= cap(), pm = pickerMult() * (f.manager ? 1.25 : 1) * (1 + 0.1 * (f.mastery || 0)), carry = carryKg();
+  const full = stored() >= cap(), pm = pickerMult() * (f.manager ? 1.25 : 1) * masteryMult(f), carry = carryKg();
   f.workers.forEach((w) => {
     if (w.state === 'seek') {
       let best = null, bd = 1e9;
@@ -1927,14 +1929,14 @@ function startLot(v, method, quiet) {
 const marketPick = () => { const ms = Object.keys(METHODS).filter((k) => S.methods[k]); return ms[(S.day * 7 + 3) % ms.length]; };
 const MARKET = 1.4;
 const REAL_MIN = 150;   /* S.minutesTotal moves 2.5 game minutes a second, so 150 per real minute */
-const cupFor = (v, method) => { const vr = VAR[v]; return Math.min(95, METHODS[method].cup + (vr.value - 1) * 2 + ((vr.cup || {})[method] || 0) + S.bonus * 10 + shadeCup()) + 0.3 * (S.research || 0); };
+const cupFor = (v, method) => { const vr = VAR[v]; return Math.min(95, METHODS[method].cup + (vr.value - 1) * 2 + ((vr.cup || {})[method] || 0) + S.bonus * 10 + shadeCup()); };
 /* active play beats the staff: a lot you cup by hand scores +1.5 and pays 20% more, and golden bushes pay a burst of income to whoever taps them */
 const CUP_BONUS = 1.5, CUP_PAY = 1.2;
 const lotCup = (l) => cupFor(l.v, l.method) + (l.cupped ? CUP_BONUS : 0);
 const seasonSale = (method) => ((rule('momiji') && method === 'honey') || (rule('ume') && method === 'natural') || (rule('koinobori') && method === 'washed') ? 1.15 : 1);   /* season rules */
 function saleFor(v, method, green, lot) {
   const bonus = 1 + S.bonus, cup = cupFor(v, method) + (lot && lot.cupped ? CUP_BONUS : 0);
-  return { cup, coins: Math.round((lot && lot.cupped ? CUP_PAY : 1) * green * 22 * VAR[v].value * METHODS[method].mult * bonus * (method === marketPick() ? MARKET : 1) * (eventDrop() && (v === eventDrop().variety || method === eventDrop().method) ? EVENT_MULT : 1) * seasonSale(method) * originMult(v, method)), points: Math.round(green * (3 + Math.max(0, cup - 80)) * 0.8 * bonus) };
+  return { cup, coins: Math.round((lot && lot.cupped ? CUP_PAY : 1) * green * 22 * VAR[v].value * METHODS[method].mult * bonus * (method === marketPick() ? MARKET : 1) * (eventDrop() && (v === eventDrop().variety || method === eventDrop().method) ? EVENT_MULT : 1) * seasonSale(method) * originMult(v, method)), points: Math.round(green * (3 + Math.max(0, cup - 80)) * 0.8 * bonus * researchMult()) };
 }
 function sellLot(i, quiet) {
   const l = S.lots[i]; if (!l || l.left > 0) return;
@@ -2109,7 +2111,7 @@ function away(hours) {
     const f = S.farms[l]; if (!f.unlocked || !f.workers.length || S.dormant[l]) return;
     const perWorkerMin = carryKg() / ((2.4 * carryKg() / 3 + 8) / pickerMult()) * 60 / 60 * 0.5;   /* kg a picker brings in per game minute, walking included */
     const fk = f.workers.length * perWorkerMin * mins * f.beds.slice(0, 3).reduce((a, v) => a + varGrowth(f, v) * VAR[v].kg / 3, 0) / 3 / 1.2;
-    const fkm = fk * (f.manager ? 1.5 : 1) * (1 + 0.1 * (f.mastery || 0)) * terroir(f);
+    const fkm = fk * (f.manager ? 1.5 : 1) * masteryMult(f) * terroir(f);
     kg += fkm; byFarm.push([f, fkm]);
     f.shrubs.forEach((s) => { s.p = 1; });
   });
@@ -2389,7 +2391,7 @@ function renderPanel() {
       h += row(img('build_' + k + (ART.bskins[f.skin] ? '_' + f.skin : ''), 40), ART.buildings[k].name + (n ? ' · level ' + n : ''), n ? BUILD[k].sub(n) + (max ? '' : '. Next: ' + BUILD[k].sub(n + 1).toLowerCase()) : BUILD[k].sub(1), btn(max ? 'Max' : n ? 'Upgrade' : 'Build', max ? (BUILD_CAPS[Object.keys(BUILD_CAPS).find((p) => S.prestige < +p)] ? 'more at P' + Object.keys(BUILD_CAPS).find((p) => S.prestige < +p) : '') : fmt(c) + ' coins', 'build:' + k, !max && S.coins >= c));
     });
     if (f.unlocked) h += '<p class="note">Buildings go up to level ' + buildMax() + '.' + (Object.keys(BUILD_CAPS).find((p) => S.prestige < +p) ? ' Prestige ' + Object.keys(BUILD_CAPS).find((p) => S.prestige < +p) + ' raises that to ' + BUILD_CAPS[Object.keys(BUILD_CAPS).find((p) => S.prestige < +p)] + '.' : '') + ' Every building level also counts towards this farm\'s level.</p>';
-    if (f.unlocked) h += '<h3>Farm mastery · ' + nm + '</h3>' + row(img('i_trophy', 34), 'Mastery level ' + (f.mastery || 0), 'Pickers here work ' + (10 * (f.mastery || 0)) + '% faster. Each level adds 10% more, with no limit.' + (f.manager ? '' : ' Hire this farm\'s manager first (Staff).'), btn('Train', fmt(masterCost(S.loc)) + ' coins', 'master', !!f.manager && S.coins >= masterCost(S.loc)));
+    if (f.unlocked) h += '<h3>Farm mastery · ' + nm + '</h3>' + row(img('i_trophy', 34), 'Mastery level ' + (f.mastery || 0), 'Pickers here work ' + (f.mastery || 0) + '% faster. Each level adds 1%, with no limit, and counts towards this farm\'s level. Best once the buildings here are done.' + (f.manager ? '' : ' Hire this farm\'s manager first (Staff).'), btn('Train', fmt(masterCost(S.loc)) + ' coins', 'master', !!f.manager && S.coins >= masterCost(S.loc)));
     } else if (ut === 'staff') {
     h += '<h3>Farm manager · ' + L.name.split(',')[0] + '</h3>';
     h += row('<img src="' + url('worker_down_0', MGR_LOOK) + '" alt="" style="width:26px">', f.manager ? 'Manager on duty' : 'Hire a farm manager', 'Pickers here work 25% faster, and this farm brings in 50% more while you’re away.', f.manager ? btn('Hired', '', 'noop', false, 'blue') : btn('Hire', fmt(MANAGER_COST(S.loc)) + ' coins', 'mgr', f.unlocked && S.coins >= MANAGER_COST(S.loc)));
@@ -2427,7 +2429,7 @@ function renderPanel() {
       return row(img('stamp_' + l, 36), nm, 'Next farm: open with know-how', btn('Open', fmt(FARM_COST[l]) + ' know-how', 'farm:' + l, S.points >= FARM_COST[l]));
     }).join('');
     } else {
-    h += '<p class="note">Research never runs out. Spend spare know-how here before you prestige.</p>' + row(img('i_points', 30), 'Research level ' + (S.research || 0), '+' + (0.3 * (S.research || 0)).toFixed(1) + ' cup score on every lot, which raises know-how from every sale. Each level adds 0.3, with no limit. Know-how resets when you prestige, so spend it first.', btn('Research', fmt(researchCost()) + ' know-how', 'research', S.points >= researchCost(), 'green'));
+    h += '<p class="note">Research never runs out. Spend spare know-how here before you prestige.</p>' + row(img('i_points', 30), 'Research level ' + (S.research || 0), '+' + (S.research || 0) + '% know-how from every sale. Each level adds 1%, with no limit, and stays through prestige. Know-how itself resets when you prestige, so spend spare know-how here first.', btn('Research', fmt(researchCost()) + ' know-how', 'research', S.points >= researchCost(), 'green'));
     }
   } else if (tab === 'orders') {
     h += '<h2>Daily brew check-in</h2><p class="note">' + S.checkin.streak + '-day streak · ' + S.checkin.freezes + ' streak freeze' + (S.checkin.freezes === 1 ? '' : 's') + '. Open the game once a day to keep it going.</p>';
