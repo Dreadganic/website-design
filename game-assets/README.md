@@ -134,3 +134,12 @@ Prestiging opens a full-screen moment timed to a new anthem (`SFX.play('prestige
 - **Cup by hand:** any drying lot, the foreman's included, can be cupped once from the Mill: +1.5 cup score (so it fits pickier contracts and earns more know-how) and +20% pay, on roastery sales and contract deliveries. Staff never cup.
 - **Golden bushes:** while you play (from level 3 or after the tutorial), a golden bush glows on the farm every 3-6 minutes for 30 seconds. Tapping it pays about two minutes of your current income (a smoothed per-minute rate), at least 150 coins and 40 know-how. The Farm tab shows a dot while one is waiting. Rosa explains it the first time.
 - Measured with the bot from the same saved farm over 20 minutes: active play earns 1.6-1.75x the coins and 1.45-1.65x the know-how of staff alone, early, mid and late game.
+
+## Tabs (navigation)
+Coins build, know-how unlocks, cranes buy looks, and the tabs follow that rule:
+- **Farm** your farm, pickers and fields. **Mill** contracts, drying racks, cupping and starting lots (only the processes you own; a link leads to the rest).
+- **Build** (coins): Farm (storage, pickers, racks, stamina, fourth field) · Buildings (six lots and farm mastery) · Staff (manager, foreman, contracts agent).
+- **Unlock** (know-how): Coffees · Process · Farms · Research. A dot on the tab means something is affordable; the header reminds you know-how resets at prestige.
+- **Daily** check-in, daily tasks and the weekly order only. **Ranks** Leaderboard · Prestige & looks.
+- **Shop** (cranes): Boosts (boosts and the Osaka garden) · Farmer (characters and picker hats) · Farm style (building styles and decor) · Real coffee (orders, passport, free coffee earned).
+- Labels fit down to 360 px phones (smaller type under 400 px and 370 px).
