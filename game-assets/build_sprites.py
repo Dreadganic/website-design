@@ -1383,6 +1383,16 @@ BUILD_SKINS = {
     "gold":    {"name": "Beju gold", "cost": 80, "note": "Cream and gold trim, fit for the crane", "ramps": {
                 "WOOD": ["#FFF6DA", "#F2DEA0", "#E2C070", "#B88E34", "#7A5C1C"], "THATCH": ["#FFF2A8", "#F4D466", "#E8BC34", "#CC9C22", "#A87C18", "#7A5A10"]},
                 "map": {"#2D6A46": "#E8B830", "#F4ECDC": "#FFFFFF", "#A8B8C4": "#F4D466", "#7A8A96": "#CC9C22"}},
+    # origin styles, earned at farm level 5 (Mogiana, Toba and Osaka earn Fazenda, Bamboo and Kyoto)
+    "cafetero": {"name": "Cafetero", "cost": 35, "origin": "huila", "note": "Huila's whitewashed walls with bright yellow, blue and red doors",
+                 "ramps": {"WOOD": ["#FFFFFF", "#F4F0E6", "#E0D8C8", "#A89878", "#6E604A"], "THATCH": ["#E88A5C", "#D06A40", "#B4502E", "#923C22", "#702C18", "#541E10"]},
+                 "map": {"#2D6A46": "#2A5AA8", "#F4ECDC": "#F2D23A", "#A8B8C4": "#D8302C", "#7A8A96": "#A8241E"}},
+    "highland": {"name": "Highland", "cost": 35, "origin": "gedeo", "note": "Gedeo's red-earth walls, grass thatch and a green, yellow and red awning",
+                 "ramps": {"WOOD": ["#D8946A", "#C07850", "#A0603C", "#7C4A2C", "#56321E"], "THATCH": ["#E6D488", "#CCB86A", "#B09C52", "#928040", "#746430", "#564A24"]},
+                 "map": {"#2D6A46": "#3E8A3A", "#F4ECDC": "#F2C42C", "#A8B8C4": "#C8302C", "#7A8A96": "#8A2420"}},
+    "tico": {"name": "Tico", "cost": 35, "origin": "turrialba", "note": "Turrialba's pastel walls, green tin roofs and painted-cart trim",
+             "ramps": {"WOOD": ["#F8E8F0", "#ECCCDC", "#D8A8C0", "#A87890", "#704E60"], "THATCH": ["#A8D8A0", "#84C07C", "#62A45C", "#4A8446", "#366434", "#264824"]},
+             "map": {"#2D6A46": "#E8602A", "#F4ECDC": "#F8E070", "#A8B8C4": "#62A45C", "#7A8A96": "#366434"}},
 }
 # ---------------- monthly season themes: one palette and one motif each, drawn into a full set of season cosmetics ----------------
 # Each theme gives: a picker and farmer hat colourway, a building style, a farm decoration, an 80 px character background and a nameplate charm.
@@ -1451,7 +1461,7 @@ for sk, spec in BUILD_SKINS.items():
                         canvas[(x, ys[0] + 1)] = "#E4EEF6"
         add_layer("build_%s_%s" % (k, sk), 28, 26, lambda p, cv=canvas: [p(x, y, c) for (x, y), c in cv.items()])
     globals().update(saved)
-BSKIN_INFO = {k: {"name": v["name"], "cost": v["cost"], "note": v["note"], "season": v.get("season")} for k, v in BUILD_SKINS.items()}
+BSKIN_INFO = {k: {"name": v["name"], "cost": v["cost"], "note": v["note"], "season": v.get("season"), "origin": v.get("origin")} for k, v in BUILD_SKINS.items()}
 
 
 def d_bench(p):

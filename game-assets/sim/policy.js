@@ -68,7 +68,7 @@ window.BOT = (function () {
       G.LOCS.forEach((l) => {
         if (!live(l)) return; const f = S.farms[l];
         if (f.workers.length < G.maxPickers(f)) c.push([l, 'hire', G.hireCost(f)]);
-        G.BUILD_ORDER.forEach((k) => { if ((f.build[k] || 0) < (B.cfg.maxBuild || 3)) c.push([l, 'build:' + k, G.buildCost(l, k)]); });
+        G.BUILD_ORDER.forEach((k) => { if ((f.build[k] || 0) < (G.buildMax ? Math.min(G.buildMax(), B.cfg.maxBuild || 10) : (B.cfg.maxBuild || 3))) c.push([l, 'build:' + k, G.buildCost(l, k)]); });
         if (!f.manager && l !== 'osaka') c.push([l, 'mgr', G.MANAGER_COST(l)]);
         if (G.masterCost && f.manager) c.push([l, 'master', G.masterCost(l)]);
         if (!f.field && l !== 'osaka') c.push([l, 'up:field', G.UP.field.cost()]);

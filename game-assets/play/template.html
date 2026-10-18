@@ -52,6 +52,9 @@ b .n, h2 .n, h3 .n, .row .grow b .n, .tile b .n { color: inherit; font-size: 1.1
 .note .n, .grow span .n, .tile span .n, .btn small .n, .pill .n, .toast .n, .goldgo .n, .stats .n, .rack small .n, .nb-row .n { font-size: 1em; }
 .pill, .toast, .goldgo, .btn small, .stats b, .stats small, .fit, .want, .tile .tags > span { font-family: var(--body); font-weight: 700; font-variant-numeric: tabular-nums; }
 .pc-num .n, .lvl-badge .n { font-family: inherit; }
+.farmlv { display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; margin: 6px 0; border: 2px solid var(--paper-2); border-radius: 8px; background: #FBF4E2; }
+.farmlv > div:first-child { display: flex; flex-direction: column; gap: 2px; }
+.stamps img.gold { outline: 3px solid #E8B830; outline-offset: 1px; border-radius: 50%; box-shadow: 0 0 8px #F2C04A; }
 .toast { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); max-width: 92%; padding: 8px 12px; background: var(--paper); border: 3px solid var(--edge); border-radius: 10px; font-size: 15px; text-align: center; box-shadow: 0 3px 0 #1E140C; pointer-events: none; }
 .tabs { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
 .tab { height: 46px; border: 3px solid var(--edge); border-radius: 8px; background: var(--paper-2); color: var(--ink); font-size: 10.5px; letter-spacing: -0.02em; padding: 0 1px; min-width: 0; overflow: hidden; font-weight: 700; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; position: relative; }
@@ -350,12 +353,44 @@ const VAR = {
 const BUILD = {
   housing: { base: 600, sub: (n) => '+' + (2 * n) + ' picker places here (' + (6 + 2 * n) + ' in all)' },
   compost: { base: 900, sub: (n) => '+' + (10 * n) + '% growth on this farm' },
-  wetmill: { base: 1200, sub: (n) => 'Washed lots dry ' + (10 * n) + '% faster (adds up across farms, up to 60%)' },
+  wetmill: { base: 1200, sub: (n) => 'Washed lots dry ' + Math.round(wetCut(withHere('wetmill', n)) * 100) + '% faster, counting every farm\'s wet mill (up to 60%)' },
   drybeds: { base: 2000, sub: (n) => '+' + n + ' drying racks in the mill' },
-  shade: { base: 2500, sub: (n) => '+' + (0.4 * n).toFixed(1) + ' cup score on every lot (adds up across farms, up to +4)' },
+  shade: { base: 2500, sub: (n) => '+' + shadeCup(withHere('shade', n)).toFixed(1) + ' cup score on every lot, counting every farm\'s shade trees (up to +4)' },
   sorter: { base: 3500, sub: (n) => (3 * n) + '% chance a lot sorts out as a peaberry lot worth double' }
 };
-const BUILD_MAX = 5;
+/* buildings go to level 5, and prestige makes room for more: 7 from prestige 4, 9 from 6, 10 from 8 */
+const BUILD_CAPS = { 4: 7, 6: 9, 8: 10 };
+const buildMax = () => Object.keys(BUILD_CAPS).reduce((m, p) => (S.prestige >= +p ? BUILD_CAPS[p] : m), 5);
+/* farm levels: each farm levels up from its own buildings, manager, fourth field and mastery, and pays out origin milestones */
+const farmLevel = (f) => Object.values(f.build || {}).reduce((a, x) => a + x, 0) + (f.manager ? 2 : 0) + (f.field ? 1 : 0) + (f.mastery || 0);
+const ORIGIN = {
+  mogiana: { skin: 'fazenda', what: 'natural lots', test: (v, m) => m === 'natural' },
+  huila: { skin: 'cafetero', what: 'whiskey and rum barrel lots', test: (v, m) => m === 'whiskey' || m === 'rum' },
+  gedeo: { skin: 'highland', what: 'washed lots', test: (v, m) => m === 'washed' },
+  toba: { skin: 'bamboo', what: 'strawberry infused lots', test: (v, m) => m === 'strawberry' },
+  turrialba: { skin: 'tico', what: 'honey lots', test: (v, m) => m === 'honey' },
+  osaka: { skin: 'kyoto', what: 'Geisha lots', test: (v) => v === 'geisha' }
+};
+const FARM_MILESTONES = [
+  { lv: 5, kind: 'skin', label: (l) => ART.bskins[ORIGIN[l].skin].name + ' building style' },
+  { lv: 10, kind: 'perk', label: (l) => ORIGIN[l].what.charAt(0).toUpperCase() + ORIGIN[l].what.slice(1) + ' sell for 10% more, from any farm' },
+  { lv: 15, kind: 'gold', label: () => 'A gold passport stamp' },
+  { lv: 25, kind: 'perk2', label: (l) => ORIGIN[l].what.charAt(0).toUpperCase() + ORIGIN[l].what.slice(1) + ' sell for 20% more' }
+];
+const originMult = (v, m) => LOCS.reduce((x, l) => { const f = S.farms[l], fl = f.unlocked ? farmLevel(f) : 0; return x * (ORIGIN[l].test(v, m) ? (fl >= 25 ? 1.2 : fl >= 10 ? 1.1 : 1) : 1); }, 1);
+function checkFarmMilestones() {   /* hands out each farm's milestones once, with a card the first time */
+  S.farmMs = S.farmMs || {};
+  LOCS.forEach((l) => {
+    const f = S.farms[l]; if (!f.unlocked) return;
+    const lv = farmLevel(f), got = FARM_MILESTONES.filter((m) => lv >= m.lv && (S.farmMs[l] || 0) < m.lv);
+    if (!got.length) return;
+    got.forEach((m) => { if (m.kind === 'skin') S.bskins[ORIGIN[l].skin] = true; if (m.kind === 'gold') { S.goldStamps = S.goldStamps || {}; S.goldStamps[l] = true; } });
+    S.farmMs[l] = got[got.length - 1].lv;
+    const nm = ART.locations[l].name.split(',')[0];
+    showModal('<h2>' + nm + ' reached farm level ' + got[got.length - 1].lv + '</h2>' + img('stamp_' + l, 54) + '<p class="note">' + got.map((m) => '<b>' + m.label(l) + '</b>').join('<br>') + '</p>' + (got.some((m) => m.kind === 'skin') ? '<p class="note">The style is yours in Shop > Farm style, for any farm.</p>' : '') + '<button class="btn green" data-act="close">Lovely</button>');
+    SFX.play('achieve');
+  });
+}
 const BUILD_ORDER = ['housing', 'wetmill', 'drybeds', 'compost', 'shade', 'sorter'];
 const SLOTS = [3, 34, 65, 99, 130, 161];
 const farmMult = (loc) => 1 + 0.6 * LOCS.indexOf(loc);
@@ -363,7 +398,10 @@ const buildCost = (loc, k) => Math.round(BUILD[k].base * Math.pow(3, (S.farms[lo
 const sumBuild = (k) => LOCS.reduce((a, l) => a + (S.farms[l].unlocked ? (S.farms[l].build[k] || 0) : 0), 0);
 const maxPickers = (f) => 6 + 2 * (f.build.housing || 0);
 const racks = () => S.lv.racks + sumBuild('drybeds');
-const shadeCup = () => Math.min(4, 0.4 * sumBuild('shade'));
+/* shade trees and wet mills add up across farms with diminishing returns, so every level counts towards +4 cup and 60% faster washed drying */
+const shadeCup = (n) => 4 * (1 - Math.pow(0.85, n === undefined ? sumBuild('shade') : n));
+const wetCut = (n) => 0.6 * (1 - Math.pow(0.85, n === undefined ? sumBuild('wetmill') : n));
+const withHere = (k, n) => sumBuild(k) - ((S.farms[S.loc].build || {})[k] || 0) + n;   /* the all-farm total if this farm's building were at level n */
 /* managers */
 const MANAGER_COST = (loc) => Math.round(4000 * farmMult(loc) / 10) * 10;
 const FOREMAN_COST = 6000, AGENT_COST = 15000;
@@ -630,7 +668,7 @@ const COFFEES = {
   strawberry: { name: 'Sumatra Strawberry', price: 3800, stamps: ['toba'], method: 'strawberry' }
 };
 /* farms open in order with points earned by playing; Osaka is cranes only */
-const FARM_COST = { mogiana: 0, huila: 800, gedeo: 5000, toba: 20000, turrialba: 60000 };
+const FARM_COST = { mogiana: 0, huila: 1500, gedeo: 5000, toba: 20000, turrialba: 60000 };
 const prevFarm = (loc) => LOCS[LOCS.indexOf(loc) - 1];
 const canOpen = (loc) => loc !== 'osaka' && !S.farms[loc].unlocked && S.farms[prevFarm(loc)].unlocked && gateOK('farm:' + loc);
 const UP = {
@@ -1168,7 +1206,7 @@ function startLot(v, method, quiet) {
   const busy = S.lots.length, kg = S.cherries[v] || 0;
   if (busy >= racks() || kg <= 0 || !S.methods[method]) return false;
   const tutorial = !quiet && S.guide < 4 && !S.stats.lotsSold;   /* the guide's first lot dries twice as fast */
-  const m = METHODS[method], time = m.time * (method === 'washed' ? 1 - Math.min(0.6, 0.1 * sumBuild('wetmill')) : 1) * (tutorial ? 0.5 : 1);
+  const m = METHODS[method], time = m.time * (method === 'washed' ? 1 - wetCut() : 1) * (tutorial ? 0.5 : 1);
   S.cherries[v] = 0; S.millT = S.minutesTotal;
   S.lots.push({ v, kg, method, left: time, total: time });
   task('store', 0);
@@ -1188,7 +1226,7 @@ const lotCup = (l) => cupFor(l.v, l.method) + (l.cupped ? CUP_BONUS : 0);
 const seasonSale = (method) => ((rule('momiji') && method === 'honey') || (rule('ume') && method === 'natural') || (rule('koinobori') && method === 'washed') ? 1.15 : 1);   /* season rules */
 function saleFor(v, method, green, lot) {
   const bonus = 1 + S.bonus, cup = cupFor(v, method) + (lot && lot.cupped ? CUP_BONUS : 0);
-  return { cup, coins: Math.round((lot && lot.cupped ? CUP_PAY : 1) * green * 22 * VAR[v].value * METHODS[method].mult * bonus * (method === marketPick() ? MARKET : 1) * (eventDrop() && (v === eventDrop().variety || method === eventDrop().method) ? EVENT_MULT : 1) * seasonSale(method)), points: Math.round(green * (3 + Math.max(0, cup - 80)) * 0.8 * bonus) };
+  return { cup, coins: Math.round((lot && lot.cupped ? CUP_PAY : 1) * green * 22 * VAR[v].value * METHODS[method].mult * bonus * (method === marketPick() ? MARKET : 1) * (eventDrop() && (v === eventDrop().variety || method === eventDrop().method) ? EVENT_MULT : 1) * seasonSale(method) * originMult(v, method)), points: Math.round(green * (3 + Math.max(0, cup - 80)) * 0.8 * bonus) };
 }
 function sellLot(i, quiet) {
   const l = S.lots[i]; if (!l || l.left > 0) return;
@@ -1327,7 +1365,7 @@ function prestige() {
   LOCS.forEach((l) => { if (FARM_LEVEL[l] && S.farms[l].unlocked && !(hasPerk('awake') && AWAKE.includes(l))) S.dormant[l] = FARM_LEVEL[l]; });
   setTimeout(() => checkSamples(), 300);
   const asleep = Object.keys(S.dormant);
-  showModal(avatar(S.look, 64) + '<h2>Prestige ' + S.prestige + '</h2>' + plate(S.name, S.look.crest, starsFor(S.prestige)) + '<p class="note">' + (S.prestige < TIERS.length ? 'New crest: <b>' + TIERS[t] + '</b>. Its nameplate and border are yours and already on.' : 'You are past the top tier: every prestige adds a star to your name.') + '</p>' + (perkAt(S.prestige) ? '<p class="rule"><b>New perk: ' + perkAt(S.prestige).name + '.</b> ' + perkAt(S.prestige).text + '</p>' : '') + skinPicker() +
+  showModal(avatar(S.look, 64) + '<h2>Prestige ' + S.prestige + '</h2>' + plate(S.name, S.look.crest, starsFor(S.prestige)) + '<p class="note">' + (S.prestige < TIERS.length ? 'New crest: <b>' + TIERS[t] + '</b>. Its nameplate and border are yours and already on.' : 'You are past the top tier: every prestige adds a star to your name.') + '</p>' + (perkAt(S.prestige) ? '<p class="rule"><b>New perk: ' + perkAt(S.prestige).name + '.</b> ' + perkAt(S.prestige).text + '</p>' : '') + (BUILD_CAPS[S.prestige] ? '<p class="rule"><b>Bigger farms:</b> buildings now go up to level ' + BUILD_CAPS[S.prestige] + '.</p>' : '') + skinPicker() +
     (asleep.length ? '<p class="note">' + asleep.map((l) => ART.locations[l].name.split(',')[0] + ' wakes at level ' + S.dormant[l]).join(', ') + '. Brazil and Osaka stay open.</p>' : '') + '<button class="btn green" data-act="close">Back to the farm</button>');
 }
 function prestigeCeremony(rankBefore, rankAfter, players) {
@@ -1541,11 +1579,16 @@ const img = (n, w) => '<img src="' + url(n) + '" alt="" style="width:' + (w || 4
 
 function renderPanel() {
   const P = $('panel'), f = S.farms[S.loc], L = ART.locations[S.loc];
+  checkFarmMilestones();
   let h = '';
   h += eventBanner();
   if (tab === 'farm') {
     const [frac, lvl] = levelSpan();
-    h += '<div class="level"><b>Farm level ' + lvl + '</b><div class="bar"><i style="width:' + Math.round(frac * 100) + '%"></i></div><span class="note">Prestige ' + S.prestige + '</span></div>';
+    h += '<div class="level"><b>Level ' + lvl + '</b><div class="bar"><i style="width:' + Math.round(frac * 100) + '%"></i></div><span class="note">Prestige ' + S.prestige + '</span></div>';
+    if (S.farms[S.loc].unlocked) {   /* this farm's own level and its next milestone */
+      const fl = farmLevel(S.farms[S.loc]), next = FARM_MILESTONES.find((m) => fl < m.lv), prev = [...FARM_MILESTONES].reverse().find((m) => fl >= m.lv), nm = L.name.split(',')[0];
+      h += '<div class="farmlv"><div><b>' + nm + ' farm level ' + fl + '</b><span class="note">' + (next ? 'Next at ' + next.lv + ': ' + next.label(S.loc) : 'Every milestone reached. Keep building for the farm\'s output.') + '</span></div><div class="bar"><i style="width:' + Math.round(next ? (fl - (prev ? prev.lv : 0)) / (next.lv - (prev ? prev.lv : 0)) * 100 : 100) + '%"></i></div><span class="note">Farm levels come from this farm\'s buildings, manager, fourth field and mastery.</span></div>';
+    }
     if (S.dormant[S.loc]) {
       h += '<h2>' + L.name + ' is dormant</h2><p class="note">Since your last prestige this farm is resting. It reopens by itself at level ' + S.dormant[S.loc] + ', with every building, picker and field just as you left them.</p><div class="bar"><i style="width:' + Math.min(100, Math.round(level() / S.dormant[S.loc] * 100)) + '%"></i></div><p class="note">You are level ' + level() + '.</p>';
     } else if (!f.unlocked) {
@@ -1634,9 +1677,10 @@ function renderPanel() {
     h += '<h3>Buildings at ' + nm + '</h3><p class="note">Each farm has six building lots along the fence. Costs grow with each level and on later farms.</p>';
     if (!f.unlocked) h += '<p class="note">Open this farm first.</p>';
     else BUILD_ORDER.forEach((k) => {
-      const n = f.build[k] || 0, max = n >= BUILD_MAX, c = buildCost(S.loc, k);
-      h += row(img('build_' + k + (ART.bskins[f.skin] ? '_' + f.skin : ''), 40), ART.buildings[k].name + (n ? ' · level ' + n : ''), n ? BUILD[k].sub(n) + (max ? '' : '. Next: ' + BUILD[k].sub(n + 1).toLowerCase()) : BUILD[k].sub(1), btn(max ? 'Max' : n ? 'Upgrade' : 'Build', max ? '' : fmt(c) + ' coins', 'build:' + k, !max && S.coins >= c));
+      const n = f.build[k] || 0, max = n >= buildMax(), c = buildCost(S.loc, k);
+      h += row(img('build_' + k + (ART.bskins[f.skin] ? '_' + f.skin : ''), 40), ART.buildings[k].name + (n ? ' · level ' + n : ''), n ? BUILD[k].sub(n) + (max ? '' : '. Next: ' + BUILD[k].sub(n + 1).toLowerCase()) : BUILD[k].sub(1), btn(max ? 'Max' : n ? 'Upgrade' : 'Build', max ? (BUILD_CAPS[Object.keys(BUILD_CAPS).find((p) => S.prestige < +p)] ? 'more at P' + Object.keys(BUILD_CAPS).find((p) => S.prestige < +p) : '') : fmt(c) + ' coins', 'build:' + k, !max && S.coins >= c));
     });
+    if (f.unlocked) h += '<p class="note">Buildings go up to level ' + buildMax() + '.' + (Object.keys(BUILD_CAPS).find((p) => S.prestige < +p) ? ' Prestige ' + Object.keys(BUILD_CAPS).find((p) => S.prestige < +p) + ' raises that to ' + BUILD_CAPS[Object.keys(BUILD_CAPS).find((p) => S.prestige < +p)] + '.' : '') + ' Every building level also counts towards this farm\'s level.</p>';
     if (f.unlocked) h += '<h3>Farm mastery · ' + nm + '</h3>' + row(img('i_trophy', 34), 'Mastery level ' + (f.mastery || 0), 'Pickers here work ' + (10 * (f.mastery || 0)) + '% faster. Each level adds 10% more, with no limit.' + (f.manager ? '' : ' Hire this farm\'s manager first (Staff).'), btn('Train', fmt(masterCost(S.loc)) + ' coins', 'master', !!f.manager && S.coins >= masterCost(S.loc)));
     } else if (ut === 'staff') {
     h += '<h3>Farm manager · ' + L.name.split(',')[0] + '</h3>';
@@ -1726,7 +1770,7 @@ function renderPanel() {
     h += '<h3>Prestige</h3><p class="note">The all-time board ranks by prestige first, then level, then know-how earned this run. The season board ranks by season stars, then know-how earned this season, so new and old farmers race on equal terms each month. Each prestige needs 8 more levels than the last (10, 18, 26, 34 ...), and levels past 10 get steadily bigger. Unspent know-how does not carry over, so spend it on research before you prestige.</p>';
     h += '<div class="bar"><i style="width:' + Math.min(100, Math.round(levelSpan()[1] / need * 100)) + '%"></i></div>';
     h += btn(ready ? 'Prestige to ' + (S.prestige + 1) : 'Prestige at level ' + need, ready ? (S.prestige + 1 < TIERS.length ? 'unlocks the ' + TIERS[S.prestige + 1] + ' crest' : 'adds a star') : 'you are level ' + level(), 'prestigeAsk', ready, 'green');
-    h += '<p class="note"><b>Prestige perks</b> (free, and yours for good):</p>' + Object.keys(PERKS).map((p) => row(img('i_cup', 26), PERKS[p].name + ' · prestige ' + p, PERKS[p].text, S.prestige >= +p ? btn('Yours', '', 'noop', false, 'blue') : btn('Locked', 'Prestige ' + p, 'noop', false))).join('');
+    h += '<p class="note"><b>Prestige perks</b> (free, and yours for good):</p>' + Object.keys(BUILD_CAPS).map((p) => row(img('build_housing', 26), 'Bigger farms · prestige ' + p, 'Every building can go up to level ' + BUILD_CAPS[p] + '.', S.prestige >= +p ? btn('Yours', '', 'noop', false, 'blue') : btn('Locked', 'Prestige ' + p, 'noop', false))).join('') + Object.keys(PERKS).map((p) => row(img('i_cup', 26), PERKS[p].name + ' · prestige ' + p, PERKS[p].text, S.prestige >= +p ? btn('Yours', '', 'noop', false, 'blue') : btn('Locked', 'Prestige ' + p, 'noop', false))).join('');
     const has = () => ORIGINS.filter((l) => S.stamps[l]).length;
     h += '<h3>Crest</h3><p class="note">Each prestige gives a new crest: a nameplate and border together. Every crest you reach stays yours.</p><div class="looks">' + TIERS.map((nm, i) => {
       const open = i <= t;
@@ -1752,7 +1796,7 @@ function renderPanel() {
     h += shopTabs();
     h += '<h2>Real coffee, real rewards</h2><p class="note">Every order on bejucoffee.com feeds your farm: 1 crane for every ¥100, and a passport stamp for each new origin. Blends stamp their next origin by share. Free 100 g samples come from your Mogiana welcome harvest, each origin\'s prestige milestone and monthly check-ins.</p>';
     h += '<p><a class="btn green" href="https://bejucoffee.com" target="_blank" rel="noopener">Shop at bejucoffee.com</a></p>';
-    h += '<h3>Passport</h3><div class="stamps">' + LOCS.map((l) => '<img src="' + url('stamp_' + l) + '" alt="' + ART.locations[l].name + (S.stamps[l] ? ', stamped' : ', not yet') + '" class="' + (S.stamps[l] ? '' : 'off') + '">').join('') + '</div>';
+    h += '<h3>Passport</h3><div class="stamps">' + LOCS.map((l) => '<img src="' + url('stamp_' + l) + '" alt="' + ART.locations[l].name + (S.stamps[l] ? ', stamped' : ', not yet') + '" class="' + (S.stamps[l] ? '' : 'off') + ((S.goldStamps || {})[l] ? ' gold' : '') + '">').join('') + '</div>';
     h += '<h3>What each coffee gives</h3>' + Object.keys(COFFEES).map((k) => { const c = COFFEES[k], next = c.stamps.find((x) => !S.stamps[x]); return row(img(next ? 'stamp_' + next : 'i_crane', 30), c.name, '¥' + fmt(c.price) + ' · ' + Math.round(c.price / 100) + ' cranes' + (next ? ' · stamp: ' + ART.locations[next].name.split(',')[0] : ' · all stamps collected') + (c.method ? ' · unlocks ' + METHODS[c.method].name.toLowerCase() + ' processing' : ''), ''); }).join('');
     const ST = { earned: 'Ready: redeem by ', reserved: 'Waiting for your order to be paid', redeemed: 'Sent with an order', expired: 'Expired', pending: 'Checking with the roastery' };
     h += '<h3>Free coffee samples</h3><p class="note">Each sample is a free 100 g bag that comes in the box with a bejucoffee.com order of ¥' + fmt(SAMPLE_MIN) + ' or more, one per order, within ' + SAMPLE_DAYS + ' days of earning it.' + (API ? '' : ' (Practice copy: samples become redeemable when Beju Farm launches on bejucoffee.com.)') + '</p>' + (S.samples.length ? S.samples.map((s) => { const st = sampleState(s); return row(img('green_sack', 28), '100 g ' + s.coffee, (s.kind === 'welcome' ? 'Welcome sample' : s.kind === 'monthly' ? 'Monthly check-in sample' : ART.locations[s.origin].name.split(',')[0] + ' origin sample') + ' · ' + (st === 'earned' ? ST.earned + new Date(s.expires).toLocaleDateString() : ST[st] || st), ''); }).join('') : '<p class="note">None yet.</p>');
@@ -1810,7 +1854,7 @@ function renderPanel() {
   } else {
     h += '<h2>Test tools</h2><p class="note">For playtesting: everything here stands in for something that will come from real orders or real time.</p>';
     h += '<h3>Simulate a bejucoffee.com order</h3><div class="seg">' + Object.keys(COFFEES).map((k) => '<button type="button" data-act="order:' + k + '">' + COFFEES[k].name + '</button>').join('') + '</div>';
-    h += '<div class="stamps">' + LOCS.map((l) => '<img src="' + url('stamp_' + l) + '" alt="' + ART.locations[l].name + (S.stamps[l] ? ', stamped' : ', not yet') + '" class="' + (S.stamps[l] ? '' : 'off') + '">').join('') + '</div>';
+    h += '<div class="stamps">' + LOCS.map((l) => '<img src="' + url('stamp_' + l) + '" alt="' + ART.locations[l].name + (S.stamps[l] ? ', stamped' : ', not yet') + '" class="' + (S.stamps[l] ? '' : 'off') + ((S.goldStamps || {})[l] ? ' gold' : '') + '">').join('') + '</div>';
     h += '<h3>Resources</h3><div class="seg"><button type="button" data-act="add:coins">+1,000 coins</button><button type="button" data-act="add:bigcoins">+25,000 coins</button><button type="button" data-act="add:contracts">New contracts</button><button type="button" data-act="add:checkin">Next real day</button><button type="button" data-act="add:drop">Start a drop event</button><button type="button" data-act="add:season">End the season</button><button type="button" data-act="add:stars">+50 season stars</button><button type="button" data-act="add:guide">Restart guide</button><button type="button" data-act="add:points">+2,000 know-how</button><button type="button" data-act="add:cranes">+50 cranes</button><button type="button" data-act="add:vars">All varieties</button><button type="button" data-act="add:xp">+1 level</button><button type="button" data-act="add:cherries">Fill storage</button><button type="button" data-act="add:stamp">Next passport stamp</button><button type="button" data-act="add:sample">Next free sample</button><button type="button" data-act="add:days">+20 check-in days</button></div>';
     h += '<h3>Time</h3><div class="seg"><button type="button" data-act="away:1">Away 1 h</button><button type="button" data-act="away:4">Away 4 h</button><button type="button" data-act="away:12">Away 12 h</button><button type="button" data-act="day">Next day</button></div>';
     h += '<h3>Game speed</h3><div class="seg">' + [1, 3, 10].map((x) => '<button type="button" data-act="speed:' + x + '" aria-pressed="' + (S.speed === x) + '">×' + x + '</button>').join('') + '</div>';
@@ -1877,7 +1921,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'arch') { const [kind, id] = v.split('.'); if (archiveKeys().some((k) => theme(k).id === id) && !archOwned(kind, id) && spend('cranes', ARCHIVE[kind])) { archGive(kind, id); toast(themeById(id).name + ' ' + ARCHIVE_WHAT[kind] + ' is yours'); } }
   else if (a === 'prestigetab') { S.rankSub = 'rewards'; setTab('ranks'); }
   else if (a === 'shoptab') S.shopTab = v;
-  else if (a === 'build') { const n = f.build[v] || 0; if (n < BUILD_MAX && spend('coins', buildCost(S.loc, v))) { f.build[v] = n + 1; toast(ART.buildings[v].name + (n ? ' upgraded to level ' + (n + 1) : ' built')); } }
+  else if (a === 'build') { const n = f.build[v] || 0; if (n < buildMax() && spend('coins', buildCost(S.loc, v))) { f.build[v] = n + 1; toast(ART.buildings[v].name + (n ? ' upgraded to level ' + (n + 1) : ' built')); } }
   else if (a === 'master') { if (f.manager && spend('coins', masterCost(S.loc))) { f.mastery = (f.mastery || 0) + 1; toast(ART.locations[S.loc].name.split(',')[0] + ' mastery level ' + f.mastery); } }
   else if (a === 'research') { if (spend('points', researchCost())) { S.research = (S.research || 0) + 1; toast('Cupping research level ' + S.research); } }
   else if (a === 'mgr') { if (!f.manager && spend('coins', MANAGER_COST(S.loc))) { f.manager = { x: 150, y: 94, tx: 150, ty: 94, t: 0, walk: 0, dir: 'down' }; toast('Your manager takes over at ' + ART.locations[S.loc].name.split(',')[0]); } }
@@ -1904,7 +1948,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'weekly') { S.weekly.claimed = true; S.cranes += WEEKLY_CRANES; star('weekly'); showModal('<h2>Order delivered!</h2><p class="note">The team delivered ' + fmt(S.weekly.target) + ' kg of washed coffee to the roastery. +' + WEEKLY_CRANES + ' cranes and the Co-op Roaster badge.</p><button class="btn green" data-act="close">Hooray</button>'); }
   else if (a === 'prestigeAsk') {
     const asleep = LOCS.filter((l) => FARM_LEVEL[l] && S.farms[l].unlocked && !((hasPerk('awake') || perkAt(S.prestige + 1) === PERKS[4]) && AWAKE.includes(l)));
-    showModal('<h2>Prestige ' + (S.prestige + 1) + '?</h2><p class="note"><b>You keep</b> coins, cranes, every upgrade, building, manager, variety, process, decoration, hat, outfit and background.</p><p class="note"><b>You lose</b> your level and ' + fmt(S.points) + ' unspent know-how' + (asleep.length ? ', and ' + asleep.map((l) => ART.locations[l].name.split(',')[0]).join(', ') + (asleep.length > 1 ? ' go' : ' goes') + ' dormant until you level back up' : '') + '.</p><p class="note">You gain ' + (S.prestige + 1 < TIERS.length ? 'the ' + TIERS[S.prestige + 1] + ' crest (nameplate and border)' : 'a star on your name') + (SKINS.some((sk, i) => !S.skins[i]) ? ', you pick one new outfit' : '') + (perkAt(S.prestige + 1) ? ', the <b>' + perkAt(S.prestige + 1).name + '</b> perk (' + perkAt(S.prestige + 1).text + ')' : '') + ', and you jump above everyone on prestige ' + S.prestige + '.</p>' + btn('Prestige now', '', 'prestige', true, 'green') + '<button class="btn" data-act="close">Not yet</button>');
+    showModal('<h2>Prestige ' + (S.prestige + 1) + '?</h2><p class="note"><b>You keep</b> coins, cranes, every upgrade, building, manager, variety, process, decoration, hat, outfit and background.</p><p class="note"><b>You lose</b> your level and ' + fmt(S.points) + ' unspent know-how' + (asleep.length ? ', and ' + asleep.map((l) => ART.locations[l].name.split(',')[0]).join(', ') + (asleep.length > 1 ? ' go' : ' goes') + ' dormant until you level back up' : '') + '.</p><p class="note">You gain ' + (S.prestige + 1 < TIERS.length ? 'the ' + TIERS[S.prestige + 1] + ' crest (nameplate and border)' : 'a star on your name') + (SKINS.some((sk, i) => !S.skins[i]) ? ', you pick one new outfit' : '') + (perkAt(S.prestige + 1) ? ', the <b>' + perkAt(S.prestige + 1).name + '</b> perk (' + perkAt(S.prestige + 1).text + ')' : '') + (BUILD_CAPS[S.prestige + 1] ? ', room to build every building up to level ' + BUILD_CAPS[S.prestige + 1] : '') + ', and you jump above everyone on prestige ' + S.prestige + '.</p>' + btn('Prestige now', '', 'prestige', true, 'green') + '<button class="btn" data-act="close">Not yet</button>');
     return;
   }
   else if (a === 'prestige') { $('modal').hidden = true; const allB = board('all'), rb = allB.findIndex((x) => x.you) + 1; prestige(); const allA = board('all'), ra = allA.findIndex((x) => x.you) + 1; prestigeCeremony(rb, ra, allA.length); setTimeout(() => { NET.lastScore = ''; submitScore(); cloudSync(true); }, 500); }

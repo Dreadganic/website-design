@@ -8,7 +8,7 @@ const [html, out, target, seed] = [process.argv[2], process.argv[3], +(process.a
   const errs = []; p.on('pageerror', (e) => errs.push(e.message));
   await p.addInitScript(() => { window.__SIM = true; try { localStorage.clear(); } catch (e) {} const RD = Date; let off = Date.parse('2026-11-02T19:00:00+09:00') - RD.now(); window.__clock = (s) => { off += s * 1000; }; class FD extends RD { constructor(...a) { if (a.length) super(...a); else super(RD.now() + off); } static now() { return RD.now() + off; } } window.Date = FD; });
   await p.goto('file://' + __dirname + '/' + html); await p.waitForTimeout(400); await p.addScriptTag({ path: __dirname + '/policy.js' });
-  await p.evaluate(() => { BOT.cfg.human = true; BOT.cfg.active = true; BOT.cfg.maxBuild = 5; BOT.G.S.sfx = false; BOT.G.S.music = false; });
+  await p.evaluate(() => { BOT.cfg.human = true; BOT.cfg.active = true; BOT.cfg.maxBuild = 10; BOT.G.S.sfx = false; BOT.G.S.music = false; });
   let r = { p: 0 }, s = seed; const rnd = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
   const farms = [], sessions = []; let playH = 0, day = 0;
   while (r.p < target && playH < 80 && errs.length < 5) {
