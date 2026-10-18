@@ -83,7 +83,12 @@ window.BOT = (function () {
       closeAll(); log('PRESTIGE ' + S.prestige + ' (dormant: ' + Object.keys(S.dormant).join(',') + ')');
     }
   }
-  function decide() { closeAll(); G.checkIn(); G.checkTabs(); tap(); mill(); knowhow(); coins(); prestige(); closeAll(); }
+  function active() {   /* only when cfg.active: cup every lot by hand and tap golden bushes */
+    if (!B.cfg.active) return; const S = G.S;
+    S.lots.forEach((l, i) => { if (!l.cupped) act('cup:' + i); });
+    const g = G.golden; if (g) { if (S.loc !== g.loc) act('go:' + g.loc); const s = S.farms[S.loc].shrubs[g.i], r = cv.getBoundingClientRect(); cv.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: r.left + (s.x + 9) / G.W * r.width, clientY: r.top + (s.y + 11) / G.H * r.height })); }
+  }
+  function decide() { closeAll(); G.checkIn(); G.checkTabs(); tap(); active(); mill(); knowhow(); coins(); prestige(); closeAll(); }
   function snap() {
     const S = G.S;
     B.snaps.push({ t: Math.round(B.t), lv: G.level(), xp: Math.round(S.xp), p: S.prestige, coins: Math.round(S.coins), kh: Math.round(S.points), cranes: S.cranes, farms: G.LOCS.filter(live).length, workers: G.totalWorkers(), lots: S.stats.lotsSold, contracts: S.stats.contracts || 0, cap: G.cap(), racks: G.racks(), stored: Math.round(G.stored()), day: S.day });

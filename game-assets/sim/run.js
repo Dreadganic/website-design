@@ -14,7 +14,7 @@ const mode = process.argv[2] || 'active', target = +(process.argv[3] || 5), out 
   });
   await p.goto('file://' + __dirname + '/' + html); await p.waitForTimeout(400);
   await p.addScriptTag({ path: __dirname + '/policy.js' });
-  await p.evaluate((m) => { BOT.cfg.mode = m.mode; BOT.cfg.maxBuild = m.maxBuild; BOT.G.S.sfx = false; BOT.G.S.music = false; }, { mode, maxBuild });
+  await p.evaluate((m) => { BOT.cfg.mode = m.mode; BOT.cfg.maxBuild = m.maxBuild; BOT.cfg.active = !!m.active; BOT.G.S.sfx = false; BOT.G.S.music = false; }, { mode, maxBuild, active: process.argv[7] === 'active' });
   const t0 = Date.now(); let hours = 0;
   while (true) {
     let r;

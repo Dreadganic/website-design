@@ -101,7 +101,7 @@ test("claims: a paid order grants cranes and coffees once", async () => {
 
 test("scores: prestige needs 8 more levels each time, and the season board ranks know-how", async () => {
   assert.deepEqual([0, 1, 2, 3].map(G.prestigeNeed), [10, 18, 26, 34]);
-  assert.ok(G.XP_AT(11) > G.XP_AT(10) && Math.abs(G.XP_AT(20) / G.XP_AT(19) - 1.2) < 0.01, "levels past 10 grow 1.2x");
+  assert.ok(G.XP_AT(11) > G.XP_AT(10) && Math.abs(G.XP_AT(20) / G.XP_AT(19) - 1.22) < 0.01, "levels past 10 grow 1.22x");
   const a = await newPlayer(), b = await newPlayer();
   const s = (kh, pts) => ({ name: "Farmer", prestige: 0, seasonP: 0, seasonKh: kh, level: G.levelFor(pts), points: pts });
   await call(score, "POST", s(5000, 5000), a); await call(score, "POST", s(9000, 2000), b);

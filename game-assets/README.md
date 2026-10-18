@@ -115,8 +115,8 @@ The game talks to Netlify Functions (`netlify/functions/game-*.js`, storage in N
 - **Daily tasks** reset each real day and the **weekly order** runs for a real week; the other farmers' share fills steadily over the week.
 - **Away time:** with a mill foreman, lots keep drying and selling while you are away (storage still caps what the pickers bring in). The welcome-back screen shows what the mill earned.
 - **Buildings** go to level 5. **Farm mastery** (Upgrades › Build, coins, needs the farm's manager) adds 10% picking per level, cost ×1.45 a level. **Cupping research** (Upgrades › Seeds, know-how) adds 0.3 cup score per level, cost ×1.4 a level.
-- **Prestige** needs level 10, 18, 26, 34 ... by lifetime prestige, and each level past 10 needs 1.2× the XP of the last. The season board ranks know-how earned this month; the all-time board stays prestige first. The server mirrors these rules.
-- Bot playtest (with level-up rewards and the smarter foreman): prestige 5 at 8.2 h of active play, or 14.6 days of three 10-minute sessions a day (`game-assets/sim`).
+- **Prestige** needs level 10, 18, 26, 34 ... by lifetime prestige, and each level past 10 needs 1.22× the XP of the last. The season board ranks know-how earned this month; the all-time board stays prestige first. The server mirrors these rules.
+- Bot playtest: prestige 5 at 8.0 h for an active player (cupping lots, tapping golden bushes), 10.2 h without those, or 13.9 days of three 10-minute sessions a day (`game-assets/sim`, `run.js ... active`).
 
 ## Tabs and level ups
 - Every tab shows from the first minute. Locked tabs are greyed with a lock and say what opens them (Upgrade: first sale, Shop: level 2, Daily: level 3, Ranks: level 5); tapping one explains.
@@ -129,3 +129,8 @@ The game talks to Netlify Functions (`netlify/functions/game-*.js`, storage in N
 
 ## Prestige ceremony
 Prestiging opens a full-screen moment timed to a new anthem (`SFX.play('prestige')`, about 6 seconds: a drum roll and cymbal swell, a full horn chord, a heroic climb and a big bVI-bVII-I finish with a harp run and bells; the music ducks underneath). On the chord hit the screen flashes, light rays start turning, the prestige number slams in, the new crest spins into place and the content shakes, while confetti bursts and rains. The tier name, your new nameplate and your climb on the all-time board follow, and the farm behind fires heavy fireworks. Continue leads to the outfit pick.
+
+## Active play beats the staff
+- **Cup by hand:** any drying lot, the foreman's included, can be cupped once from the Mill: +1.5 cup score (so it fits pickier contracts and earns more know-how) and +20% pay, on roastery sales and contract deliveries. Staff never cup.
+- **Golden bushes:** while you play (from level 3 or after the tutorial), a golden bush glows on the farm every 3-6 minutes for 30 seconds. Tapping it pays about two minutes of your current income (a smoothed per-minute rate), at least 150 coins and 40 know-how. The Farm tab shows a dot while one is waiting. Rosa explains it the first time.
+- Measured with the bot from the same saved farm over 20 minutes: active play earns 1.6-1.75x the coins and 1.45-1.65x the know-how of staff alone, early, mid and late game.

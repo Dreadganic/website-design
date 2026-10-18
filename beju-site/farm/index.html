@@ -136,6 +136,8 @@ button, a.btn, [data-act], [data-tab] { touch-action: manipulation; -webkit-tap-
 @keyframes pcup { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 @keyframes pcshake { 0%, 100% { transform: none; } 20% { transform: translate(-6px, 3px); } 40% { transform: translate(5px, -4px); } 60% { transform: translate(-4px, 2px); } 80% { transform: translate(3px, -1px); } }
 @media (prefers-reduced-motion: reduce) { .pc-rays, .pc-flash, .shake { animation: none !important; } .pc-rays { opacity: 1; } .pc-kicker, .pc-num, .pc-crest, .pc-tier, .pc-plate, .pc-sub, .pc-go { animation: none !important; opacity: 1; transform: none; } }
+.cupped { font-size: 12px; font-weight: 700; color: #7A5A10; background: #FFE9A8; border: 2px solid #E8B830; border-radius: 6px; padding: 4px 8px; }
+.btn.gold { background: #FFE27A; }
 .garrow { position: fixed; z-index: 30; width: 22px; height: 22px; pointer-events: none; background: #F2C04A; clip-path: polygon(0 0, 100% 0, 50% 100%); filter: drop-shadow(0 0 2px #3E2A1C) drop-shadow(0 2px 0 #3E2A1C); animation: gbob 0.8s ease-in-out infinite; }
 @keyframes gbob { 50% { transform: translateY(6px); } }
 .coach { display: flex; gap: 10px; align-items: flex-start; text-align: left; }
@@ -1051,7 +1053,7 @@ const PRESTIGE_LEVEL = 10;
 /* monthly seasons: a fresh board each calendar month, ranked by know-how earned that month. Each lifetime prestige asks for 8 more levels */
 const seasonKey = (d) => { d = d || new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); };
 const seasonName = (k) => new Date(+k.slice(0, 4), +k.slice(5) - 1, 1).toLocaleString('en', { month: 'long', year: 'numeric' });
-const prestigeNeed = () => PRESTIGE_LEVEL + 8 * S.prestige;   /* 10, 18, 26, 34 ... and each level past 10 costs 1.2x the last */
+const prestigeNeed = () => PRESTIGE_LEVEL + 8 * S.prestige;   /* 10, 18, 26, 34 ... and each level past 10 costs 1.22x the last */
 const daysLeft = () => { const n = new Date(); return Math.ceil((new Date(n.getFullYear(), n.getMonth() + 1, 1) - n) / 86400000); };
 const BADGE = (rank) => (rank === 1 ? 'Champion' : rank <= 3 ? 'Top 3' : rank <= 10 ? 'Top 10' : 'Farmer');
 const FARM_LEVEL = { huila: 3, gedeo: 5, toba: 7, turrialba: 9 };   /* dormant farms reopen at these levels after a prestige */
@@ -1223,7 +1225,7 @@ const GUIDE = [
   { ch: 'Mill', text: 'Tap Process on Washed', ev: 'lot', target: '[data-act="lot:washed"], .tab[data-tab="mill"]', reward: { points: 50 },
     say: 'The Mill turns cherries into green coffee. Each process takes a different time and pays differently. Washed is the quickest, so start there.' },
   { ch: 'Mill', text: 'Wait for the lot to dry (watch its bar)', ev: 'dry', target: '.tab[data-tab="mill"]', reward: {}, done: () => S.lots.some((l) => l.left <= 0) || S.stats.lotsSold > 0,
-    say: 'Your first lot dries at double speed. Drying keeps going on other tabs and even while the game is closed.' },
+    say: 'Your first lot dries at double speed. While it dries, tap Cup by hand under it: a hand-cupped lot scores higher and pays 20% more. Staff never cup, so this is where playing yourself pays off.' },
   { ch: 'Mill', text: 'Sell the dry lot', ev: 'sell', target: '[data-act^="sell:"], .tab[data-tab="mill"]', reward: { coins: 150 }, done: () => S.stats.lotsSold > 0,
     say: 'Selling pays two ways. Coins build and hire. Know-how unlocks new coffees, processes and farms, and all the know-how you earn raises your level.' },
   { ch: 'Grow', text: 'Hire a picker on the Farm tab', ev: 'hire', target: '[data-act="hire"], .tab[data-tab="farm"]', reward: { points: 50 },
@@ -1311,7 +1313,7 @@ const stored = () => Object.values(S.cherries).reduce((a, b) => a + b, 0);
 const carryKg = () => ART.carry[S.lv.carry - 1].kg;
 const maxHearts = () => 24 + S.lv.hearts * 6;
 const pickerMult = () => (1 + 0.18 * (S.lv.speed - 1)) * (S.boosts.pick > S.minutesTotal ? 2 : 1);
-const XP_AT = (l) => l <= 10 ? Math.round(100 * Math.pow(l - 1, 2.4)) : Math.round(100 * Math.pow(9, 2.4) * Math.pow(1.2, l - 10));   /* early levels come quickly, later ones take much longer */
+const XP_AT = (l) => l <= 10 ? Math.round(100 * Math.pow(l - 1, 2.4)) : Math.round(100 * Math.pow(9, 2.4) * Math.pow(1.22, l - 10));   /* early levels come quickly, later ones take much longer */
 const level = () => { let l = 1; while (S.xp >= XP_AT(l + 1)) l++; return l; };
 const levelSpan = () => { const l = level(), a = XP_AT(l), b = XP_AT(l + 1); return [(S.xp - a) / (b - a), l]; };
 if (!isFinite(S.minutesTotal)) S.minutesTotal = 0;   /* repair saves where the clock was lost */
@@ -1437,6 +1439,12 @@ function tick(dt) {
   S.lots.forEach((l) => { if (l.left > 0) { l.left = Math.max(0, l.left - d); if (!l.left) guideStep('dry'); if (!l.left && !S.staff.foreman) SFX.play('ding'); } });
   LOCS.forEach((l) => { const f = S.farms[l]; if (f.unlocked && !S.dormant[l]) tickFarm(f, d, l === S.loc); });
   tickMe(d);
+  rateC = rateC * Math.pow(0.99, dt) + earnedC * 60 * (1 - Math.pow(0.99, dt)) / Math.max(dt, 1e-3); rateX = rateX * Math.pow(0.99, dt) + earnedX * 60 * (1 - Math.pow(0.99, dt)) / Math.max(dt, 1e-3); earnedC = 0; earnedX = 0;
+  if (golden) { golden.t -= dt; if (golden.t <= 0) { golden = null; toast('The golden bush faded'); } }
+  else if ((S.guide >= GUIDE.length || level() >= 3) && (goldenT -= dt) <= 0) {   /* a golden bush appears every 3-6 minutes while you play */
+    goldenT = 180 + Math.random() * 180;
+    const fs = S.farms[S.loc]; if (fs.unlocked && !S.dormant[S.loc]) { golden = { loc: S.loc, i: Math.floor(Math.random() * fs.shrubs.length), t: 30 }; SFX.play('achieve'); toast('A golden bush appeared on the farm! Tap it within 30 s'); if (!S.goldenTip && $('modal').hidden) { S.goldenTip = true; showModal(coachCard('Golden bush', 'See that glowing bush? Golden bushes turn up every few minutes while you play, and only last 30 seconds. Tap one for about two minutes of your income at once. Your staff can\'t pick them for you.', 'I\'ll find it')); } }
+  }
   if (fireworks > 0) {   /* level-up fireworks: coloured bursts popping over your farmer */
     fireworks -= dt; fwT -= dt;
     if (fwT <= 0) { fwT = fireworks > 2 ? 0.1 : 0.22; const cx = me.x + (rnd() - 0.5) * 30, cy = me.y - 34 - rnd() * 16, col = ['#F2C04A', '#E83A30', '#7ED0A8', '#F8B8CC', '#7890E0', '#FFFFFF'][Math.floor(rnd() * 6)];
@@ -1465,13 +1473,16 @@ function draw(time) {
   if (!f.field) fx.drawImage(sprite('sign'), 134, 168);
   fx.drawImage(sprite('storage_' + S.lv.storage), STORE_AT.x, STORE_AT.y);
   if (stored() >= cap() && Math.floor(time * 2) % 2 === 0) fx.drawImage(sprite('bubble_full'), STORE_AT.x + 12, STORE_AT.y - 8);
+  const gold = golden && golden.loc === S.loc && f.shrubs[golden.i];
   const things = f.shrubs.map((s) => ({ y: s.y + 22, s })).concat(f.workers.map((w) => ({ y: w.y, w })), [{ y: f.dog.y, dog: f.dog }], f.manager ? [{ y: f.manager.y, mg: f.manager }] : [], [{ y: me.y, me: true }]);
   things.sort((p, q) => p.y - q.y);
   const hat = ART.hats[S.hat];
   things.forEach((o) => {
     if (o.s) {
       const s = o.s;
+      if (s === gold) { const pulse = 0.45 + 0.35 * Math.sin(time * 8); fx.fillStyle = 'rgba(255,214,90,' + pulse.toFixed(2) + ')'; fx.beginPath(); fx.ellipse(s.x + 9, s.y + 12, 12, 13, 0, 0, 7); fx.fill(); }
       fx.drawImage(sprite('bush_' + s.v + '_' + STAGES[s.p < 0.3 ? 0 : s.p < 0.55 ? 1 : s.p < 0.8 ? 2 : s.p < 1 ? 3 : 4]), s.x, s.y);
+      if (s === gold) { for (let k = 0; k < 3; k++) { const a = time * 3 + k * 2.1; fx.drawImage(sprite('sparkle'), Math.round(s.x + 5 + Math.cos(a) * 9), Math.round(s.y + 6 + Math.sin(a) * 9)); } }
       if (s.p >= 1 && Math.floor(time * 3 + s.x / 18 + s.y / 17) % 6 === 0) fx.drawImage(sprite('sparkle'), s.x + 11, s.y + 1);
     } else if (o.dog) {
       const g = o.dog, spr = sprite('shiba_' + (g.moving ? Math.floor(g.walk * 8) % 2 : 0)), X = Math.round(g.x) - 8, Y = Math.round(g.y) - 11;
@@ -1557,6 +1568,13 @@ cv.addEventListener('click', (e) => {
   const r = cv.getBoundingClientRect(), lx = (e.clientX - r.left) / r.width * W, ly = (e.clientY - r.top) / r.height * H;
   const f = S.farms[S.loc];
   const s = f.shrubs.find((x) => lx >= x.x && lx < x.x + 18 && ly >= x.y && ly < x.y + 22);
+  if (s && golden && golden.loc === S.loc && f.shrubs.indexOf(s) === golden.i) {   /* golden bush: about two minutes of your current income */
+    const c = Math.max(150, Math.round(rateC * 2)), k = Math.max(40, Math.round(rateX * 2));
+    golden = null; earn({ coins: c, points: k }); earnedC -= c; earnedX -= k; S.stats.golden = (S.stats.golden || 0) + 1;
+    SFX.play('achieve'); SFX.play('coins'); floats.push({ x: s.x + 9, y: s.y - 4, text: '+' + fmt(c) + ' coins', t: 0 }); floats.push({ x: s.x + 9, y: s.y + 8, text: '+' + fmt(k) + ' know-how', t: -0.3 });
+    for (let i = 0; i < 24; i++) bursts.push({ x: s.x + 9, y: s.y + 8, vx: (rnd() - 0.5) * 90, vy: -40 - rnd() * 60, t: 0, c: i % 2 ? '#F2C04A' : '#FFF4B0' });
+    toast('Golden bush! +' + fmt(c) + ' coins, +' + fmt(k) + ' know-how'); return;
+  }
   if (s) {
     if (s.p < 1) { SFX.play('brush'); floats.push({ x: s.x + 9, y: s.y, text: s.p < 0.8 ? 'growing' : 'soon', t: 0 }); return; }
     if (S.hearts <= 0) { SFX.play('nope'); floats.push({ x: s.x + 9, y: s.y, text: 'tired', t: 0 }); return; }
@@ -1585,7 +1603,9 @@ $('prevLoc').addEventListener('click', () => travel(-1));
 $('nextLoc').addEventListener('click', () => travel(1));
 
 function spend(cur, n) { if (S[cur] < n) return false; S[cur] -= n; return true; }
+let earnedC = 0, earnedX = 0, rateC = 0, rateX = 0, golden = null, goldenT = 150 + Math.random() * 120;   /* rate*: what you earn per real minute, smoothed */
 function earn(r) {
+  earnedC += r.coins || 0; earnedX += r.points || 0;
   const lv = level();
   if (r.coins) S.coins += r.coins; if (r.points) { S.points += r.points; S.xp += r.points; S.season.kh = (S.season.kh || 0) + r.points; } if (r.cranes) S.cranes += r.cranes;
   if (level() > lv) { levelUp(lv, level()); guideStep('level'); }
@@ -1661,13 +1681,16 @@ const marketPick = () => { const ms = Object.keys(METHODS).filter((k) => S.metho
 const MARKET = 1.4;
 const REAL_MIN = 150;   /* S.minutesTotal moves 2.5 game minutes a second, so 150 per real minute */
 const cupFor = (v, method) => { const vr = VAR[v]; return Math.min(95, METHODS[method].cup + (vr.value - 1) * 2 + ((vr.cup || {})[method] || 0) + S.bonus * 10 + shadeCup()) + 0.3 * (S.research || 0); };
-function saleFor(v, method, green) {
-  const bonus = 1 + S.bonus, cup = cupFor(v, method);
-  return { cup, coins: Math.round(green * 22 * VAR[v].value * METHODS[method].mult * bonus * (method === marketPick() ? MARKET : 1) * (eventDrop() && (v === eventDrop().variety || method === eventDrop().method) ? EVENT_MULT : 1)), points: Math.round(green * (3 + Math.max(0, cup - 80)) * 0.8 * bonus) };
+/* active play beats the staff: a lot you cup by hand scores +1.5 and pays 20% more, and golden bushes pay a burst of income to whoever taps them */
+const CUP_BONUS = 1.5, CUP_PAY = 1.2;
+const lotCup = (l) => cupFor(l.v, l.method) + (l.cupped ? CUP_BONUS : 0);
+function saleFor(v, method, green, lot) {
+  const bonus = 1 + S.bonus, cup = cupFor(v, method) + (lot && lot.cupped ? CUP_BONUS : 0);
+  return { cup, coins: Math.round((lot && lot.cupped ? CUP_PAY : 1) * green * 22 * VAR[v].value * METHODS[method].mult * bonus * (method === marketPick() ? MARKET : 1) * (eventDrop() && (v === eventDrop().variety || method === eventDrop().method) ? EVENT_MULT : 1)), points: Math.round(green * (3 + Math.max(0, cup - 80)) * 0.8 * bonus) };
 }
 function sellLot(i, quiet) {
   const l = S.lots[i]; if (!l || l.left > 0) return;
-  const m = METHODS[l.method], green = l.kg * 0.2, r = saleFor(l.v, l.method, green);
+  const m = METHODS[l.method], green = l.kg * 0.2, r = saleFor(l.v, l.method, green, l);
   const pea = rnd() < 0.03 * sumBuild('sorter');   /* the sorting table finds a peaberry lot */
   if (pea) { r.coins *= 2; r.points *= 2; }
   earn({ coins: r.coins, points: r.points });
@@ -1693,7 +1716,7 @@ function newContract() {
   const note = buyer === 'Beju Roastery' && home ? 'For the ' + ART.locations[home].reward : '';
   return { id: Math.floor(rnd() * 1e9), buyer, note, v, method, minCup, kg, have: 0, coins: Math.round(base.coins * mult), points: Math.round(base.points * mult), due: S.minutesTotal + 1440 * (1.5 + rnd() * 1.5) };
 }
-const fits = (c, l) => (!c.v || c.v === l.v) && (!c.method || c.method === l.method) && cupFor(l.v, l.method) >= c.minCup && c.have < c.kg;
+const fits = (c, l) => (!c.v || c.v === l.v) && (!c.method || c.method === l.method) && lotCup(l) >= c.minCup && c.have < c.kg;
 function contractsTick() {
   if (!S.tabs.orders) return;   /* no contracts until the Orders tab is open */
   const before = S.contracts.length;
@@ -1711,11 +1734,11 @@ function deliver(i, id, quiet) {
   if (l.method === 'washed') S.weekly.mine += green;
   S.lots.splice(i, 1); S.stats.lotsSold += 1; task('sell', 1); guideStep('deliver');
   let extra = { coins: 0, points: 0 };
-  if (spare > 0.05) { extra = saleFor(l.v, l.method, spare); earn(extra); }
+  if (spare > 0.05) { extra = saleFor(l.v, l.method, spare, l); earn(extra); }
   /* each delivery is paid its share straight away, so coffee in a contract that runs out of time is never lost */
   const done = c.have >= c.kg - 0.01, pay = done ? { coins: c.coins - (c.paidC || 0), points: c.points - (c.paidP || 0) } : { coins: Math.round(c.coins * use / c.kg), points: Math.round(c.points * use / c.kg) };
   c.paidC = (c.paidC || 0) + pay.coins; c.paidP = (c.paidP || 0) + pay.points;
-  earn(pay);
+  earn(pay); if (l.cupped) earn({ coins: Math.round(pay.coins * (CUP_PAY - 1)) });   /* buyers pay extra for hand-cupped coffee */
   if (done) {
     S.contracts = S.contracts.filter((x) => x !== c); S.nextContract = Math.min(S.nextContract, S.minutesTotal + 10); S.stats.contracts = (S.stats.contracts || 0) + 1; SFX.play('contract');
     if (c.event && S.event) { S.event.done += 1; if (S.event.done >= 3) { earn({ cranes: 10 }); S.badges.push({ event: eventDrop() ? eventDrop().name : 'Drop event', label: 'Drop', rank: 99 }); setTimeout(() => showModal('<h2>Drop event complete!</h2><p class="note">All three event contracts are delivered. The event badge is on your profile, and 10 cranes are yours.</p><button class="btn green" data-act="close">Brilliant</button>'), 600); } }
@@ -1925,7 +1948,7 @@ function checkTabs() {
 }
 function setHTML(el, html) { if (el.__html === html) return false; el.__html = html; el.innerHTML = html; return true; }   /* rebuilding unchanged buttons swallows taps */
 function renderTabs() {
-  const dot = { orders: S.tasks.some((t) => t.have >= t.goal && !t.done) || (S.weekly.team + S.weekly.mine >= S.weekly.target && !S.weekly.claimed), mill: S.lots.some((l) => l.left <= 0) };
+  const dot = { farm: !!golden && tab !== 'farm', orders: S.tasks.some((t) => t.have >= t.goal && !t.done) || (S.weekly.team + S.weekly.mine >= S.weekly.target && !S.weekly.claimed), mill: S.lots.some((l) => l.left <= 0) };
   $('tabs').style.gridTemplateColumns = 'repeat(' + TABS.length + ', minmax(0, 1fr))';
   setHTML($('tabs'), TABS.map(([id, label, ic]) => { const locked = tabLocked(id);
     return '<button class="tab' + (S.newTab === id ? ' fresh' : '') + (locked ? ' locked' : '') + '" role="tab" type="button" data-tab="' + id + '" aria-pressed="' + (tab === id) + '"' + (locked ? ' aria-label="' + label + ', locked: ' + TAB_HINT[id] + '"' : '') + '><img src="' + url(ic) + '" alt="">' + (locked ? TAB_SHORT[id] : label) + (locked ? '<i class="lock" aria-hidden="true">🔒</i>' : dot[id] ? '<i class="dot"></i>' : '') + '</button>'; }).join(''));
@@ -2005,10 +2028,11 @@ function renderPanel() {
     S.lots.forEach((l, i) => {
       const m = METHODS[l.method], done = l.left <= 0, fit = S.tabs.orders && S.contracts.find((c) => fits(c, l));
       h += row(img(m.art, 36), fmt(l.kg) + ' kg ' + ART.varieties[l.v] + ', ' + m.name.toLowerCase() + (fit ? ' <span class="fit">for ' + fit.buyer.split(',')[0] + '</span>' : ''), done ? 'Dry and ready to sell' : '<span class="bar" style="display:block"><i style="width:' + Math.round((1 - l.left / l.total) * 100) + '%"></i></span> ' + Math.ceil(l.left / 2.5) + ' min left', btn('Sell', done ? 'ready' : 'drying', 'sell:' + i, done, 'green'));
+      h += '<div class="seg" style="margin:-4px 0 6px 52px">' + (l.cupped ? '<span class="cupped">Hand-cupped · +' + CUP_BONUS + ' cup · +' + Math.round((CUP_PAY - 1) * 100) + '% pay</span>' : btn('Cup by hand', '+' + CUP_BONUS + ' cup · +' + Math.round((CUP_PAY - 1) * 100) + '% pay', 'cup:' + i, true, 'gold')) + '</div>';
       if (done && S.tabs.orders) S.contracts.filter((c) => fits(c, l)).forEach((c) => { h += '<div class="seg" style="margin:-4px 0 6px 52px">' + btn('Deliver to ' + c.buyer.split(',')[0], fmt(Math.min(l.kg * 0.2, c.kg - c.have)) + ' kg · contract', 'deliver:' + i + '.' + c.id, true, 'blue') + '</div>'; });
     });
     if (!S.lots.length) h += '<p class="note">No lots drying yet.</p>';
-    if (S.staff.foreman) h += '<p class="note">Your mill foreman starts and sells lots for you' + (S.staff.agent ? ', and your contracts agent delivers to matching contracts first' : '') + '.</p>';
+    if (S.staff.foreman) h += '<p class="note">Your mill foreman starts and sells lots for you' + (S.staff.agent ? ', and your contracts agent delivers to matching contracts first' : '') + '. Staff never cup by hand, so cupping lots yourself still adds +' + CUP_BONUS + ' cup and +' + Math.round((CUP_PAY - 1) * 100) + '% pay.</p>';
     if (S.staff.foreman && S.lots.length < racks() && stored() >= 10) h += '<p class="note">Free racks: your foreman starts a lot once one coffee reaches ' + fmt(Math.max(10, cap() * 0.25)) + ' kg, sooner when a buyer wants it, when half the racks are empty, or after a rack sits empty for a minute. Bigger lots dry in the same time, so waiting pays.</p>';
     h += '<h3>Start a lot</h3>';
     if (!vs.length) h += '<p class="note">Storage is empty. Pick some cherries first.</p>';
@@ -2203,6 +2227,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'mv') S.millV = v;
   else if (a === 'lot') startLot(S.millV, v);
   else if (a === 'sell') sellLot(+v);
+  else if (a === 'cup') { const l = S.lots[+v]; if (l && !l.cupped) { l.cupped = true; S.stats.cupped = (S.stats.cupped || 0) + 1; SFX.play('pour'); toast('Cupped by hand: +' + CUP_BONUS + ' cup score, +' + Math.round((CUP_PAY - 1) * 100) + '% pay'); } }
   else if (a === 'method') { if (spend('points', METHODS[v].cost)) { S.methods[v] = true; toast(METHODS[v].name + ' unlocked'); } }
   else if (a === 'up') { const before = S.lv[v]; buyUpgrade(v); if (S.lv[v] !== before) guideStep('up:' + v); }
   else if (a === 'guideNext') { if (S.guide < GUIDE.length) guideDone(); }
