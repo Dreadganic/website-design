@@ -1989,6 +1989,71 @@ def bag_beju(p):   # the real Beju bag: cream, the crane and wordmark in the cof
 
 add_layer("bag_beju", 14, 16, bag_beju)
 
+
+# ---------------- farmhouse upgrades: drawn over each farm's house as the farm levels up (farm level 10, 25 and 40) ----------------
+HOUSE_AT = {   # x0, front wall top, door centre, ground line, roof top, accent
+    "osaka": (108, 44, 148, 68, 2, "#3A4C9C"), "huila": (108, 42, 148, 68, 2, "#D04838"), "mogiana": (106, 38, 148, 64, 2, "#2E6AB0"),
+    "gedeo": (124, 46, 150, 68, 4, "#B8302A"), "toba": (106, 40, 148, 66, 2, "#B8302A"), "turrialba": (110, 38, 149, 64, 2, "#D85A40"),
+}
+HOX = 72
+
+
+def house_up(loc, tier):
+    x0, fy, dx, g, rt, acc = HOUSE_AT[loc]
+    def draw(p):
+        P = lambda x, y, c: p(x - HOX, y, c)
+        R = lambda x, y, w, h, c: [P(x + i, y + j, c) for i in range(w) for j in range(h)]
+        def awning(xa, xb, y, h):
+            for x in range(xa, xb):
+                for yy in range(y, y + h):
+                    P(x, yy, OUT if yy == y or (yy == y + h - 1 and x % 2) else (acc if ((x - xa) // 3) % 2 else "#F8F4EC"))
+        if tier >= 2:   # a veranda along the front: plank deck, posts and a long awning, with coffee sacks waiting
+            xa, xb = x0 - 2, dx + 2
+            R(xa, g - 2, xb - xa, 5, WOOD[4]); R(xa + 1, g - 1, xb - xa - 2, 3, WOOD[1])
+            for x in range(xa + 1, xb - 1, 5):
+                R(x, g - 1, 1, 3, WOOD[3])
+            for px_ in range(xa, xb, 14):
+                R(px_, fy - 1, 2, g - fy, WOOD[4]); R(px_ + 1, fy - 1, 1, g - fy, WOOD[2])
+            awning(xa - 2, xb, fy - 6, 6)
+            for (sx, sy) in ((x0 + 3, g - 7), (x0 + 8, g - 7), (x0 + 5, g - 11)):
+                R(sx, sy, 6, 5, OUT); R(sx + 1, sy + 1, 4, 3, JUTE[2]); P(sx + 2, sy + 2, "#2D6A46")
+            if loc != "gedeo":   # a dormer window on the roof
+                ox, oy = x0 + 16, max(rt + 6, fy - 26)
+                R(ox, oy, 14, 12, OUT); R(ox + 1, oy + 4, 12, 7, "#FAF6EE"); R(ox + 4, oy + 5, 6, 5, OUT); R(ox + 5, oy + 6, 4, 3, "#9CC8D8")
+                for k in range(4):
+                    R(ox + 3 - k // 2 + k, oy + 3 - k, 8 - 2 * k + 2, 1, acc)
+        elif tier >= 1:   # a striped canopy over the door
+            awning(dx - 12, dx + 13, fy - 4, 5)
+        if tier >= 1:   # planters, a porch lamp and a welcome mat
+            for px_ in (x0 + 16, dx - 22):
+                R(px_, g - 4, 8, 4, OUT); R(px_ + 1, g - 3, 6, 2, WOOD[3])
+                for k, c in enumerate(("#E84868", "#58A040", "#F2C04A", "#58A040", "#E84868", "#58A040")):
+                    P(px_ + 1 + k, g - 5 - (k % 2), c)
+            R(dx - 10, g - 16, 1, 16, WOOD[4]); R(dx - 11, g - 19, 3, 3, OUT); P(dx - 10, g - 18, "#FFE07A")
+            R(dx - 5, g + 1, 10, 2, acc)
+        if tier >= 3:   # the estate: gold trim along the eaves, string lights, lanterns and a Beju flag on the roof
+            for x in range(x0 - 2, dx):
+                P(x, fy - 7, "#F2C04A")
+            cols = ["#FF6A6A", "#FFE07A", "#7ED0F0", "#9AE07A"]
+            for i, x in enumerate(range(x0, dx - 4)):
+                y = fy + 1 + int(2 * math.sin((x - x0) / 14 * math.pi) ** 2)
+                P(x, y, "#3E2A1C")
+                if i % 4 == 0:
+                    P(x, y + 1, cols[(i // 4) % 4])
+            for lx in (x0 + 2, dx - 16):
+                R(lx, fy + 4, 3, 5, OUT); R(lx + 1, fy + 5, 1, 3, "#E83A30")
+            fx_ = x0 + 6
+            R(fx_, rt, 1, 18, "#B8B8B8"); P(fx_, rt - 1, "#F2C04A")
+            R(fx_ + 1, rt, 11, 7, OUT); R(fx_ + 2, rt + 1, 9, 5, "#2D6A46")
+            for (a, b) in ((4, 2), (5, 3), (6, 2), (7, 3), (8, 2), (6, 1)):
+                P(fx_ + 1 + a, rt + b, "#F2C04A")
+    return draw
+
+
+for _loc in HOUSE_AT:
+    for _t in (1, 2, 3):
+        add_layer("house_up_%s_%d" % (_loc, _t), 120, 92, house_up(_loc, _t))
+
 # ---------------- the roastery: a drum roaster (two flame frames) and a bag for each roast ----------------
 def roaster(f, big=False):
     """f 0/1: flame frames while roasting, 2: cold. A big drum (160 kg and up) is black with a brass band."""

@@ -402,8 +402,12 @@ const FARM_MILESTONES = [
   { lv: 5, kind: 'skin', label: (l) => ART.bskins[ORIGIN[l].skin].name + ' building style' },
   { lv: 10, kind: 'perk', label: (l) => ORIGIN[l].what.charAt(0).toUpperCase() + ORIGIN[l].what.slice(1) + ' sell for 10% more, from any farm' },
   { lv: 15, kind: 'gold', label: () => 'A gold passport stamp' },
-  { lv: 25, kind: 'perk2', label: (l) => ORIGIN[l].what.charAt(0).toUpperCase() + ORIGIN[l].what.slice(1) + ' sell for 20% more' }
-];
+  { lv: 25, kind: 'perk2', label: (l) => ORIGIN[l].what.charAt(0).toUpperCase() + ORIGIN[l].what.slice(1) + ' sell for 20% more' },
+  { lv: 10, kind: 'house', label: () => 'The farmhouse gets a striped canopy, planters and a porch lamp' },
+  { lv: 25, kind: 'house', label: () => 'The farmhouse gets a veranda and a window in the roof' },
+  { lv: 40, kind: 'house', label: () => 'The farmhouse becomes an estate: gold trim, lanterns, string lights and a Beju flag' }
+].sort((a, b) => a.lv - b.lv);
+const houseTier = (fl) => (fl >= 40 ? 3 : fl >= 25 ? 2 : fl >= 10 ? 1 : 0);   /* the farmhouse grows with the farm */
 const originMult = (v, m) => LOCS.reduce((x, l) => { const f = S.farms[l], fl = f.unlocked ? farmLevel(f) : 0; return x * (ORIGIN[l].test(v, m) ? (fl >= 25 ? 1.2 : fl >= 10 ? 1.1 : 1) : 1); }, 1);
 function checkFarmMilestones() {   /* hands out each farm's milestones once, with a card the first time */
   S.farmMs = S.farmMs || {};
@@ -1373,6 +1377,7 @@ function draw(time) {
   const f = S.farms[S.loc], sea = season(S.loc), b = bg(S.loc);
   fx.imageSmoothingEnabled = false;
   if (b.complete && b.naturalWidth) fx.drawImage(b, 0, 0); else { fx.fillStyle = '#7A9A3A'; fx.fillRect(0, 0, W, H); }
+  { const ht = f.unlocked ? houseTier(farmLevel(f)) : 0; if (ht && ART.sprites['house_up_' + S.loc + '_' + ht]) fx.drawImage(sprite('house_up_' + S.loc + '_' + ht), 72, 0); }
   if (S.loc === 'osaka' && sea !== 'winter') { const a = time * 0.6, kx = 24 + Math.cos(a) * 9, ky = 86 + Math.sin(a) * 4; fx.fillStyle = '#F08838'; fx.fillRect(Math.round(kx), Math.round(ky), 4, 2); }
   if (S.decor.bunting) for (let x = 8; x < 184; x += 24) fx.drawImage(sprite('deco_bunting'), x, 103);
   BUILD_ORDER.forEach((k, i) => {

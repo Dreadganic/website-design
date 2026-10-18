@@ -332,3 +332,11 @@ First crack always opens at 70% of the roast. How long its window lasts depends 
   | P8 | 46 | 52 | 57 | 61 |
 
   The P4 perk still keeps Huila and Gedeo open. The prestige window lists each farm's reopen level.
+
+## Farmhouse upgrades
+Each farm's house grows with its farm level (`houseTier`). The overlay sprites `house_up_<farm>_<1-3>` come from `house_up()` in `build_sprites.py` and are drawn over the background at (72, 0), in each farm's own accent colour:
+- **Level 10:** a striped canopy over the door, planters, a porch lamp and a welcome mat.
+- **Level 25:** a veranda along the front with posts, a long awning and coffee sacks, plus a dormer window in the roof (not on Gedeo's round tukul).
+- **Level 40:** gold trim along the eaves, lanterns, string lights and a Beju flag on the roof.
+
+Each step is a farm milestone with its own line on the milestone card. Preview: `review/farmhouse-upgrades.png`.
