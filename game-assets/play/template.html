@@ -924,7 +924,7 @@ function tickFarm(f, d, visible) {
     } else if (w.state === 'deposit') {
       w.dir = 'up';
       const kg = store(f, w.lastV || f.beds[0], w.carry);
-      if (kg) { w.carry -= kg; if (visible) SFX.play('thud'); if (visible) floats.push({ x: DROP.x, y: 70, text: '+' + kg + ' kg', t: 0 }); }
+      if (kg) { w.carry -= kg; if (visible) SFX.play('thud'); if (visible) floats.push({ x: DROP.x, y: 70, text: '+' + fmtKg(kg) + ' kg', t: 0 }); }
       if (!w.carry) w.state = 'seek';
     }
   });
