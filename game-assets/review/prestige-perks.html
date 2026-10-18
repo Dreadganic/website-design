@@ -1,0 +1,127 @@
+<title>Beju Farm Prestige Perks</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column like the other reviews; the perk ladder is a numbered list because prestige order is real */
+:root {
+  --bg: #F5F3EE; --panel: #FFFFFF; --fg: #23201B; --muted: #6A6358; --line: #DED8CC;
+  --bean: #6B3F22; --leaf: #2F6B4F; --cherry: #B8323A; --gold: #A8791A; --soft: #EFE9DD;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #171512; --panel: #201D19; --fg: #EDE7DC; --muted: #A79F92; --line: #383229;
+  --bean: #D9A47A; --leaf: #6CC59A; --cherry: #F07880; --gold: #E2B64A; --soft: #2A2620; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #171512; --panel: #201D19; --fg: #EDE7DC; --muted: #A79F92; --line: #383229;
+  --bean: #D9A47A; --leaf: #6CC59A; --cherry: #F07880; --gold: #E2B64A; --soft: #2A2620; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font: 16px/1.6 var(--body); }
+.wrap { max-width: 780px; margin: 0 auto; padding-block: 40px 72px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 36px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(30px, 6vw, 42px); font-weight: 800; }
+h2 { font-size: 24px; font-weight: 800; }
+h3 { font-size: 17px; font-weight: 600; }
+p { margin: 0; max-width: 66ch; }
+section { display: flex; flex-direction: column; gap: 14px; }
+.eyebrow { font: 600 12px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--bean); }
+.lede { font-size: 18px; color: var(--muted); }
+.tw { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 12px/1.3 var(--mono); letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+.ladder { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.perk { display: grid; grid-template-columns: 56px 1fr; gap: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+.perk .p { font: 800 22px/1 var(--display); color: var(--gold); font-variant-numeric: tabular-nums; }
+.perk .p small { display: block; font: 600 11px var(--mono); color: var(--muted); margin-top: 4px; }
+.perk div { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.perk b { font-family: var(--display); font-size: 17px; }
+.perk .why { font-size: 14px; color: var(--muted); }
+.perk.built { border-color: var(--leaf); }
+.perk.built .p { color: var(--leaf); }
+.tag { font: 600 11px var(--mono); text-transform: uppercase; letter-spacing: 0.05em; color: var(--leaf); }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; }
+.card.bad { border-left: 4px solid var(--cherry); }
+ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 68ch; }
+.note { font-size: 14px; color: var(--muted); }
+a { color: var(--leaf); }
+</style>
+
+<div class="wrap">
+<header style="display:flex;flex-direction:column;gap:12px">
+  <span class="eyebrow">Design research · 18 October 2026</span>
+  <h1>Prestige perks fit the genre: give one each prestige, and make them conveniences, not multipliers</h1>
+  <p class="lede">Idle and farming games reward long-term players by taking chores off their hands, usually at the exact point a chore starts to grate. Beju Farm's prestige already avoids income multipliers so the season board stays fair. Free convenience perks are the natural way to make each prestige feel bigger. Cup all at prestige 2 is the first one; here is a ladder for the rest.</p>
+</header>
+
+<section>
+<h2>What other games do</h2>
+<div class="tw"><table>
+<thead><tr><th>Game</th><th>What carries across resets</th><th>What it teaches us</th></tr></thead>
+<tbody>
+<tr><td>Antimatter Dimensions</td><td>Challenges and milestones unlock autobuyers that automate the earlier layers of the game</td><td>Automation is the reward for doing a loop many times. Each milestone removes a chore the player has already mastered.</td></tr>
+<tr><td>Cookie Clicker</td><td>Heavenly upgrades and permanent upgrade slots keep chosen upgrades across ascensions</td><td>Players value whatever speeds the climb back after a reset.</td></tr>
+<tr><td>Egg, Inc.</td><td>Epic research, golden eggs and the Hyperloop survive prestige; silos extend away time</td><td>Longer away time and keeping key buildings are prized permanent rewards for casual players.</td></tr>
+<tr><td>Melvor Idle</td><td>Mastery pool checkpoints at 10, 25, 50 and 95% unlock skill-wide bonuses</td><td>Clear, visible thresholds turn long grinds into goals.</td></tr>
+<tr><td>Stardew Valley</td><td>After level 10 in all skills, XP becomes mastery points spent at the Mastery Cave for powerful perks</td><td>Even a cosy farming game gives its veterans a new layer of rewards for maxed play.</td></tr>
+<tr><td>Idle Miner Tycoon</td><td>Managers and Super Managers automate shafts; prestige adds permanent bonuses</td><td>Automation is unlocked gradually, one station at a time.</td></tr>
+</tbody></table></div>
+<p>The common thread: <b>repeat players earn their way out of repetition.</b> The perk arrives once the chore has stopped being interesting, never before. That matches what we saw with Cup all: tapping each lot is fine with 5 racks and tedious with 15.</p>
+</section>
+
+<section>
+<h2>Why conveniences and not multipliers</h2>
+<div class="card bad">
+  <ul>
+    <li><b>Seasons:</b> the board ranks capped season stars, so new and old farmers race on equal terms. An income multiplier wouldn't break that, but stacked bonuses would widen the gap between new and veteran farms everywhere else.</li>
+    <li><b>Pacing:</b> P5 sits near 10.7 hours of active play. Multipliers per prestige would shrink every later run and make the geometric level curve meaningless.</li>
+    <li><b>Active play:</b> perks must not do the active-play jobs (golden bushes, choosing to cup) for players who aren't there. Cup all still needs you to tap it.</li>
+    <li><b>Real money:</b> perks stay free. Selling convenience for cranes would mean selling it for coffee orders, which feels pay-to-win.</li>
+  </ul>
+</div>
+</section>
+
+<section>
+<h2>A perk for each prestige</h2>
+<p>Timed against the playtest bot's run to P5: 3 farms in the P1 run, 4 in the P2 run, all 5 by P3; racks go 6-9, 10-17, 17-27; a run takes 25 minutes at P1 and about 8 hours at P4.</p>
+<ol class="ladder">
+  <li class="perk"><span class="p">P1<small>soon</small></span><div><b>Seed catalogue: Replant all</b><span>Choose a coffee and every field on every open farm switches to it in one tap, except each farm's native field, which keeps its terroir.</span><span class="why">The P1 run brings a third farm and a new coffee. Replanting 9 to 12 fields one by one through a popup each time is the first real chore.</span></div></li>
+  <li class="perk built"><span class="p">P2<small>built</small></span><div><span class="tag">In the game</span><b>Head cupper's table: Cup all</b><span>Hand-cup every lot on the racks in one tap.</span><span class="why">Racks jump past 10 in the P2 run.</span></div></li>
+  <li class="perk"><span class="p">P3<small>soon</small></span><div><b>Night shift: 18 hours away</b><span>The farm keeps working for up to 18 hours while you're away, up from 12.</span><span class="why">By P3 the casual player is weeks in and playing around a daily routine; a night's sleep plus a workday is more than 12 hours. Egg, Inc.'s silos show how much players value this. Offline pay is lower than active play, so active players keep their lead.</span></div></li>
+  <li class="perk"><span class="p">P4<small>soon</small></span><div><b>Old friends: Huila and Gedeo stay awake</b><span>After a prestige, Huila and Gedeo keep working straight away; only Toba and Turrialba sleep until you level back up.</span><span class="why">From P4 a run lasts hours, and the first stretch with farms asleep is the slowest part. This speeds the climb back, as Cookie Clicker's permanent slots do, without raising the ceiling.</span></div></li>
+  <li class="perk"><span class="p">P5<small>later</small></span><div><b>Lookout: golden bushes on every farm</b><span>Golden bushes can appear on any open farm, and the alert takes you there in one tap.</span><span class="why">With 5 farms, players spend time away from the farm on screen and miss bushes. This keeps active play rewarding, not easier.</span></div></li>
+  <li class="perk"><span class="p">P6<small>later</small></span><div><b>Tasting notes: reroll a daily task</b><span>Swap one daily task a day for a new one.</span><span class="why">Late-game players often get a task their farm makes awkward. Many task-board games allow a reroll. It doesn't add stars, since the task cap stays at 6 a day.</span></div></li>
+  <li class="perk"><span class="p">P7<small>later</small></span><div><b>Foreman's notebook: a process for each coffee</b><span>Set the foreman's process per coffee (Geisha always washed, Pink Bourbon always whiskey, for example) instead of one rule for everything.</span><span class="why">With every process and coffee unlocked, one foreman rule leaves money on the table, and fixing it by hand is fiddly.</span></div></li>
+  <li class="perk"><span class="p">P8<small>later</small></span><div><b>Golden Crane: the farm sign</b><span>A gold Beju sign over every farm and a crane that flies over the fields. Cosmetic only.</span><span class="why">The top crest tier deserves something everyone can see on the farm itself, and by then there is nothing left to automate.</span></div></li>
+</ol>
+<p class="note">Each perk shows in the prestige preview and popup and in the perk list under Ranks > Prestige & looks, as Cup all does now, so the next one is always something to look forward to.</p>
+</section>
+
+<section>
+<h2>What I'd build next</h2>
+<ul>
+  <li><b>P1 Replant all, P3 Night shift and P4 Old friends.</b> All three are small: one button, one number and one list change. Each removes a chore the sims show players hitting.</li>
+  <li><b>P5 Lookout</b> once the first three are in, since it changes how golden bushes spawn and needs a quick sim check.</li>
+  <li>P6 to P8 when players start reaching those prestiges after launch.</li>
+</ul>
+</section>
+
+<section>
+<h2>Sources</h2>
+<ul class="note">
+  <li><a href="https://antimatter-dimensions.fandom.com/wiki/User_blog:Bubby3/The_History_of_Antimatter_Dimensions">The history of Antimatter Dimensions (fan wiki)</a></li>
+  <li><a href="https://antimatter-dimensions.fandom.com/wiki/Eternity_Milestones">Antimatter Dimensions: Eternity milestones (fan wiki)</a></li>
+  <li><a href="https://gamepretty.com/cookie-clicker-ascension-and-permaslots-guide/">Cookie Clicker ascension and permanent slots guide</a></li>
+  <li><a href="https://www.pocketgamer.com/cookie-clicker/heavenly-chips-guide">Cookie Clicker heavenly chips guide (Pocket Gamer)</a></li>
+  <li><a href="https://en.wikipedia.org/wiki/Egg,_Inc.">Egg, Inc. (Wikipedia)</a></li>
+  <li><a href="https://egg-inc.fandom.com/wiki/Prestige?oldid=9210">Egg, Inc. prestige (fan wiki)</a></li>
+  <li><a href="https://steamcommunity.com/app/1267910/discussions/0/3199241400250725473">Melvor Idle mastery pool checkpoints (Steam community)</a></li>
+  <li><a href="https://www.stardewvalleywiki.com/Mastery_Cave">Stardew Valley Mastery Cave (official wiki)</a></li>
+  <li><a href="https://primagames.com/gaming/stardew-valley-mastery-system-explained">Stardew Valley 1.6 mastery system explained (Prima Games)</a></li>
+  <li><a href="https://www.kolibrigames.com/blog/introducing-super-manager-2-0">Introducing Super Manager 2.0 (Kolibri Games)</a></li>
+</ul>
+</section>
+</div>
