@@ -170,8 +170,8 @@ Coins build, know-how unlocks, cranes buy looks, and the tabs follow that rule:
 
 ## Native coffees and terroir
 - Each farm has native varieties (Mogiana: Yellow Catuai, Mundo Novo, Yellow Bourbon; Huila: Caturra, Castillo, Pink Bourbon; Gedeo: Heirloom; Lake Toba: Catimor; Turrialba: Caturra, Yellow Catuai, Geisha; Osaka: Geisha, Pink Bourbon, Yellow Bourbon).
-- A native field grows 20% faster. **Terroir:** while a farm has at least one native field, every pick there (by hand, by pickers and offline) brings in 20% more cherries. That keeps older coffees like Catimor and Caturra worth a field next to the newest varieties.
+- A native field grows 20% faster. **Terroir:** while a farm has at least one native field, every pick there (by hand, by pickers and offline) brings in 15% more cherries. That keeps older coffees like Catimor and Caturra worth a field next to the newest varieties.
 - The Farm tab shows whether terroir is on and which natives would turn it on. The replant window lists the natives and warns before you replant your only native field.
 - Tutorial: a two-step "Native" chapter after the first replant (unlock Yellow Catuai, then plant it at Mogiana).
-- Measured with the bot keeping one native field per farm: P5 in about 9.9 hours of active play, against 11.8 without terroir.
+- Measured with the bot keeping one native field per farm: P5 in about 10.7 hours of active play at +15% (9.9 at +20%, 11.8 without terroir).
 
