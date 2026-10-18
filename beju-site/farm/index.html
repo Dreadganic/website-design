@@ -1561,7 +1561,7 @@ function roasteryTick() {
   if (roasteryOpen() && !R.tip) { R.tip = true; showModal(coachCard('The roastery', 'Beju roasts in Japan, and now you can too! Your mill foreman keeps it stocked with green coffee (change how much in the Roastery), or tap Roast on a dry lot to send one yourself. Roast it light, medium or dark: each coffee has a best roast, marked with a star. Tap <b>Crack</b> at first crack for a better roast. Then sell the bags to cafés, kissaten or konbini for far more than green coffee. Staff don\'t roast, so this one is all yours.', 'Show me', 'roastgo')); }
   for (let i = R.roasters.length - 1; i >= 0; i--) {
     const r = R.roasters[i];
-    if (inCrack(r) && !r.warned) { r.warned = true; SFX.play('crack'); if (!(tab === 'mill' && S.millSub === 'roast')) toast('First crack in the roastery! Tap Crack in Mill > Roastery'); }
+    if (inCrack(r) && !r.warned) { r.warned = true; SFX.play('crack'); if (tab !== 'roast') toast('First crack in the roastery! Tap Crack in the Roastery tab'); }
     if (roastP(r) < 1) continue;
     const [v, m] = r.key.split('.'), best = bestRoast(v, m) === r.profile;
     const q = Math.max(20, Math.min(100, Math.round(r.cup - 40 + (best ? 15 : -5) + (r.crack === 1 ? 15 : 0) + (repLevel() >= 6 ? 5 : 0))));
@@ -1826,15 +1826,15 @@ const GUIDE = [
     say: 'Your first lot dries at double speed. While it dries, tap Cup by hand under it: a hand-cupped lot scores higher and pays 20% more. Staff never cup, so this is where playing yourself pays off.' },
   { ch: 'Mill', text: 'Sell the dry lot', ev: 'sell', target: '[data-act^="sell:"], .tab[data-tab="mill"]', reward: { coins: 150 }, done: () => S.stats.lotsSold > 0,
     say: 'Selling pays two ways. Coins build and hire. Know-how unlocks new coffees, processes and farms, and all the know-how you earn raises your level.' },
-  { ch: 'Grow', text: 'Hire a picker on the Farm tab', ev: 'hire', target: '[data-act="hire"], .tab[data-tab="farm"]', reward: { points: 50 },
+  { ch: 'Grow', text: 'Hire a picker on the Farm tab', ev: 'hire', target: '[data-act="hire"], [data-act="uptab:fields"], .tab[data-tab="farm"]', reward: { points: 50 },
     say: 'More pickers, more cherries. The Hire button is on the Farm tab, just under the farm.' },
-  { ch: 'Grow', text: 'Build bigger storage in the Build tab', ev: 'up:storage', target: '[data-act="up:storage"], [data-act="uptab:farm"], .tab[data-tab="upgrades"]', reward: { coins: 150 }, done: () => S.lv.storage > 1,
-    say: 'The Build tab is open now: coins go on your farm, buildings and staff there. A bigger store holds more cherries, so your pickers keep working longer, even while you\'re away.' },
-  { ch: 'Grow', text: 'Train your pickers in the Build tab', ev: 'up:pickers', target: '[data-act="up:pickers"], [data-act="uptab:farm"], .tab[data-tab="upgrades"]', reward: { points: 100 }, done: () => S.lv.pickers > 1,
+  { ch: 'Grow', text: 'Build bigger storage in Farm › Upgrades', ev: 'up:storage', target: '[data-act="up:storage"], [data-act="uptab:farm"], .tab[data-tab="farm"]', reward: { coins: 150 }, done: () => S.lv.storage > 1,
+    say: 'The Farm tab has new pages now: Upgrades, Buildings and Staff. Coins go on your farm there. A bigger store holds more cherries, so your pickers keep working longer, even while you\'re away.' },
+  { ch: 'Grow', text: 'Train your pickers in Farm › Upgrades', ev: 'up:pickers', target: '[data-act="up:pickers"], [data-act="uptab:farm"], .tab[data-tab="farm"]', reward: { points: 100 }, done: () => S.lv.pickers > 1,
     say: 'Training makes every picker walk and pick faster. At levels 4 and 8 they get bigger baskets too.' },
   { ch: 'Coffees', text: 'Unlock ' + ART.varieties.catuai + ' in the Unlock tab', ev: 'var', target: '[data-act="var:catuai"], [data-act="untab:coffees"], .tab[data-tab="unlock"]', reward: { coins: 200 }, done: () => S.vars.catuai,
     say: 'New coffees grow faster, carry more or sell for more. Each one comes from a farm where it\'s native: Mogiana\'s are ' + ['catuai', 'mundonovo', 'yellowbourbon'].map((v) => ART.varieties[v]).join(', ') + '. Know-how pays for them in the Unlock tab.' },
-  { ch: 'Coffees', text: 'Plant ' + ART.varieties.catuai + ' in a field at Mogiana', ev: 'plant', target: '[data-act^="bed:"], .tab[data-tab="farm"]', reward: { points: 150 }, done: () => terroir(S.farms.mogiana) > 1,
+  { ch: 'Coffees', text: 'Plant ' + ART.varieties.catuai + ' in a field at Mogiana', ev: 'plant', target: '[data-act^="bed:"], [data-act="uptab:fields"], .tab[data-tab="farm"]', reward: { points: 150 }, done: () => terroir(S.farms.mogiana) > 1,
     say: 'On the Farm tab, tap Replant on a field and choose it. A native field grows 20% faster, and while a farm has one, every pick there brings in 15% more cherries. That\'s terroir. Keep one native patch on every farm.' },
   { ch: 'Buyers', text: 'Keep selling until you reach level 3', ev: 'level', target: '.tab[data-tab="mill"]', reward: {}, done: () => level() >= 3,
     say: 'Every level brings a reward. At level 3, buyers start posting contracts in the Mill. Keep processing and selling lots to get there.' },
@@ -2201,7 +2201,7 @@ function draw(time) {
   drawFloats();
 }
 /* ---------- the mill yard and the roastery: what the stage shows on the Mill tab ---------- */
-const scene = () => (tab !== 'mill' ? 'farm' : S.millSub === 'roast' && roasteryOpen() ? 'roast' : 'mill');
+const scene = () => (tab === 'mill' ? 'mill' : tab === 'roast' && roasteryOpen() ? 'roast' : 'farm');
 const sceneImgs = {};
 function sceneBg(k) { if (!sceneImgs[k]) { const im = new Image(); im.src = BGS[k]; sceneImgs[k] = im; } return sceneImgs[k]; }
 const RACK_SHOWN = 16, RACK_GAPS = [50, 96, 142], TRUCK = { x: 54, y: 90 };
@@ -2487,7 +2487,7 @@ cv.addEventListener('click', (e) => {
     if (S.intro === 0) { S.intro = 1; }
     return;
   }
-  if (!f.field && lx > 104 && lx < 182 && ly > 160 && ly < 200) { S.upTab = 'farm'; setTab('upgrades'); toast('Clear the fourth field in the Build tab'); return; }
+  if (!f.field && lx > 104 && lx < 182 && ly > 160 && ly < 200) { S.farmSub = 'upgrades'; setTab('farm'); toast('Clear the fourth field in Farm › Upgrades'); return; }
   if (lx > STORE_AT.x && lx < STORE_AT.x + 40 && ly > STORE_AT.y && ly < STORE_AT.y + 38) { setTab('mill'); return; }
   if (Math.abs(lx - me.x) < 8 && ly > me.y - 24 && ly < me.y + 2) { setTab('ranks'); return; }
   if (Math.hypot(lx - f.dog.x, ly - f.dog.y + 5) < 9) SFX.play('woof'), floats.push({ x: f.dog.x, y: f.dog.y - 14, text: 'woof!', t: 0 });
@@ -2793,15 +2793,16 @@ function away(hours) {
   const fullAfter = Math.round(room / Math.max(1, kg / hours) * 10) / 10;
   showModal('<h2>Welcome back!</h2><p class="note">You were away for ' + hours + ' h. Your pickers brought in <b>' + fmt(got) + ' kg</b> of cherries' + (kg > room ? ', then storage filled up after about ' + fullAfter + ' h and they rested.' : '.') + ' Any lots on the racks finished drying.' + (S.staff.foreman ? ' Your foreman kept the mill running and earned <b>' + fmt(coinsEarned) + ' coins</b> and <b>' + fmt(khEarned) + ' know-how</b>.' : ' Hire a mill foreman and the mill keeps working while you are away.') + '</p>' +
     '<div class="stats"><div><small>Picked</small><b>' + fmt(got) + '</b></div><div><small>Storage</small><b>' + fmt(stored()) + '</b></div><div><small>Cap</small><b>' + fmt(cap()) + '</b></div></div>' +
-    (kg > room ? '<p class="note">A bigger store keeps them going longer: see the Build tab.</p>' : '') + '<button class="btn green" data-act="close">Collect</button>');
+    (kg > room ? '<p class="note">A bigger store keeps them going longer: see Farm › Upgrades.</p>' : '') + '<button class="btn green" data-act="close">Collect</button>');
   return coinsEarned;
 }
 
 /* ---------- interface ---------- */
 let tab = 'farm', toastT = 0;
 const TEST_TOOLS = true;   /* build.py --launch turns this off: the Test tab becomes Settings and the cheats stop working */
-const TABS = [['farm', 'Farm', 'i_worker'], ['mill', 'Mill', 'green_sack'], ['upgrades', 'Build', 'storage_4'], ['unlock', 'Unlock', 'i_points'], ['orders', 'Daily', 'i_cherry'], ['ranks', 'Ranks', 'i_trophy'], ['shop', 'Shop', 'i_crane'], TEST_TOOLS ? ['test', 'Test', 'i_box'] : ['test', 'Settings', 'i_box']];
-function setTab(t) { if (t !== tab) SFX.play('click'); if (S.newTab === t) S.newTab = null; guideStep('tab:' + t); tab = t; renderTabs(); renderPanel(); refreshHud(); }
+const TABS = [['farm', 'Farm', 'i_worker'], ['mill', 'Mill', 'green_sack'], ['roast', 'Roastery', 'roaster_0'], ['unlock', 'Unlock', 'i_points'], ['orders', 'Daily', 'i_cherry'], ['ranks', 'Ranks', 'i_trophy'], ['shop', 'Shop', 'i_crane'], TEST_TOOLS ? ['test', 'Test', 'i_box'] : ['test', 'Settings', 'i_box']];
+function setTab(t) { if (t === 'upgrades') { S.farmSub = S.upTab === 'build' || S.upTab === 'staff' ? S.upTab : 'upgrades'; t = 'farm'; }   /* Build lives inside the Farm tab now */
+  if (t !== tab) SFX.play('click'); if (S.newTab === t) S.newTab = null; guideStep('tab:' + t); tab = t; renderTabs(); renderPanel(); refreshHud(); }
 
 /* free 100 g coffee samples: a welcome bag at Mogiana's first 1,000 kg, one per origin at prestige 2-5, and one a month for
    checking in on 20 days. Each is redeemed with a bejucoffee.com order of SAMPLE_MIN or more within SAMPLE_DAYS. Online, the server's list wins */
@@ -2888,15 +2889,15 @@ function placeArrow(t) {   /* a bouncing arrow over what to tap; on the farm it 
   arrow.hidden = false; arrow.style.left = Math.round(x - 11) + 'px'; arrow.style.top = Math.round(y - 26) + 'px';
 }
 addEventListener('scroll', () => { if (!$('garrow').hidden) renderGuide(); }, { passive: true });
-const TAB_OPEN = { upgrades: () => S.stats.lotsSold >= 1 || S.guide > 4, unlock: () => S.stats.lotsSold >= 1 || S.guide > 4, orders: () => level() >= 3, ranks: () => level() >= 6, shop: () => level() >= 4 };
+const TAB_OPEN = { roast: () => roasteryOpen(), upgrades: () => S.stats.lotsSold >= 1 || S.guide > 4, unlock: () => S.stats.lotsSold >= 1 || S.guide > 4, orders: () => level() >= 3, ranks: () => level() >= 6, shop: () => level() >= 4 };
 /* every tab shows from the start; locked ones say what opens them */
 const TAB_LEVEL = { orders: 3, shop: 4, ranks: 6 };   /* one new tab every few levels, so features arrive one at a time */
-const TAB_HINT = { upgrades: 'sell your first lot', unlock: 'sell your first lot', shop: 'reach level 4', orders: 'reach level 3', ranks: 'reach level 6' };
-const TAB_SHORT = { upgrades: '1st sale', unlock: '1st sale', shop: 'Lv 4', orders: 'Lv 3', ranks: 'Lv 6' };
+const TAB_HINT = { roast: 'reach prestige 3 or open the Osaka garden', upgrades: 'sell your first lot', unlock: 'sell your first lot', shop: 'reach level 4', orders: 'reach level 3', ranks: 'reach level 6' };
+const TAB_SHORT = { roast: 'P3', upgrades: '1st sale', unlock: '1st sale', shop: 'Lv 4', orders: 'Lv 3', ranks: 'Lv 6' };
 const TAB_WHAT = { shop: 'Shop: characters, building styles, boosts and decor', orders: 'Daily tab, and buyers start posting contracts in the Mill', ranks: 'Ranks: the leaderboard, crests, outfits and prestige' };
 const tabLocked = (id) => !!TAB_OPEN[id] && !S.tabs[id];
 function checkTabs() {
-  Object.keys(TAB_OPEN).forEach((k) => { if (!S.tabs[k] && TAB_OPEN[k]()) { S.tabs[k] = true; if (k === 'orders') { S.contracts = S.contracts.filter((c) => c.event); S.nextContract = 0; setTimeout(() => toast('Buyers now post contracts in the Mill'), 2800); } S.newTab = k; toast('New tab: ' + TABS.find((x) => x[0] === k)[1]); SFX.play('achieve'); const c = TAB_COACH[k]; if (c) setTimeout(() => showModal(coachCard(c[0], c[1] || seasonPitch(), c[2], c[3])), 1200); } });
+  Object.keys(TAB_OPEN).forEach((k) => { if (!S.tabs[k] && TAB_OPEN[k]()) { S.tabs[k] = true; if (k === 'orders') { S.contracts = S.contracts.filter((c) => c.event); S.nextContract = 0; setTimeout(() => toast('Buyers now post contracts in the Mill'), 2800); } S.newTab = k === 'upgrades' ? 'farm' : k; toast(k === 'upgrades' ? 'New in the Farm tab: Upgrades, Buildings and Staff' : 'New tab: ' + TABS.find((x) => x[0] === k)[1]); SFX.play('achieve'); const c = TAB_COACH[k]; if (c) setTimeout(() => showModal(coachCard(c[0], c[1] || seasonPitch(), c[2], c[3])), 1200); } });
 }
 /* readable numbers: the pixel font stays for words, but every run of digits in the panels and windows is set in the clean body font */
 const numify = (html) => ('>' + html + '<').replace(/>([^<]+)</g, (m, t) => '>' + t.split(/(&#?\w+;)/).map((p) => (p[0] === '&' ? p : p.replace(/\d[\d,.:]*\d|\d/g, '<span class="n">$&</span>'))).join('') + '<').slice(1, -1);
@@ -2906,7 +2907,7 @@ function unlockReady() {   /* is there an unlock the player can afford right now
   return S.tabs.unlock && (VAR_ORDER.some((v) => !S.vars[v] && gateOK('var:' + v) && S.points >= VAR[v].cost) || Object.keys(METHODS).some((k) => !S.methods[k] && METHODS[k].cost && gateOK('method:' + k) && S.points >= METHODS[k].cost) || (nf && S.points >= FARM_COST[nf]) || (!S.farms.osaka.unlocked && S.cranes >= OSAKA_CRANES));
 }
 function renderTabs() {
-  const dot = { ranks: S.tabs.ranks && Array.from({ length: tierAt(S.season.stars) }, (_, i) => i + 1).some((n) => !S.season.claimed[n]), unlock: unlockReady(), farm: !!golden && tab !== 'farm', orders: S.tasks.some((t) => t.have >= t.goal && !t.done) || (S.weekly.team + S.weekly.mine >= S.weekly.target && !S.weekly.claimed), mill: S.lots.some((l) => l.left <= 0) };
+  const dot = { ranks: S.tabs.ranks && Array.from({ length: tierAt(S.season.stars) }, (_, i) => i + 1).some((n) => !S.season.claimed[n]), unlock: unlockReady(), farm: !!golden && tab !== 'farm', orders: S.tasks.some((t) => t.have >= t.goal && !t.done) || (S.weekly.team + S.weekly.mine >= S.weekly.target && !S.weekly.claimed), mill: S.lots.some((l) => l.left <= 0), roast: roasteryOpen() && tab !== 'roast' && (S.roastery.roasters.some((r) => inCrack(r) && !r.crack) || S.roastery.bags.length > 0) };
   $('tabs').style.gridTemplateColumns = 'repeat(' + TABS.length + ', minmax(0, 1fr))';
   setHTML($('tabs'), TABS.map(([id, label, ic]) => { const locked = tabLocked(id);
     return '<button class="tab' + (S.newTab === id ? ' fresh' : '') + (locked ? ' locked' : '') + '" role="tab" type="button" data-tab="' + id + '" aria-pressed="' + (tab === id) + '"' + (locked ? ' aria-label="' + label + ', locked: ' + TAB_HINT[id] + '"' : '') + '><img src="' + url(ic) + '" alt="">' + (locked ? TAB_SHORT[id] : label) + (locked ? '<i class="lock" aria-hidden="true">🔒</i>' : dot[id] ? '<i class="dot"></i>' : '') + '</button>'; }).join(''));
@@ -2930,7 +2931,7 @@ const starsFor = (p) => (p >= TIERS.length ? p - TIERS.length + 1 : 0);
 function bottleneck() {   /* name the one thing slowing the farm down right now */
   const f = S.farms[S.loc];
   if (stored() >= cap()) return '<b>Storage is full.</b> Pickers have stopped. Process cherries in the Mill or build bigger storage.';
-  if (S.lots.length >= racks() && stored() > cap() * 0.5) return '<b>Every drying rack is busy.</b> More racks (Build, Farm) or raised drying beds (Build, Buildings) would keep the mill moving.';
+  if (S.lots.length >= racks() && stored() > cap() * 0.5) return '<b>Every drying rack is busy.</b> More racks (Farm › Upgrades) or raised drying beds (Farm › Buildings) would keep the mill moving.';
   if (f.workers.length && !f.shrubs.some((x) => x.p >= 1) && f.workers.every((w) => w.state === 'walk' && w.next === 'seek' || w.state === 'seek')) return '<b>Pickers are waiting for cherries.</b> Faster coffees, a compost shed or the fourth field would give them more to pick.';
   return '';
 }
@@ -2956,12 +2957,23 @@ function row(art, title, sub, button) { return '<div class="row"><div class="art
 function btn(label, sub, act, enabled, cls) { return '<button class="btn ' + (cls || '') + '" type="button" data-act="' + act + '"' + (enabled ? '' : ' disabled') + '>' + label + (sub ? '<small>' + sub + '</small>' : '') + '</button>'; }
 const img = (n, w) => '<img src="' + url(n) + '" alt="" style="width:' + (w || 40) + 'px">';
 
+function farmSubtabs(cur, f) {   /* the Farm tab: your fields, plus the pages where coins go once you've sold a lot */
+  if (!S.tabs.upgrades) return '';
+  const ready = {   /* a dot on a sub-tab when something in it is affordable */
+    upgrades: ['storage', 'pickers', 'racks', 'hearts'].some((k) => S.lv[k] < UP[k].max && S.coins >= UP[k].cost(S.lv[k])),
+    build: f.unlocked && BUILD_ORDER.some((k) => (f.build[k] || 0) < buildMax() && S.coins >= buildCost(S.loc, k)),
+    staff: (f.unlocked && S.loc !== 'osaka' && !f.manager && S.coins >= MANAGER_COST(S.loc)) || (!S.staff.foreman && S.coins >= FOREMAN_COST) || (S.staff.foreman && !S.staff.agent && S.coins >= AGENT_COST)
+  };
+  return '<div class="seg subtabs">' + [['fields', 'Fields'], ['upgrades', 'Upgrades'], ['build', 'Buildings'], ['staff', 'Staff']].map(([k, t]) => '<button type="button" data-act="uptab:' + (k === 'upgrades' ? 'farm' : k) + '" aria-pressed="' + (cur === k) + '">' + t + (ready[k] ? ' <i class="dot" aria-label="something to buy"></i>' : '') + '</button>').join('') + '</div>';
+}
 function renderPanel() {
   const P = $('panel'), f = S.farms[S.loc], L = ART.locations[S.loc];
   checkFarmMilestones();
   let h = '';
   h += eventBanner();
-  if (tab === 'farm') {
+  const fsub = S.tabs.upgrades && ['upgrades', 'build', 'staff'].includes(S.farmSub) ? S.farmSub : 'fields';
+  if (tab === 'farm') h += farmSubtabs(fsub, f);
+  if (tab === 'farm' && fsub === 'fields') {
     const [frac, lvl] = levelSpan();
     h += '<div class="level"><b>Level ' + lvl + '</b><div class="bar"><i style="width:' + Math.round(frac * 100) + '%"></i></div><span class="note">Prestige ' + S.prestige + '</span></div>';
     if (S.farms[S.loc].unlocked) {   /* this farm's own level and its next milestone */
@@ -2988,11 +3000,9 @@ function renderPanel() {
       h += f.beds.slice(0, f.field ? 4 : 3).map((v, b) => row(img('bush_' + v + '_ripe', 30), 'Field ' + (b + 1) + ': ' + ART.varieties[v] + (isNative(f.loc, v) ? ' · native' : ''), VAR[v].kg + ' kg a pick · ' + (isNative(f.loc, v) ? 'grows 20% faster here and keeps the terroir bonus · ' : '') + VAR[v].perk, btn('Replant', '', 'bed:' + b, true, 'blue'))).join('');
       h += row(img('i_cherry', 28), 'Sell fresh cherries', 'Quick coins, 2 per kg. Processing pays far more.', btn('Sell all', fmt(stored() * 2) + ' coins', 'sellraw', stored() > 0));
     }
-  } else if (tab === 'mill' && S.millSub === 'roast' && roasteryOpen()) {
-    h += '<div class="seg subtabs">' + [['mill', 'Mill'], ['roast', 'Roastery']].map(([k, t]) => '<button type="button" data-act="millsub:' + k + '" aria-pressed="' + (k === 'roast') + '">' + t + '</button>').join('') + '</div>';
+  } else if (tab === 'roast' && roasteryOpen()) {
     h += roasteryPanel();
   } else if (tab === 'mill') {
-    if (roasteryOpen()) h += '<div class="seg subtabs">' + [['mill', 'Mill'], ['roast', 'Roastery']].map(([k, t]) => '<button type="button" data-act="millsub:' + k + '" aria-pressed="' + (k === 'mill') + '">' + t + (k === 'roast' && (S.roastery.roasters.some(inCrack) || S.roastery.roasters.some((r) => roastP(r) >= 1)) ? ' <i class="dot" aria-label="needs you"></i>' : '') + '</button>').join('') + '</div>';
     const vs = Object.keys(S.cherries).filter((v) => S.cherries[v] > 0);
     h += '<h2>Mill</h2><p class="note">Pick your cherries and a process; the tags show what each choice earns. About 5 kg of cherries make 1 kg of green coffee.</p>';
     h += '<div class="market">' + img(METHODS[marketPick()].art, 28) + '<span><b>Market today:</b> the roastery pays ×' + MARKET + ' for ' + METHODS[marketPick()].name.toLowerCase() + ' lots. It changes every farm day.</span></div>';
@@ -3019,7 +3029,7 @@ function renderPanel() {
       if (done && S.tabs.orders) S.contracts.filter((c) => fits(c, l)).forEach((c) => { h += '<div class="seg" style="margin:-4px 0 6px 52px">' + btn('Deliver to ' + c.buyer.split(',')[0], fmt(Math.min(l.kg * 0.2, c.kg - c.have)) + ' kg · contract', 'deliver:' + i + '.' + c.id, true, 'blue') + '</div>'; });
     });
     if (!S.lots.length) h += '<p class="note">No lots drying yet.</p>';
-    if (S.staff.foreman && roasteryOpen()) h += '<p class="note">' + (feedRoasts() ? 'Your foreman sends dry lots to the roastery until ' + feedRoasts() + ' roasts\' worth of green coffee is waiting, then sells the rest.' : 'Your foreman sells every dry lot; switch on roastery stocking in Mill > Roastery to keep it fed.') + '</p>';
+    if (S.staff.foreman && roasteryOpen()) h += '<p class="note">' + (feedRoasts() ? 'Your foreman sends dry lots to the roastery until ' + feedRoasts() + ' roasts\' worth of green coffee is waiting, then sells the rest.' : 'Your foreman sells every dry lot; switch on roastery stocking in the Roastery tab to keep it fed.') + '</p>';
     if (S.staff.foreman) h += '<p class="note">Your mill foreman starts and sells lots for you' + (S.staff.agent ? ', and your contracts agent delivers to matching contracts first' : '') + '. Staff never cup by hand, so cupping lots yourself still adds +' + CUP_BONUS + ' cup and +' + Math.round((CUP_PAY - 1) * 100) + '% pay.</p>';
     if (S.staff.foreman && S.lots.length < racks() && stored() >= 10) h += '<p class="note">Free racks: your foreman starts a lot once one coffee reaches ' + fmt(Math.max(10, cap() * 0.25)) + ' kg, sooner when a buyer wants it, when half the racks are empty, or after a rack sits empty for a minute. Bigger lots dry in the same time, so waiting pays.</p>';
     h += '<h3>Start a lot</h3>';
@@ -3036,17 +3046,11 @@ function renderPanel() {
       }).join('') + '</div>';
       const locked = Object.keys(METHODS).filter((k) => !S.methods[k]).length;
       if (locked) h += '<p class="note">' + locked + ' more process' + (locked > 1 ? 'es' : '') + ' to unlock.</p>' + btn('See processes in Unlock', '', 'gounlock:processes', true, 'blue');
-      if (S.lots.length >= racks()) h += '<p class="note">All racks are busy. Add racks or raised drying beds in the Build tab.</p>';
+      if (S.lots.length >= racks()) h += '<p class="note">All racks are busy. Add racks (Farm › Upgrades) or raised drying beds (Farm › Buildings).</p>';
     }
-  } else if (tab === 'upgrades') {
-    const ut = ['farm', 'build', 'staff'].includes(S.upTab) ? S.upTab : 'farm';
-    const ready = {   /* a dot on a sub-tab when something in it is affordable */
-      farm: ['storage', 'pickers', 'racks', 'hearts'].some((k) => S.lv[k] < UP[k].max && S.coins >= UP[k].cost(S.lv[k])),
-      build: f.unlocked && BUILD_ORDER.some((k) => (f.build[k] || 0) < 3 && S.coins >= buildCost(S.loc, k)),
-      staff: (f.unlocked && !f.manager && S.coins >= MANAGER_COST(S.loc)) || (!S.staff.foreman && S.coins >= FOREMAN_COST) || (S.staff.foreman && !S.staff.agent && S.coins >= AGENT_COST)
-    };
-    h += '<h2>Build</h2><p class="note">' + icon('i_coin') + ' ' + fmt(S.coins) + ' coins to spend on your farms, buildings and staff. New coffees, processes and farms are in the Unlock tab.</p>';
-    h += '<div class="seg subtabs">' + [['farm', 'Farm'], ['build', 'Buildings'], ['staff', 'Staff']].map(([k, t]) => '<button type="button" data-act="uptab:' + k + '" aria-pressed="' + (ut === k) + '">' + t + (ready[k] ? ' <i class="dot" aria-label="something to buy"></i>' : '') + '</button>').join('') + '</div>';
+  } else if (tab === 'farm') {
+    const ut = fsub === 'upgrades' ? 'farm' : fsub;
+    h += '<p class="note">' + icon('i_coin') + ' ' + fmt(S.coins) + ' coins to spend on your farms, buildings and staff. New coffees, processes and farms are in the Unlock tab.</p>';
     if (ut === 'farm') {
     const st = S.lv.storage, nextS = ART.storage[st];
     h += row(img('storage_' + Math.min(5, st + (st < 5 ? 1 : 0)), 44), 'Storage: ' + ART.storage[st - 1].name, st < 5 ? 'Next: ' + nextS.name + ', holds ' + fmt(nextS.cap) + ' kg (now ' + fmt(cap()) + ')' : 'The Beju barn holds ' + fmt(cap()) + ' kg', btn(st < 5 ? 'Build' : 'Max', st < 5 ? fmt(UP.storage.cost(st)) + ' coins' : '', 'up:storage', st < 5 && S.coins >= UP.storage.cost(st)));
@@ -3302,7 +3306,7 @@ document.addEventListener('click', (e) => {
     if (i > -1) { S.lots.splice(i, 1); earn({ coins: r.coins, points: r.points }); S.stats.lotsSold += 1; S.stats.requests = (S.stats.requests || 0) + 1; S.request = null; S.reqNext = Date.now() + 900000; SFX.play('contract'); showModal('<h2>Sent to ' + r.who.split(' at ')[0] + '</h2>' + img('bush_' + r.v + '_ripe', 48) + '<p class="note">"Perfect, exactly what I hoped for." +' + fmt(r.coins) + ' coins and +' + fmt(r.points) + ' know-how. ' + r.who.split(' at ')[0] + ' will be back with another request soon.</p><button class="btn green" data-act="close">Lovely</button>'); nbAdd(r.v, r.m, 2); }
   }
   else if (a === 'millsub') S.millSub = v;
-  else if (a === 'roastgo') { closeModal(); S.millSub = 'roast'; setTab('mill'); }
+  else if (a === 'roastgo') { closeModal(); setTab('roast'); }
   else if (a === 'toroast') toRoastery(+v);
   else if (a === 'roastfeed') S.roastery.feed = +v || 0;
   else if (a === 'rreqask') roastReqModal();
@@ -3327,7 +3331,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'guideNext') { if (S.guide < GUIDE.length) guideDone(); }
   else if (a === 'guideSkip') { S.guide = GUIDE.length; ['upgrades', 'unlock', 'orders', 'ranks', 'shop'].forEach((k) => { S.tabs[k] = true; }); toast('Guide skipped: every tab is open'); }
   else if (a === 'farm') unlockFarm(v);
-  else if (a === 'uptab') S.upTab = v;
+  else if (a === 'uptab') { S.farmSub = v === 'farm' ? 'upgrades' : v; if (v !== 'fields') S.upTab = v; }
   else if (a === 'untab') S.unTab = v;
   else if (a === 'gounlock') { S.unTab = v || 'processes'; setTab('unlock'); }
   else if (a === 'ranktab') S.rankTab = v;
