@@ -1,0 +1,143 @@
+<title>Beju Farm Human Playtest</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column like the other reviews; findings as cards, numbers in their own tables */
+:root {
+  --bg: #F5F3EE; --panel: #FFFFFF; --fg: #23201B; --muted: #6A6358; --line: #DED8CC;
+  --bean: #6B3F22; --leaf: #2F6B4F; --cherry: #B8323A; --gold: #A8791A; --soft: #EFE9DD;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #171512; --panel: #201D19; --fg: #EDE7DC; --muted: #A79F92; --line: #383229;
+  --bean: #D9A47A; --leaf: #6CC59A; --cherry: #F07880; --gold: #E2B64A; --soft: #2A2620; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #171512; --panel: #201D19; --fg: #EDE7DC; --muted: #A79F92; --line: #383229;
+  --bean: #D9A47A; --leaf: #6CC59A; --cherry: #F07880; --gold: #E2B64A; --soft: #2A2620; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font: 16px/1.6 var(--body); }
+.wrap { max-width: 780px; margin: 0 auto; padding-block: 40px 72px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 36px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(30px, 6vw, 42px); font-weight: 800; }
+h2 { font-size: 24px; font-weight: 800; }
+h3 { font-size: 17px; font-weight: 600; }
+p { margin: 0; max-width: 66ch; }
+section { display: flex; flex-direction: column; gap: 14px; }
+.eyebrow { font: 600 12px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--bean); }
+.lede { font-size: 18px; color: var(--muted); }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; }
+.kpi b { font: 800 26px/1.1 var(--display); font-variant-numeric: tabular-nums; color: var(--cherry); }
+.kpi span { font-size: 13px; color: var(--muted); }
+.tw { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 12px/1.3 var(--mono); letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; }
+.card .tag { font: 600 12px var(--mono); color: var(--muted); }
+.card.bad { border-left: 4px solid var(--cherry); }
+.card.good { border-left: 4px solid var(--leaf); }
+.card.warn { border-left: 4px solid var(--gold); }
+ul, ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 68ch; }
+.note { font-size: 14px; color: var(--muted); }
+code { font: 13px var(--mono); background: var(--soft); padding: 1px 5px; border-radius: 4px; }
+</style>
+
+<div class="wrap">
+<header style="display:flex;flex-direction:column;gap:12px">
+  <span class="eyebrow">Playtest · 18 October 2026 · human-like bot, two runs to prestige 4</span>
+  <h1>Plenty to buy every minute, but the farms run out of things to build by prestige 4</h1>
+  <p class="lede">A bot that plays like a person (short sessions, long breaks, saving up at random, buying decor, missing golden bushes) reached prestige 4 in about 3 hours of play over less than two days. Short-term rewards never dry up. The trouble is later: every farm is nearly maxed by P4, a fifth of all coins went on upgrades that did nothing, and nothing new unlocks after P3.</p>
+</header>
+
+<section>
+<h2>How the bot played</h2>
+<ul>
+  <li><b>Sessions:</b> 20 to 45 minutes, then 2 to 9 hours away with the offline foreman working (capped at 12 hours, 18 from P3).</li>
+  <li><b>Spending:</b> skips buying a third of the time, picks a random affordable upgrade instead of the cheapest, mostly upgrades the farm on screen, and buys decor.</li>
+  <li><b>Know-how:</b> waits half the time, and picks a random unlock it can afford.</li>
+  <li><b>Coffees:</b> often leaves old coffees planted, and usually replants only the farm on screen.</li>
+  <li><b>Active play:</b> catches about half the golden bushes and cups about 1 lot in 7 by hand. It also waits ten minutes before each prestige.</li>
+</ul>
+<div class="tw"><table>
+<thead><tr><th>Run</th><th>Run A</th><th>Run B</th></tr></thead>
+<tbody>
+<tr><td>Play time to P4</td><td class="n">3.1 h in 6 sessions</td><td class="n">3.5 h in 6 sessions</td></tr>
+<tr><td>Real time to P4</td><td class="n">1.8 days</td><td class="n">1.3 days</td></tr>
+<tr><td>P0 → P1 → P2 → P3 → P4 (play)</td><td class="n">33 · 28 · 43 · 92 min</td><td class="n">33 · 27 · 37 · 91 min</td></tr>
+<tr><td>Purchases</td><td class="n">312 (24 with know-how)</td><td class="n">309 (24 with know-how)</td></tr>
+<tr><td>Coins on hand at the last session's end</td><td class="n">117,356</td><td class="n">201,002</td></tr>
+</tbody></table></div>
+</section>
+
+<section>
+<h2>What's working</h2>
+<div class="card good">
+  <span class="tag">Short-term rewards</span>
+  <p>Something to buy every 25 to 60 seconds of play, and not one stretch of 10 minutes with nothing bought in either run. Each run also brings 3 to 7 know-how unlocks, so every prestige opens something new: Gedeo and rum barrel at P1, Toba, whiskey and Heirloom at P2, Turrialba and strawberry at P3.</p>
+</div>
+<div class="card good">
+  <span class="tag">Farm unlocks against upgrades</span>
+  <p>Each new farm arrives while the old ones are part-built, so there's always a choice between finishing an old farm and starting a new one. Neither run felt forced to finish one before opening the next.</p>
+  <div class="tw"><table>
+  <thead><tr><th>New farm</th><th>When (run A)</th><th>The farms you already had</th></tr></thead>
+  <tbody>
+  <tr><td>Huila</td><td class="n">7 min · P0</td><td>Mogiana: 5 of 6 pickers, 1 of 30 building levels</td></tr>
+  <tr><td>Gedeo</td><td class="n">36 min · P1</td><td>Mogiana 13/30 buildings, Huila 11/30; pickers full, managers hired</td></tr>
+  <tr><td>Toba</td><td class="n">66 min · P2</td><td>Older farms 16–22/30 buildings, first mastery levels</td></tr>
+  <tr><td>Turrialba</td><td class="n">108 min · P3</td><td>Older farms 21–27/30 buildings, mastery 2–6</td></tr>
+  </tbody></table></div>
+</div>
+</section>
+
+<section>
+<h2>What needs work</h2>
+<div class="kpis">
+  <div class="kpi"><b>~20%</b><span>of all coins spent on wet mill and shade levels that added nothing</span></div>
+  <div class="kpi"><b>27–30 / 30</b><span>building levels on every farm by the end of P4</span></div>
+  <div class="kpi"><b>0</b><span>new farms, processes or coffees after P3 (Geisha aside)</span></div>
+</div>
+<div class="card bad">
+  <span class="tag">1 · Upgrades that do nothing</span>
+  <p>The wet mill's faster drying (10% a level) is capped at 60% across all farms, and the shade trees' cup bonus (+0.4 a level) at +4. That's 6 wet mill levels and 10 shade levels in total, yet there are 25 of each to buy across five farms. Both runs bought them all anyway: about 1.5 million coins of wet mill and 1.2–1.5 million of shade went on levels past the cap, roughly a fifth of everything spent. A real player would feel cheated on finding out.</p>
+</div>
+<div class="card bad">
+  <span class="tag">2 · Coins pile up from P4</span>
+  <p>By the end of P4 every farm has full pickers, a manager and 27–30 of 30 building levels. Mastery is the only coin sink left, and it's the same button on each farm. Coins at session ends climbed past 100,000–200,000 with nothing worth buying.</p>
+</div>
+<div class="card warn">
+  <span class="tag">3 · Nothing new after P3</span>
+  <p>All five farms, all six processes and eight of nine coffees are open by about 110 minutes of play. After that, the only long-term goals are the P4–P8 perks, the season track, Geisha (60,000 know-how) and the Osaka garden for cranes. P4 to P5 takes hours, so this is where players could drift.</p>
+</div>
+<div class="card warn">
+  <span class="tag">4 · Upgrading a farm unlocks nothing</span>
+  <p>Apart from housing raising the picker cap, building up a farm never opens anything. The "Farm level" bar on the Farm tab actually shows your player level, so it doesn't measure the farm at all.</p>
+</div>
+<div class="card warn">
+  <span class="tag">5 · Huila arrives very early</span>
+  <p>Huila opens 7 minutes in, when Mogiana has just one building level. It's exciting, but it splits coins across two farms before players learn what buildings do.</p>
+</div>
+</section>
+
+<section>
+<h2>Recommendations</h2>
+<ol>
+  <li><b>Fix the capped buildings.</b> Make the wet mill and shade-tree bonuses apply per farm (each farm's wet mill speeds lots of its own coffee), or spread the caps across all 25 levels (wet mill 2.4% a level up to 60%, shade 0.16 up to +4). The per-farm version gives each farm's buildings their own job, so I'd pick that.</li>
+  <li><b>Real farm levels with milestones.</b> Give each farm its own level from its buildings, manager and mastery, and show it in place of the misleading "Farm level" bar. Milestones would pay out something tied to that origin:
+    <ul>
+      <li>level 5: the farm's own building style</li>
+      <li>level 10: a small origin perk (Mogiana naturals, Huila barrels, Gedeo washed, Toba wet-hulled, Turrialba honey)</li>
+      <li>level 15: a gold farm stamp for the passport</li>
+    </ul>
+    This makes upgrading a farm unlock things, and teaches each origin's processing style along the way.</li>
+  <li><b>More to build from P4.</b> Let prestige raise the building cap: levels 6–7 at P4, 8–9 at P6, 10 at P8, at steeper prices. Coins keep mattering, and each prestige opens a bigger farm. This fits the perks too: prestige gives you room to grow, not an income multiplier.</li>
+  <li><b>Huila at 1,500 know-how</b> (from 800), so it arrives at about 12 minutes, after Mogiana's first buildings.</li>
+  <li><b>Hide or mark maxed upgrades</b> so players see "Max" rather than another buy button.</li>
+</ol>
+<p class="note">Items 1 and 5 are small changes. Items 2 and 3 are bigger and work well together: farm levels give each farm a long-term goal, and higher building caps give coins a reason to exist after P4. All of them affect pacing, so I'd re-run both the efficient and the human bot afterwards.</p>
+</section>
+</div>
