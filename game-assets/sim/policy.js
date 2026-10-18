@@ -79,6 +79,7 @@ window.BOT = (function () {
       c.sort((a, b) => a[2] - b[2]);
       if (H()) {
         Object.keys(G.DECOR).forEach((k) => { if (S.decor[k] === undefined) c.push([S.loc, 'decor:' + k, G.DECOR[k].cost]); });
+        if (G.RCOS && S.rcos && !B.cfg.noCos && G.roasteryOpen && G.roasteryOpen()) G.RCOS.forEach((x) => { if (!S.rcos.own[x.id] && x.src.coins && (!B.cfg.cosShare || rnd() < B.cfg.cosShare)) c.push([S.loc, 'rbuy:' + x.id, x.src.coins]); });   /* roastery cosmetics in Shop > Roastery */
         if (rnd() < 0.35) break;   /* saving up, or just not looking at the Build tab */
         const aff = c.filter((x) => x[2] <= S.coins); if (!aff.length) break;
         const here = aff.filter((x) => x[0] === S.loc), pool = here.length && rnd() < 0.6 ? here : aff;   /* mostly upgrades the farm on screen */

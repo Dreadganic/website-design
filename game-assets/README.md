@@ -242,3 +242,25 @@ On the Mill tab the stage shows the mill instead of a farm, and Mill > Roastery 
   - `ignite`: the burner catches when a roast starts.
   - `harvest`: now a branch rustles, cherries drop into the basket one by one, and a bright pluck follows.
   - Previews are in `review/new-sounds-preview.mp3` (harvest, cup, crack, drop, ignite, then the old pour and ding for comparison) and `review/kissaten-blue-preview.mp3`.
+
+## Roastery cosmetics (Shop › Roastery)
+All of these show in the roastery scene. `RCOS` in `template.html` lists every item with how it's earned (`src`).
+- **Kinds:**
+  - Roaster finishes (`RFIN`, sprite colour swaps; the brass band on big drums stays).
+  - Interiors (`RROOM`; backgrounds `bg/roastery-<room>.png` from `scene_roastery(room)` in `build_sprites.py`).
+  - Noren (`RNOREN`, plus one for each season made from its colours).
+  - Props (`RPROP`; `rp_*` sprites, each in a fixed spot, which you can show or hide).
+  - Bag labels (`RLABEL`, plus season labels; they recolour the shelf bags and the bags customers carry).
+  - Aprons (`RAPRON`, worn by the assistant and the cashier).
+  - Gold drum windows.
+- **Sources:**
+  - Reputation 5, 8, 9, 11, 13, 14, 16, 17, 18 and 19 each give one item. Master gold comes at 20. Every reputation level now gives something.
+  - Buyer gifts after 25 and 100 bags to a buyer type (`S.rcos.sold`).
+  - Perfect cracks: 100 gives the Crack master title and charm, 500 gives gold drum windows.
+  - Season track tiers 12 and 22 give the month's noren and bag label once the roastery is open (coins otherwise).
+  - Cranes: gold noren (20) and the Beju crest label (10).
+  - Ordering Casablanca Blend gives the Casablanca label.
+  - Coins: 250,000 to 25 million for anything not yet earned.
+- **Shop charm:** every item you own adds 1% to bag prices, up to +20%. The roastery earns about 15% of coins, so the cap is worth about 3% of total income. It's a small thank-you, not a reason to grind.
+- **Leaderboard:** your roaster finish shows as a small badge beside your name (`look.roaster`). The server accepts `copper`, `showa`, `sakura`, `beju`, `cream` and `gold`, plus the `crack` charm and the `rr:crack` title.
+- **State:** `S.rcos` = `{ own, on, hide, sold, cracks }`. Old saves get the defaults.
