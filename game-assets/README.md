@@ -303,3 +303,22 @@ First crack always opens at 70% of the roast. How long its window lasts depends 
   - Rum Barrel: Castillo rum
   - Yirgacheffe: heirloom washed
   - Strawberry: Catimor strawberry
+
+## Late-game pacing (after the 120-hour playtest)
+- **Level curve:** each level costs 1.22× the last up to level 30, then 1.15× (`XP_AT` in both `template.html` and `netlify/lib/game.js`, which must match). P5 to P6 needs about a quarter of the XP it used to.
+- **Building caps:** 7 at P4, 8 at P5, 9 at P6, 10 at P8.
+- **Master roaster stars:** past reputation 20, every 2,000 reputation adds a star (up to 10), shown above the roastery menu board. Each star adds +1% to bag prices.
+- **Storage:** past the Beju barn (3,000 kg), five more levels open with prestige (`STORE`; the sprite stays the barn, with a gold mark per level):
+
+  | Level | Capacity | Opens at | Cost |
+  |---|---|---|---|
+  | Big barn | 6,000 kg | P3 | 250k |
+  | Warehouse | 12,000 kg | P4 | 1M |
+  | Silo row | 25,000 kg | P5 | 4M |
+  | Bulk warehouse | 50,000 kg | P6 | 15M |
+  | Beju depot | 100,000 kg | P7 | 60M |
+
+- **Staff training:** from P5, in Farm › Staff › Training. Each staff member has 10 levels, each costing 2× the last, and training is kept through prestige.
+  - Farm manager: +5% picking speed on that farm per level (from 300k × the farm's cost multiplier).
+  - Mill foreman: lots dry 5% faster per level (from 500k).
+  - Contracts agent: new contracts pay 5% more per level (from 750k).

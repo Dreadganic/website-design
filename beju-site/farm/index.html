@@ -1163,7 +1163,7 @@ const BUILD = {
   sorter: { base: 3500, sub: (n) => (3 * n) + '% chance a lot sorts out as a peaberry lot worth double' }
 };
 /* buildings go to level 5, and prestige makes room for more: 7 from prestige 4, 9 from 6, 10 from 8 */
-const BUILD_CAPS = { 4: 7, 6: 9, 8: 10 };
+const BUILD_CAPS = { 4: 7, 5: 8, 6: 9, 8: 10 };
 const buildMax = () => Object.keys(BUILD_CAPS).reduce((m, p) => (S.prestige >= +p ? BUILD_CAPS[p] : m), 5);
 /* farm levels: each farm levels up from its own buildings, manager, fourth field and mastery, and pays out origin milestones */
 const farmLevel = (f) => Object.values(f.build || {}).reduce((a, x) => a + x, 0) + (f.manager ? 2 : 0) + (f.field ? 1 : 0) + (f.mastery || 0);
@@ -1210,6 +1210,11 @@ const withHere = (k, n) => sumBuild(k) - ((S.farms[S.loc].build || {})[k] || 0) 
 /* managers */
 const MANAGER_COST = (loc) => Math.round(4000 * farmMult(loc) / 10) * 10;
 const FOREMAN_COST = 6000, AGENT_COST = 15000;
+/* staff training (from prestige 5): each level makes a farm's manager +5% picking speed there, the foreman dries lots 5% faster, the agent's contracts pay 5% more */
+const TRAIN_P = 5, TRAIN_MAX = 10;
+const trainLv = (who, loc) => (S.train && (who === 'mgr' ? (S.train.mgr || {})[loc] : S.train[who])) || 0;
+const trainCost = (who, loc) => { const l = trainLv(who, loc); return Math.round((who === 'mgr' ? 300e3 * farmMult(loc) : who === 'foreman' ? 500e3 : 750e3) * Math.pow(2, l) / 1000) * 1000; };
+const dryMult = () => (S.staff.foreman ? 1 + 0.05 * trainLv('foreman') : 1);
 /* upgrades that never run out, kept small so they only pay once everything else is bought: farm mastery (coins, +1% picking on that farm each level) and cupping research (know-how, +1% know-how from every sale each level) */
 const masteryMult = (f) => 1 + 0.01 * (f.mastery || 0);
 const researchMult = () => 1 + 0.01 * (S.research || 0);
@@ -1397,6 +1402,7 @@ const ROASTS = { light: { name: 'Light', time: 75, col: '#B07A4A' }, medium: { n
 const bestRoast = (v, m) => (['geisha', 'heirloom'].includes(v) || (m === 'washed' && VAR[v].value >= 1.3) ? 'light' : m === 'rum' || m === 'whiskey' || (m === 'natural' && ['mundonovo', 'yellowbourbon', 'catimor', 'catuai'].includes(v)) ? 'dark' : 'medium');
 const RBUYERS = { cafe: { name: 'Specialty café', wants: 'light', mult: 1.5 }, kissa: { name: 'Kissaten', wants: 'dark', mult: 1.45 }, konbini: { name: 'Konbini blend', wants: 'medium', mult: 1.25 } };
 const REP_AT = (l) => Math.round(100 * Math.pow(l - 1, 2));   /* reputation comes per bag, so levels follow how often you roast, not how big the drum is */
+const masterStars = () => Math.max(0, Math.min(10, Math.floor(((S.roastery.rep || 0) - REP_AT(20)) / 2000)));   /* past reputation 20: a star on the sign, and +1% bag price, every 2,000 reputation */
 const repLevel = () => { let l = 1; while (l < 20 && (S.roastery.rep || 0) >= REP_AT(l + 1)) l++; return l; };
 const REP_PERKS = { 2: 'Cooling tray: roasts take 20% less time', 3: 'Bigger drum: 80 kg a roast', 4: 'A second roaster', 6: 'Cupping lab: +5 roast quality', 7: 'Bigger drum: 160 kg a roast', 8: 'Repeat roast: a bin can start its next roast by itself', 10: 'House blends: blend two bags under a Beju name', 12: 'Bigger drum: 320 kg a roast', 15: 'A third roaster', 20: 'The Master roaster title' };
 const roastCap = () => { const l = repLevel(); return l >= 12 ? 320 : l >= 7 ? 160 : l >= 3 ? 80 : 40; };
@@ -1405,7 +1411,7 @@ const roastTime = (p) => ROASTS[p].time * (repLevel() >= 2 ? 0.8 : 1);
 const BLEND_NAMES = ['Casablanca Blend', 'Osaka Morning', 'Kissaten Dark', 'Sakura Light', 'Crane House Blend', 'Kyoto Evening', 'Beju Breakfast', 'Momiji Roast'];
 const beanName = (key) => { const [v, m] = key.split('.'); return ART.varieties[v] + ' ' + METHODS[m].name.toLowerCase(); };
 const bagName = (b) => (b.seasonal ? b.seasonal + ' · ' : '') + (b.blend || beanName(b.key)) + (b.blend ? '' : ' · ' + ROASTS[b.profile].name.toLowerCase());
-const bagPrice = (b, k) => { const rb = RBUYERS[k], want = b.blend || b.profile === rb.wants; return Math.round(b.coins * (want ? rb.mult * (b.blend ? 1.1 : 1) : 1) * (0.7 + b.q / 200) * (1 + shopCharm()) * (b.seasonal && b.skey === S.season.key ? 1.2 : 1)); };
+const bagPrice = (b, k) => { const rb = RBUYERS[k], want = b.blend || b.profile === rb.wants; return Math.round(b.coins * (want ? rb.mult * (b.blend ? 1.1 : 1) : 1) * (0.7 + b.q / 200) * (1 + shopCharm()) * (b.seasonal && b.skey === S.season.key ? 1.2 : 1) * (1 + 0.01 * masterStars())); };
 /* how many roasts' worth of green coffee the foreman keeps waiting in the roastery (0 = off); on by default, so you never race him for lots */
 const feedRoasts = () => (S.roastery.feed === true ? 2 : S.roastery.feed === undefined ? 4 : +S.roastery.feed || 0);
 const roasteryFeedWants = () => roasteryOpen() && feedRoasts() > 0 && Object.values(S.roastery.beans).reduce((a, b) => a + b.kg, 0) < roastCap() * roasterCount() * feedRoasts();
@@ -1610,7 +1616,7 @@ function roasteryTick() {
 function roasteryPanel() {
   const R = S.roastery, lv = repLevel(), nextP = Array.from({ length: 20 - lv }, (_, i) => lv + 1 + i).find((l) => REP_PERKS[l] || RCOS.some((x) => x.src.rep === l));
   const nextTxt = nextP ? [REP_PERKS[nextP]].concat(RCOS.filter((x) => x.src.rep === nextP).map((x) => rName(x.id))).filter(Boolean).join(', ') : '';
-  let h = '<h2>Roastery</h2><div class="season"><b>Reputation ' + lv + (lv < 20 ? ' · ' + fmt(R.rep) + ' / ' + fmt(REP_AT(lv + 1)) : ' · Master roaster') + '</b><span>' + (nextP ? 'At ' + nextP + ': ' + nextTxt : 'Every roastery upgrade unlocked.') + '</span></div>';
+  let h = '<h2>Roastery</h2><div class="season"><b>Reputation ' + lv + (lv < 20 ? ' · ' + fmt(R.rep) + ' / ' + fmt(REP_AT(lv + 1)) : ' · Master roaster ' + ('★'.repeat(masterStars()) || '')) + '</b><span>' + (nextP ? 'At ' + nextP + ': ' + nextTxt : masterStars() < 10 ? 'Master roaster stars: ' + masterStars() + ' / 10, each +1% bag price. Next at ' + fmt(REP_AT(20) + 2000 * (masterStars() + 1)) + ' reputation (now ' + fmt(R.rep) + ').' : 'Ten master roaster stars: +10% on every bag.') + '</span></div>';
   { const sr = seasonRoast(); if (sr) h += '<div class="season"><b>' + theme().name + ' seasonal roast: ' + sr.name + '</b><span>' + (sr.known ? 'A ' + sroastText(sr) + '. Bags that match get the ' + theme().name + ' label and sell for 20% more until the season ends.' : 'Reach tier 8 of the season track to learn this month\'s recipe.') + '</span></div>'; }
   /* bags to sell come first: that's where the coins are */
   h += '<h3>Bags to sell ' + R.bags.length + '</h3>';
@@ -1801,7 +1807,7 @@ const prevFarm = (loc) => LOCS[LOCS.indexOf(loc) - 1];
 const canOpen = (loc) => loc !== 'osaka' && !S.farms[loc].unlocked && S.farms[prevFarm(loc)].unlocked && gateOK('farm:' + loc);
 const UP = {
   /* cheap early steps, then each step costs a lot more, so the game keeps going for longer */
-  storage: { name: 'Storage', max: 5, cost: (l) => [0, 300, 1500, 6000, 25000][l], cur: 'coins' },
+  storage: { name: 'Storage', max: 10, cost: (l) => [0, 300, 1500, 6000, 25000, 250e3, 1e6, 4e6, 15e6, 60e6][l], cur: 'coins' },
   /* pickers: one line for speed and carrying; the gear improves at levels 4 and 8 */
   pickers: { name: 'Pickers', max: 10, cost: (l) => Math.round(400 * Math.pow(2.1, l - 1) / 10) * 10, cur: 'coins' },
   racks: { name: 'Drying racks', max: 5, cost: (l) => [0, 600, 4800, 24000, 96000][l], cur: 'coins' },
@@ -1950,12 +1956,15 @@ function addWorker(f) {
 const totalWorkers = () => LOCS.reduce((s, l) => s + S.farms[l].workers.length, 0);
 /* hiring is priced per farm, so every new farm can be staffed */
 const hireCost = (f) => { f = f || S.farms[S.loc]; return Math.round(150 * farmMult(f.loc) * Math.pow(1.45, Math.max(0, f.workers.length - 2)) / 10) * 10; };
-const cap = () => ART.storage[S.lv.storage - 1].cap;
+/* storage past the Beju barn opens with prestige, for the late game when cherries pile up faster */
+const STORE = ART.storage.concat([{ name: 'Big barn', cap: 6000, p: 3 }, { name: 'Warehouse', cap: 12000, p: 4 }, { name: 'Silo row', cap: 25000, p: 5 }, { name: 'Bulk warehouse', cap: 50000, p: 6 }, { name: 'Beju depot', cap: 100000, p: 7 }]);
+const storeSprite = (l) => 'storage_' + Math.min(5, l);
+const cap = () => STORE[S.lv.storage - 1].cap;
 const stored = () => Object.values(S.cherries).reduce((a, b) => a + b, 0);
 const carryKg = () => ART.carry[S.lv.carry - 1].kg;
 const maxHearts = () => 24 + S.lv.hearts * 6;
 const pickerMult = () => (1 + 0.18 * (S.lv.speed - 1)) * (S.boosts.pick > S.minutesTotal ? 2 : 1);
-const XP_AT = (l) => l <= 10 ? Math.round(100 * Math.pow(l - 1, 2.4)) : Math.round(100 * Math.pow(9, 2.4) * Math.pow(1.22, l - 10));   /* early levels come quickly, later ones take much longer */
+const XP_AT = (l) => l <= 10 ? Math.round(100 * Math.pow(l - 1, 2.4)) : l <= 30 ? Math.round(100 * Math.pow(9, 2.4) * Math.pow(1.22, l - 10)) : Math.round(100 * Math.pow(9, 2.4) * Math.pow(1.22, 20) * Math.pow(1.15, l - 30));   /* early levels come quickly, later ones take longer; past 30 the climb eases to 1.15x so late prestiges stay reachable. Keep in step with netlify/lib/game.js */
 const level = () => { let l = 1; while (S.xp >= XP_AT(l + 1)) l++; return l; };
 const levelSpan = () => { const l = level(), a = XP_AT(l), b = XP_AT(l + 1); return [(S.xp - a) / (b - a), l]; };
 if (!isFinite(S.minutesTotal)) S.minutesTotal = 0;   /* repair saves where the clock was lost */
@@ -2025,7 +2034,7 @@ function store(f, v, kg) {
 function tickFarm(f, d, visible) {
   const g = d * (S.boosts.grow > S.minutesTotal ? 2 : 1);
   f.shrubs.forEach((s) => { if (s.p < 1) s.p = Math.min(1, s.p + g * varGrowth(f, s.v) / s.g); });
-  const full = stored() >= cap(), pm = pickerMult() * (f.manager ? 1.25 : 1) * masteryMult(f), carry = carryKg();
+  const full = stored() >= cap(), pm = pickerMult() * (f.manager ? 1.25 * (1 + 0.05 * trainLv('mgr', f.loc)) : 1) * masteryMult(f), carry = carryKg();
   f.workers.forEach((w) => {
     if (w.state === 'seek') {
       let best = null, bd = 1e9;
@@ -2093,7 +2102,7 @@ function tick(dt) {
   if (rday - S.weekly.start >= 7) { S.weekly = { mine: 0, team: 1500, target: 4000, start: rday, claimed: false }; toast('A new weekly roastery order is in'); }
   S.weekly.team = 1500 + 2200 * Math.min(1, (Date.now() / 864e5 - S.weekly.start) / 7);
   S.heartT += d; if (S.heartT >= 2) { S.heartT = 0; if (S.hearts < maxHearts()) S.hearts += 1; }
-  S.lots.forEach((l) => { if (l.left > 0) { l.left = Math.max(0, l.left - d); if (!l.left) guideStep('dry'); if (!l.left && !S.staff.foreman) SFX.play('ding'); } });
+  S.lots.forEach((l) => { if (l.left > 0) { l.left = Math.max(0, l.left - d * dryMult()); if (!l.left) guideStep('dry'); if (!l.left && !S.staff.foreman) SFX.play('ding'); } });
   LOCS.forEach((l) => { const f = S.farms[l]; if (f.unlocked && !S.dormant[l]) tickFarm(f, d, l === S.loc && tab === 'farm'); });
   tickMe(d); tickInside(dt);
   rateC = rateC * Math.pow(0.99, dt) + earnedC * 60 * (1 - Math.pow(0.99, dt)) / Math.max(dt, 1e-3); rateX = rateX * Math.pow(0.99, dt) + earnedX * 60 * (1 - Math.pow(0.99, dt)) / Math.max(dt, 1e-3); earnedC = 0; earnedX = 0;
@@ -2155,7 +2164,8 @@ function draw(time) {
   if (f.field && S.loc !== 'osaka') fx.drawImage(sprite('bed_open'), 104, 160);
   const asleep = !!S.dormant[S.loc];
   if (!f.field) fx.drawImage(sprite('sign'), 134, 168);
-  fx.drawImage(sprite('storage_' + S.lv.storage), STORE_AT.x, STORE_AT.y);
+  fx.drawImage(sprite(storeSprite(S.lv.storage)), STORE_AT.x, STORE_AT.y);
+  if (S.lv.storage > 5) { fx.fillStyle = '#F2C04A'; for (let k = 0; k < S.lv.storage - 5; k++) fx.fillRect(STORE_AT.x + 4 + k * 4, STORE_AT.y + 1, 2, 2); }   /* a gold mark for each level past the barn */
   if (stored() >= cap() && Math.floor(time * 2) % 2 === 0) fx.drawImage(sprite('bubble_full'), STORE_AT.x + 12, STORE_AT.y - 8);
   const gold = golden && golden.loc === S.loc && f.shrubs[golden.i];
   const things = f.shrubs.map((s) => ({ y: s.y + 22, s })).concat(f.workers.map((w) => ({ y: w.y, w })), [{ y: f.dog.y, dog: f.dog }], f.manager ? [{ y: f.manager.y, mg: f.manager }] : [], [{ y: me.y, me: true }]);
@@ -2403,6 +2413,7 @@ function drawRoast(time) {
   for (let k = 0; k < sacks; k++) { const row = Math.floor(k / 3); fx.drawImage(sprite('gsack'), 4 + (k % 3) * 12 + (row % 2) * 6, 182 - row * 7); }
   if (repLevel() >= 6) fx.drawImage(sprite('cup_lab'), 124, 84);
   drawNoren(); drawProps(time);
+  for (let k = 0; k < masterStars(); k++) { fx.fillStyle = '#F2C04A'; fx.fillRect(106 + (k % 5) * 3, 3 + Math.floor(k / 5) * 3, 2, 2); }   /* master roaster stars above the menu board */
   for (let i = 0; i < BAYS.length; i++) {
     if (i >= roasterCount()) continue;
     const r = RS.roasters[i], x = BAYS[i];
@@ -2591,12 +2602,13 @@ function buyUpgrade(key) {
     toast('Field cleared: 8 new shrubs planted'); return;
   }
   const l = S.lv[key]; if (l >= u.max) return;
+  if (key === 'storage' && STORE[l] && STORE[l].p && S.prestige < STORE[l].p) return;   /* the bigger stores wait for prestige */
   if (!spend(u.cur, u.cost(l))) return;
   S.lv[key] = l + 1;
   if (key === 'pickers') { S.lv.speed = l + 1; const gear = l + 1 >= 8 ? 3 : l + 1 >= 4 ? 2 : 1; if (gear > S.lv.carry) { S.lv.carry = gear; toast('Your pickers now carry a ' + ART.carry[gear - 1].name.toLowerCase()); return; } }
   if (key === 'hearts') S.hearts = maxHearts();
   toast(u.name + ' upgraded');
-  if (key === 'storage') showModal('<h2>' + ART.storage[S.lv.storage - 1].name + '!</h2><img src="' + url('storage_' + S.lv.storage) + '" alt="" style="width:160px;image-rendering:pixelated"><p class="note">Storage now holds ' + fmt(cap()) + ' kg, so your pickers keep working longer while you’re away.</p><button class="btn green" data-act="close">Great</button>');
+  if (key === 'storage') showModal('<h2>' + STORE[S.lv.storage - 1].name + '!</h2><img src="' + url(storeSprite(S.lv.storage)) + '" alt="" style="width:160px;image-rendering:pixelated"><p class="note">Storage now holds ' + fmt(cap()) + ' kg, so your pickers keep working longer while you’re away.</p><button class="btn green" data-act="close">Great</button>');
 }
 function startLot(v, method, quiet) {
   const busy = S.lots.length, kg = S.cherries[v] || 0;
@@ -2665,7 +2677,7 @@ function newContract() {
   const base = saleFor(cupV, cupM, kg), mult = 1.8 + rnd() * 0.6 + (v ? 0.2 : 0) + (method ? 0.2 : 0);
   const home = v && LOCS.find((l) => l !== 'osaka' && ART.locations[l].beds.includes(v));
   const note = buyer === 'Beju Roastery' && home ? 'For the ' + ART.locations[home].reward : '';
-  return { id: Math.floor(rnd() * 1e9), buyer, note, v, method, minCup, kg, have: 0, coins: Math.round(base.coins * mult), points: Math.round(base.points * mult), due: S.minutesTotal + 1440 * (1.5 + rnd() * 1.5) };
+  return { id: Math.floor(rnd() * 1e9), buyer, note, v, method, minCup, kg, have: 0, coins: Math.round(base.coins * mult * (1 + 0.05 * trainLv('agent'))), points: Math.round(base.points * mult), due: S.minutesTotal + 1440 * (1.5 + rnd() * 1.5) };
 }
 const fits = (c, l) => (!c.v || c.v === l.v) && (!c.method || c.method === l.method) && lotCup(l) >= c.minCup && c.have < c.kg;
 function contractsTick() {
@@ -3033,7 +3045,7 @@ function renderPanel() {
         else if (lad) h += '<div><div style="display:flex;justify-content:space-between;align-items:baseline"><h3>' + L.name.split(',')[0] + ' sample</h3><span class="note">' + (got ? 'Earned' : 'Prestige ' + S.prestige + ' / ' + lad.prestige) + '</span></div><div class="bar"><i style="width:' + Math.min(100, Math.round(S.prestige / lad.prestige * 100)) + '%"></i></div><p class="note">' + (got ? 'Your free 100 g ' + L.reward + ' sample is in Shop, Real coffee.' : 'Reach prestige ' + lad.prestige + ' for a free 100 g ' + L.reward + ' sample from this origin.') + '</p></div>';
       } else h += '<p class="note">The Osaka roastery garden: rare varieties all year round, through four Japanese seasons.</p>';
       h += row(img('worker_down_0', 22), 'Pickers here: ' + f.workers.length + '/' + maxPickers(f), 'Carrying ' + ART.carry[S.lv.carry - 1].name.toLowerCase() + ' (' + carryKg() + ' kg). You pick 3× faster, but pickers never tire.', btn('Hire', fmt(hireCost()) + ' coins', 'hire', S.coins >= hireCost() && f.workers.length < maxPickers(f)));
-      h += row(img('storage_' + S.lv.storage, 44), ART.storage[S.lv.storage - 1].name + ': ' + fmt(stored()) + ' / ' + fmt(cap()) + ' kg', stored() >= cap() ? 'Full! Pickers have stopped. Process or sell cherries.' : 'Cherries from every farm come here.', btn('Mill', 'process', 'tab:mill', true, 'blue'));
+      h += row(img(storeSprite(S.lv.storage), 44), STORE[S.lv.storage - 1].name + ': ' + fmt(stored()) + ' / ' + fmt(cap()) + ' kg', stored() >= cap() ? 'Full! Pickers have stopped. Process or sell cherries.' : 'Cherries from every farm come here.', btn('Mill', 'process', 'tab:mill', true, 'blue'));
       h += '<h3>Fields</h3>' + (terroir(f) > 1 ? '<p class="rule"><b>Terroir on:</b> a native field here means every pick on this farm brings in 15% more cherries.</p>' : '<p class="rule"><b>Terroir off:</b> plant a native coffee (' + nativeNames(f.loc) + ') in any field and every pick on this farm brings in 15% more cherries.</p>');
       h += hasPerk('replantall') ? btn('Replant all', 'every farm, natives kept', 'replantask', true, 'blue') : btn('Replant all', 'prestige 1 perk', 'noop', false);
       h += f.beds.slice(0, f.field ? 4 : 3).map((v, b) => row(img('bush_' + v + '_ripe', 30), 'Field ' + (b + 1) + ': ' + ART.varieties[v] + (isNative(f.loc, v) ? ' · native' : ''), VAR[v].kg + ' kg a pick · ' + (isNative(f.loc, v) ? 'grows 20% faster here and keeps the terroir bonus · ' : '') + VAR[v].perk, btn('Replant', '', 'bed:' + b, true, 'blue'))).join('');
@@ -3091,8 +3103,8 @@ function renderPanel() {
     const ut = fsub === 'upgrades' ? 'farm' : fsub;
     h += '<p class="note">' + icon('i_coin') + ' ' + fmt(S.coins) + ' coins to spend on your farms, buildings and staff. New coffees, processes and farms are in the Unlock tab.</p>';
     if (ut === 'farm') {
-    const st = S.lv.storage, nextS = ART.storage[st];
-    h += row(img('storage_' + Math.min(5, st + (st < 5 ? 1 : 0)), 44), 'Storage: ' + ART.storage[st - 1].name, st < 5 ? 'Next: ' + nextS.name + ', holds ' + fmt(nextS.cap) + ' kg (now ' + fmt(cap()) + ')' : 'The Beju barn holds ' + fmt(cap()) + ' kg', btn(st < 5 ? 'Build' : 'Max', st < 5 ? fmt(UP.storage.cost(st)) + ' coins' : '', 'up:storage', st < 5 && S.coins >= UP.storage.cost(st)));
+    const st = S.lv.storage, nextS = STORE[st], gate = nextS && nextS.p && S.prestige < nextS.p;
+    h += row(img(storeSprite(st + (nextS ? 1 : 0)), 44), 'Storage: ' + STORE[st - 1].name, nextS ? 'Next: ' + nextS.name + ', holds ' + fmt(nextS.cap) + ' kg (now ' + fmt(cap()) + ')' + (gate ? ' · opens at prestige ' + nextS.p : '') : 'The Beju depot holds ' + fmt(cap()) + ' kg', !nextS ? btn('Max', '', 'noop', false) : gate ? btn('Locked', 'Prestige ' + nextS.p, 'noop', false) : btn('Build', fmt(UP.storage.cost(st)) + ' coins', 'up:storage', S.coins >= UP.storage.cost(st)));
     const pl = S.lv.pickers, nextGear = pl < 4 ? 4 : pl < 8 ? 8 : 0;
     h += row(img(ART.carry[S.lv.carry - 1].sprite, 34), 'Pickers lv ' + pl, '+18% walking and picking a level. Carrying a ' + ART.carry[S.lv.carry - 1].name.toLowerCase() + ' (' + carryKg() + ' kg)' + (nextGear ? '; a ' + ART.carry[nextGear === 4 ? 1 : 2].name.toLowerCase() + ' at lv ' + nextGear : '') + '.', btn(pl >= 10 ? 'Max' : 'Train', pl >= 10 ? '' : fmt(UP.pickers.cost(pl)) + ' coins', 'up:pickers', pl < 10 && S.coins >= UP.pickers.cost(pl)));
     [['racks', 'proc_natural', 'Drying racks: ' + S.lv.racks, 'Process more lots at once'], ['hearts', 'i_heart', 'Stamina: ' + maxHearts() + ' hearts', '+6 hearts for picking by hand']].forEach(([k, a, t, sub]) => {
@@ -3122,6 +3134,12 @@ function renderPanel() {
     } else if (S.staff.foreman) h += '<p class="note">At prestige 7 the Foreman\'s ledger lets you set his process for each coffee.</p>';
     h += row(img('board', 34), 'Contracts agent', 'Delivers finished lots to matching contracts first, tells the foreman which process buyers want, and adds a fourth contract slot.' + (S.tabs.orders ? '' : ' Buyers start posting contracts at level 3, so he has nothing to do before then.'), S.staff.agent ? btn('Hired', '', 'noop', false, 'blue') : btn('Hire', fmt(AGENT_COST) + ' coins', 'agent', S.staff.foreman && S.coins >= AGENT_COST));
     if (!S.staff.foreman) h += '<p class="note">Hire the mill foreman before the contracts agent.</p>';
+    h += '<h3>Training</h3>';
+    if (S.prestige < TRAIN_P) h += '<p class="note">From prestige ' + TRAIN_P + ' you can train your staff: each level makes a manager\'s pickers 5% faster, the foreman\'s lots dry 5% faster, and the agent\'s contracts pay 5% more, up to level ' + TRAIN_MAX + '.</p>';
+    else {
+      const tr = (who, label, what, ok) => { const l = trainLv(who, S.loc), c = trainCost(who, S.loc); return row(img('i_points', 26), label + ' · training ' + l + ' / ' + TRAIN_MAX, what + ' Now +' + l * 5 + '%.', !ok ? btn('Hire first', '', 'noop', false) : l >= TRAIN_MAX ? btn('Fully trained', '', 'noop', false, 'blue') : btn('Train', fmt(c) + ' coins', 'train:' + who, S.coins >= c)); };
+      h += '<p class="note">Training stays with your staff through every prestige.</p>' + tr('mgr', ART.locations[S.loc].name.split(',')[0] + ' manager', 'Pickers on this farm work 5% faster per level.', !!f.manager) + tr('foreman', 'Mill foreman', 'Lots dry 5% faster per level.', S.staff.foreman) + tr('agent', 'Contracts agent', 'New contracts pay 5% more per level.', S.staff.agent);
+    }
     }
   } else if (tab === 'unlock') {
     const nt = ['coffees', 'processes', 'farms', 'research', 'notebook'].includes(S.unTab) ? S.unTab : 'coffees', nextFarm = LOCS.find((l) => canOpen(l));
@@ -3392,6 +3410,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'master') { if (f.manager && spend('coins', masterCost(S.loc))) { f.mastery = (f.mastery || 0) + 1; toast(ART.locations[S.loc].name.split(',')[0] + ' mastery level ' + f.mastery); } }
   else if (a === 'research') { if (spend('points', researchCost())) { S.research = (S.research || 0) + 1; toast('Cupping research level ' + S.research); } }
   else if (a === 'mgr') { if (!f.manager && spend('coins', MANAGER_COST(S.loc))) { f.manager = { x: 150, y: 94, tx: 150, ty: 94, t: 0, walk: 0, dir: 'down' }; toast('Your manager takes over at ' + ART.locations[S.loc].name.split(',')[0]); } }
+  else if (a === 'train') { if (S.prestige >= TRAIN_P) { const who = v, l = trainLv(who, S.loc), c = trainCost(who, S.loc), ok = who === 'mgr' ? !!f.manager : !!S.staff[who]; if (ok && l < TRAIN_MAX && spend('coins', c)) { S.train = S.train || { mgr: {} }; if (who === 'mgr') { S.train.mgr = S.train.mgr || {}; S.train.mgr[S.loc] = l + 1; } else S.train[who] = l + 1; toast('Training level ' + (l + 1) + ': +' + (l + 1) * 5 + '%'); } } }
   else if (a === 'foreman') { if (!S.staff.foreman && spend('coins', FOREMAN_COST)) { S.staff.foreman = true; toast('The mill foreman starts work'); } }
   else if (a === 'agent') { if (S.staff.foreman && !S.staff.agent && spend('coins', AGENT_COST)) { S.staff.agent = true; toast('The contracts agent joins the mill'); } }
   else if (a === 'rule') S.staff.rule = v;

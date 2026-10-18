@@ -4,7 +4,7 @@ window.BOT = (function () {
   /* where each action lives in the interface, to measure how much tab hopping a player would do */
   const LOCOF = (x) => { const a = x.split(':')[0];
     if (['hire', 'plant', 'bed', 'replantall', 'replantask', 'sellraw', 'mv'].includes(a)) return 'farm:fields'; if (a === 'up') return 'farm:upgrades'; if (a === 'build') return 'farm:build';
-    if (['mgr', 'master', 'foreman', 'agent', 'rule'].includes(a)) return 'farm:staff';
+    if (['mgr', 'master', 'foreman', 'agent', 'rule', 'train'].includes(a)) return 'farm:staff';
     if (['lot', 'cup', 'sell', 'deliver', 'toroast', 'sellall', 'cupall', 'reqfill', 'reqskip'].includes(a)) return 'mill';
     if (['roast', 'crack', 'sellbag', 'sellbags', 'roastfeed', 'rreq', 'binsell', 'blendask', 'blendwith'].includes(a)) return 'roast';
     if (['var', 'method', 'farm', 'research'].includes(a)) return 'unlock'; if (['task', 'weekly'].includes(a)) return 'orders';
@@ -84,7 +84,8 @@ window.BOT = (function () {
         if (G.masterCost && f.manager) c.push([l, 'master', G.masterCost(l)]);
         if (!f.field && l !== 'osaka') c.push([l, 'up:field', G.UP.field.cost()]);
       });
-      ['storage', 'pickers', 'racks', 'hearts'].forEach((k) => { if (S.lv[k] < G.UP[k].max) c.push([S.loc, 'up:' + k, G.UP[k].cost(S.lv[k])]); });
+      ['storage', 'pickers', 'racks', 'hearts'].forEach((k) => { if (S.lv[k] < G.UP[k].max && !(k === 'storage' && G.STORE && G.STORE[S.lv[k]] && G.STORE[S.lv[k]].p > S.prestige)) c.push([S.loc, 'up:' + k, G.UP[k].cost(S.lv[k])]); });
+      if (G.trainCost && S.prestige >= 5) { G.LOCS.forEach((l) => { if (live(l) && S.farms[l].manager && G.trainLv('mgr', l) < 10) c.push([l, 'train:mgr', G.trainCost('mgr', l)]); }); ['foreman', 'agent'].forEach((w) => { if (S.staff[w] && G.trainLv(w) < 10) c.push([S.loc, 'train:' + w, G.trainCost(w)]); }); }   /* staff training */
       if (!S.staff.foreman) c.push([S.loc, 'foreman', G.FOREMAN_COST]); else if (!S.staff.agent) c.push([S.loc, 'agent', G.AGENT_COST]);
       c.sort((a, b) => a[2] - b[2]);
       if (H()) {
