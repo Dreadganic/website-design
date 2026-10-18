@@ -2529,7 +2529,7 @@ for _loc in HOUSE_AT:
 
 
 # seasonal showpieces: one spot per farm, dressed in the season's colours (here as a generic piece recoloured per season)
-SHOWPIECE_AT = {"mogiana": (100, 72), "huila": (96, 62), "gedeo": (2, 96), "toba": (50, 66), "turrialba": (90, 36), "osaka": (86, 32)}
+SHOWPIECE_AT = {"mogiana": (100, 72), "huila": (4, 92), "gedeo": (2, 96), "toba": (50, 66), "turrialba": (90, 36), "osaka": (86, 32)}
 
 
 def showpiece(kind):

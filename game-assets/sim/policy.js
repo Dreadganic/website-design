@@ -7,7 +7,7 @@ window.BOT = (function () {
     if (['mgr', 'master', 'foreman', 'agent', 'rule', 'train'].includes(a)) return 'farm:staff';
     if (['lot', 'cup', 'sell', 'deliver', 'toroast', 'sellall', 'cupall', 'reqfill', 'reqskip'].includes(a)) return 'mill';
     if (['roast', 'crack', 'sellbag', 'sellbags', 'roastfeed', 'rreq', 'binsell', 'blendask', 'blendwith'].includes(a)) return 'roast';
-    if (['var', 'method', 'farm', 'research'].includes(a)) return 'unlock'; if (['task', 'weekly'].includes(a)) return 'orders';
+    if (['var', 'method', 'farm', 'research'].includes(a)) return 'unlock'; if (['task', 'weekly', 'wtask'].includes(a)) return 'orders';
     if (['prestige', 'prestigeAsk', 'pickskin'].includes(a)) return 'ranks'; if (['decor', 'rbuy', 'buybskin', 'buychar', 'buyhat'].includes(a)) return 'shop'; return null; };
   const at = (loc) => { if (!loc) return; const T = B.tabs || (B.tabs = {}), p = G.S.prestige, st = T[p] || (T[p] = { cycles: 0, busy: 0, tabs: 0, subs: 0, acts: {}, combos: {}, cracks: 0 }); st.acts[loc] = (st.acts[loc] || 0) + 1; (B.cyc || (B.cyc = new Set())).add(loc); };
   const act = (s) => { at(LOCOF(s)); const b = document.createElement('button'); b.dataset.act = s; b.style.display = 'none'; document.body.appendChild(b); b.click(); b.remove(); };
@@ -40,6 +40,7 @@ window.BOT = (function () {
       }
     }
     S.tasks.forEach((t, i) => { if (t.have >= t.goal && !t.done) act('task:' + i); });
+    ((S.wtasks || {}).list || []).forEach((t, i) => { if (t.have >= t.goal && !t.done) { act('wtask:' + i); B.wtasks = (B.wtasks || 0) + 1; } });   /* weekly tasks */
     const wk = S.weekly; if (!wk.claimed && wk.mine > 0 && Math.min(wk.target, wk.team + wk.mine) >= wk.target) act('weekly');
   }
   function knowhow() {
