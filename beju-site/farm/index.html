@@ -1095,13 +1095,15 @@ const BOT_NAMES = ['mika.brews', 'kenji_pourover', 'hana.at.home', 'cafe_lucia',
 function bots() {
   return BOT_NAMES.map((name, i) => {
     let z = (i + 1) * 9301 + 49297; const r = () => { z = (z * 233280 + 49297) % 2147483647; return z / 2147483647; };
-    const p0 = [9, 8, 7, 6, 6, 5, 5, 4, 4, 4, 3, 3, 3, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0][(i * 7) % 30], sp = r(), rp = r() * 0.12, x0 = r() * XP_AT(16), rx = 400 + r() * 2600;
-    const prestige = p0 + Math.floor(S.day * rp), xp = (x0 + S.day * rx) % XP_AT(15);
-    let lv = 1; while (xp >= XP_AT(lv + 1)) lv++;
-    const seasonP = Math.floor(sp * sp * 5 * new Date().getDate() / 31);   /* prestiges so far this month */
+    /* practice players follow the real rules: a run's level stays below their next prestige, and this month's know-how adds up the runs they finished this month */
+    const p0 = [5, 4, 4, 3, 3, 3, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0][(i * 7) % 30], sp = r(), rp = r() * 0.1, x0 = r(), rx = 0.15 + r() * 0.5;
+    const days = Math.max(0, (Date.now() - (S.born || Date.now())) / 864e5), month = new Date().getDate() / 31;
+    const prestige = p0 + Math.floor(days * rp), need = PRESTIGE_LEVEL + 8 * prestige;
+    const lv = 1 + Math.floor(((x0 + days * rx) % 1) * (need - 1)), xp = XP_AT(lv) + Math.floor((XP_AT(lv + 1) - XP_AT(lv)) * x0);
+    const seasonP = Math.min(prestige, Math.floor(sp * 3.5 * month + 0.3));   /* prestiges so far this month */
     const tr = tierOf(prestige), skin = prestige ? Math.floor(r() * SKINS.length) : 0, bgs = BG_LIST.slice(0, 1 + Math.min(7, prestige + 2));
     const bg = bgs[Math.floor(r() * bgs.length)], ch = r() < 0.45 ? CHAR_IDS[Math.floor(r() * CHAR_IDS.length)] : 'none';
-    const seasonKh = Math.round((0.2 + sp) * rx * 18 * new Date().getDate() / 31);   /* know-how earned so far this month */
+    let seasonKh = Math.round(xp * (seasonP ? 1 : month)); for (let k = prestige - seasonP; k < prestige; k++) seasonKh += XP_AT(PRESTIGE_LEVEL + 8 * k);   /* know-how earned so far this month */
     return { name, prestige, seasonP, seasonKh, level: lv, points: Math.round(xp), look: { crest: tr, skin, bg, char: ch } };
   });
 }
@@ -1115,13 +1117,13 @@ function board(mode) {
   }
   if (API && NET.status === 'online') liveBoard(mode === 'all' ? 'all' : 'season');
   const me = { name: S.name, prestige: S.prestige, seasonP: S.season.prestige, seasonKh: Math.round(S.season.kh || 0), level: level(), points: Math.round(S.xp), look: S.look, you: true };
-  const key = mode === 'all' ? 'prestige' : 'seasonKh';
-  return bots().concat([me]).sort((a, b) => b[key] - a[key] || b.level - a.level || b.points - a.points);
+  /* all time: prestige, then level, then know-how this run. This season: prestiges this month, then know-how earned this month */
+  return bots().concat([me]).sort(mode === 'all' ? (a, b) => b.prestige - a.prestige || b.level - a.level || b.points - a.points : (a, b) => b.seasonP - a.seasonP || b.seasonKh - a.seasonKh);
 }
 function seasonTick() {   /* a new month closes the old season and hands out its badge */
   if (S.season.key === seasonKey()) return;
   const list = board('season'), rank = list.findIndex((x) => x.you) + 1, old = S.season.key;
-  if ((S.season.kh || 0) > 0 || rank <= 10) { S.badges.push({ key: old, rank, label: BADGE(rank) }); showModal('<h2>' + seasonName(old) + ' season over</h2><p class="note">You finished <b>#' + rank + '</b> with ' + fmt(S.season.kh || 0) + ' know-how earned this season. Your <b>' + BADGE(rank) + '</b> badge is on your profile.</p><p class="note">A new season starts now: the season board starts again from zero know-how. Your prestige, level and looks stay.</p><button class="btn green" data-act="close">Start the season</button>'); }
+  if ((S.season.kh || 0) > 0 || rank <= 10) { S.badges.push({ key: old, rank, label: BADGE(rank) }); showModal('<h2>' + seasonName(old) + ' season over</h2><p class="note">You finished <b>#' + rank + '</b> with ' + S.season.prestige + ' prestige' + (S.season.prestige === 1 ? '' : 's') + ' and ' + fmt(S.season.kh || 0) + ' know-how earned this season. Your <b>' + BADGE(rank) + '</b> badge is on your profile.</p><p class="note">A new season starts now: the season board starts again from zero know-how. Your prestige, level and looks stay.</p><button class="btn green" data-act="close">Start the season</button>'); }
   S.season = { key: seasonKey(), prestige: 0, kh: 0 };
 }
 /* drop events: each real product launch becomes a week in the game. On the live app the list comes from the server and a push notification announces it */
@@ -1278,6 +1280,7 @@ let S = load() || fresh();
   if (!S.lv.pickers) { S.lv.pickers = Math.max(S.lv.speed || 1, S.lv.carry >= 3 ? 8 : S.lv.carry >= 2 ? 4 : 1); S.lv.speed = S.lv.pickers; }
   S.hearts = Math.min(S.hearts, 24 + S.lv.hearts * 6);
   if (S.look && !S.look.char) S.look.char = 'none';
+  if (!S.born) S.born = Date.now();   /* when this farm started, for the practice board */
   LOCS.forEach((l) => { const f = S.farms[l]; if (!f.build) f.build = {}; if (f.manager === undefined) f.manager = null; });
 })();
 LOCS.forEach((l) => { const f = S.farms[l]; if (!f.shrubs.length) plant(f); f.workers.forEach((w) => { w.state = 'seek'; w.path = []; w.target = null; }); });
@@ -2121,16 +2124,16 @@ function renderPanel() {
     const rsub = S.rankSub || 'board', rdot = ready || S.skinPicks > 0;
     h += '<div class="seg subtabs">' + [['board', 'Leaderboard'], ['rewards', 'Prestige & looks']].map(([k, tl]) => '<button type="button" data-act="ranksub:' + k + '" aria-pressed="' + (rsub === k) + '">' + tl + (k === 'rewards' && rdot ? ' <i class="dot" aria-label="something waiting"></i>' : '') + '</button>').join('') + '</div>';
     if (rsub === 'board') {
-    h += '<div class="season"><b>' + seasonName(S.season.key) + ' season</b><span>' + daysLeft() + ' day' + (daysLeft() === 1 ? '' : 's') + ' left · ' + fmt(S.season.kh || 0) + ' know-how earned this season</span></div>';
+    h += '<div class="season"><b>' + seasonName(S.season.key) + ' season</b><span>' + daysLeft() + ' day' + (daysLeft() === 1 ? '' : 's') + ' left · ' + S.season.prestige + ' prestige' + (S.season.prestige === 1 ? '' : 's') + ' and ' + fmt(S.season.kh || 0) + ' know-how this season</span></div>';
     if (S.badges.length) h += '<div class="badges">' + S.badges.slice(-6).map((bd) => '<span class="badge r' + Math.min(bd.rank, 11) + '">' + (bd.label || 'Event') + '<small>' + (bd.key ? seasonName(bd.key) : bd.event) + '</small></span>').join('') + '</div>';
     h += '<h3>Leaderboard</h3><div class="seg">' + [['season', 'This season'], ['all', 'All time']].map(([k, tl]) => '<button type="button" data-act="ranktab:' + k + '" aria-pressed="' + (mode === k) + '">' + tl + '</button>').join('') + '</div><div class="lb">' + list.slice(0, 15).concat(pos > 15 ? [list[pos - 1]] : []).map((x) => {
       const r = list.indexOf(x) + 1;
-      return '<div class="lb-row' + (x.you ? ' you' : '') + '"><b class="rk">' + r + '</b>' + avatar(x.look, 40) + '<div class="lb-n">' + plate(x.name, normLook(x.look).crest, starsFor(x.prestige)) + '<span class="note">' + TIERS[tierOf(x.prestige)] + '</span></div><div class="lb-s"><b>' + (mode === 'all' ? 'P' + x.prestige : fmt(x.seasonKh || 0)) + '</b><span>' + (mode === 'all' ? 'Lv ' + x.level : 'kh this month') + '</span><span>' + (mode === 'all' ? fmt(x.points) + ' kh' : 'P' + x.prestige + ' · Lv ' + x.level) + '</span></div></div>';
+      return '<div class="lb-row' + (x.you ? ' you' : '') + '"><b class="rk">' + r + '</b>' + avatar(x.look, 40) + '<div class="lb-n">' + plate(x.name, normLook(x.look).crest, starsFor(x.prestige)) + '<span class="note">' + TIERS[tierOf(x.prestige)] + '</span></div><div class="lb-s"><b>' + (mode === 'all' ? 'P' + x.prestige : 'P' + x.seasonP + ' this month') + '</b><span>' + (mode === 'all' ? 'Lv ' + x.level : fmt(x.seasonKh || 0) + ' kh this month') + '</span><span>' + (mode === 'all' ? fmt(x.points) + ' kh' : 'P' + x.prestige + ' all time') + '</span></div></div>';
     }).join('') + '</div>';
     h += '<p class="note">' + (NET.status === 'online' && NET.board[mode] ? 'Live leaderboard · ' + NET.board[mode].players + ' farmer' + (NET.board[mode].players === 1 ? '' : 's') : 'Practice board: the live leaderboard appears when the game is played on bejucoffee.com.') + '</p>';
     h += '<h3>Your name</h3><div class="seg"><input id="nameIn" maxlength="16" value="' + S.name.replace(/"/g, '') + '" aria-label="Your name on the leaderboard"><button type="button" data-act="rename">Save</button></div>';
     } else {
-    h += '<h3>Prestige</h3><p class="note">The all-time board ranks by prestige first, then level, then know-how earned this run. The season board ranks by know-how earned this month, so anyone can top it. Each prestige needs 8 more levels than the last (10, 18, 26, 34 ...), and levels past 10 get steadily bigger. Unspent know-how does not carry over, so spend it on research before you prestige.</p>';
+    h += '<h3>Prestige</h3><p class="note">The all-time board ranks by prestige first, then level, then know-how earned this run. The season board ranks by prestiges this month, then know-how earned this month, so a fresh start each month gives everyone a chance. Each prestige needs 8 more levels than the last (10, 18, 26, 34 ...), and levels past 10 get steadily bigger. Unspent know-how does not carry over, so spend it on research before you prestige.</p>';
     h += '<div class="bar"><i style="width:' + Math.min(100, Math.round(levelSpan()[1] / need * 100)) + '%"></i></div>';
     h += btn(ready ? 'Prestige to ' + (S.prestige + 1) : 'Prestige at level ' + need, ready ? (S.prestige + 1 < TIERS.length ? 'unlocks the ' + TIERS[S.prestige + 1] + ' crest' : 'adds a star') : 'you are level ' + level(), 'prestigeAsk', ready, 'green');
     const has = () => ORIGINS.filter((l) => S.stamps[l]).length;

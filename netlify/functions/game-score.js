@@ -1,6 +1,6 @@
 /* POST /.netlify/functions/game-score  { name, prestige, seasonP, seasonKh, level, points, look }  ->  { ok, rank } or 422 { error }
    GET  /.netlify/functions/game-score?mode=season|all      ->  { season, top: [...], me? }
-   The leaderboard. All time ranks by prestige, then level, then points; the season board ranks by know-how earned this month.
+   The leaderboard. All time ranks by prestige, then level, then points; the season board ranks by prestiges this month, then know-how earned this month.
    Each submission must be possible since the last one. */
 const G = require("../lib/game");
 
@@ -9,7 +9,7 @@ async function boardFor(store, mode, season) {
   const keys = await store.list("scores/");
   const rows = (await Promise.all(keys.map((k) => store.get(k)))).filter(Boolean);
   const live = mode === "all" ? rows : rows.filter((r) => r.season === season);
-  return live.sort(mode === "all" ? rankSort("prestige") : (a, b) => (b.seasonKh || 0) - (a.seasonKh || 0) || b.prestige - a.prestige);
+  return live.sort(mode === "all" ? rankSort("prestige") : (a, b) => b.seasonP - a.seasonP || (b.seasonKh || 0) - (a.seasonKh || 0));
 }
 const publicRow = (r, i) => ({ rank: i + 1, name: r.name, prestige: r.prestige, seasonP: r.seasonP, seasonKh: r.seasonKh || 0, level: r.level, points: r.points, look: r.look });
 

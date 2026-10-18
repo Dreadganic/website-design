@@ -107,6 +107,8 @@ test("scores: prestige needs 8 more levels each time, and the season board ranks
   await call(score, "POST", s(5000, 5000), a); await call(score, "POST", s(9000, 2000), b);
   const board = await call(score, "GET", undefined, a, { mode: "season" });
   assert.equal(board.body.top[0].seasonKh, 9000, "most know-how this month leads the season board");
+  const c = await newPlayer(); await call(score, "POST", { name: "Farmer", prestige: 1, seasonP: 1, seasonKh: 100, level: 1, points: 0 }, c);
+  assert.equal((await call(score, "GET", undefined, a, { mode: "season" })).body.top[0].seasonP, 1, "a prestige this month beats any amount of know-how");
   clock += 20000;
   assert.equal((await call(score, "POST", s(5000 + 1e7, 5000), a)).body.error, "too_fast");
 });
