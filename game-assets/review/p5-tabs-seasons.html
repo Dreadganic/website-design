@@ -1,0 +1,140 @@
+<title>P5 Tabs and Seasons</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column like the other reviews; measurements as tables, findings and recommendations as cards */
+:root {
+  --bg: #F5F3EE; --panel: #FFFFFF; --fg: #23201B; --muted: #6A6358; --line: #DED8CC;
+  --bean: #6B3F22; --leaf: #2F6B4F; --cherry: #B8323A; --gold: #A8791A; --soft: #EFE9DD;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #171512; --panel: #201D19; --fg: #EDE7DC; --muted: #A79F92; --line: #383229;
+  --bean: #D9A47A; --leaf: #6CC59A; --cherry: #F07880; --gold: #E2B64A; --soft: #2A2620; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #171512; --panel: #201D19; --fg: #EDE7DC; --muted: #A79F92; --line: #383229;
+  --bean: #D9A47A; --leaf: #6CC59A; --cherry: #F07880; --gold: #E2B64A; --soft: #2A2620; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font: 16px/1.6 var(--body); }
+.wrap { max-width: 780px; margin: 0 auto; padding-block: 40px 72px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 36px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(30px, 6vw, 42px); font-weight: 800; }
+h2 { font-size: 24px; font-weight: 800; }
+p { margin: 0; max-width: 66ch; }
+section { display: flex; flex-direction: column; gap: 14px; }
+.eyebrow { font: 600 12px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--bean); }
+.lede { font-size: 18px; color: var(--muted); }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; }
+.kpi b { font: 800 26px/1.1 var(--display); font-variant-numeric: tabular-nums; color: var(--leaf); }
+.kpi span { font-size: 13px; color: var(--muted); }
+.tw { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 12px/1.3 var(--mono); letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; }
+.card .tag { font: 600 12px var(--mono); color: var(--muted); }
+.card.bad { border-left: 4px solid var(--cherry); }
+.card.good { border-left: 4px solid var(--leaf); }
+.card.warn { border-left: 4px solid var(--gold); }
+ul, ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 68ch; }
+.note { font-size: 14px; color: var(--muted); }
+</style>
+<div class="wrap">
+<header style="display:flex;flex-direction:column;gap:12px">
+  <span class="eyebrow">Playtest · 18 October 2026 · three human-like runs to prestige 5, with the new tabs</span>
+  <h1>Pacing holds at about 10.5 hours to P5, the roastery takes over as farms max out, and new players can win seasons</h1>
+  <p class="lede">This time the bot also logged which tab or sub-tab each of its actions belongs to. That shows how often a player has to move between tabs at each stage. A separate model of a 30-day season compares new and veteran players on the leaderboard.</p>
+</header>
+
+<section>
+<h2>Pacing</h2>
+<div class="tw"><table>
+<thead><tr><th>Run</th><th>P1</th><th>P2</th><th>P3</th><th>P4</th><th>P5</th><th>Play time</th><th>Rep at P5</th></tr></thead>
+<tbody>
+<tr><td>Seed 7</td><td class="n">29 min</td><td class="n">55</td><td class="n">99</td><td class="n">198</td><td class="n">664</td><td class="n">10.8 h · 19 sessions</td><td class="n">12</td></tr>
+<tr><td>Seed 11</td><td class="n">32 min</td><td class="n">55</td><td class="n">90</td><td class="n">180</td><td class="n">617</td><td class="n">10.2 h · 20 sessions</td><td class="n">11</td></tr>
+<tr><td>Seed 23</td><td class="n">29 min</td><td class="n">56</td><td class="n">97</td><td class="n">199</td><td class="n">651</td><td class="n">10.5 h · 20 sessions</td><td class="n">11</td></tr>
+</tbody></table></div>
+<p>Times are cumulative play minutes. This matches the last playthroughs. Instant cracks, cosmetics and the tab changes didn't move the overall pace, so the early game stays quick (P3 in about an hour and a half) and P4 to P5 stays the long stretch of about seven and a half hours.</p>
+</section>
+
+<section>
+<h2>The roastery takes over as the farms max out</h2>
+<div class="tw"><table>
+<thead><tr><th>Stage</th><th>Roastery share of coins</th><th>Average building level</th><th>Pickers</th><th>Roastery share of actions</th></tr></thead>
+<tbody>
+<tr><td>P2 → P3</td><td class="n">0%</td><td class="n">4.0 of 5</td><td class="n">full</td><td class="n">0%</td></tr>
+<tr><td>P3 → P4</td><td class="n">5–6%</td><td class="n">4.7 of 7</td><td class="n">full</td><td class="n">13%</td></tr>
+<tr><td>P4 → P5</td><td class="n">21–24%</td><td class="n">6.2 of 7</td><td class="n">full</td><td class="n">21%</td></tr>
+</tbody></table></div>
+<p>By the end of P4 the farms are nearly maxed for that prestige: every farm has all its pickers and buildings average 6.2 of the 7 allowed. Building purchases fall to about 1% of actions. That's when the roastery grows into about a quarter of income and a fifth of what players do, up from 15% before instant cracks and shop charm. The farms stay the engine; the roastery is where the late-game attention goes. P6 lifts the building cap to 9, so the farms get a second wind after that.</p>
+</section>
+
+<section>
+<h2>How players move between tabs</h2>
+<div class="tw"><table>
+<thead><tr><th>Stage</th><th>Tabs needed per check</th><th>Most common</th><th>Where actions happen</th></tr></thead>
+<tbody>
+<tr><td>P0–P2</td><td class="n">1.4</td><td>Farm only 60% · Farm + Mill 35%</td><td>Farm 70% (Fields 62%) · Mill 26% · Unlock 2%</td></tr>
+<tr><td>P3</td><td class="n">1.7</td><td>Farm + Mill 41% · Farm 41% · Farm + Mill + Roastery 8%</td><td>Farm 52% · Mill 34% · Roastery 13%</td></tr>
+<tr><td>P4</td><td class="n">1.9</td><td>Farm + Mill 42% · Farm 29% · all three 17%</td><td>Farm 43% · Mill 37% · Roastery 21%</td></tr>
+<tr><td>P5</td><td class="n">2.1</td><td>Farm + Mill 41% · all three 25%</td><td>Mill 43% · Farm 35% · Roastery 20%</td></tr>
+</tbody></table></div>
+<div class="card good">
+  <span class="tag">The tab layout fits each stage</span>
+  <p>Early on, two tabs do everything: Farm and Mill. Merging Build into Farm means buying upgrades no longer costs an extra tab. Unlock, Daily, Ranks and Shop are visited a few times a session, as they should be. The Roastery joins as the third core tab exactly when it becomes important. The one friction is late game: a quarter of checks need all three of Farm, Mill and Roastery.</p>
+</div>
+<div class="card good">
+  <span class="tag">Awkward moves found and fixed</span>
+  <ul>
+    <li>The farm arrows on the Roastery tab changed farm but stayed in the roastery. They now go back to the farm, as they did from the Mill.</li>
+    <li>First crack forced a trip to the Roastery tab inside a 10-second window. A <b>"First crack! Tap to catch it"</b> button now appears over the scene on every other tab.</li>
+    <li>"Plant it" after unlocking a coffee just closed the window. It now goes to Farm › Fields on that coffee's native farm.</li>
+    <li>Daily tasks had no way to get to the work. Unfinished tasks now have a <b>Go</b> button to the Farm or Mill.</li>
+    <li>Request beans with nothing on the racks was a dead end. It now offers <b>Go to the Mill</b>.</li>
+    <li>Roastery cosmetics lived only in the Shop. The Roastery tab now shows shop charm with a <b>Decorate</b> button.</li>
+  </ul>
+</div>
+<div class="card warn">
+  <span class="tag">Worth deciding</span>
+  <ul>
+    <li><b>Late-game three-tab hop.</b> Most Mill visits late on are for hand-cupping and contracts, and most Roastery visits are to start roasts. A <b>Repeat roast</b> switch on a bin, which starts the next batch with the same roast when a roaster is free, would cut Roastery visits roughly in half. Catching the crack would stay manual. It could open at reputation 8, or as a P9 perk.</li>
+    <li><b>Locked tabs at the start.</b> A new player sees five locked tabs, one of them the Roastery marked P3, which is days away. Hiding the Roastery tab until P2 would make the first sessions look simpler.</li>
+  </ul>
+</div>
+</section>
+
+<section>
+<h2>Season leaderboards: new players vs veterans</h2>
+<p>Season rank is by season stars, with ties broken by season know-how. Stars come from daily-capped sources: check-in 2, tasks 6, golden bushes 5, hand cups 3, contracts 3 and roasts 3, so 22 a day. On top of that are 15 per weekly order, 5 per drop event and 10 per prestige, with no cap on prestige stars.</p>
+<div class="tw"><table>
+<thead><tr><th>Player (30-day season)</th><th>Day 7</th><th>Day 14</th><th>Day 30</th></tr></thead>
+<tbody>
+<tr><td>New, from day 1, 2 h a day</td><td class="n">216</td><td class="n">385</td><td class="n">777</td></tr>
+<tr><td>Veteran (P6+), 2 h a day</td><td class="n">169</td><td class="n">338</td><td class="n">730</td></tr>
+<tr><td>New, from day 1, 30 min a day</td><td class="n">169</td><td class="n">310</td><td class="n">638</td></tr>
+<tr><td>Veteran, 30 min a day</td><td class="n">141</td><td class="n">282</td><td class="n">600</td></tr>
+<tr><td>New, from day 15, 2 h a day</td><td class="n">0</td><td class="n">0</td><td class="n">439</td></tr>
+</tbody></table></div>
+<div class="card good">
+  <span class="tag">New players are not locked out</span>
+  <p>Because stars are capped per day, an hour or two of play earns as many as six. A veteran's bigger farms earn more coins, but not more stars. A new player who starts on day 1 matches a veteran's daily stars from about day 2, once they've reached P3 and have roasting stars. They also collect 50–60 prestige stars from their first five prestiges, which come quickly. Veterans prestige about once a month at most. So in a newcomer's first season they actually rank above a veteran who plays the same amount.</p>
+</div>
+<div class="card bad">
+  <span class="tag">Two real problems</span>
+  <ul>
+    <li><b>Ties go to veterans.</b> Everyone who hits every daily cap ends on exactly the same total, and the top of the board will be full of ties. Ties are broken by season know-how, which veterans earn many times faster. So among the most dedicated players, veterans win the top spots. <b>Fix:</b> break ties by who reached the total first. That rewards consistency and ignores farm size.</li>
+    <li><b>Prestige stars swing it the other way.</b> Uncapped prestige stars give newcomers 50–60 stars veterans can't get, enough to decide the top 10 in a newcomer's first month. <b>Fix:</b> cap prestige stars at 3 a season (30 stars). That keeps a welcome boost without making the first month the only one where you can win.</li>
+  </ul>
+</div>
+<div class="card warn">
+  <span class="tag">Joining mid-season</span>
+  <p>Someone who starts on day 15 can't catch up that season: 439 stars against about 777. That's normal for monthly boards, and the season track rewards are personal, so they still earn everything on it. To give them something to aim for, the board could show a <b>Rookie</b> view of players in their first season, with its own top-10 badge.</p>
+</div>
+</section>
+</div>
