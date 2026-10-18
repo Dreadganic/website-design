@@ -72,7 +72,7 @@ test("scores: a real prestige is accepted, but not twice in a few minutes", asyn
   const a = await newPlayer();
   const s = (p, sp, pts) => ({ name: "Farmer", prestige: p, seasonP: sp, level: G.levelFor(pts), points: pts });
   await call(score, "POST", s(0, 0, 900), a);
-  for (let i = 0; i < 12; i++) { clock += 300000; await call(score, "POST", s(0, 0, 900 + (i + 1) * 1800), a); }
+  for (let i = 0; i < 12; i++) { clock += 300000; await call(score, "POST", s(0, 0, 900 + (i + 1) * 10000), a); }   /* past level 10, which takes 6x the know-how it used to */
   clock += 60000;
   assert.equal((await call(score, "POST", s(1, 1, 0), a)).status, 200);
   for (const pts of [40000, G.XP_AT(18)]) { clock += 60000; assert.equal((await call(score, "POST", s(1, 1, pts), a)).status, 200); }   /* bursts can reach level 18 quickly... */
@@ -101,7 +101,7 @@ test("claims: a paid order grants cranes and coffees once", async () => {
 
 test("scores: prestige needs 8 more levels each time, and the season board ranks season stars, then who got there first", async () => {
   assert.deepEqual([0, 1, 2, 3].map(G.prestigeNeed), [10, 18, 26, 34]);
-  assert.ok(G.XP_AT(11) > G.XP_AT(10) && Math.abs(G.XP_AT(20) / G.XP_AT(19) - 1.22) < 0.01, "levels past 10 grow 1.22x");
+  assert.ok(G.XP_AT(11) > G.XP_AT(10) && Math.abs(G.XP_AT(28) / G.XP_AT(27) - 1.22) < 0.01, "once the early easing ends, levels grow 1.22x");
   const a = await newPlayer(), b = await newPlayer();
   const s = (kh, pts, st) => ({ name: "Farmer", prestige: 0, seasonP: 0, seasonKh: kh, seasonStars: st || 0, level: G.levelFor(pts), points: pts });
   await call(score, "POST", s(5000, 5000), a); clock += 1000; await call(score, "POST", s(9000, 2000), b);

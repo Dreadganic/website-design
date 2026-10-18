@@ -29,12 +29,12 @@ window.BOT = (function () {
   function mill() {
     const S = G.S;
     if (!(S.staff.foreman)) {
-      for (let i = S.lots.length - 1; i >= 0; i--) { const l = S.lots[i]; if (l.left > 0) continue; const c = S.tabs.orders && S.contracts.find((x) => G.fits(x, l)); act(c ? 'deliver:' + i + '.' + c.id : 'sell:' + i); }
+      for (let i = S.lots.length - 1; i >= 0; i--) { const l = S.lots[i]; if (l.left > 0) continue; const c = S.buyers && S.contracts.find((x) => G.fits(x, l)); act(c ? 'deliver:' + i + '.' + c.id : 'sell:' + i); }
       let g = 0;
       while (S.lots.length < G.racks() && G.stored() > 0 && g++ < 8) {
         const v = Object.keys(S.cherries).filter((x) => S.cherries[x] > 0).sort((a, b) => S.cherries[b] - S.cherries[a])[0];
         if (S.cherries[v] < Math.max(10, G.cap() * 0.2) && G.stored() < G.cap() * 0.85 && S.stats.lotsSold > 0) break;
-        const want = S.tabs.orders && S.contracts.find((c) => (!c.v || c.v === v) && c.method && S.methods[c.method] && c.have < c.kg);
+        const want = S.buyers && S.contracts.find((c) => (!c.v || c.v === v) && c.method && S.methods[c.method] && c.have < c.kg);
         const best = Object.keys(G.METHODS).filter((k) => S.methods[k]).sort((a, b) => G.METHODS[b].mult - G.METHODS[a].mult)[0];
         const n = S.lots.length; act('mv:' + v); act('lot:' + (want ? want.method : best)); if (S.lots.length === n) break;
       }
@@ -81,14 +81,14 @@ window.BOT = (function () {
         if (!live(l)) return; const f = S.farms[l];
         if (f.workers.length < G.maxPickers(f)) c.push([l, 'hire', G.hireCost(f)]);
         G.BUILD_ORDER.forEach((k) => { if ((f.build[k] || 0) < (G.buildMax ? Math.min(G.buildMax(), B.cfg.maxBuild || 10) : (B.cfg.maxBuild || 3))) c.push([l, 'build:' + k, G.buildCost(l, k)]); });
-        if (!f.manager && l !== 'osaka') c.push([l, 'mgr', G.MANAGER_COST(l)]);
+        if (!f.manager && l !== 'osaka' && (!G.mgrOK || G.mgrOK())) c.push([l, 'mgr', G.MANAGER_COST(l)]);
         if (G.masterCost && f.manager) c.push([l, 'master', G.masterCost(l)]);
         if (!f.field && l !== 'osaka') c.push([l, 'up:field', G.UP.field.cost()]);
       });
       ['storage', 'pickers', 'racks', 'hearts'].forEach((k) => { if (S.lv[k] < G.UP[k].max && !(k === 'storage' && G.STORE && G.STORE[S.lv[k]] && G.STORE[S.lv[k]].p > S.prestige)) c.push([S.loc, 'up:' + k, G.UP[k].cost(S.lv[k])]); });
       if (G.trainCost && S.prestige >= 5) { G.LOCS.forEach((l) => { if (live(l) && S.farms[l].manager && G.trainLv('mgr', l) < 10) c.push([l, 'train:mgr', G.trainCost('mgr', l)]); }); ['foreman', 'agent'].forEach((w) => { if (S.staff[w] && G.trainLv(w) < 10) c.push([S.loc, 'train:' + w, G.trainCost(w)]); }); }   /* staff training */
       if (G.estateNext && !B.cfg.noEstate) G.LOCS.forEach((l) => { const n = G.estateNext(l); if (n && !n.why && S.points >= n.k) c.push([l, 'estbuy:' + l, n.c]); });   /* estate projects */
-      if (!S.staff.foreman) c.push([S.loc, 'foreman', G.FOREMAN_COST]); else if (!S.staff.agent) c.push([S.loc, 'agent', G.AGENT_COST]);
+      if (!S.staff.foreman) { if (!G.foremanOK || G.foremanOK()) c.push([S.loc, 'foreman', G.FOREMAN_COST]); } else if (!S.staff.agent && (!G.agentOK || G.agentOK())) c.push([S.loc, 'agent', G.AGENT_COST]);
       c.sort((a, b) => a[2] - b[2]);
       if (H()) {
         Object.keys(G.DECOR).forEach((k) => { if (S.decor[k] === undefined) c.push([S.loc, 'decor:' + k, G.DECOR[k].cost]); });
@@ -146,7 +146,14 @@ window.BOT = (function () {
     st.cycles += 1; if (set.size) { st.busy += 1; const mains = [...new Set([...set].map((x) => x.split(':')[0]))].sort(); st.tabs += mains.length; st.subs += set.size; st.combos[mains.join('+')] = (st.combos[mains.join('+')] || 0) + 1; }
     B.cyc = new Set();
   }
-  function decide() { closeAll(); G.checkIn(); G.checkTabs(); tap(); active(); mill(); estate(); roast(); knowhow(); coins(); prestige(); closeAll(); cycleEnd(); }
+  function lessons() {   /* follow Rosa's lessons the way a new player would: open the tab she points at, cup the lot, plant the new coffee */
+    const S = G.S, g = G.GUIDE && G.GUIDE[S.guide]; if (!g || (g.when && !g.when())) return;
+    if (g.ev && g.ev.startsWith('tab:')) { G.setTab(g.ev.slice(4)); G.setTab('farm'); }
+    if (g.ev === 'cup') { const i = S.lots.findIndex((l) => !l.cupped); if (i > -1) act('cup:' + i); }
+    if (g.ev === 'plant' && S.vars.catuai) { const home = S.loc; act('go:mogiana'); act('plant:1.catuai'); act('go:' + home); }
+    if (g.ev === 'var' && !S.vars.catuai) act('var:catuai');
+  }
+  function decide() { closeAll(); lessons(); G.checkIn(); G.checkTabs(); tap(); active(); mill(); estate(); roast(); knowhow(); coins(); prestige(); closeAll(); cycleEnd(); }
   function snap() {
     const S = G.S;
     B.snaps.push({ t: Math.round(B.t), lv: G.level(), xp: Math.round(S.xp), p: S.prestige, coins: Math.round(S.coins), kh: Math.round(S.points), cranes: S.cranes, farms: G.LOCS.filter(live).length, workers: G.totalWorkers(), lots: S.stats.lotsSold, contracts: S.stats.contracts || 0, cap: G.cap(), racks: G.racks(), stored: Math.round(G.stored()), day: S.day });
