@@ -49,7 +49,9 @@ window.BOT = (function () {
   }
   function replant() {
     const S = G.S, home = S.loc, owned = G.VAR_ORDER.filter((v) => S.vars[v]), best = owned.sort((a, b) => score(b) - score(a))[0];
-    G.LOCS.forEach((l) => { if (!S.farms[l].unlocked || l === 'osaka') return; act('go:' + l); S.farms[l].beds.forEach((v, b) => { if (score(best) > score(v) * 1.15) act('plant:' + b + '.' + best); }); });
+    G.LOCS.forEach((l) => { if (!S.farms[l].unlocked || l === 'osaka') return; act('go:' + l);
+      const nat = G.isNative && B.cfg.native !== false ? owned.filter((v) => G.isNative(l, v)).sort((a, b) => score(b) - score(a))[0] : null;   /* keep field 1 native for the terroir bonus */
+      S.farms[l].beds.forEach((v, b) => { const want = b === 0 && nat ? nat : best; if (v !== want && (want === nat || score(want) > score(v) * 1.15)) act('plant:' + b + '.' + want); }); });
     act('go:' + home); closeAll();
   }
   function coins() {
