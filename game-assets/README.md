@@ -420,7 +420,21 @@ Two late staff who take over chores, never as well as you do them yourself (`ROA
 ## Map arrows
 - **What they point at:** the same bouncing gold arrow as the guide, over anything on the map you can tap right now (`hintAt`, `drawHint`). One at a time, in this order:
   - **Farm:** the golden bush, else a ready estate chore.
-  - **Mill:** the first uncupped rack, else a dry lot to sell when there's no foreman.
+  - **Mill:** the cupping table when Cup all is yours and two or more lots need cupping, else the first uncupped rack, else a dry lot to sell when there's no foreman.
   - **Roastery:** a roaster in its crack window, else a free roaster when there's green coffee.
 - **Estate chores on the map** (`CHORE_AT`): tap the Mogiana patio to rake it, the Gedeo compound to hold the day's ceremony, and the Osaka pond to feed the koi. When none is ready, tapping the same area opens the estate card as before.
 - **When they hide:** while the guide's own arrow is up or a window is open. They also stop bobbing for players who turn on reduced motion.
+- **The cupping table** sits mid-patio in the mill (`CUP_TABLE`, and `tx, ty` in `scene_mill`), clear of the counters at the top right.
+
+## Unlock walks
+- **What happens:** whenever something new opens after the lessons, the guide bar says what it is ("Unlocked · Coffee to unlock: Yellow Catuai") and the arrow walks you there, step by step: the tab, then the sub-tab, then the button or the spot on the map (`NAV`, `navTick`, `navTarget`).
+- **One at a time:** unlocks queue up and never show while a window is open. Each step scrolls on screen once.
+- **When a walk ends:** when you tap the last step, after 6 seconds looking at it, when you tap **Got it**, or when it no longer applies (you bought the coffee, say). After 90 seconds it gives up. Each walk runs once (`S.navSeen`).
+- **What's covered:**
+  - **Tabs:** Unlock, Farm › Upgrades, Daily, Shop, Ranks, Looks and the Roastery.
+  - **The Mill and tasks:** buyers' contracts and weekly tasks.
+  - **Unlocks:** every coffee, process and farm as it becomes available, and Research.
+  - **Staff:** the farm manager, mill foreman, contracts agent, head roaster and each estate manager.
+  - **Perks:** Replant all, Cup all (the cupping table on the map) and task swaps.
+  - **Late game:** estate projects (the drying area on the map), repeat roasts, house blends and farm visits.
+- **Old saves and the lessons:** anything already open when the lessons end, or when an old save first loads, is marked as seen, so nobody gets a pile of walks at once.

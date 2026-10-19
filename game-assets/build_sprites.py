@@ -1356,14 +1356,15 @@ def scene_mill():
     for (wx, wy) in [(8, 56), (46, 56), (8, 78), (46, 78)]:
         fill(wx, wy, 3, 7, "#2A2A2A")
     # the cupping table
-    shadow_ellipse(170, 80, 18, 2.5, 60)
-    fill(152, 62, 36, 16, OUT); fill(153, 63, 34, 13, "#F8F4EC"); fill(153, 74, 34, 2, "#DCD6C8")
+    tx, ty = 56, 70   # mid-patio, clear of the game's counters at the top right (CUP_TABLE in the game)
+    shadow_ellipse(tx + 18, ty + 18, 18, 2.5, 60)
+    fill(tx, ty, 36, 16, OUT); fill(tx + 1, ty + 1, 34, 13, "#F8F4EC"); fill(tx + 1, ty + 12, 34, 2, "#DCD6C8")
     for k in range(5):
-        cx = 157 + k * 7
-        ellipse(cx, 67, 2.6, 2.2, OUT); ellipse(cx, 67, 1.8, 1.4, "#6A3C1C"); put(cx - 1, 66, "#A86A3A")
-    fill(154, 71, 6, 2, "#B8B8B8"); fill(178, 71, 6, 3, "#C8A060")
-    for lx in (154, 185):
-        fill(lx, 78, 2, 4, WOOD[4])
+        cx = tx + 5 + k * 7
+        ellipse(cx, ty + 5, 2.6, 2.2, OUT); ellipse(cx, ty + 5, 1.8, 1.4, "#6A3C1C"); put(cx - 1, ty + 4, "#A86A3A")
+    fill(tx + 2, ty + 9, 6, 2, "#B8B8B8"); fill(tx + 26, ty + 9, 6, 3, "#C8A060")
+    for lx in (tx + 2, tx + 33):
+        fill(lx, ty + 16, 2, 4, WOOD[4])
     # the platform scale beside the door
     fill(102, 58, 16, 12, OUT); fill(103, 59, 14, 10, "#8A9CAA"); fill(104, 60, 12, 8, "#A8B8C4"); fill(108, 52, 4, 7, OUT); fill(109, 53, 2, 5, "#C8A040")
     hedgerow_and_bank([LEAF, COFFEE, LUSH, OCHRE], DIRT["ochre"])

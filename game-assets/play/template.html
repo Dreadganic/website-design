@@ -1627,7 +1627,7 @@ function tick(dt) {
     if (fwT <= 0) { fwT = fireworks > 2 ? 0.1 : 0.22; const cx = me.x + (rnd() - 0.5) * 30, cy = me.y - 34 - rnd() * 16, col = ['#F2C04A', '#E83A30', '#7ED0A8', '#F8B8CC', '#7890E0', '#FFFFFF'][Math.floor(rnd() * 6)];
       for (let i = 0; i < 14; i++) { const a = i / 14 * 6.283, v = 30 + rnd() * 20; bursts.push({ x: cx, y: cy, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 20, t: 0, c: i % 3 ? col : '#FFF4B0' }); } }
   }
-  contractsTick(); pwalkTick();
+  contractsTick(); pwalkTick(); navTick();
   { const E = S.estate, day = dayKey(new Date()); if (E.playDay !== day) { E.playDay = day; E.play = 0; } E.play += dt; }
   S.staffT = (S.staffT || 0) + d; if (S.staffT >= 1) { S.staffT = 0; emTick(false); staffTick(); }
   floats.forEach((t) => { t.t += dt; }); while (floats.length && floats[0].t > 1.1) floats.shift();
@@ -1664,6 +1664,7 @@ function hintAt(sc) {   /* where the map arrow points, in scene pixels, or null 
   }
   if (sc === 'mill') {
     const n = Math.min(RACK_SHOWN, racks()), slots = rackSlots();
+    if (hasPerk('cupall') && S.lots.filter((l) => !l.cupped).length > 1) return [CUP_TABLE.x + 18, CUP_TABLE.y + 2];
     let i = slots.slice(0, n).findIndex((l) => l && !l.cupped);
     if (i < 0 && !S.staff.foreman) i = slots.slice(0, n).findIndex((l) => l && l.cupped && l.left <= 0 && !reqLot(l));
     if (i < 0) return null; const r = rackAt(i); return [r.x + 20, r.y + 6];
@@ -1798,7 +1799,7 @@ function draw(time) {
 const scene = () => (tab === 'mill' ? 'mill' : tab === 'roast' && roasteryOpen() ? 'roast' : 'farm');
 const sceneImgs = {};
 function sceneBg(k) { if (!sceneImgs[k]) { const im = new Image(); im.src = BGS[k]; sceneImgs[k] = im; } return sceneImgs[k]; }
-const RACK_SHOWN = 16, RACK_GAPS = [50, 96, 142], TRUCK = { x: 54, y: 90 };
+const RACK_SHOWN = 16, RACK_GAPS = [50, 96, 142], TRUCK = { x: 54, y: 90 }, CUP_TABLE = { x: 56, y: 70 };   /* the cupping table sits mid-patio, clear of the counters */
 const rackAt = (i) => ({ x: 7 + (i % 4) * 46, y: 98 + Math.floor(i / 4) * 26 });
 const BAYS = [8, 38, 68], BAY_Y = 62, SHELF_Y = [11, 27, 43], SHELF_SHOWN = 12, DOOR = { x: 96, y: 238 };
 /* what's on a rack: wet cherries or parchment darkening as they dry, cached as small tiles per process and drying stage */
@@ -1871,7 +1872,7 @@ function tickMill(d) {
   if (!M.me) M.me = Object.assign(walker(150, 90), { me: true });
   if (!step(M.me, d, 20) && (M.me.t -= d) <= 0) {   /* you wander between the cupping table and the racks */
     const m = M.me; m.t = 3 + rnd() * 4;
-    m.path = millRoute(m, rnd() < 0.4 ? { x: 160 + rnd() * 22, y: 90 } : full.length ? rackFoot(full[Math.floor(rnd() * full.length)]) : { x: 120 + rnd() * 40, y: 90 });
+    m.path = millRoute(m, rnd() < 0.4 ? { x: CUP_TABLE.x + 6 + rnd() * 24, y: 90 } : full.length ? rackFoot(full[Math.floor(rnd() * full.length)]) : { x: 120 + rnd() * 40, y: 90 });
   }
   for (let i = M.carry.length - 1; i >= 0; i--) { if (!step(M.carry[i], d, 26)) M.carry.splice(i, 1); }
 }
@@ -2048,7 +2049,7 @@ function insideClick(lx, ly) {
       if (c) deliver(j, c.id, true); else sellLot(j, true);
       SFX.play('coins'); guideStep('sell'); return;
     }
-    if (lx > 150 && ly > 60 && ly < 82) { if (hasPerk('cupall') && S.lots.some((l) => !l.cupped)) cupAll(); else floats.push({ x: 170, y: 60, text: hasPerk('cupall') ? 'all cupped' : 'tap a rack to cup it', t: 0 }); return; }
+    if (lx >= CUP_TABLE.x && lx < CUP_TABLE.x + 40 && ly > CUP_TABLE.y - 4 && ly < CUP_TABLE.y + 20) { if (hasPerk('cupall') && S.lots.some((l) => !l.cupped)) cupAll(); else floats.push({ x: CUP_TABLE.x + 20, y: CUP_TABLE.y, text: hasPerk('cupall') ? 'all cupped' : 'tap a rack to cup it', t: 0 }); return; }
     if (lx < 50 && ly > 50 && ly < 90) { SFX.play('knock'); floats.push({ x: 30, y: 60, text: 'off to Osaka', t: 0 }); }
     return;
   }
@@ -2497,6 +2498,62 @@ const PWALK = {   /* step: [bar text, what to point at] */
   3: ['Pick your new outfit', '.look.pick, .tab[data-tab="looks"]'],
   4: ['A farm is resting', '#nextLoc']
 };
+/* new unlocks: whenever something opens, the guide bar names it and the arrow walks you to it, one at a time */
+const navTab = (k, text) => ({ id: 'tab:' + k, when: () => !!S.tabs[k], text, t: '.tab[data-tab="' + k + '"]', done: () => tab === k });
+const navStaff = (id, when, text, act) => ({ id, when, text, t: '[data-act="' + act + '"], [data-act="uptab:staff"], .tab[data-tab="farm"]' });
+const NAV = [
+  navTab('unlock', 'Unlock tab: new coffees and processes'),
+  { id: 'tab:upgrades', when: () => !!S.tabs.upgrades, text: 'Farm › Upgrades, Buildings and Staff', t: '[data-act="uptab:farm"], .tab[data-tab="farm"]', done: () => tab === 'farm' && S.farmSub === 'upgrades' },
+  navTab('orders', 'Daily tab: tasks for coins and cranes'),
+  { id: 'buyers', when: () => buyersOn(), text: 'Buyers post contracts in the Mill', t: '.ccards, .buyline, .tab[data-tab="mill"]' },
+  navTab('shop', 'Shop tab'),
+  { id: 'weekly', when: () => weekOn(), text: 'Weekly tasks', t: '#weekH, .tab[data-tab="orders"]' },
+  navTab('ranks', 'Ranks tab: the leaderboard and the season'),
+  navStaff('mgr', () => mgrOK(), 'A farm manager to hire', 'mgr'),
+  ...VAR_ORDER.map((v) => ({ id: 'var:' + v, when: () => !S.vars[v] && gateOK('var:' + v), text: 'Coffee to unlock: ' + ART.varieties[v], t: '[data-act="var:' + v + '"], [data-act="untab:coffees"], .tab[data-tab="unlock"]' })),
+  ...Object.keys(METHODS).filter((k) => METHODS[k].cost).map((k) => ({ id: 'method:' + k, when: () => !S.methods[k] && gateOK('method:' + k), text: 'Process to unlock: ' + METHODS[k].name, t: '[data-act="method:' + k + '"], [data-act="untab:processes"], .tab[data-tab="unlock"]' })),
+  ...LOCS.filter((l) => l !== 'osaka').map((l) => ({ id: 'farm:' + l, when: () => canOpen(l), text: 'Farm to open: ' + ART.locations[l].name.split(',')[0], t: '[data-act="farm:' + l + '"], [data-act="untab:farms"], .tab[data-tab="unlock"]' })),
+  { id: 'research', when: () => researchOpen(), text: 'Research', t: '[data-act="untab:research"], .tab[data-tab="unlock"]', done: () => tab === 'unlock' && S.unTab === 'research' },
+  navTab('looks', 'Looks tab: everything you wear'),
+  { id: 'replantall', when: () => hasPerk('replantall'), text: 'Replant all: every farm in one tap', t: '[data-act="replantask"], [data-act="uptab:fields"], .tab[data-tab="farm"]' },
+  navStaff('foreman', () => foremanOK(), 'A mill foreman to hire', 'foreman'),
+  { id: 'cupall', when: () => hasPerk('cupall'), text: 'Cup all: tap the cupping table', t: 'cv:mill:' + (CUP_TABLE.x + 18) + ',' + (CUP_TABLE.y + 2) + ', .tab[data-tab="mill"]' },
+  navStaff('agent', () => agentOK(), 'A contracts agent to hire', 'agent'),
+  navTab('roast', 'The Roastery tab'),
+  { id: 'estate', when: () => S.prestige >= ESTATE_P, text: 'Estate projects: tap the drying area', t: 'cv:farm:40,62, .tab[data-tab="farm"]' },
+  { id: 'reroll', when: () => hasPerk('reroll'), text: 'Swap one daily task a day', t: '[data-act^="reroll:"], .tab[data-tab="orders"]' },
+  navStaff('roaster', () => roasterOK(), 'A head roaster to hire', 'hireroaster'),
+  { id: 'rrep', when: () => roasteryOpen() && repLevel() >= 8, text: 'Repeat roast: bins restart by themselves', t: '[data-act^="rrep:"], .tab[data-tab="roast"]' },
+  { id: 'blend', when: () => roasteryOpen() && repLevel() >= 10, text: 'House blends: blend two bags', t: '[data-act^="blendask:"], .tab[data-tab="roast"]' },
+  ...EM_LOCS.map((l) => navStaff('em:' + l, () => emCan(l), EMGR[l].name + ', ' + EMGR[l].role.toLowerCase() + ', to hire', 'emhire:' + l)),
+  { id: 'visits', when: () => !!S.farmCode && !!S.tabs.ranks, text: 'Farm visits: tap Visit on the board', t: '.visit-btn, [data-act="ranksub:board"], .tab[data-tab="ranks"]' }
+];
+let navArrive = 0, navStart = 0, navSeenAt = '';
+const navCur = () => (S.nav && S.guide >= GUIDE.length && !S.pwalk ? NAV.find((n) => n.id === S.nav) : null);
+function navFinish() { if (S.nav) { S.navSeen[S.nav] = true; S.nav = null; } navArrive = 0; setTimeout(renderGuide, 0); }
+function navTick() {
+  if (S.guide < GUIDE.length || S.pwalk) return;
+  if (!S.navSeen) { S.navSeen = {}; NAV.forEach((n) => { if (n.when()) S.navSeen[n.id] = true; }); return; }   /* what's already open when the lessons end (or on an old save) needs no walk */
+  const cur = navCur();
+  if (cur) { if (!cur.when() || (cur.done && cur.done()) || (navArrive && Date.now() - navArrive > 6000) || Date.now() - navStart > 90e3) navFinish(); return; }
+  S.nav = null;
+  if (!$('modal').hidden) return;
+  const n = NAV.find((x) => !S.navSeen[x.id] && x.when()); if (n) { S.nav = n.id; navArrive = 0; navStart = Date.now(); SFX.play('achieve'); }
+}
+function navTarget(chain) {   /* the first step on the way that's on screen: a button, a tab, or a spot on the map ('cv:scene:x,y') */
+  const qs = chain.split(', ');
+  for (let i = 0; i < qs.length; i++) {
+    const q = qs[i];
+    if (q.startsWith('cv:')) { const [, sc, xy] = q.split(':'); if (scene() === sc) return { i, el: cv, pt: xy.split(',').map(Number) }; continue; }
+    const el = document.querySelector(q); if (el && el.offsetParent !== null) return { i, el };
+  }
+  return null;
+}
+document.addEventListener('click', (e) => {   /* tapping the last step of the way completes it */
+  const n = navCur(); if (!n) return; const q = n.t.split(', ')[0];
+  if (q.startsWith('cv:')) { if (e.target === cv && scene() === q.split(':')[1]) { const r = cv.getBoundingClientRect(), [x, y] = q.split(':')[2].split(',').map(Number); if (Math.hypot((e.clientX - r.left) / r.width * W - x, (e.clientY - r.top) / r.height * H - y) < 26) navFinish(); } }
+  else if (e.target.closest && e.target.closest(q)) navFinish();
+}, true);
 function pwalkTick() {   /* starts the walk the first time a prestige is ready */
   if (!S.pwalk && !S.pwalkDone && S.prestige === 0 && S.guide >= GUIDE.length && S.tabs.ranks && level() >= prestigeNeed() && $('modal').hidden) {
     S.pwalk = 1; showModal(coachCard('Prestige', 'You\'ve reached level ' + prestigeNeed() + '. Time for your first prestige. Let me show you.', 'Show me', 'pwalkgo'));
@@ -2509,6 +2566,14 @@ function renderGuide() {
     setHTML(el, '<span class="gstep">Prestige</span><span class="gtext">' + txt + '</span><button type="button" class="gskip" data-act="pwalkend">Skip</button>');
     const t = tg.split(', ').map((q) => document.querySelector(q)).find((x) => x && x.offsetParent !== null); if (t) t.classList.add('hint'); placeArrow(t); return;
   }
+  const nv = navCur();
+  if (nv) {   /* a new unlock borrows the guide bar and arrow too */
+    el.hidden = false; setHTML(el, '<span class="gstep">Unlocked</span><span class="gtext">' + nv.text + '</span><button type="button" class="gskip" data-act="navend">Got it</button>');
+    const t = navTarget(nv.t); if (t && t.el !== cv) t.el.classList.add('hint');
+    if (t && t.el !== cv && navSeenAt !== nv.id + t.i && $('modal').hidden) { navSeenAt = nv.id + t.i; const r = t.el.getBoundingClientRect(); if (r.top < 60 || r.bottom > innerHeight - 20) t.el.scrollIntoView({ block: 'center', behavior: calm ? 'auto' : 'smooth' }); }   /* bring each step on screen once */
+    if (t && t.i === 0 && !nv.done) { if (!navArrive) navArrive = Date.now(); } else navArrive = 0;
+    placeArrow(t && t.el, t && t.pt); return;
+  }
   let n = 0; while (S.guide < GUIDE.length && !guideWaiting() && GUIDE[S.guide].done && GUIDE[S.guide].done() && n++ < 3) guideDone();   /* steps already done move on */
   if (S.guide >= GUIDE.length || guideWaiting()) { el.hidden = true; arrow.hidden = true; return; }
   const g = GUIDE[S.guide]; el.hidden = false;
@@ -2518,11 +2583,12 @@ function renderGuide() {
   if (t) t.classList.add('hint');
   placeArrow(t);
 }
-function placeArrow(t) {   /* a bouncing arrow over what to tap; on the farm it points at a ripe bush */
+function placeArrow(t, pt) {   /* a bouncing arrow over what to tap; on the farm it points at a ripe bush, or at pt on the map */
   const arrow = $('garrow');
   if (!t || !$('modal').hidden) { arrow.hidden = true; return; }
   let r = t.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top;
-  if (t.id === 'cv') { const sh = S.farms[S.loc].shrubs.find((s) => s.p >= 1); if (!sh) { arrow.hidden = true; return; } x = r.left + (sh.x + 9) / W * r.width; y = r.top + (sh.y - 2) / H * r.height; }
+  if (t.id === 'cv' && pt) { x = r.left + pt[0] / W * r.width; y = r.top + (pt[1] - 2) / H * r.height; }
+  else if (t.id === 'cv') { const sh = S.farms[S.loc].shrubs.find((s) => s.p >= 1); if (!sh) { arrow.hidden = true; return; } x = r.left + (sh.x + 9) / W * r.width; y = r.top + (sh.y - 2) / H * r.height; }
   if (y < 8 || y > innerHeight) { arrow.hidden = true; return; }
   arrow.hidden = false; arrow.style.left = Math.round(x - 11) + 'px'; arrow.style.top = Math.round(y - 26) + 'px';
 }
@@ -2813,7 +2879,7 @@ function renderPanel() {
     });
     if (hasPerk('reroll')) h += '<p class="note">Tasting notes: ' + (S.rerollDay === dayKey(new Date()) ? 'you have swapped a task today. Another swap tomorrow.' : 'tap Swap on a task to trade it for a different one, once a day.') + '</p>';
     if (S.wtasks && S.wtasks.list.length) {
-      h += '<h2>Weekly tasks</h2><p class="note">Bigger goals for the week, new every 7 days. Ends in ' + Math.max(1, 7 - (Math.floor(Date.now() / 864e5) - S.wtasks.start)) + ' day' + (7 - (Math.floor(Date.now() / 864e5) - S.wtasks.start) === 1 ? '' : 's') + '.</p>';
+      h += '<h2 id="weekH">Weekly tasks</h2><p class="note">Bigger goals for the week, new every 7 days. Ends in ' + Math.max(1, 7 - (Math.floor(Date.now() / 864e5) - S.wtasks.start)) + ' day' + (7 - (Math.floor(Date.now() / 864e5) - S.wtasks.start) === 1 ? '' : 's') + '.</p>';
       S.wtasks.list.forEach((t, i) => { const rl = rewardText(t.reward);
         h += row(img((WEEK_KINDS[t.id] || {}).img || 'board', 28), t.text, '<span class="bar" style="display:block"><i style="width:' + Math.round(t.have / t.goal * 100) + '%"></i></span>' + fmt(t.have) + ' / ' + fmt(t.goal), t.done ? btn('Done', '', 'none', false) : t.have >= t.goal ? btn('Claim', rl, 'wtask:' + i, true, 'green') : goBtn(WEEK_KINDS, t, rl)); });
     }
@@ -3057,6 +3123,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'looktitle') { if (!v || S.sitems.title[v]) S.look.title = v; }
   else if (a === 'arch') { const [kind, id] = v.split('.'); if (archiveKeys().some((k) => theme(k).id === id) && !archOwned(kind, id) && spend('cranes', ARCHIVE[kind])) { archGive(kind, id); toast(themeById(id).name + ' ' + ARCHIVE_WHAT[kind] + ' is yours'); } }
   else if (a === 'pwalkgo') { closeModal(); S.pwalk = 2; S.rankSub = 'prestige'; setTab('ranks'); setTimeout(() => showModal(coachCard('Prestige', 'Prestige restarts your level for a new crest. Coins, buildings and farms all stay. Tap Prestige when you\'re ready.')), 300); }
+  else if (a === 'navend') navFinish();
   else if (a === 'pwalkend') { closeModal(); S.pwalk = 0; S.pwalkDone = true; }
   else if (a === 'prestigetab') { S.rankSub = 'prestige'; setTab('ranks'); }
   else if (a === 'shoptab') S.shopTab = v;
