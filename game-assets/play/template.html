@@ -1325,7 +1325,7 @@ const GUIDE = [
     say: 'Tap Cup while it dries. Cupping by hand makes it pay more.' },
   { ch: 'First harvest', text: 'Sell the lot once it\'s dry', ev: 'sell', target: '[data-act^="sell:"], .tab[data-tab="mill"]', reward: { coins: 150 }, react: 'Sold! Coins build, know-how unlocks.', done: () => S.stats.lotsSold > 0,
     say: 'When its bar fills, sell it.' },
-  { ch: 'Grow', text: 'Hire a picker on the Farm tab', ev: 'hire', target: '[data-act="hire"], [data-act="uptab:fields"], .tab[data-tab="farm"]', reward: { points: 50 }, react: 'Another pair of hands.', when: () => S.stats.lotsSold >= 3,
+  { ch: 'Grow', text: 'Hire a picker on the Farm tab', ev: 'hire', done: () => LOCS.some((l) => S.farms[l].unlocked && S.farms[l].workers.length >= maxPickers(S.farms[l])), target: '[data-act="hire"], [data-act="uptab:fields"], .tab[data-tab="farm"]', reward: { points: 50 }, react: 'Another pair of hands.', when: () => S.stats.lotsSold >= 3,
     say: 'You\'ve sold a few lots. More pickers bring in more cherries.' },
   { ch: 'Grow', text: 'Build bigger storage in Farm › Upgrades', ev: 'up:storage', target: '[data-act="up:storage"], [data-act="uptab:farm"], .tab[data-tab="farm"]', reward: { coins: 150 }, react: 'Room for more cherries.', done: () => S.lv.storage > 1,
     say: 'A bigger store keeps your pickers busy longer, even while you\'re away.' },
@@ -1418,7 +1418,7 @@ const stored = () => Object.values(S.cherries).reduce((a, b) => a + b, 0);
 const carryKg = () => ART.carry[S.lv.carry - 1].kg;
 const maxHearts = () => 24 + S.lv.hearts * 6;
 const pickerMult = () => (1 + 0.18 * (S.lv.speed - 1)) * (S.boosts.pick > S.minutesTotal ? 2 : 1);
-const XP_EARLY = (l) => (l <= 10 ? 6 : l < 26 ? Math.pow(6, (26 - l) / 16) : 1);   /* early levels take up to 6x the know-how, easing back by level 26, so the first prestige lands about an hour in */
+const XP_EARLY = (l) => (l <= 10 ? 5 : l < 26 ? Math.pow(5, (26 - l) / 16) : 1);   /* early levels take up to 5x the know-how, easing back by level 26, so the first prestige lands about an hour in */
 const XP_AT = (l) => Math.round((l <= 10 ? 100 * Math.pow(l - 1, 2.4) : l <= 30 ? 100 * Math.pow(9, 2.4) * Math.pow(1.22, l - 10) : 100 * Math.pow(9, 2.4) * Math.pow(1.22, 20) * Math.pow(1.15, l - 30)) * XP_EARLY(l));   /* early levels come quickly, later ones take longer; past 30 the climb eases to 1.15x so late prestiges stay reachable. Keep in step with netlify/lib/game.js */
 const level = () => { let l = 1; while (S.xp >= XP_AT(l + 1)) l++; return l; };
 const levelSpan = () => { const l = level(), a = XP_AT(l), b = XP_AT(l + 1); return [(S.xp - a) / (b - a), l]; };
@@ -2600,10 +2600,10 @@ function renderPanel() {
   if (tab === 'farm' && fsub === 'fields') {
     const [frac, lvl] = levelSpan();
     h += practiceCard();
-    h += '<div class="level"><b>Level ' + lvl + '</b><div class="bar"><i style="width:' + Math.round(frac * 100) + '%"></i></div><span class="note">Prestige ' + S.prestige + '</span></div>';
-    if (S.farms[S.loc].unlocked) {   /* this farm's own level and its next milestone */
+    h += '<div class="level"><b>Level ' + lvl + '</b><div class="bar"><i style="width:' + Math.round(frac * 100) + '%"></i></div>' + (S.prestige || S.tabs.ranks ? '<span class="note">Prestige ' + S.prestige + '</span>' : '') + '</div>';
+    if (S.farms[S.loc].unlocked && S.tabs.upgrades) {   /* this farm's own level and its next milestone, once there are buildings to raise it */
       const fl = farmLevel(S.farms[S.loc]), next = FARM_MILESTONES.find((m) => fl < m.lv), prev = [...FARM_MILESTONES].reverse().find((m) => fl >= m.lv), nm = L.name.split(',')[0];
-      h += '<div class="farmlv"><div><b>' + nm + ' farm level ' + fl + '</b><span class="note">' + (next ? 'Next at ' + next.lv + ': ' + next.label(S.loc) : 'Every milestone reached. Keep building for the farm\'s output.') + '</span></div><div class="bar"><i style="width:' + Math.round(next ? (fl - (prev ? prev.lv : 0)) / (next.lv - (prev ? prev.lv : 0)) * 100 : 100) + '%"></i></div><span class="note">Farm levels come from this farm\'s buildings, manager, fourth field and mastery.</span></div>';
+      h += '<div class="farmlv"><div><b>' + nm + ' farm level ' + fl + '</b><span class="note">' + (next ? 'Next at ' + next.lv + ': ' + next.label(S.loc) : 'Every milestone reached. Keep building for the farm\'s output.') + '</span></div><div class="bar"><i style="width:' + Math.round(next ? (fl - (prev ? prev.lv : 0)) / (next.lv - (prev ? prev.lv : 0)) * 100 : 100) + '%"></i></div>' + help('farmlv', 'Buildings raise it.', 'Farm levels come from this farm\'s buildings, manager, fourth field and mastery.') + '</div>';
     }
     if (S.dormant[S.loc]) {
       h += '<h2>' + L.name + ' is dormant</h2><p class="note">Since your last prestige this farm is resting. It reopens by itself at level ' + S.dormant[S.loc] + ', with every building, picker and field just as you left them.</p><div class="bar"><i style="width:' + Math.min(100, Math.round(level() / S.dormant[S.loc] * 100)) + '%"></i></div><p class="note">You are level ' + level() + '.</p>';
@@ -2619,12 +2619,12 @@ function renderPanel() {
         if (S.loc === 'mogiana') h += '<div><div style="display:flex;justify-content:space-between;align-items:baseline"><h3>Welcome harvest ' + fmt(f.harvested) + ' / 1,000 kg</h3><span class="note">' + (f.rewarded ? 'Sample earned' : 'Free 100 g') + '</span></div><div class="bar"><i style="width:' + Math.round(f.harvested / f.goal * 100) + '%"></i></div><p class="note">' + (f.rewarded ? 'Your free 100 g ' + L.reward + ' sample is in Shop, Real coffee.' : 'Bring in 1,000 kg for a free 100 g ' + L.reward + ' sample from Beju.') + '</p></div>';
         else if (lad) h += '<div><div style="display:flex;justify-content:space-between;align-items:baseline"><h3>' + L.name.split(',')[0] + ' sample</h3><span class="note">' + (got ? 'Earned' : 'Prestige ' + S.prestige + ' / ' + lad.prestige) + '</span></div><div class="bar"><i style="width:' + Math.min(100, Math.round(S.prestige / lad.prestige * 100)) + '%"></i></div><p class="note">' + (got ? 'Your free 100 g ' + L.reward + ' sample is in Shop, Real coffee.' : 'Reach prestige ' + lad.prestige + ' for a free 100 g ' + L.reward + ' sample from this origin.') + '</p></div>';
       } else h += '<p class="note">The Osaka roastery garden: rare varieties all year round, through four Japanese seasons.</p>';
-      h += row(img('worker_down_0', 22), 'Pickers here: ' + f.workers.length + '/' + maxPickers(f), 'Carrying ' + ART.carry[S.lv.carry - 1].name.toLowerCase() + ' (' + carryKg() + ' kg). You pick 3× faster, but pickers never tire.', btn('Hire', fmt(hireCost()) + ' coins', 'hire', S.coins >= hireCost() && f.workers.length < maxPickers(f)));
+      h += row(img('worker_down_0', 22), 'Pickers here: ' + f.workers.length + '/' + maxPickers(f), 'They pick for you, even while you\'re away.', btn('Hire', fmt(hireCost()) + ' coins', 'hire', S.coins >= hireCost() && f.workers.length < maxPickers(f)));
       h += row(img(storeSprite(S.lv.storage), 44), STORE[S.lv.storage - 1].name + ': ' + fmt(stored()) + ' / ' + fmt(cap()) + ' kg', stored() >= cap() ? 'Full! Pickers have stopped. Process or sell cherries.' : 'Cherries from every farm come here.', btn('Mill', 'process', 'tab:mill', true, 'blue'));
-      h += '<h3>Fields</h3>' + (terroir(f) > 1 ? '<span class="chip">Terroir on: +15% cherries here</span>' + help('terroir', 'A native field keeps it on.', 'A native field here means every pick on this farm brings in 15% more cherries. Natives also grow 20% faster at home.') : '<p class="rule"><b>Terroir off:</b> plant a native coffee (' + nativeNames(f.loc) + ') in any field and every pick on this farm brings in 15% more cherries.</p>');
-      h += hasPerk('replantall') ? btn('Replant all', 'every farm, natives kept', 'replantask', true, 'blue') : btn('Replant all', 'prestige 1 perk', 'noop', false);
-      h += f.beds.slice(0, f.field ? 4 : 3).map((v, b) => row(img('bush_' + v + '_ripe', 30), 'Field ' + (b + 1) + ': ' + ART.varieties[v] + (isNative(f.loc, v) ? ' · native' : ''), VAR[v].kg + ' kg a pick · ' + (isNative(f.loc, v) ? 'grows 20% faster here and keeps the terroir bonus · ' : '') + VAR[v].perk, btn('Replant', '', 'bed:' + b, true, 'blue'))).join('');
-      h += row(img('i_cherry', 28), 'Sell fresh cherries', 'Quick coins, 2 per kg. Processing pays far more.', btn('Sell all', fmt(stored() * 2) + ' coins', 'sellraw', stored() > 0));
+      h += '<h3>Fields</h3>' + (!ART.locations[f.loc].beds.some((v) => S.vars[v]) ? '' : terroir(f) > 1 ? '<span class="chip">Terroir on: +15% cherries here</span>' + help('terroir', 'A native field keeps it on.', 'A native field here means every pick on this farm brings in 15% more cherries. Natives also grow 20% faster at home.') : '<p class="rule"><b>Terroir off:</b> plant a native coffee (' + nativeNames(f.loc) + ') in any field and every pick on this farm brings in 15% more cherries.</p>');
+      if (hasPerk('replantall')) h += btn('Replant all', 'every farm, natives kept', 'replantask', true, 'blue');
+      h += f.beds.slice(0, f.field ? 4 : 3).map((v, b) => row(img('bush_' + v + '_ripe', 30), 'Field ' + (b + 1) + ': ' + ART.varieties[v] + (isNative(f.loc, v) ? ' · native' : ''), VAR[v].kg + ' kg a pick' + (isNative(f.loc, v) ? ' · grows 20% faster here' : ''), btn('Replant', '', 'bed:' + b, true, 'blue'))).join('');
+      h += row(img('i_cherry', 28), 'Sell fresh cherries', '2 coins a kg. The Mill pays far more.', btn('Sell all', fmt(stored() * 2) + ' coins', 'sellraw', stored() > 0));
     }
   } else if (tab === 'roast' && roasteryOpen()) {
     h += roasteryPanel();

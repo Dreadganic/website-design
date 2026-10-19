@@ -36,7 +36,7 @@ async function authed(event, store) {
 }
 
 /* The game's own rules, mirrored so the server can check what a client claims */
-const XP_EARLY = (l) => (l <= 10 ? 6 : l < 26 ? Math.pow(6, (26 - l) / 16) : 1);   /* early levels take up to 6x the know-how, easing back by level 26 */
+const XP_EARLY = (l) => (l <= 10 ? 5 : l < 26 ? Math.pow(5, (26 - l) / 16) : 1);   /* early levels take up to 5x the know-how, easing back by level 26 */
 const XP_AT = (l) => Math.round((l <= 10 ? 100 * Math.pow(l - 1, 2.4) : l <= 30 ? 100 * Math.pow(9, 2.4) * Math.pow(1.22, l - 10) : 100 * Math.pow(9, 2.4) * Math.pow(1.22, 20) * Math.pow(1.15, l - 30)) * XP_EARLY(l));   /* past level 30 the climb eases to 1.15x; keep in step with XP_AT in the game */
 const levelFor = (xp) => { let l = 1; while (xp >= XP_AT(l + 1)) l++; return l; };
 const PRESTIGE_LEVEL = 10;

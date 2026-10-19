@@ -73,7 +73,7 @@ test("scores: a real prestige is accepted, but not twice in a few minutes", asyn
   const a = await newPlayer();
   const s = (p, sp, pts) => ({ name: "Farmer", prestige: p, seasonP: sp, level: G.levelFor(pts), points: pts });
   await call(score, "POST", s(0, 0, 900), a);
-  for (let i = 0; i < 12; i++) { clock += 300000; await call(score, "POST", s(0, 0, 900 + (i + 1) * 10000), a); }   /* past level 10, which takes 6x the know-how it used to */
+  for (let i = 0; i < 12; i++) { clock += 300000; await call(score, "POST", s(0, 0, 900 + (i + 1) * 10000), a); }   /* past level 10, which takes 5x the know-how it used to */
   clock += 60000;
   assert.equal((await call(score, "POST", s(1, 1, 0), a)).status, 200);
   for (const pts of [40000, G.XP_AT(18)]) { clock += 60000; assert.equal((await call(score, "POST", s(1, 1, pts), a)).status, 200); }   /* bursts can reach level 18 quickly... */
