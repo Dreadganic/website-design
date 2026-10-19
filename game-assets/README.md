@@ -390,7 +390,7 @@ Two late staff who take over chores, never as well as you do them yourself (`ROA
   |---|---|---|---|---|
   | Zé, Terreiro foreman | Mogiana | Raking the patio (new) | raked 5 times | 1.0M |
   | Almaz, Ceremony host | Gedeo | The daily ceremony | held 3 ceremonies | 1.6M |
-  | Tigor, Harbour master | Lake Toba | The trader's boat | filled 2 boat orders | 1.9M |
+  | Tigor, Harbour master | Lake Toba | The trader's boat | delivered to the boat 3 times | 1.9M |
   | Mario, Cellar master | Turrialba | The barrel cellar | aged 2 lots fully | 2.2M |
   | Yuki, Koi keeper | Osaka | Feeding the koi | fed them 5 times | 2.5M |
 

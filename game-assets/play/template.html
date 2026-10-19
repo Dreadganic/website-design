@@ -637,7 +637,7 @@ const roasterCatch = () => 0.35 + 0.05 * trainLv('roaster');   /* 35% of first c
 const EMGR = {
   mogiana: { name: 'Zé', role: 'Terreiro foreman', chore: 'rake', need: 5, stage: 1, verb: 'raked the patio', look: { shirt: ['#F4F0E4', '#D8D0BC', '#A89C84'], hat: ['#F2D060', '#E8B820', '#B8901A'] }, at: [34, 88], pose: 'rake' },
   gedeo: { name: 'Almaz', role: 'Ceremony host', chore: 'cer', need: 3, stage: 2, verb: 'held the ceremony', look: { shirt: ['#FBF6EA', '#E8E0CC', '#3E8A3A'], hat: ['#FBF6EA', '#F2C42C', '#C89A20'] }, at: [76, 72], pose: 'idle' },
-  toba: { name: 'Tigor', role: 'Harbour master', chore: 'boat', need: 2, stage: 1, verb: 'filled the boat', look: { shirt: ['#B8302A', '#8A2420', '#2A2220'], hat: ['#2A2220', '#1E1814', '#F2ECDC'] }, at: [66, 47], pose: 'idle' },
+  toba: { name: 'Tigor', role: 'Harbour master', chore: 'boat', need: 3, stage: 1, verb: 'filled the boat', look: { shirt: ['#B8302A', '#8A2420', '#2A2220'], hat: ['#2A2220', '#1E1814', '#F2ECDC'] }, at: [66, 47], pose: 'idle' },
   turrialba: { name: 'Mario', role: 'Cellar master', chore: 'aged', need: 2, stage: 2, verb: 'tended the cellar', look: { shirt: ['#F4E8C8', '#DCCCA4', '#B8A47C'], hat: ['#C8302C', '#A82420', '#7A1A18'] }, at: [72, 68], pose: 'rake' },
   osaka: { name: 'Yuki', role: 'Koi keeper', chore: 'koi', need: 5, stage: 1, verb: 'fed the koi', look: { shirt: ['#2C3A80', '#22306A', '#182250'], hat: ['#F8F4EC', '#E0D8CC', '#C8302C'] }, at: [27, 80], pose: 'rake' }
 };
@@ -2221,7 +2221,7 @@ function deliver(i, id, quiet, haggle) {
   const l = S.lots[i], c = S.contracts.find((x) => x.id === id);
   if (!l || l.left > 0 || !c || !fits(c, l)) return;
   const green = l.kg * 0.2, use = Math.min(green, c.kg - c.have), spare = green - use;
-  c.have += use;
+  c.have += use; if (c.boat && !haggle) chore('boat');   /* each delivery you make to the boat counts towards meeting the harbour master */
   if (l.method === 'washed') S.weekly.mine += green;
   millSold(i, c.buyer.split(' ')[0]); S.lots.splice(i, 1); nbAdd(l.v, l.method, 1); S.stats.lotsSold += 1; task('sell', 1); guideStep('deliver');
   let extra = { coins: 0, points: 0 };
@@ -2233,7 +2233,7 @@ function deliver(i, id, quiet, haggle) {
   earn(pay); if (l.cupped) earn({ coins: Math.round(pay.coins * (CUP_PAY - 1)) }); if (l.micro) earn({ coins: pay.coins }); if (rule('hina')) earn({ coins: Math.round(pay.coins * 0.1) });   /* buyers pay extra for hand-cupped coffee */
   if (done) {
     S.contracts = S.contracts.filter((x) => x !== c); S.nextContract = Math.min(S.nextContract, S.minutesTotal + 10); S.stats.contracts = (S.stats.contracts || 0) + 1; SFX.play('contract');
-    star('contract'); task('contract', 1); if (c.event) star('drop'); if (c.cranes && !c.hm) { earn({ cranes: c.cranes }); SFX.play('crane'); } if (c.boat && !haggle) { task('boat', 1); chore('boat'); }
+    star('contract'); task('contract', 1); if (c.event) star('drop'); if (c.cranes && !c.hm) { earn({ cranes: c.cranes }); SFX.play('crane'); } if (c.boat && !haggle) task('boat', 1);
     if (c.event && S.event) { S.event.done += 1; if (S.event.done >= 3) { earn({ cranes: 10 }); S.badges.push({ event: eventDrop() ? eventDrop().name : 'Drop event', label: 'Drop', rank: 99 }); setTimeout(() => showModal('<h2>Drop event complete!</h2><p class="note">All three event contracts are delivered. The event badge is on your profile, and 10 cranes are yours.</p><button class="btn green" data-act="close">Brilliant</button>'), 600); } }
     if (quiet) { toast('Contract for ' + c.buyer + ' complete: +' + fmt(c.coins) + ' coins, +' + fmt(c.points) + ' know-how in all'); return; }
     showModal(img('board', 64) + '<h2>Contract complete!</h2><p class="note">' + c.buyer + ' received ' + fmt(c.kg) + ' kg' + (c.note ? ' (' + c.note.toLowerCase() + ')' : '') + '.' + (spare > 0.05 ? ' The spare ' + fmt(spare) + ' kg went to the roastery.' : '') + '</p><div class="stats"><div><small>Coins</small><b>+' + fmt(c.coins + extra.coins) + '</b></div><div><small>Know-how</small><b>+' + fmt(c.points + extra.points) + '</b></div></div><p class="note">Totals for the whole contract, including what earlier deliveries already paid.</p><button class="btn green" data-act="close">Great</button>');
