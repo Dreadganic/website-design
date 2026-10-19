@@ -1,0 +1,163 @@
+<title>Estate Managers</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column like the other Beju Farm reviews; the shared rules first, then one card per manager, then costs and decisions */
+:root {
+  --bg: #F5F3EE; --panel: #FFFFFF; --fg: #23201B; --muted: #6A6358; --line: #DED8CC;
+  --bean: #6B3F22; --leaf: #2F6B4F; --cherry: #B8323A; --gold: #A8791A; --soft: #EFE9DD;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #171512; --panel: #201D19; --fg: #EDE7DC; --muted: #A79F92; --line: #383229;
+  --bean: #D9A47A; --leaf: #6CC59A; --cherry: #F07880; --gold: #E2B64A; --soft: #2A2620; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #171512; --panel: #201D19; --fg: #EDE7DC; --muted: #A79F92; --line: #383229;
+  --bean: #D9A47A; --leaf: #6CC59A; --cherry: #F07880; --gold: #E2B64A; --soft: #2A2620; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font: 16px/1.6 var(--body); }
+.wrap { max-width: 800px; margin: 0 auto; padding-block: 40px 72px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 36px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(30px, 6vw, 42px); font-weight: 800; }
+h2 { font-size: 24px; font-weight: 800; }
+h3 { font-size: 19px; font-weight: 800; }
+p { margin: 0; max-width: 66ch; }
+section { display: flex; flex-direction: column; gap: 14px; }
+.eyebrow { font: 600 12px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--bean); }
+.lede { font-size: 18px; color: var(--muted); }
+ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 70ch; }
+.mgrs { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 14px; }
+.mgr { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.mgr-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.farm { font: 600 12px var(--mono); color: var(--muted); }
+.kv { display: grid; grid-template-columns: 92px 1fr; gap: 4px 10px; font-size: 14px; }
+.kv dt { font: 600 11px/1.6 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--bean); }
+.kv dd { margin: 0; }
+.look { display: inline-flex; gap: 4px; vertical-align: middle; }
+.look i { width: 12px; height: 12px; border-radius: 3px; border: 1px solid var(--line); display: inline-block; }
+.new { font: 600 11px var(--mono); color: var(--gold); border: 1px solid var(--gold); border-radius: 99px; padding: 1px 7px; }
+.tw { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 12px/1.3 var(--mono); letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+.rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.rule { background: var(--soft); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
+.rule b { font-family: var(--display); font-size: 17px; }
+.rule span { font-size: 14px; color: var(--muted); }
+.q { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--gold); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+.rec { font-size: 14px; color: var(--leaf); font-weight: 600; }
+.note { font-size: 14px; color: var(--muted); }
+</style>
+<div class="wrap">
+<header style="display:flex;flex-direction:column;gap:12px">
+  <span class="eyebrow">Plan · 19 October 2026 · replaces the single estate manager</span>
+  <h1>Five estate managers, one for each estate's chore</h1>
+  <p class="lede">The single estate manager becomes five specialists, each tied to one estate's daily chore, with their own look, their own scene and their own training. Each one takes over a job you've already been doing yourself, and does it a little worse than you. Huila is the one estate without a manager, because its micro-lots come by chance and there's no chore to hand over.</p>
+</header>
+
+<section>
+  <h2>The same rules for all five</h2>
+  <div class="rules">
+    <div class="rule"><b>Do it yourself first</b><span>A manager can be hired only after you've done that chore yourself a few times. It gives each estate time to breathe.</span></div>
+    <div class="rule"><b>Never as good as you</b><span>Each works at 40% of your result, rising 5% per training level to 90% at level 10.</span></div>
+    <div class="rule"><b>You get first go</b><span>They step in only after you've had a fair chance, measured in minutes of play, so your own tap always comes first.</span></div>
+    <div class="rule"><b>No stars, no tasks</b><span>Their work earns no season stars, counts for no daily or weekly task and gives no cranes.</span></div>
+  </div>
+</section>
+
+<section>
+  <h2>The five managers</h2>
+  <div class="mgrs">
+
+    <div class="mgr">
+      <div class="mgr-h"><h3>Terreiro foreman</h3><span class="farm">Mogiana, Brazil</span></div>
+      <dl class="kv">
+        <dt>Your chore</dt><dd><span class="new">new</span> <b>Rake the patio.</b> From stage 1, tap Rake on the estate (or the patio in the scene) once every 2 hours. Natural lots started in the next 30 minutes cup +0.5, because they dry evenly. It gives Mogiana a tap-in moment like the others.</dd>
+        <dt>He does</dt><dd>Rakes if you haven't 20 minutes after it's ready, for +0.2 cup untrained, up to +0.45 trained.</dd>
+        <dt>Hire when</dt><dd>You've raked 5 times.</dd>
+        <dt>Look</dt><dd><span class="look"><i style="background:#F4F0E4"></i><i style="background:#E8B820"></i><i style="background:#6A3A22"></i></span> White shirt and straw hat, raking the rows on the patio.</dd>
+      </dl>
+    </div>
+
+    <div class="mgr">
+      <div class="mgr-h"><h3>Ceremony host</h3><span class="farm">Gedeo, Ethiopia</span></div>
+      <dl class="kv">
+        <dt>Your chore</dt><dd>Hold the daily coffee ceremony (stage 2): golden bushes twice as often and +20% picking, for 30 minutes (45 at stage 3).</dd>
+        <dt>She does</dt><dd>Holds it if you haven't after 30 minutes of play that day, for 40% to 90% of the time.</dd>
+        <dt>Hire when</dt><dd>You've held 3 ceremonies.</dd>
+        <dt>Look</dt><dd><span class="look"><i style="background:#FBF6EA"></i><i style="background:#3E8A3A"></i><i style="background:#F2C42C"></i></span> A white shawl with a green and gold border, pouring from the jebena at the hut.</dd>
+      </dl>
+    </div>
+
+    <div class="mgr">
+      <div class="mgr-h"><h3>Harbour master</h3><span class="farm">Lake Toba, Sumatra</span></div>
+      <dl class="kv">
+        <dt>Your chore</dt><dd>Fill the trader's boat order (stage 1): it pays about 2.5× the market, and sometimes cranes.</dd>
+        <dt>He does</dt><dd>When the boat calls, he sets matching dry lots aside so the foreman doesn't sell them, asks the foreman to process what the boat wants, and delivers. But he haggles worse: his deliveries earn 40% to 90% of the boat's premium over the market, and never the cranes.</dd>
+        <dt>Hire when</dt><dd>You've filled 2 boat orders.</dd>
+        <dt>Look</dt><dd><span class="look"><i style="background:#B8302A"></i><i style="background:#2A2220"></i><i style="background:#F2ECDC"></i></span> An ulos cloth in red, black and white, waving the boat in from the jetty.</dd>
+      </dl>
+    </div>
+
+    <div class="mgr">
+      <div class="mgr-h"><h3>Cellar master</h3><span class="farm">Turrialba, Costa Rica</span></div>
+      <dl class="kv">
+        <dt>Your chore</dt><dd>Lay lots down in the barrel cellar (stage 2) and take them out at +3 cup.</dd>
+        <dt>He does</dt><dd>Keeps the barrels full with the most valuable dry lots, and takes his out at +1 cup untrained, up to +2.5 trained. He leaves lots you laid down alone.</dd>
+        <dt>Hire when</dt><dd>You've aged 2 lots fully.</dd>
+        <dt>Look</dt><dd><span class="look"><i style="background:#F4E8C8"></i><i style="background:#C8302C"></i><i style="background:#5A3418"></i></span> A cream shirt and red bandana, rolling a barrel at the cellar door.</dd>
+      </dl>
+    </div>
+
+    <div class="mgr">
+      <div class="mgr-h"><h3>Koi keeper</h3><span class="farm">Osaka garden</span></div>
+      <dl class="kv">
+        <dt>Your chore</dt><dd>Feed the koi every 3 hours (stage 1): crack windows +1 second for an hour (+2 for 2 hours at stage 3), and sometimes a golden koi with cranes.</dd>
+        <dt>She does</dt><dd>Feeds them 20 minutes after they're ready, for 40% to 90% of the crack bonus, and never finds a golden koi.</dd>
+        <dt>Hire when</dt><dd>You've fed the koi 5 times.</dd>
+        <dt>Look</dt><dd><span class="look"><i style="background:#2C3A80"></i><i style="background:#F8F4EC"></i><i style="background:#C8302C"></i></span> An indigo happi coat, scattering food from the red bridge.</dd>
+      </dl>
+    </div>
+
+  </div>
+</section>
+
+<section>
+  <h2>Costs: a bigger sink, spread out</h2>
+  <p>Hiring and training scale with each estate, like the estate stages do. The five replace today's single 3M hire.</p>
+  <div class="tw"><table>
+    <thead><tr><th>Manager</th><th>Hire</th><th>Training level 1</th><th>All 10 levels</th></tr></thead>
+    <tbody>
+      <tr><td>Terreiro foreman · Mogiana</td><td class="n">1.0M</td><td class="n">300k</td><td class="n">~307M</td></tr>
+      <tr><td>Ceremony host · Gedeo</td><td class="n">1.6M</td><td class="n">480k</td><td class="n">~491M</td></tr>
+      <tr><td>Harbour master · Toba</td><td class="n">1.9M</td><td class="n">570k</td><td class="n">~583M</td></tr>
+      <tr><td>Cellar master · Turrialba</td><td class="n">2.2M</td><td class="n">660k</td><td class="n">~675M</td></tr>
+      <tr><td>Koi keeper · Osaka</td><td class="n">2.5M</td><td class="n">750k</td><td class="n">~767M</td></tr>
+      <tr><td><b>All five</b></td><td class="n"><b>9.2M</b></td><td class="n"></td><td class="n"><b>~2.8B</b></td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">Full training is meant as a long-term goal, like the existing staff training. The first hires fall in P5, as the estates' first stages arrive, and the chores' "do it yourself first" counts spread the five across P5 and P6.</p>
+</section>
+
+<section>
+  <h2>Where they live in the game</h2>
+  <ul>
+    <li><b>On the estate card:</b> once a manager can be hired, the estate's own card offers it, next to the chore it takes over. Once hired, it shows what they did today ("Raked at 14:20, +0.2 cup").</li>
+    <li><b>Farm › Staff:</b> an "Estate managers" section lists all five: locked ones say what opens them, and each hired one has its training row.</li>
+    <li><b>In the scenes:</b> each manager stands at their own estate doing their chore, drawn over the estate art in that estate's colours, so a built-up estate looks staffed.</li>
+    <li><b>Introductions:</b> when a manager becomes hireable, Rosa says one line about them, once.</li>
+    <li><b>The head roaster</b> stays as he is.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Decisions for you</h2>
+  <div class="q"><b>1. Is Huila the right estate to leave without a manager?</b><p>Its micro-lots come by chance, so there's no chore to hand over. The alternative is to invent a Huila chore, for example grading honey and barrel lots at the greenhouse to spot micro-lots, and leave Mogiana passive instead.</p><span class="rec">I'd suggest leaving Huila out and giving Mogiana the rake. Mogiana is the first estate most players build, so its chore and foreman teach the idea early.</span></div>
+  <div class="q"><b>2. Should the managers have personal names, like Rosa?</b><p>For example, Zé on the patio, Almaz at the ceremony, Tigor at the harbour, Mario in the cellar and Yuki at the koi pond.</p><span class="rec">I'd suggest yes. Rosa shows how much a name adds, and names make them read as characters rather than upgrades. You may want to choose or check the names yourself.</span></div>
+  <div class="q"><b>3. Should the boat order's cranes stay yours alone?</b><span class="rec">I'd suggest yes. Cranes tie to real orders and active play, so no staff member should earn them.</span></div>
+</section>
+</div>
