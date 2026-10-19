@@ -17,7 +17,7 @@ async function boardFor(store, mode, season) {
   const live = mode === "all" ? rows : rows.filter((r) => r.season === season && (mode !== "rookie" || r.firstSeason === season));
   return live.sort(mode === "all" ? rankSort("prestige") : seasonSort);
 }
-const publicRow = (r, i) => ({ rank: i + 1, name: r.name, prestige: r.prestige, seasonP: r.seasonP, seasonKh: r.seasonKh || 0, seasonStars: r.seasonStars || 0, level: r.level, points: r.points, look: r.look, rookie: !!r.firstSeason && r.firstSeason === r.season });
+const publicRow = (r, i) => ({ rank: i + 1, name: r.name, prestige: r.prestige, seasonP: r.seasonP, seasonKh: r.seasonKh || 0, seasonStars: r.seasonStars || 0, level: r.level, points: r.points, look: r.look, rookie: !!r.firstSeason && r.firstSeason === r.season, code: r.code || "" });   /* code: for visiting their farm */
 
 async function closeSeason(store, season, now) {   /* save last season's final standings once, while every row still holds them */
   const prev = G.prevSeason(season), key = "seasons/" + prev;
@@ -59,7 +59,7 @@ exports.handler = async (event) => {
   if (problem) return G.json(422, { error: problem });
   const row = Object.assign(next, { id: me.id, name, look: G.cleanLook(b.look, next.prestige), season, at: now, prestigeAt: !prev || next.prestige > prev.prestige ? now : prev.prestigeAt,
     starsAt: !prev || prev.season !== season || next.seasonStars > (prev.seasonStars || 0) ? now : prev.starsAt,   /* when they reached this star total, for ties */
-    firstSeason: prev ? prev.firstSeason || "" : season });   /* rows from before rookies existed count as veterans */
+    firstSeason: prev ? prev.firstSeason || "" : season, code: me.farmCode || "" });   /* rows from before rookies existed count as veterans */
   await store.set(key, row);
   const list = await boardFor(store, "season", season);
   return G.json(200, { ok: true, rank: list.findIndex((r) => r.id === me.id) + 1, players: list.length });

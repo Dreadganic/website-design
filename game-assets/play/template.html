@@ -71,6 +71,11 @@ b .n, h2 .n, h3 .n, .row .grow b .n, .tile b .n { color: inherit; font-size: 1.1
 .help-i { flex: none; width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--paper-2); background: #FBF4E2; color: var(--muted); font: 700 11px/1 serif; font-style: italic; cursor: pointer; }
 .practice { display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; margin: 6px 0; border: 2px dashed #C8A060; border-radius: 8px; background: #FFF8E6; }
 .pr-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; } .pr-row .btn { padding: 4px 8px; }
+.visit { display: flex; flex-direction: column; gap: 8px; }
+.visit-pic { width: 100%; max-width: 384px; align-self: center; image-rendering: pixelated; border-radius: 8px; border: 2px solid var(--edge); }
+.visit-farms { flex-wrap: wrap; }
+.visit-btn { grid-column: 1 / -1; justify-self: end; margin-top: 2px; font: inherit; font-size: 11px; padding: 2px 10px; border-radius: 99px; border: 2px solid var(--edge); background: #FBF4E2; cursor: pointer; }
+.code { letter-spacing: 0.12em; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0; }
 .chip { font-size: 11px; padding: 3px 8px; border-radius: 99px; background: #E6F0E4; color: #2D5A3C; border: 1px solid #B8D4B8; }
 .buyline { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 8px 10px; margin: 6px 0; border: 2px solid var(--paper-2); border-radius: 8px; background: #FBF4E2; cursor: pointer; font: inherit; color: inherit; }
@@ -714,9 +719,9 @@ const perkAt = (p) => PERKS[p] || null;
 const prestigeNeed = () => PRESTIGE_LEVEL + 8 * S.prestige;   /* 10, 18, 26, 34 ... and each level past 10 costs 1.22x the last */
 const BADGE = (rank) => (rank === 1 ? 'Champion' : rank <= 3 ? 'Top 3' : rank <= 10 ? 'Top 10' : 'Farmer');
 /* season stars come from things done on a real day, each with a daily cap, so an hour a day earns nearly as much as six */
-const STAR_PER = { checkin: 2, task: 2, golden: 1, cup: 1, contract: 1, roast: 1, weekly: 15, drop: 5, prestige: 10 };
-const STAR_CAP = { checkin: 2, task: 6, golden: 5, cup: 3, contract: 3, roast: 3 };
-const STAR_WHAT = { checkin: 'Daily check-in', task: 'Daily tasks', golden: 'Golden bushes', cup: 'Lots cupped by hand', contract: 'Supply contracts', roast: 'Roasts' };
+const STAR_PER = { cheers: 1, checkin: 2, task: 2, golden: 1, cup: 1, contract: 1, roast: 1, weekly: 15, drop: 5, prestige: 10 };
+const STAR_CAP = { cheers: 1, checkin: 2, task: 6, golden: 5, cup: 3, contract: 3, roast: 3 };
+const STAR_WHAT = { cheers: 'Cheers for a farm', checkin: 'Daily check-in', task: 'Daily tasks', golden: 'Golden bushes', cup: 'Lots cupped by hand', contract: 'Supply contracts', roast: 'Roasts' };
 const TRACK_TIERS = 30, TIER_STARS = 15;
 const tierAt = (st) => Math.min(TRACK_TIERS, Math.floor(st / TIER_STARS));
 const newSeason = () => ({ key: seasonKey(), prestige: 0, kh: 0, stars: 0, claimed: {}, caps: {}, capDay: '' });
@@ -1156,7 +1161,7 @@ function board(mode, fin) {   /* fin: the practice board as it stood when the se
   const live = !fin && NET.board[mode];
   if (live && NET.status === 'online') {
     liveBoard(mode);
-    const rows = live.top.map((r) => ({ name: r.name, prestige: r.prestige, seasonP: r.seasonP, seasonKh: r.seasonKh || 0, seasonStars: r.seasonStars || 0, level: r.level, points: r.points, look: normLook(r.look), rookie: !!r.rookie, you: live.me && r.rank === live.me.rank }));
+    const rows = live.top.map((r) => ({ code: r.code || '', name: r.name, prestige: r.prestige, seasonP: r.seasonP, seasonKh: r.seasonKh || 0, seasonStars: r.seasonStars || 0, level: r.level, points: r.points, look: normLook(r.look), rookie: !!r.rookie, you: live.me && r.rank === live.me.rank }));
     if (live.me && !rows.some((r) => r.you)) rows.push(Object.assign({}, live.me, { look: normLook(live.me.look), you: true }));
     return rows;
   }
@@ -2811,9 +2816,13 @@ function renderPanel() {
     if (S.badges.length) h += '<div class="badges">' + S.badges.slice(-6).map((bd) => '<span class="badge r' + Math.min(bd.rank, 11) + (bd.gold ? ' gold' : '') + '">' + (bd.label || 'Event') + '<small>' + (bd.key ? seasonName(bd.key) : bd.event) + '</small></span>').join('') + '</div>';
     h += '<h3>Leaderboard</h3><div class="seg">' + [['season', 'This season'], ['rookie', 'Rookies'], ['all', 'All time']].map(([k, tl]) => '<button type="button" data-act="ranktab:' + k + '" aria-pressed="' + (mode === k) + '">' + tl + '</button>').join('') + '</div>' + (mode === 'rookie' ? '<p class="note">Farmers in their first season. ' + (isRookie() ? 'That\'s you this month: finish in the top 10 for a Rookie badge.' : 'You\'ve graduated, but you can still watch the newcomers.') + '</p>' : '') + '<div class="lb">' + list.slice(0, 15).concat(pos > 15 ? [list[pos - 1]] : []).map((x) => {
       const r = list.indexOf(x) + 1;
-      return '<div class="lb-row' + (x.you ? ' you' : '') + '"><b class="rk">' + r + '</b>' + avatar(x.look, 40) + '<div class="lb-n">' + plate(x.name, normLook(x.look).crest, starsFor(x.prestige), normLook(x.look).charm) + rBadge(normLook(x.look)) + '<span class="note">' + (normLook(x.look).title ? titleText(normLook(x.look).title) : TIERS[tierOf(x.prestige)]) + (x.rookie && mode === 'season' ? ' · Rookie' : '') + '</span></div><div class="lb-s"><b>' + (mode === 'all' ? 'P' + x.prestige : '★ ' + (x.seasonStars || 0)) + '</b><span>' + (mode === 'all' ? 'Lv ' + x.level : fmt(x.seasonKh || 0) + ' kh this season') + '</span><span>' + (mode === 'all' ? fmt(x.points) + ' kh' : 'P' + x.prestige + (x.seasonP ? ' (+' + x.seasonP + ' this season)' : '')) + '</span></div></div>';
+      return '<div class="lb-row' + (x.you ? ' you' : '') + '"><b class="rk">' + r + '</b>' + avatar(x.look, 40) + '<div class="lb-n">' + plate(x.name, normLook(x.look).crest, starsFor(x.prestige), normLook(x.look).charm) + rBadge(normLook(x.look)) + '<span class="note">' + (normLook(x.look).title ? titleText(normLook(x.look).title) : TIERS[tierOf(x.prestige)]) + (x.rookie && mode === 'season' ? ' · Rookie' : '') + '</span></div><div class="lb-s"><b>' + (mode === 'all' ? 'P' + x.prestige : '★ ' + (x.seasonStars || 0)) + '</b><span>' + (mode === 'all' ? 'Lv ' + x.level : fmt(x.seasonKh || 0) + ' kh this season') + '</span><span>' + (mode === 'all' ? fmt(x.points) + ' kh' : 'P' + x.prestige + (x.seasonP ? ' (+' + x.seasonP + ' this season)' : '')) + '</span>' + (x.code && !x.you ? '<button type="button" class="visit-btn" data-act="visit:' + x.code + '">Visit</button>' : '') + '</div></div>';
     }).join('') + '</div>';
     h += '<p class="note">' + (NET.status === 'online' && NET.board[mode] ? 'Live leaderboard · ' + NET.board[mode].players + ' farmer' + (NET.board[mode].players === 1 ? '' : 's') : 'Practice board: the live leaderboard appears when the game is played on bejucoffee.com.') + '</p>';
+    h += '<h3>Farm visits</h3>' + help('visits', 'Tap Visit on a farmer, or enter a farm code.', 'Every farm online has a farm code. Tap Visit on someone on the leaderboard, or type their code, to see their farm as it looks right now. Leave one Cheers a day on each farm you like; your first Cheers each day earns a season star. Visitors can only look.') +
+      (API && NET.status === 'online' ? (S.farmCode ? '<p class="note">Your farm code: <b class="code">' + S.farmCode + '</b> · ♥ ' + fmt(S.farmCheers || 0) + ' Cheers <button type="button" class="linkbtn" data-act="visit:' + S.farmCode + '">see how it looks</button></p>' : '<p class="note">Your farm code arrives in a moment.</p>') +
+        '<p class="note">Show visitors: <select data-showloc="1" aria-label="Farm visitors see first">' + LOCS.filter((l) => S.farms[l].unlocked).map((l) => '<option value="' + l + '"' + ((S.showLoc || S.loc) === l ? ' selected' : '') + '>' + fname(l) + '</option>').join('') + '</select></p>' +
+        '<div class="seg"><input id="visitIn" maxlength="7" placeholder="Farm code" aria-label="Farm code to visit" autocapitalize="characters"><button type="button" data-act="visitcode">Visit</button></div>' : '<p class="note">Farm visits work when you play online at bejucoffee.com.</p>');
     h += '<h3>Your name</h3><div class="seg"><input id="nameIn" maxlength="16" value="' + S.name.replace(/"/g, '') + '" aria-label="Your name on the leaderboard"><button type="button" data-act="rename">Save</button></div>';
     } else {
     h += '<div class="pnext">' + plate('P' + S.prestige, tierOf(S.prestige)) + '<span>→</span>' + plate('P' + (S.prestige + 1), tierOf(S.prestige + 1)) + '</div>';
@@ -2928,7 +2937,7 @@ function renderPanel() {
   if (!setHTML(P, h)) return;
   P.querySelectorAll('.ccards').forEach((x, i) => { if (strips[i]) x.scrollLeft = strips[i]; });
 }
-document.addEventListener('change', (e) => { if (e.target.dataset && e.target.dataset.blendname) { S.roastery.blendName = +e.target.value; SFX.play('tick'); } if (e.target.dataset && e.target.dataset.spiece) { S.spieceOn = e.target.value || null; SFX.play('tick'); } });   /* the house blend name, and which showpiece set is out */   /* the house blend name */
+document.addEventListener('change', (e) => { if (e.target.dataset && e.target.dataset.blendname) { S.roastery.blendName = +e.target.value; SFX.play('tick'); } if (e.target.dataset && e.target.dataset.spiece) { S.spieceOn = e.target.value || null; SFX.play('tick'); } if (e.target.dataset && e.target.dataset.showloc) { S.showLoc = e.target.value; SFX.play('tick'); visitSync(true); } });   /* the house blend name, and which showpiece set is out */   /* the house blend name */
 document.addEventListener('change', (e) => {   /* Foreman's ledger: the process picked for one coffee */
   const v = e.target.dataset && e.target.dataset.rulev; if (!v || !hasPerk('notebook')) return;
   S.staff.rules = S.staff.rules || {}; if (e.target.value) S.staff.rules[v] = e.target.value; else delete S.staff.rules[v];
@@ -2982,6 +2991,10 @@ document.addEventListener('click', (e) => {
   else if (a === 'helpok') { S.helpSeen = S.helpSeen || {}; S.helpSeen[v] = 1; }
   else if (a === 'helpinfo') { if (helpFull[v]) showModal('<p class="note" style="font-size:15px">' + helpFull[v] + '</p><button class="btn green" data-act="close">Got it</button>'); }
   else if (a === 'buyersopen') S.buyersOpen = !S.buyersOpen;
+  else if (a === 'visit') visitFarm(v);
+  else if (a === 'visitcode') visitFarm(($('visitIn') || {}).value);
+  else if (a === 'visitloc') { NET.visitLoc = v; showVisit(); }
+  else if (a === 'cheers') cheersFarm(v);
   else if (a === 'perksopen') S.perksOpen = !S.perksOpen;
   else if (a === 'trackopen') S.trackOpen = !S.trackOpen;
   else if (a === 'showhelp') S.showHelp = v === '1';
@@ -3163,7 +3176,7 @@ async function online() {
     const ev = await api('game-events');
     const live = ev.status === 200 && ev.data.events.find((x) => x.live);
     if (live && (!S.event || S.event.id !== live.id)) startDrop(live.id, live);
-    NET.status = 'online'; cloudSync(); await submitScore(); syncSamples();
+    NET.status = 'online'; cloudSync(); await visitSync(true); await submitScore(); syncSamples();
     const gr = await api('game-grants', 'POST', {}).catch(() => null);
     if (gr && gr.status === 200) gr.data.grants.forEach((g) => applyGrant({ cranes: g.cranes, coffees: [], order: g.order + (g.reason === 'subscription' ? ' (subscription renewal)' : '') }));
   } catch (e) { NET.status = 'offline'; }
@@ -3180,7 +3193,7 @@ async function cloudSync(force) {
 async function submitScore() {
   if (!API || !NET.acct || NET.status !== 'online') return;
   seasonTick();   /* never send last season's stars into a new season */
-  const body = { name: S.name, prestige: S.prestige, seasonP: S.season.prestige, seasonKh: Math.floor(S.season.kh || 0), seasonStars: S.season.stars, level: level(), points: Math.floor(S.xp), look: S.look }, sig = JSON.stringify(body);
+  const body = { name: S.name, prestige: S.prestige, seasonP: S.season.prestige, seasonKh: Math.floor(S.season.kh || 0), seasonStars: S.season.stars, level: level(), points: Math.floor(S.xp), look: S.look }, sig = JSON.stringify(body) + (S.farmCode || '');   /* a new farm code resends the row, so the board links to the farm */
   if (sig === NET.lastScore) return;
   const r = await api('game-score', 'POST', body).catch(() => null);
   if (r && r.status === 200) { NET.lastScore = sig; NET.rank = r.data.rank; } else if (r && r.status === 422) NET.scoreError = r.data.error;
@@ -3200,7 +3213,68 @@ async function liveBoard(mode) {
   if (r && r.status === 200) { NET.board[mode] = r.data; if (tab === 'ranks') renderPanel(); }
   return NET.board[mode] || null;
 }
-setInterval(() => { cloudSync(); submitScore(); }, 30000);
+/* farm visits: a small snapshot of how your farms look goes to the server, which gives you a farm code. Anyone can visit by code or from the
+   leaderboard and leave one Cheers a day. Visitors only look; nothing they do changes your farm */
+function farmSnapshot() {
+  const farms = {};
+  LOCS.forEach((l) => { const f = S.farms[l]; if (!f.unlocked) return; farms[l] = { u: 1, b: BUILD_ORDER.map((k) => f.build[k] || 0), f: !!f.field, s: f.skin || '', e: est(l), h: houseTier(farmLevel(f)), beds: f.beds.slice(0, 4) }; });
+  return { loc: S.showLoc && S.farms[S.showLoc].unlocked ? S.showLoc : S.loc, farms, store: S.lv.storage, decor: Object.keys(S.decor).filter((k) => S.decor[k]), spiece: spieceOn() || '', perk: hasPerk('goldsign') };
+}
+async function visitSync(force) {
+  if (!API || !NET.acct || NET.status !== 'online') return;
+  const snap = farmSnapshot(), sig = JSON.stringify(snap);
+  if (!force && (sig === NET.farmSig || Date.now() - (NET.farmAt || 0) < 5 * 60000)) return;
+  NET.farmAt = Date.now();
+  const r = await api('game-visit', 'PUT', { farm: snap }).catch(() => null);
+  if (r && r.status === 200) { NET.farmSig = sig; S.farmCode = r.data.code; S.farmCheers = r.data.cheers; submitScore(); }
+}
+async function visitFarm(code) {
+  code = String(code || '').toUpperCase().replace(/[^A-Z2-9]/g, '');
+  if (code.length !== 6) { SFX.play('nope'); toast('A farm code has 6 letters and numbers'); return; }
+  if (!API || NET.status !== 'online') { toast('Farm visits work when you play online'); return; }
+  const r = await api('game-visit?code=' + code).catch(() => null);
+  if (!r || r.status !== 200) { SFX.play('nope'); toast(r && r.status === 404 ? 'No farm has that code' : 'Could not reach that farm'); return; }
+  NET.visit = r.data; NET.visitLoc = r.data.farm.loc; SFX.play('page'); showVisit(true);
+}
+const visitImgs = {};
+function loaded(im) { return im.complete ? Promise.resolve() : new Promise((ok) => { im.onload = ok; im.onerror = ok; }); }
+async function renderVisit(v, loc) {   /* draws a visited farm, still and read-only, the way it looks on its owner's screen */
+  const k = v.code + loc + v.at; if (visitImgs[k]) return visitImgs[k];
+  const fm = v.farm.farms[loc], c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d'); x.imageSmoothingEnabled = false;
+  const b = bg(loc), e = fm.e ? estBg(loc, fm.e) : null; await loaded(b); if (e) await loaded(e.im);
+  x.drawImage(b, 0, 0); if (e) x.drawImage(e.im, e.x, e.y);
+  if (fm.h && ART.sprites['house_up_' + loc + '_' + fm.h]) x.drawImage(sprite('house_up_' + loc + '_' + fm.h), 72, 0);
+  const dec = new Set(v.farm.decor);
+  if (dec.has('bunting')) for (let bx = 8; bx < 184; bx += 24) x.drawImage(sprite('deco_bunting'), bx, 103);
+  BUILD_ORDER.forEach((bk, i) => { const n = fm.b[i] || 0; if (!n) return; x.drawImage(sprite('build_' + bk + (ART.bskins[fm.s] ? '_' + fm.s : '')), SLOTS[i], 197); x.fillStyle = '#F2C04A'; for (let j = 0; j < Math.min(n, 8); j++) x.fillRect(SLOTS[i] + 22 - j * 3, 221, 2, 2); });
+  Object.keys(DECOR_AT).forEach((dk) => { if (dec.has(dk) && ART.sprites['deco_' + dk]) DECOR_AT[dk].forEach(([dx, dy]) => x.drawImage(sprite('deco_' + dk), dx, dy)); });
+  [...dec].filter((d) => d.startsWith('s_') && ART.sprites['deco_' + d]).slice(0, SEASON_DECO_AT.length).forEach((d, i) => x.drawImage(sprite('deco_' + d), SEASON_DECO_AT[i][0], SEASON_DECO_AT[i][1]));
+  if (v.farm.perk) x.drawImage(sprite('perk_sign'), 100, 66);
+  if (fm.f && loc !== 'osaka') x.drawImage(sprite('bed_open'), 104, 160); else if (loc !== 'osaka') x.drawImage(sprite('sign'), 134, 168);
+  x.drawImage(sprite(storeSprite(v.farm.store)), STORE_AT.x, STORE_AT.y);
+  const pos = ART.shrubs.slice(); if (fm.f) for (let r = 0; r < 2; r++) for (let cc = 0; cc < 4; cc++) pos.push([110 + cc * 18, 160 + r * 17]);
+  pos.forEach(([sx, sy], i) => { const bv = fm.beds[Math.floor(i / 8)]; if (bv && ART.sprites['bush_' + bv + '_ripe']) x.drawImage(sprite('bush_' + bv + '_ripe'), sx, sy); });
+  if (v.farm.spiece && themeById(v.farm.spiece)) { const th = themeById(v.farm.spiece), [px, py, pk] = SHOWPIECE[loc]; x.drawImage(sprite('showpiece_' + pk, { swap: { '#3E8A4A': th.main, '#E8B830': th.accent } }), px, py); }
+  const lk = normLook(v.look || {}), body = bodyOf(lk) + 'down_0';
+  if (ART.sprites[body]) { x.fillStyle = 'rgba(42,42,8,0.3)'; x.beginPath(); x.ellipse(150, 96, 5, 1.6, 0, 0, 7); x.fill(); x.drawImage(sprite(body, skinLook(lk.skin || 0)), 142, 73); }
+  return (visitImgs[k] = c.toDataURL());
+}
+async function showVisit(fresh) {
+  const v = NET.visit; if (!v) return;
+  const loc = v.farm.farms[NET.visitLoc] ? NET.visitLoc : v.farm.loc, pic = await renderVisit(v, loc), mine = v.code === S.farmCode, done = (S.cheered || {})[v.code] === dayKey(new Date());
+  const est = Object.keys(v.farm.farms).filter((l) => v.farm.farms[l].e).map((l) => fname(l) + ' ' + v.farm.farms[l].e).join(' · ');
+  showModal('<div class="visit"><div class="me">' + avatar(normLook(v.look), 52) + '<div class="me-t">' + plate(v.name, normLook(v.look).crest, starsFor(v.prestige), normLook(v.look).charm) + '<span class="note">Prestige ' + v.prestige + ' · ' + TIERS[tierOf(v.prestige)] + ' · ♥ ' + fmt(v.cheers) + ' Cheers</span></div></div>' +
+    '<img class="visit-pic" src="' + pic + '" alt="' + v.name + '\'s farm at ' + fname(loc) + '">' +
+    '<div class="seg visit-farms">' + Object.keys(v.farm.farms).map((l) => '<button type="button" data-act="visitloc:' + l + '" aria-pressed="' + (l === loc) + '">' + fname(l) + '</button>').join('') + '</div>' +
+    (est ? '<p class="note">Estates: ' + est + '</p>' : '') + '<p class="note">Farm code ' + v.code + '</p>' +
+    (mine ? '<p class="note">This is how visitors see your farm.</p>' : btn(done ? 'Cheered today' : 'Cheers! ♥', done ? 'come back tomorrow' : 'one a day for each farm', 'cheers:' + v.code, !done, 'gold')) + '<button class="btn" data-act="close">Leave</button></div>', !fresh);
+}
+async function cheersFarm(code) {
+  const r = await api('game-visit?code=' + code, 'POST', {}).catch(() => null);
+  if (r && r.status === 200) { S.cheered = S.cheered || {}; S.cheered[code] = dayKey(new Date()); if (NET.visit && NET.visit.code === code) NET.visit.cheers = r.data.cheers; star('cheers'); SFX.play('achieve'); toast('Cheers sent!'); showVisit(); }
+  else { SFX.play('nope'); toast(r && r.data.error === 'already_today' ? 'You cheered this farm today' : r && r.data.error === 'enough_today' ? 'That\'s enough Cheers for today' : 'Could not send Cheers'); if (r && r.data.error === 'already_today') { S.cheered = S.cheered || {}; S.cheered[code] = dayKey(new Date()); showVisit(); } }
+}
+setInterval(() => { cloudSync(); submitScore(); visitSync(); }, 30000);
 
 /* ---------- start: offline earnings, intro, loop ---------- */
 const awayMs = Date.now() - (S.last || Date.now());

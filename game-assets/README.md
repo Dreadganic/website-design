@@ -407,3 +407,11 @@ Two late staff who take over chores, never as well as you do them yourself (`ROA
   - **The boat:** the foreman now sets boat-ready lots aside (`boatWants`), and the contracts agent no longer fills boat orders, so the boat is your chore or Tigor's.
   - **Old saves:** the earlier single estate manager is refunded.
 - **Coin sinks:** hiring the head roaster is 1.5M and all five estate managers 9.2M. Training doubles each level up to 10, alongside the existing staff training from P5.
+
+## Farm visits
+- **What uploads:** every online farm sends a small snapshot of how its farms look to `netlify/functions/game-visit.js` (`farmSnapshot`, `visitSync`). That's each open farm's buildings and style, field, estate stage, farmhouse tier and planted coffees, plus storage, decorations, the seasonal showpiece and the gold sign. It goes at most every 5 minutes, and only when something changed.
+- **The farm code:** the server keeps only shapes it recognises (`cleanFarm` in `netlify/lib/game.js`) and gives the farm a six-character code (no 0, O, 1, I or L) once, for good. The code goes into the player's leaderboard row.
+- **Visiting:** Ranks › Leaderboard has a **Visit** button on every online farmer, plus a farm-code box. Your own code, Cheers count and a "see how it looks" link are there too, with a choice of which farm visitors see first.
+- **The visit window:** draws that farm still and read-only (`renderVisit`): its scene in your current season, estate, farmhouse, buildings, decorations, ripe bushes, showpiece and farmer. Tabs switch between their farms.
+- **Cheers:** one per visitor per farm per Japan day, never on your own, and at most 30 farms a day. The first Cheers each day earns a season star (cap 1).
+- **Chat:** none; co-op messages will be stickers only when co-ops come.

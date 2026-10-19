@@ -57,7 +57,9 @@ const RULES = {
   minPrestigeGapSec: 15 * 60, /* reaching level 10+ again takes far longer than this */
   minScoreGapSec: 15,
   minSaveGapSec: 5,
-  maxSaveBytes: 400 * 1024
+  maxSaveBytes: 400 * 1024,
+  maxFarmBytes: 8 * 1024,   /* a farm snapshot for visits is small */
+  minFarmGapSec: 30
 };
 
 /* A score is accepted only if it could have happened since the last accepted one */
@@ -135,9 +137,23 @@ function newSamples(player, score, now) {
 /* a sample as the game sees it, with expiry applied */
 const sampleView = (s, now) => Object.assign({}, s, { status: s.status === "earned" && s.expires <= now ? "expired" : s.status });
 /* save a player record (the authed() copy carries its id, which isn't stored) */
+/* A farm snapshot for visits: only what's needed to draw the farm, every value checked or dropped */
+const FARM_LOCS = ["mogiana", "huila", "gedeo", "toba", "turrialba", "osaka"];
+const ID = /^[a-z0-9_]{1,24}$/;
+const int = (v, lo, hi) => Math.max(lo, Math.min(hi, Math.floor(Number(v) || 0)));
+function cleanFarm(f) {
+  if (!f || typeof f !== "object" || !f.farms || typeof f.farms !== "object") return null;
+  const farms = {};
+  FARM_LOCS.forEach((l) => {
+    const x = f.farms[l]; if (!x || typeof x !== "object" || !x.u) return;
+    farms[l] = { u: true, b: (Array.isArray(x.b) ? x.b : []).slice(0, 6).map((n) => int(n, 0, 12)), f: !!x.f, s: ID.test(x.s || "") ? x.s : "", e: int(x.e, 0, 3), h: int(x.h, 0, 3), beds: (Array.isArray(x.beds) ? x.beds : []).slice(0, 4).filter((v) => ID.test(v)) };
+  });
+  if (!Object.keys(farms).length) return null;
+  return { loc: farms[f.loc] ? f.loc : Object.keys(farms)[0], farms, store: int(f.store, 1, 10), decor: (Array.isArray(f.decor) ? f.decor : []).filter((d) => ID.test(d)).slice(0, 40), spiece: ID.test(f.spiece || "") ? f.spiece : "", perk: !!f.perk };
+}
 async function savePlayer(store, me) { const { id, ...rest } = me; await store.set("players/" + id, rest); }
 
 /* Which passport origins each real coffee can stamp, in blend order (mirrors the game's COFFEES) */
 const STAMPS = { casablanca: ["mogiana", "huila", "turrialba"], pinkwhiskey: ["huila"], rumbarrel: ["huila"], yirgacheffe: ["gedeo"], strawberry: ["toba"] };
 
-module.exports = { SAMPLE_RULES, SAMPLE_LADDER, dayJST, newSamples, sampleView, savePlayer, json, parse, stores, memoryStore, authed, hash, newId, newToken, XP_AT, levelFor, prestigeNeed, seasonKey, prevSeason, SEASON_JOIN, SEASON_IDS, RULES, checkScore, cleanName, cleanLook, STAMPS };
+module.exports = { cleanFarm, FARM_LOCS, SAMPLE_RULES, SAMPLE_LADDER, dayJST, newSamples, sampleView, savePlayer, json, parse, stores, memoryStore, authed, hash, newId, newToken, XP_AT, levelFor, prestigeNeed, seasonKey, prevSeason, SEASON_JOIN, SEASON_IDS, RULES, checkScore, cleanName, cleanLook, STAMPS };

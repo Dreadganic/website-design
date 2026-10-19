@@ -8,10 +8,11 @@ const save = require("../functions/game-save");
 const score = require("../functions/game-score");
 const claim = require("../functions/game-claim");
 const events = require("../functions/game-events");
+const visit = require("../functions/game-visit");
 
 let store, clock;
 const deps = () => ({ store, now: clock });
-for (const f of [account, save, score, claim, events]) Object.defineProperty(f, "__deps", { get: deps, configurable: true });
+for (const f of [account, save, score, claim, events, visit]) Object.defineProperty(f, "__deps", { get: deps, configurable: true });
 const call = async (fn, method, body, auth, query) => {
   const r = await fn.handler({ httpMethod: method, body: body === undefined ? undefined : JSON.stringify(body), headers: auth ? { authorization: "Bearer " + auth } : {}, queryStringParameters: query || {} });
   return { status: r.statusCode, body: JSON.parse(r.body) };
@@ -178,4 +179,26 @@ test("seasons: the rookie board lists only players in their first season, and fi
   clock = Date.parse("2026-11-02T03:00:00Z"); await call(score, "GET", undefined, a, { mode: "season" });
   const fin = await call(score, "GET", undefined, a, { mode: "final", season: "2026-10" });
   assert.deepEqual([fin.body.me.rank, fin.body.me.rookieRank], [2, 1]);
+});
+test("visits: a farm snapshot gets a code, anyone can look, and Cheers come once a day per visitor", async () => {
+  const a = await newPlayer(), b = await newPlayer();
+  const farm = { loc: "huila", store: 6, decor: ["bench", "s_momiji", "<script>"], spiece: "momiji", farms: { mogiana: { u: 1, b: [5, 5, 5, 5, 5, 5], f: true, s: "fazenda", e: 3, h: 2, beds: ["caturra", "geisha", "../x"] }, huila: { u: 1, b: [3, 99], e: 9 }, toba: { u: 0 } } };
+  const put = await call(visit, "PUT", { farm }, a);
+  assert.equal(put.status, 200); assert.match(put.body.code, /^[A-Z2-9]{6}$/);
+  const code = put.body.code;
+  await call(score, "POST", { name: "Ana", prestige: 0, seasonP: 0, level: 1, points: 0 }, a);
+  const seen = await call(visit, "GET", undefined, undefined, { code });
+  assert.equal(seen.body.name, "Ana"); assert.equal(seen.body.farm.loc, "huila");
+  assert.deepEqual(seen.body.farm.decor, ["bench", "s_momiji"], "unknown shapes are dropped");
+  assert.deepEqual(seen.body.farm.farms.mogiana.beds, ["caturra", "geisha"]); assert.equal(seen.body.farm.farms.huila.e, 3); assert.equal(seen.body.farm.farms.huila.b[1], 12);
+  assert.ok(!seen.body.farm.farms.toba, "locked farms aren't shown");
+  const board = await call(score, "GET", undefined, b, { mode: "season" });
+  assert.equal(board.body.top.find((r) => r.name === "Ana").code, code, "the leaderboard links to the farm");
+  assert.equal((await call(visit, "POST", undefined, a, { code })).body.error, "own_farm");
+  assert.equal((await call(visit, "POST", undefined, b, { code })).body.cheers, 1);
+  assert.equal((await call(visit, "POST", undefined, b, { code })).body.error, "already_today");
+  clock += 86400e3;
+  assert.equal((await call(visit, "POST", undefined, b, { code })).body.cheers, 2, "again the next day");
+  assert.equal((await call(visit, "PUT", { farm }, a)).body.code, code, "the code stays the same");
+  assert.equal((await call(visit, "GET", undefined, undefined, { code: "ZZZZZZ" })).status, 404);
 });
