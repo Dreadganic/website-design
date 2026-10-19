@@ -365,9 +365,9 @@ From prestige 4, each farm's drying area (left of the farmhouse) becomes an esta
 - **Rewards scale:** coin and know-how rewards are the larger of their old fixed amount and 5 minutes of your income (40 for weekly), worked out when you claim (`taskReward`), so they stay worth claiming late in the game. The bring-in-cherries goal grows with storage.
 
 ## New game redesign (from playtest feedback; plan in `review/new-game-redesign.html`)
-- **Pacing.** The first ten levels take 5× the know-how, easing back to normal by level 26 (`XP_EARLY`, the same in `netlify/lib/game.js`). On a fresh save the first prestige lands at about an hour instead of 35 minutes, and prestige 3 (the roastery) at about 2 hours 10 minutes. Early coffees and processes also wait for a level (`UNLOCK_LV`). The next coffee waits until your newest one is planted, and the next process until your newest one has run 3 lots (`S.lastVar`, `S.lastMethod`, `S.planted`, `S.mlots`). Managers come from level 8, the mill foreman after the first prestige and the contracts agent from prestige 2 (`mgrOK`, `foremanOK`, `agentOK`).
-- **Tabs open one at a time.** Farm › Upgrades after 3 sales, Unlock at level 3, Daily when Rosa's lessons end, Shop at level 6, Ranks at level 8. Buyer contracts start at level 5 once the lessons are done and stay on through prestige (`buyersOn`, `S.buyers`). Each tab's welcome card is one or two short sentences.
-- **Rosa's lessons.** Nine steps in three chapters: First harvest (pick, Mill, process, cup, sell), Grow (after 3 sales: hire, storage) and A new coffee (at level 3: unlock and plant Catuai). A chapter waits (`when`, `guideWaiting`) until the last one's feature has been used for a while, and the bar hides meanwhile. Rosa says one short line; after each step comes a short reaction toast. During the lessons, Rosa's practice list (pick 10, sell 3, cup 1; small coins and know-how, no season stars or cranes) sits on the Farm and Mill pages. Live daily tasks start when the lessons end (`tutorialEnd`), and weekly tasks from level 6 (`weekOn`). The daily check-in counts from day one.
+- **Pacing.** The first ten levels take 5× the know-how, easing back to normal by level 26 (`XP_EARLY`, the same in `netlify/lib/game.js`). On a fresh save the first prestige lands at about an hour instead of 35 minutes, and prestige 3 (the roastery) at about 2 hours 10 minutes. Early coffees and processes also wait for a level (`UNLOCK_LV`). The next coffee waits until your newest one is planted, and the next process until your newest one has run 3 lots (`S.lastVar`, `S.lastMethod`, `S.planted`, `S.mlots`). Managers come from level 4, the mill foreman at the first prestige and the contracts agent at level 12 of prestige 2 (`mgrOK`, `foremanOK`, `agentOK`).
+- **Tabs open one at a time.** Farm › Upgrades after 3 sales, Unlock at level 2, Daily when Rosa's lessons end, Shop at level 8, Ranks at level 9. Buyer contracts start at level 5 once the lessons are done and stay on through prestige (`buyersOn`, `S.buyers`). New tabs are shown by the unlock walks rather than a card from Rosa.
+- **Rosa's lessons.** Nine steps in three chapters: First harvest (pick, Mill, process, cup, sell), Grow (after 3 sales: hire, storage) and A new coffee (at level 2: unlock and plant Catuai). A chapter waits (`when`, `guideWaiting`) until the last one's feature has been used for a while, and the bar hides meanwhile. Rosa says one short line; after each step comes a short reaction toast. During the lessons, Rosa's practice list (pick 10, sell 3, cup 1; small coins and know-how, no season stars or cranes) sits on the Farm and Mill pages. Live daily tasks start when the lessons end (`tutorialEnd`), and weekly tasks from level 8 after the first prestige (`weekOn`). The daily check-in counts from day one.
 - **Weekly tasks** are week-long goals (40 contracts, 80 cups, 15 golden bushes, 60 roasts and so on). They pay a coin bag (15 minutes of income), a 30-minute growth boost and 3 cranes, but no know-how, since know-how counts towards levels.
 - **Mill.** Racks show as tiles from 4 racks. Once the agent is hired, contracts fold into one line (tap to open), with the trader's boat still shown as a card. Staff show as status chips. Requests get **Start lot** when the coffee, process and a rack are there, then **Cup and send** once dry.
 - **Research** is locked until every coffee, process and farm except Osaka is unlocked (`researchOpen`), and shows its progress until then.
@@ -438,3 +438,36 @@ Two late staff who take over chores, never as well as you do them yourself (`ROA
   - **Perks:** Replant all, Cup all (the cupping table on the map) and task swaps.
   - **Late game:** estate projects (the drying area on the map), repeat roasts, house blends and farm visits.
 - **Old saves and the lessons:** anything already open when the lessons end, or when an old save first loads, is marked as seen, so nobody gets a pile of walks at once.
+
+## Pacing pass (from `review/road-to-p3.html`)
+- **Fewer pop-ups.** These now get a window only the first time; after that they're toasts:
+  - a hand sale (the first sale, the first peaberry, the first micro-lot);
+  - a contract (the first one, plus the trader's boat and drop events);
+  - a farm level reward (unless it brings a building style).
+  
+  A level-up opens a window only when it opens something: a tab, a coffee, process or farm, staff, a farm waking, or prestige. That's worked out by comparing which unlock walks apply before and after the level (`navNow`). Otherwise, and always during Rosa's lessons, it's a toast with the fanfare. "Cupped by hand" and "on the racks" toasts show for the first three only.
+- **One welcome.** Rosa's first card is the only welcome. Season stars stay quiet until Ranks opens. Rosa's cards for the Daily, Shop, Ranks and Looks tabs are gone, since the unlock walks show those tabs; she keeps her cards for buyers, prestige and the roastery.
+- **Help boxes** are about 20 words each. The foreman's box went from 68 words to 30.
+- **Re-spaced start:**
+  - Unlock tab and Yellow Catuai at level 2, so the lessons end at about 6 minutes;
+  - farm manager at level 4;
+  - honey at level 7;
+  - Shop at level 8 and Ranks at level 9;
+  - weekly tasks from level 8 after the first prestige.
+- **Prestige rewards spread over the next run** (`PLV`, `PERK_LV`, `AGENT_LV`):
+  - **P1:** the crest, outfit, Looks and foreman come at once. Replant all switches on at level 4, weekly tasks at level 8, and Gedeo and Pink Bourbon open at level 10.
+  - **P2:** Cup all comes at once, the agent at level 12, and Toba and heirloom at level 20.
+  - **P3:** the Roastery comes at once, Turrialba at level 14 and strawberry at level 22.
+  
+  Levels come back fast after a prestige (P2 reaches level 12 in about 4 minutes), so these gates sit 5 to 15 minutes into each run.
+- **Pickers' sacks** (`S.sacks`, `SACK_H`, `sackPour`). Until a foreman is hired, the pickers keep picking while you're away for up to 2 hours' worth. Whatever the store can't take waits in their sacks and empties into the store as you make room. The Farm tab's storage row shows what's still waiting.
+- **New walks:**
+  - **travel:** the › arrow once a second farm is open;
+  - **Buildings:** the first time one is affordable after the lessons;
+  - **storage upgrade:** after a night away fills the store.
+  
+  Walks marked `teach` are not pre-marked as seen when the lessons end. The first time stamina runs out, a toast says how hearts refill.
+- **Fixes:**
+  - the cupping notebook card's sentence;
+  - the resting-farm card reads its wake level before the delay;
+  - the first season-star toast no longer names the wrong level.
