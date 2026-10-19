@@ -10,7 +10,10 @@ window.BOT = (function () {
     if (['var', 'method', 'farm', 'research'].includes(a)) return 'unlock'; if (['task', 'weekly', 'wtask'].includes(a)) return 'orders';
     if (['prestige', 'prestigeAsk', 'pickskin'].includes(a)) return 'ranks'; if (['decor', 'rbuy', 'buybskin', 'buychar', 'buyhat'].includes(a)) return 'shop'; return null; };
   const at = (loc) => { if (!loc) return; const T = B.tabs || (B.tabs = {}), p = G.S.prestige, st = T[p] || (T[p] = { cycles: 0, busy: 0, tabs: 0, subs: 0, acts: {}, combos: {}, cracks: 0 }); st.acts[loc] = (st.acts[loc] || 0) + 1; (B.cyc || (B.cyc = new Set())).add(loc); };
-  const act = (s) => { at(LOCOF(s)); const b = document.createElement('button'); b.dataset.act = s; b.style.display = 'none'; document.body.appendChild(b); b.click(); b.remove(); };
+  const LOCKED = (loc) => { const S = G.S, m = loc && loc.split(':'); if (!m || !B.cfg.locks) return false;   /* cfg.locks: only use what the interface has opened */
+    if (m[0] === 'farm' && m[1] !== 'fields') return !S.tabs.upgrades; if (m[0] === 'unlock') return !S.tabs.unlock; if (m[0] === 'shop') return !S.tabs.shop; if (m[0] === 'ranks') return !S.tabs.ranks; if (m[0] === 'roast') return !(G.roasteryOpen && G.roasteryOpen());
+    if (m[0] === 'orders') return !S.tabs.orders && S.guide >= (G.GUIDE || []).length; return false; };
+  const act = (s) => { if (LOCKED(LOCOF(s))) return; at(LOCOF(s)); const b = document.createElement('button'); b.dataset.act = s; b.style.display = 'none'; document.body.appendChild(b); b.click(); b.remove(); };
   const B = { t: 0, events: [], snaps: [], buys: [], taps: true, lastBuy: 0, gaps: [], cfg: {} };
   let seed = 12345; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };   /* cfg.human: a seeded coin-flip so runs repeat */
   const H = () => !!B.cfg.human;

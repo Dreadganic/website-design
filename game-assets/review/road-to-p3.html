@@ -1,0 +1,258 @@
+<title>Road to Prestige 3</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column like the other Beju Farm reviews; a minute-by-minute timeline up top, then the tutorial, the comparison, information load, feature order, and what to change */
+:root {
+  --bg: #F5F3EE; --panel: #FFFFFF; --fg: #23201B; --muted: #6A6358; --line: #DED8CC;
+  --bean: #6B3F22; --leaf: #2F6B4F; --cherry: #B8323A; --gold: #A8791A; --soft: #EFE9DD;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #171512; --panel: #201D19; --fg: #EDE7DC; --muted: #A79F92; --line: #383229;
+  --bean: #D9A47A; --leaf: #6CC59A; --cherry: #F07880; --gold: #E2B64A; --soft: #2A2620; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #171512; --panel: #201D19; --fg: #EDE7DC; --muted: #A79F92; --line: #383229;
+  --bean: #D9A47A; --leaf: #6CC59A; --cherry: #F07880; --gold: #E2B64A; --soft: #2A2620; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font: 16px/1.6 var(--body); }
+.wrap { max-width: 820px; margin: 0 auto; padding-block: 40px 72px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 44px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(30px, 6vw, 42px); font-weight: 800; }
+h2 { font-size: 24px; font-weight: 800; }
+h3 { font-size: 18px; font-weight: 800; }
+p { margin: 0; max-width: 68ch; }
+section { display: flex; flex-direction: column; gap: 14px; }
+.eyebrow { font: 600 12px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--bean); }
+.lede { font-size: 18px; color: var(--muted); }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; }
+.kpi b { font: 800 26px/1.1 var(--display); font-variant-numeric: tabular-nums; color: var(--cherry); }
+.kpi span { font-size: 13px; color: var(--muted); }
+.tw { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 12px/1.3 var(--mono); letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.bad { color: var(--cherry); } td.ok { color: var(--leaf); } td.to { color: var(--leaf); font-weight: 600; }
+tr:last-child td { border-bottom: 0; }
+.verdicts { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.v { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+.v .tag { font: 600 12px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; }
+.v.rush .tag { color: var(--cherry); } .v.drag .tag { color: var(--gold); } .v.miss .tag { color: var(--bean); } .v.good .tag { color: var(--leaf); }
+.v ul { font-size: 14px; }
+.chart { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 8px 4px; }
+.chart svg { display: block; width: 100%; min-width: 680px; height: auto; font-family: var(--mono); }
+.chart .grid line { stroke: var(--line); stroke-width: 1; }
+.chart .grid text, .chart .axis, .chart .away { fill: var(--muted); font-size: 10px; }
+.chart .lane { fill: var(--fg); font-size: 11px; font-weight: 600; }
+.chart .laneline { stroke: var(--line); stroke-dasharray: 2 3; }
+.chart .sess { fill: var(--leaf); opacity: 0.55; }
+.chart .ev { stroke: var(--panel); stroke-width: 1.5; }
+.chart .ev.lesson { fill: var(--gold); } .chart .ev.tab { fill: var(--leaf); } .chart .ev.unlock { fill: var(--bean); } .chart .ev.staff { fill: var(--cherry); } .chart .ev.prestige { fill: var(--fg); }
+.chart .evl { fill: var(--fg); font-size: 9.5px; }
+.chart .b-other { fill: var(--cherry); } .chart .b-sale { fill: var(--gold); opacity: 0.75; }
+.key { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--muted); }
+.key i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+ul, ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 70ch; }
+.note { font-size: 14px; color: var(--muted); }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
+.lbl { font: 600 11px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--bean); }
+.phase { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+.phase .tag { font: 600 12px var(--mono); color: var(--leaf); }
+.bug { background: var(--soft); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.bug b { font-family: var(--display); font-size: 16px; }
+.src { font-size: 13px; color: var(--muted); }
+.src a { color: var(--bean); overflow-wrap: anywhere; }
+a:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+</style>
+<div class="wrap">
+<header style="display:flex;flex-direction:column;gap:12px">
+  <span class="eyebrow">Playthrough review · 19 October 2026 · fresh save to prestige 3</span>
+  <h1>Road to prestige 3: where the start rushes, where it drags</h1>
+  <p class="lede">I played three fresh saves to prestige 3 with the bot set to play like a person. It took uneven sessions with long breaks, missed some golden bushes and used only tabs the game had opened. I logged every lesson, pop-up, toast and unlock with its time, and compared the result with how other idle games handle their first hours. Nothing here has been changed in the game yet.</p>
+</header>
+
+<section>
+  <h2>The short version</h2>
+  <div class="kpis">
+    <div class="kpi"><b>11.5 min</b><span>to finish Rosa's lessons; 7.5 of those are spent waiting for level 3</span></div>
+    <div class="kpi"><b>47–58 min</b><span>to the first prestige; the walk starts at level 10, after 37–48 min</span></div>
+    <div class="kpi"><b>116–129 min</b><span>to prestige 3 and the Roastery</span></div>
+    <div class="kpi"><b>~3 a minute</b><span>pop-ups in the first hour, counting the one after every hand sale</span></div>
+    <div class="kpi"><b>8 in 12 min</b><span>new features between minute 21 and 33, then 4–6 at once at each prestige</span></div>
+    <div class="kpi"><b>30 min</b><span>of offline picking before storage fills, before P1; 6–12 min by P2</span></div>
+  </div>
+  <div class="verdicts">
+    <div class="v good"><span class="tag">Working</span><ul><li>The lessons show rather than tell: 9 steps, each a 9–17 word line with an arrow on the thing to tap.</li><li>Hiring the first picker comes in the first minute, so the first automation is early.</li><li>A first prestige at about 50 minutes lands on day one.</li><li>The unlock walks take you to each new thing.</li></ul></div>
+    <div class="v rush"><span class="tag">Rushing</span><ul><li>From level 5 to level 8, eight features arrive in 12 minutes.</li><li>Each prestige unlocks 4–6 things at once.</li><li>Every hand sale and every level opens a pop-up.</li><li>The end of the lessons stacks five pop-ups into about a minute.</li></ul></div>
+    <div class="v drag"><span class="tag">Dragging</span><ul><li>There's a 7.5-minute wait for level 3 with no lesson running.</li><li>Between prestiges there is nothing new except what the prestige brought.</li><li>Offline progress tops out after half an hour, so coming back the next day feels thin.</li></ul></div>
+    <div class="v miss"><span class="tag">Missing</span><ul><li>Nothing points at the travel arrows when your second farm opens.</li><li>Nothing teaches storage filling up while you're away, stamina running out, or Buildings.</li></ul></div>
+  </div>
+</section>
+
+<section>
+  <h2>When everything arrives</h2>
+  <p>This is one playthrough (seed 7), minute by minute of play; time away isn't counted. The green bars along the top are play sessions, with the time away between them. The other two seeds hit the same steps within a few minutes of these. Hover a dot for its time.</p>
+  <div class="chart"><svg viewBox="0 0 760 258" role="img" aria-label="When each feature arrives, minute by minute, from a fresh save to prestige 3"><g class="grid"><line x1="112.0" x2="112.0" y1="18" y2="234"/><text x="112.0" y="250" text-anchor="middle">0</text><line x1="159.0" x2="159.0" y1="18" y2="234"/><text x="159.0" y="250" text-anchor="middle">10</text><line x1="205.9" x2="205.9" y1="18" y2="234"/><text x="205.9" y="250" text-anchor="middle">20</text><line x1="252.9" x2="252.9" y1="18" y2="234"/><text x="252.9" y="250" text-anchor="middle">30</text><line x1="299.9" x2="299.9" y1="18" y2="234"/><text x="299.9" y="250" text-anchor="middle">40</text><line x1="346.8" x2="346.8" y1="18" y2="234"/><text x="346.8" y="250" text-anchor="middle">50</text><line x1="393.8" x2="393.8" y1="18" y2="234"/><text x="393.8" y="250" text-anchor="middle">60</text><line x1="440.7" x2="440.7" y1="18" y2="234"/><text x="440.7" y="250" text-anchor="middle">70</text><line x1="487.7" x2="487.7" y1="18" y2="234"/><text x="487.7" y="250" text-anchor="middle">80</text><line x1="534.7" x2="534.7" y1="18" y2="234"/><text x="534.7" y="250" text-anchor="middle">90</text><line x1="581.6" x2="581.6" y1="18" y2="234"/><text x="581.6" y="250" text-anchor="middle">100</text><line x1="628.6" x2="628.6" y1="18" y2="234"/><text x="628.6" y="250" text-anchor="middle">110</text><line x1="675.6" x2="675.6" y1="18" y2="234"/><text x="675.6" y="250" text-anchor="middle">120</text><line x1="722.5" x2="722.5" y1="18" y2="234"/><text x="722.5" y="250" text-anchor="middle">130</text></g><rect class="sess" x="112.0" y="14" width="93.9" height="4" rx="2"/><rect class="sess" x="205.9" y="14" width="140.9" height="4" rx="2"/><rect class="sess" x="346.8" y="14" width="187.9" height="4" rx="2"/><rect class="sess" x="534.7" y="14" width="140.9" height="4" rx="2"/><rect class="sess" x="675.6" y="14" width="47.0" height="4" rx="2"/><text class="away" x="205.9" y="11" text-anchor="middle">9h away</text><text class="away" x="346.8" y="11" text-anchor="middle">3h away</text><text class="away" x="534.7" y="11" text-anchor="middle">6h away</text><text class="away" x="675.6" y="11" text-anchor="middle">8h away</text><text class="lane" x="0" y="38">Lessons</text><line class="laneline" x1="112" x2="746" y1="34" y2="34"/><text class="lane" x="0" y="78">Tabs</text><line class="laneline" x1="112" x2="746" y1="74" y2="74"/><text class="lane" x="0" y="118">Unlocks</text><line class="laneline" x1="112" x2="746" y1="114" y2="114"/><text class="lane" x="0" y="158">Staff and perks</text><line class="laneline" x1="112" x2="746" y1="154" y2="154"/><text class="lane" x="0" y="198">Prestige</text><line class="laneline" x1="112" x2="746" y1="194" y2="194"/><circle class="ev lesson" cx="112.0" cy="34" r="4.5"><title>0 min: 1</title></circle><circle class="ev lesson" cx="112.9" cy="34" r="4.5"><title>0 min: 2</title></circle><circle class="ev lesson" cx="113.4" cy="34" r="4.5"><title>0 min: 3</title></circle><circle class="ev lesson" cx="115.8" cy="34" r="4.5"><title>0 min: 6</title></circle><circle class="ev lesson" cx="129.8" cy="34" r="4.5"><title>3 min: 7</title></circle><circle class="ev tab" cx="129.8" cy="74" r="4.5"><title>3 min: Upgrades</title></circle><circle class="ev lesson" cx="130.8" cy="34" r="4.5"><title>4 min: 8</title></circle><circle class="ev tab" cx="166.0" cy="74" r="4.5"><title>11 min: Unlock</title></circle><circle class="ev unlock" cx="166.0" cy="114" r="4.5"><title>11 min: var</title></circle><circle class="ev lesson" cx="166.5" cy="34" r="4.5"><title>11 min: done</title></circle><circle class="ev tab" cx="166.5" cy="74" r="4.5"><title>11 min: Daily</title></circle><circle class="ev staff" cx="179.5" cy="154" r="4.5"><title>14 min: Golden bush</title></circle><circle class="ev staff" cx="213.0" cy="154" r="4.5"><title>21 min: Buyers</title></circle><circle class="ev unlock" cx="213.0" cy="114" r="4.5"><title>21 min: method</title></circle><circle class="ev tab" cx="225.2" cy="74" r="4.5"><title>24 min: Shop</title></circle><circle class="ev staff" cx="225.2" cy="154" r="4.5"><title>24 min: Weekly</title></circle><circle class="ev unlock" cx="225.2" cy="114" r="4.5"><title>24 min: farm</title></circle><circle class="ev unlock" cx="245.8" cy="114" r="4.5"><title>28 min: var</title></circle><circle class="ev tab" cx="269.3" cy="74" r="4.5"><title>33 min: Ranks</title></circle><circle class="ev staff" cx="269.3" cy="154" r="4.5"><title>33 min: Manager</title></circle><circle class="ev prestige" cx="337.0" cy="194" r="4.5"><title>47 min: walk</title></circle><circle class="ev prestige" cx="383.9" cy="194" r="4.5"><title>57 min: P1</title></circle><circle class="ev unlock" cx="383.9" cy="114" r="4.5"><title>57 min: var</title></circle><circle class="ev unlock" cx="383.9" cy="114" r="4.5"><title>57 min: farm</title></circle><circle class="ev staff" cx="383.9" cy="154" r="4.5"><title>57 min: Replant all</title></circle><circle class="ev staff" cx="383.9" cy="154" r="4.5"><title>57 min: Foreman</title></circle><circle class="ev tab" cx="384.4" cy="74" r="4.5"><title>58 min: Looks</title></circle><circle class="ev prestige" cx="549.7" cy="194" r="4.5"><title>93 min: P2</title></circle><circle class="ev unlock" cx="549.7" cy="114" r="4.5"><title>93 min: var</title></circle><circle class="ev unlock" cx="549.7" cy="114" r="4.5"><title>93 min: farm</title></circle><circle class="ev staff" cx="549.7" cy="154" r="4.5"><title>93 min: Cup all</title></circle><circle class="ev staff" cx="549.7" cy="154" r="4.5"><title>93 min: Agent</title></circle><circle class="ev unlock" cx="558.2" cy="114" r="4.5"><title>95 min: method</title></circle><circle class="ev unlock" cx="558.2" cy="114" r="4.5"><title>95 min: method</title></circle><circle class="ev unlock" cx="571.8" cy="114" r="4.5"><title>97 min: var</title></circle><circle class="ev prestige" cx="717.8" cy="194" r="4.5"><title>129 min: P3</title></circle><circle class="ev unlock" cx="717.8" cy="114" r="4.5"><title>129 min: method</title></circle><circle class="ev unlock" cx="717.8" cy="114" r="4.5"><title>129 min: farm</title></circle><circle class="ev tab" cx="718.3" cy="74" r="4.5"><title>129 min: Roastery</title></circle><text class="evl" x="112.0" y="25" text-anchor="start">steps 1–7</text><text class="evl" x="123.8" y="65" text-anchor="start">Upgrades</text><text class="evl" x="166.0" y="90" text-anchor="middle">Unlock + Daily</text><text class="evl" x="166.5" y="50" text-anchor="middle">8–9, lessons done</text><text class="evl" x="179.5" y="145" text-anchor="middle">Golden bush</text><text class="evl" x="213.0" y="170" text-anchor="middle">Buyers + Weekly</text><text class="evl" x="225.2" y="65" text-anchor="middle">Shop</text><text class="evl" x="269.3" y="65" text-anchor="middle">Ranks</text><text class="evl" x="269.3" y="145" text-anchor="middle">Manager</text><text class="evl" x="337.0" y="185" text-anchor="middle">walk</text><text class="evl" x="383.9" y="185" text-anchor="middle">P1</text><text class="evl" x="383.9" y="145" text-anchor="middle">Replant all + Foreman</text><text class="evl" x="384.4" y="65" text-anchor="middle">Looks</text><text class="evl" x="549.7" y="185" text-anchor="middle">P2</text><text class="evl" x="549.7" y="145" text-anchor="middle">Cup all + Agent</text><text class="evl" x="717.8" y="185" text-anchor="middle">P3</text><text class="evl" x="718.3" y="65" text-anchor="middle">Roastery</text></svg></div>
+  <div class="key"><span><i style="background:var(--gold)"></i>Lesson step</span><span><i style="background:var(--leaf)"></i>Tab opens</span><span><i style="background:var(--bean)"></i>Unlocks: a new coffee, process or farm available</span><span><i style="background:var(--cherry)"></i>Staff, perk or feature</span><span><i style="background:var(--fg)"></i>Prestige</span></div>
+  <div class="tw"><table>
+    <thead><tr><th>Play time</th><th>Level</th><th>What arrives</th><th>Read</th></tr></thead>
+    <tbody>
+      <tr><td class="n">0–1 min</td><td class="n">1</td><td>Lessons 1–5: pick, open the Mill, start a lot, cup, sell</td><td class="ok">Good pace</td></tr>
+      <tr><td class="n">4 min</td><td class="n">1–2</td><td>Lessons 6–7: hire a picker, build storage; Farm › Upgrades opens</td><td class="ok">Good</td></tr>
+      <tr><td class="n">4–11.5 min</td><td class="n">2</td><td>Nothing: the coffee lesson waits for level 3</td><td class="bad">Too slow</td></tr>
+      <tr><td class="n">11.5 min</td><td class="n">3</td><td>Unlock tab, Yellow Catuai, lessons done, Daily tab: five pop-ups in about a minute</td><td class="bad">Bunched</td></tr>
+      <tr><td class="n">14–15 min</td><td class="n">3–4</td><td>First golden bush</td><td class="ok">Good</td></tr>
+      <tr><td class="n">15–21 min</td><td class="n">4</td><td>Nothing new</td><td>A gap to fill</td></tr>
+      <tr><td class="n">21–33 min</td><td class="n">5–8</td><td>Buyers, honey process, Shop, weekly tasks, second farm (Huila), Castillo, Ranks, farm manager</td><td class="bad">Too fast</td></tr>
+      <tr><td class="n">33–48 min</td><td class="n">8–10</td><td>Nothing new until the prestige walk at level 10</td><td class="ok">Room to settle in</td></tr>
+      <tr><td class="n">47–58 min</td><td class="n">P1</td><td>Crest, outfit, Looks tab, foreman, Replant all, Gedeo, Pink Bourbon; Huila goes to sleep</td><td class="bad">Too many at once</td></tr>
+      <tr><td class="n">58–90 min</td><td class="n">P1</td><td>Nothing new: levels 1 to 24</td><td>Flat</td></tr>
+      <tr><td class="n">79–93 min</td><td class="n">P2</td><td>Agent, Cup all, Toba, heirloom; rum and whiskey at level 5, Catimor at 6</td><td class="bad">Too many at once</td></tr>
+      <tr><td class="n">116–129 min</td><td class="n">P3</td><td>Roastery, Turrialba, strawberry process</td><td class="ok">Headline system, fine</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2>The tutorial</h2>
+  <p>Rosa's lessons are the right kind of tutorial. Each step is one action, the line above it is short, the arrow sits on the target, and you can skip. That is the "teach it when they can use it" rule from Celia Hodent's onboarding work, and it is close to how Cookie Clicker and Egg, Inc. start: one obvious tap, then a short list of goals.</p>
+  <p>The trouble is the clock. Chapter one takes under a minute for the bot and two or three for a person. Then the coffee chapter waits for level 3, so the lessons take 11.5 minutes at the bot's pace and probably 13–15 for someone reading. The average idle-game session is about 8 minutes (GameAnalytics), so many players will close the game during that wait, with the lessons half done.</p>
+  <div class="tw"><table>
+    <thead><tr><th>Step</th><th>Reached</th><th>Rosa says</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr><td>1 Tap 5 ripe bushes</td><td class="n">0:00</td><td>Welcome to your farm! I'm Rosa. Ripe bushes sparkle red. Tap them to pick.</td><td class="ok">Keep. It's followed straight away by a second welcome pop-up that explains coins, know-how and cranes, so drop that one.</td></tr>
+      <tr><td>2 Open the Mill</td><td class="n">0:12</td><td>Your cherries are in the store. The Mill turns them into coffee.</td><td class="ok">Keep</td></tr>
+      <tr><td>3 Process on Washed</td><td class="n">0:18</td><td>Washed dries quickest. Start a lot.</td><td class="ok">Keep</td></tr>
+      <tr><td>4 Cup the lot</td><td class="n">0:24</td><td>Tap Cup while it dries. Cupping by hand makes it pay more.</td><td class="ok">Keep</td></tr>
+      <tr><td>5 Sell it</td><td class="n">0:48</td><td>When its bar fills, sell it.</td><td>Keep. The first sale also brings the cupping notebook card (with a garbled sentence) and a storage pop-up.</td></tr>
+      <tr><td>6 Hire a picker</td><td class="n">~1–4 min</td><td>You've sold a few lots. More pickers bring in more cherries.</td><td class="ok">Keep</td></tr>
+      <tr><td>7 Build storage</td><td class="n">3:48</td><td>A bigger store keeps your pickers busy longer, even while you're away.</td><td class="ok">Keep</td></tr>
+      <tr><td>8 Unlock Yellow Catuai</td><td class="n">11:30</td><td>You've earned enough know-how for a new coffee. Have a look in Unlock.</td><td class="bad">Waits 7.5 min for level 3. Open it at level 2 (about 5 min).</td></tr>
+      <tr><td>9 Plant it</td><td class="n">11:36</td><td>Replant a field with it. Coffee grows best on its home farm.</td><td class="ok">Keep</td></tr>
+    </tbody>
+  </table></div>
+  <p><b>Involvement:</b> about right. Don't add forced steps. Teach the missing pieces with the unlock walks at the moment each one matters, the way Kolibri fixed Idle Miner Tycoon: playtesters skipped the elevator and warehouse, and a short contextual tip at that chokepoint got more players through.</p>
+</section>
+
+<section>
+  <h2>How it compares</h2>
+  <div class="tw"><table>
+    <thead><tr><th>Measure</th><th>Beju Farm now</th><th>Other games and guidance</th><th>Read</th></tr></thead>
+    <tbody>
+      <tr><td>First action</td><td>One tap, with an arrow on a ripe bush</td><td>Cookie Clicker has no tutorial at all, just one big cookie; Egg, Inc. has one red button</td><td class="ok">On par</td></tr>
+      <tr><td>Tutorial length</td><td>9 steps, 11.5–15 min, skippable</td><td>Melvor Idle's Tutorial Island takes 10–20 min and can be skipped. The average idle session is 8 min.</td><td class="bad">Longer than one session</td></tr>
+      <tr><td>First automation</td><td>A picker in minute 1; the mill only at P1 (~50 min)</td><td>Idle Miner offers a manager once the first shaft reaches level 5. One designer's rule of thumb is automation within 3 min.</td><td>Picking is early; the mill is late but on purpose</td></tr>
+      <tr><td>New things at once</td><td>Up to 8 in 12 min; 4–6 at each prestige</td><td>Hodent: no more than 3 new things at a time while learning</td><td class="bad">Over</td></tr>
+      <tr><td>The milestone that keeps players</td><td>Second farm at 22–25 min</td><td>Kolibri found that players who reach the second mine shaft churn far less</td><td>Good, but at 8-minute sessions it's session 3</td></tr>
+      <tr><td>First prestige</td><td>47–58 min, with Rosa walking you through it</td><td>Web incrementals take hours to days. Mobile guides suggest 10–15 min, as opinion. Egg, Inc. opens prestige through a mission.</td><td class="ok">A day-one prestige is a good target</td></tr>
+      <tr><td>Runs after a prestige</td><td>Levels 1 to 12 in about 4 min at P2</td><td>Pecorella: make the start of each run fast, because it's "an important feeling of growth of power"</td><td class="ok">Good, apart from the pop-ups</td></tr>
+      <tr><td>Offline progress</td><td>Storage full after 0.5 h at P0, 0.2 h at P1 and 0.1 h at P2; the mill only works offline with a foreman</td><td>Pecorella on Egg, Inc.'s 2-hour offline cap: "a mistake, I churned out myself largely because of this"</td><td class="bad">Too short before P1</td></tr>
+      <tr><td>Pop-ups</td><td>~75–80 an hour plus a sale pop-up every hand sale</td><td>Supersonic: the core loop should be "absolutely clear before introducing meta features." A common complaint is opening with walls of text.</td><td class="bad">Far too many</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2>How much the player is told</h2>
+  <p>Before the first prestige a player sees about 80 pop-ups, besides the sale ones, totalling about 1,900 words. Twelve or thirteen of those are Rosa's cards; most of the rest are celebrations. Selling a lot from the Mill panel opens a pop-up every time until the foreman takes over, which was 78–119 more in the first hour. Toasts run at about 8 a minute all the way to P3.</p>
+  <div class="chart"><svg viewBox="0 0 760 170" role="img" aria-label="Pop-ups per five minutes of play"><g class="grid"><line x1="112" x2="746" y1="140.0" y2="140.0"/><text x="106" y="144.0" text-anchor="end">0</text><line x1="112" x2="746" y1="108.5" y2="108.5"/><text x="106" y="112.5" text-anchor="end">5</text><line x1="112" x2="746" y1="77.0" y2="77.0"/><text x="106" y="81.0" text-anchor="end">10</text><line x1="112" x2="746" y1="45.5" y2="45.5"/><text x="106" y="49.5" text-anchor="end">15</text><line x1="112" x2="746" y1="14.0" y2="14.0"/><text x="106" y="18.0" text-anchor="end">20</text><text x="112.0" y="160" text-anchor="middle">0</text><text x="159.0" y="160" text-anchor="middle">10</text><text x="205.9" y="160" text-anchor="middle">20</text><text x="252.9" y="160" text-anchor="middle">30</text><text x="299.9" y="160" text-anchor="middle">40</text><text x="346.8" y="160" text-anchor="middle">50</text><text x="393.8" y="160" text-anchor="middle">60</text><text x="440.7" y="160" text-anchor="middle">70</text><text x="487.7" y="160" text-anchor="middle">80</text><text x="534.7" y="160" text-anchor="middle">90</text><text x="581.6" y="160" text-anchor="middle">100</text><text x="628.6" y="160" text-anchor="middle">110</text><text x="675.6" y="160" text-anchor="middle">120</text><text x="722.5" y="160" text-anchor="middle">130</text></g><rect class="b-sale" x="114.6" y="83.3" width="18.3" height="18.9"><title>0-5 min: 3 sale pop-ups</title></rect><rect class="b-other" x="114.6" y="102.2" width="18.3" height="37.8"><title>0-5 min: 6 other pop-ups</title></rect><rect class="b-sale" x="138.1" y="77.0" width="18.3" height="44.1"><title>5-10 min: 7 sale pop-ups</title></rect><rect class="b-other" x="138.1" y="121.1" width="18.3" height="18.9"><title>5-10 min: 3 other pop-ups</title></rect><rect class="b-sale" x="161.5" y="45.5" width="18.3" height="56.7"><title>10-15 min: 9 sale pop-ups</title></rect><rect class="b-other" x="161.5" y="102.2" width="18.3" height="37.8"><title>10-15 min: 6 other pop-ups</title></rect><rect class="b-sale" x="185.0" y="64.4" width="18.3" height="63.0"><title>15-20 min: 10 sale pop-ups</title></rect><rect class="b-other" x="185.0" y="127.4" width="18.3" height="12.6"><title>15-20 min: 2 other pop-ups</title></rect><rect class="b-sale" x="208.5" y="32.9" width="18.3" height="37.8"><title>20-25 min: 6 sale pop-ups</title></rect><rect class="b-other" x="208.5" y="70.7" width="18.3" height="69.3"><title>20-25 min: 11 other pop-ups</title></rect><rect class="b-sale" x="232.0" y="58.1" width="18.3" height="25.2"><title>25-30 min: 4 sale pop-ups</title></rect><rect class="b-other" x="232.0" y="83.3" width="18.3" height="56.7"><title>25-30 min: 9 other pop-ups</title></rect><rect class="b-sale" x="255.5" y="64.4" width="18.3" height="18.9"><title>30-35 min: 3 sale pop-ups</title></rect><rect class="b-other" x="255.5" y="83.3" width="18.3" height="56.7"><title>30-35 min: 9 other pop-ups</title></rect><rect class="b-sale" x="279.0" y="70.7" width="18.3" height="31.5"><title>35-40 min: 5 sale pop-ups</title></rect><rect class="b-other" x="279.0" y="102.2" width="18.3" height="37.8"><title>35-40 min: 6 other pop-ups</title></rect><rect class="b-sale" x="302.4" y="45.5" width="18.3" height="81.9"><title>40-45 min: 13 sale pop-ups</title></rect><rect class="b-other" x="302.4" y="127.4" width="18.3" height="12.6"><title>40-45 min: 2 other pop-ups</title></rect><rect class="b-sale" x="325.9" y="77.0" width="18.3" height="37.8"><title>45-50 min: 6 sale pop-ups</title></rect><rect class="b-other" x="325.9" y="114.8" width="18.3" height="25.2"><title>45-50 min: 4 other pop-ups</title></rect><rect class="b-sale" x="349.4" y="45.5" width="18.3" height="44.1"><title>50-55 min: 7 sale pop-ups</title></rect><rect class="b-other" x="349.4" y="89.6" width="18.3" height="50.4"><title>50-55 min: 8 other pop-ups</title></rect><rect class="b-sale" x="372.9" y="32.9" width="18.3" height="31.5"><title>55-60 min: 5 sale pop-ups</title></rect><rect class="b-other" x="372.9" y="64.4" width="18.3" height="75.6"><title>55-60 min: 12 other pop-ups</title></rect><rect class="b-sale" x="396.4" y="108.5" width="18.3" height="0.0"><title>60-65 min: 0 sale pop-ups</title></rect><rect class="b-other" x="396.4" y="108.5" width="18.3" height="31.5"><title>60-65 min: 5 other pop-ups</title></rect><rect class="b-sale" x="419.8" y="127.4" width="18.3" height="0.0"><title>65-70 min: 0 sale pop-ups</title></rect><rect class="b-other" x="419.8" y="127.4" width="18.3" height="12.6"><title>65-70 min: 2 other pop-ups</title></rect><rect class="b-sale" x="443.3" y="121.1" width="18.3" height="0.0"><title>70-75 min: 0 sale pop-ups</title></rect><rect class="b-other" x="443.3" y="121.1" width="18.3" height="18.9"><title>70-75 min: 3 other pop-ups</title></rect><rect class="b-sale" x="466.8" y="108.5" width="18.3" height="0.0"><title>75-80 min: 0 sale pop-ups</title></rect><rect class="b-other" x="466.8" y="108.5" width="18.3" height="31.5"><title>75-80 min: 5 other pop-ups</title></rect><rect class="b-sale" x="490.3" y="121.1" width="18.3" height="0.0"><title>80-85 min: 0 sale pop-ups</title></rect><rect class="b-other" x="490.3" y="121.1" width="18.3" height="18.9"><title>80-85 min: 3 other pop-ups</title></rect><rect class="b-sale" x="513.8" y="121.1" width="18.3" height="0.0"><title>85-90 min: 0 sale pop-ups</title></rect><rect class="b-other" x="513.8" y="121.1" width="18.3" height="18.9"><title>85-90 min: 3 other pop-ups</title></rect><rect class="b-sale" x="537.2" y="64.4" width="18.3" height="0.0"><title>90-95 min: 0 sale pop-ups</title></rect><rect class="b-other" x="537.2" y="64.4" width="18.3" height="75.6"><title>90-95 min: 12 other pop-ups</title></rect><rect class="b-sale" x="560.7" y="89.6" width="18.3" height="0.0"><title>95-100 min: 0 sale pop-ups</title></rect><rect class="b-other" x="560.7" y="89.6" width="18.3" height="50.4"><title>95-100 min: 8 other pop-ups</title></rect><rect class="b-sale" x="584.2" y="102.2" width="18.3" height="0.0"><title>100-105 min: 0 sale pop-ups</title></rect><rect class="b-other" x="584.2" y="102.2" width="18.3" height="37.8"><title>100-105 min: 6 other pop-ups</title></rect><rect class="b-sale" x="607.7" y="102.2" width="18.3" height="0.0"><title>105-110 min: 0 sale pop-ups</title></rect><rect class="b-other" x="607.7" y="102.2" width="18.3" height="37.8"><title>105-110 min: 6 other pop-ups</title></rect><rect class="b-sale" x="631.2" y="121.1" width="18.3" height="0.0"><title>110-115 min: 0 sale pop-ups</title></rect><rect class="b-other" x="631.2" y="121.1" width="18.3" height="18.9"><title>110-115 min: 3 other pop-ups</title></rect><rect class="b-sale" x="654.7" y="121.1" width="18.3" height="0.0"><title>115-120 min: 0 sale pop-ups</title></rect><rect class="b-other" x="654.7" y="121.1" width="18.3" height="18.9"><title>115-120 min: 3 other pop-ups</title></rect><rect class="b-sale" x="678.1" y="121.1" width="18.3" height="0.0"><title>120-125 min: 0 sale pop-ups</title></rect><rect class="b-other" x="678.1" y="121.1" width="18.3" height="18.9"><title>120-125 min: 3 other pop-ups</title></rect><rect class="b-sale" x="701.6" y="108.5" width="18.3" height="0.0"><title>125-130 min: 0 sale pop-ups</title></rect><rect class="b-other" x="701.6" y="108.5" width="18.3" height="31.5"><title>125-130 min: 5 other pop-ups</title></rect><rect class="b-sale" x="725.1" y="127.4" width="18.3" height="0.0"><title>130-135 min: 0 sale pop-ups</title></rect><rect class="b-other" x="725.1" y="127.4" width="18.3" height="12.6"><title>130-135 min: 2 other pop-ups</title></rect><text class="lane" x="0" y="81.0">per 5 min</text></svg></div>
+  <div class="key"><span><i style="background:var(--cherry)"></i>Pop-ups other than sales</span><span><i style="background:var(--gold);opacity:.75"></i>Hand-sale pop-ups</span></div>
+  <div class="tw"><table>
+    <thead><tr><th>Pop-up</th><th>To P3</th><th>Suggestion</th></tr></thead>
+    <tbody>
+      <tr><td>Level up</td><td class="n">61</td><td class="to">A pop-up only when the level unlocks something (roughly 10 of the 61); otherwise a banner. After a prestige, one summary for the quick re-levels.</td></tr>
+      <tr><td>Hand sale</td><td class="n">78</td><td class="to">The first sale, peaberry lots and micro-lots only. Every other sale floats "+coins", like a tap on the map does.</td></tr>
+      <tr><td>Rosa's cards</td><td class="n">17</td><td class="to">Keep them for the big systems: buyers, prestige, the Roastery. For a new tab, the walk alone is enough. Six things now get both a card and a walk.</td></tr>
+      <tr><td>Farm level reward</td><td class="n">16</td><td class="to">A toast plus a dot on Shop; a pop-up only for a new building style</td></tr>
+      <tr><td>Contract complete</td><td class="n">16</td><td class="to">The first contract and the trader's boat; the rest as toasts</td></tr>
+      <tr><td>Peaberry lot</td><td class="n">9</td><td class="to">A pop-up the first time, then a toast</td></tr>
+      <tr><td>Coffee unlocked, storage tiers, welcome back, prestige</td><td class="n">24</td><td>Keep. These are real moments.</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">Those changes would leave roughly a quarter of the pop-ups, about one every two minutes. Anything that echoes the tap you just made, like "Cupped by hand" or "84 kg on the racks", could also drop its toast, since the float on the map already says it.</p>
+  <h3>Words on each tab</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Tab</th><th>When it opens</th><th>First view</th><th>Help dismissed</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td>Farm</td><td class="n">start</td><td class="n">111 → 207</td><td class="n">111 → 180</td><td>Fine since last week's trim</td></tr>
+      <tr><td>Mill</td><td class="n">start</td><td class="n">78 → 336 at level 5 → 501 at P2</td><td class="n">62 → 292 → 400</td><td class="bad">The longest. The foreman help box alone is 68 words.</td></tr>
+      <tr><td>Unlock</td><td class="n">level 3</td><td class="n">335</td><td class="n">279</td><td class="bad">Heavy for a tab the lessons send you to</td></tr>
+      <tr><td>Daily</td><td class="n">level 3</td><td class="n">96 → 145</td><td class="n">86 → 135</td><td class="ok">Fine</td></tr>
+      <tr><td>Shop</td><td class="n">level 6</td><td class="n">101</td><td class="n">101</td><td class="ok">Fine</td></tr>
+      <tr><td>Ranks</td><td class="n">level 8</td><td class="n">298</td><td class="n">257</td><td>Long</td></tr>
+      <tr><td>Looks</td><td class="n">P1</td><td class="n">244</td><td class="n">172</td><td>OK</td></tr>
+      <tr><td>Roastery</td><td class="n">P3</td><td class="n">264</td><td class="n">212</td><td>OK for a new system</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">"First view" counts a help box's full text, which stays open until you tap Got it. "Help dismissed" is the steady state. A good cap is about 20 words per help box.</p>
+</section>
+
+<section>
+  <h2>A better order</h2>
+  <p>Keep the overall length, since prestige 1 at about 50 minutes and prestige 3 at about 2 hours are good. Change the spacing so something new turns up every 5–8 minutes, with no more than three things at a time. Prestige rewards should spread across the first levels of the next run instead of all landing at once.</p>
+  <div class="tw"><table>
+    <thead><tr><th>When</th><th>Now</th><th>Suggested</th></tr></thead>
+    <tbody>
+      <tr><td class="n">~5 min, lv 2</td><td>Nothing</td><td class="to">Unlock tab and Yellow Catuai, so the lessons end at about 6–7 min. Daily tab after that.</td></tr>
+      <tr><td class="n">~15 min, lv 4</td><td>Nothing</td><td class="to">Farm manager (from level 8): the first upgrade to automation, filling the gap</td></tr>
+      <tr><td class="n">~21 min, lv 5</td><td>Buyers and honey</td><td>Buyers only</td></tr>
+      <tr><td class="n">~24 min, lv 6</td><td>Shop, weekly tasks, Huila, Mundo Novo</td><td>Huila and Mundo Novo, plus a walk to the travel arrow</td></tr>
+      <tr><td class="n">~28 min, lv 7</td><td>Castillo</td><td>Castillo and honey</td></tr>
+      <tr><td class="n">~33 min, lv 8</td><td>Ranks and farm manager</td><td>Shop</td></tr>
+      <tr><td class="n">~38 min, lv 9</td><td>Nothing</td><td>Ranks, just before the prestige walk, which happens there</td></tr>
+      <tr><td class="n">P1</td><td>Crest, outfit, Looks, foreman, Replant all, Gedeo, Pink Bourbon</td><td>Crest, outfit, Looks and the foreman (the big change, and it fixes offline). Replant all at level 4, weekly tasks at level 5, Gedeo and Pink Bourbon at level 6.</td></tr>
+      <tr><td class="n">P2</td><td>Cup all, agent, Toba, heirloom</td><td>Cup all right away; agent at level 4; Toba and heirloom at level 6</td></tr>
+      <tr><td class="n">P3</td><td>Roastery, Turrialba, strawberry</td><td>The Roastery on its own; Turrialba at level 6; strawberry at level 8</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2>What's missing</h2>
+  <ul>
+    <li><b>Travel between farms.</b> When the second farm opens, the walk ends at the Open button, and nothing points at the › arrow that takes you there. Add one walk step to it.</li>
+    <li><b>Storage while you're away.</b> Before P1, storage fills after about half an hour away, so a player back the next morning gets 30 minutes' worth. Let early storage hold about 2 hours of picking. On the first welcome back, walk the player to the storage upgrade.</li>
+    <li><b>Stamina.</b> Running out of hearts shows "tired" over the bush and nothing else. The first time, show one line saying hearts refill over time and on level-up.</li>
+    <li><b>Buildings.</b> Farm levels and their rewards come from buildings, but the lessons only teach storage. Walk to Buildings the first time one is affordable after the lessons.</li>
+    <li><b>The first minute.</b> There are two welcome pop-ups back to back, and the second explains cranes, which don't matter for a long while. Keep Rosa's and drop the other. Hold the season-stars message until Ranks opens.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Bugs found on the way</h2>
+  <div class="bug"><b>Season stars point to the wrong level</b><span>The first-star toast says the season track "opens with Ranks at level 6". Ranks opens at level 8.</span></div>
+  <div class="bug"><b>Garbled cupping notebook card</b><span>It reads "That was your first Caturra natural lot went in your cupping notebook." It should read "Your first Caturra natural lot went in your cupping notebook."</span></div>
+  <div class="bug"><b>Resting farm card can say "level undefined"</b><span>The card reads the wake-up level 0.4 s after it's queued. In the sim the farm had already woken by then. That's rare in real play, but it's a one-line fix.</span></div>
+</section>
+
+<section>
+  <h2>What I'd change, in order</h2>
+  <div class="phase"><span class="tag">A · Quiet the noise</span><p>Pop-ups only for real moments: the first sale, unlocking levels, the first contract. One welcome pop-up. Drop the Rosa card wherever a walk already covers it. Fix the three bugs. Trim help boxes to about 20 words, starting with the Mill.</p></div>
+  <div class="phase"><span class="tag">B · Re-space the start</span><p>The coffee lesson and Unlock tab at level 2. The farm manager at level 4. Honey at level 7, Shop at 8, Ranks at 9. Weekly tasks after the first prestige.</p></div>
+  <div class="phase"><span class="tag">C · Spread the prestige rewards</span><p>Each prestige gives its headline at once, and the rest arrives at levels 4–8 of the new run, so the gap between prestiges gets new things too.</p></div>
+  <div class="phase"><span class="tag">D · Fill the gaps</span><p>Walks for the travel arrow, Buildings and storage. A stamina tip. About 2 hours of offline storage before P1.</p></div>
+  <p class="note">Each phase can ship on its own. A and the bug fixes are small; B and C change the gates, so I'd rerun these sims after each to check that prestige 1 stays near 50 minutes.</p>
+</section>
+
+<section>
+  <h2>How this was measured</h2>
+  <p class="note">The bot ran three seeds (7, 11, 23) in its "person" mode. It plays sessions of 20–45 minutes with 2–9 hours away between them, misses about 45% of golden bushes, cups about 15% of lots by hand and spends at random. For this review it could only use tabs the game had opened. Times are minutes of play, with breaks left out. The bot doesn't stop to read, so a person will take two to four minutes longer over the first quarter hour. Pop-ups and toasts were counted by hooking the game's own pop-up and toast functions. The bot closes each one at once, so the counts are what a player would be shown, not how long they spend on each. Tab word counts come from rendering each open tab at every level-up.</p>
+  <div class="src">
+    <p><b>Sources.</b>
+    GameAnalytics idle benchmarks: <a href="https://gameworldobserver.com/2020/12/22/gameanalytics-names-benchmark-engagement-metrics-idle-games">gameworldobserver.com</a> ·
+    Celia Hodent on onboarding: <a href="https://celiahodent.com/gamers-brain-ux-onboarding/">celiahodent.com</a> ·
+    Kolibri and Idle Miner Tycoon: <a href="https://start.playtestcloud.com/blog/kolibri-games-case-study">playtestcloud.com</a>, <a href="https://www.gameanalytics.com/blog/making-a-hit-idle-game-eight-lessons-from-kolibri-games">gameanalytics.com</a>, <a href="https://www.bluestacks.com/blog/game-guides/idle-miner-tycoon/idt-beginner-guide-en.html">bluestacks.com</a> ·
+    Anthony Pecorella, GDC Europe 2016: <a href="https://media.gdcvault.com/gdceurope2016/presentations/Pecorella_Anthony_Quest%20for%20Progress.pdf">gdcvault.com</a> ·
+    Cookie Clicker: <a href="https://www.gamedeveloper.com/design/the-recipe-behind-cookie-clicker">gamedeveloper.com</a> ·
+    Egg, Inc. prestige: <a href="https://egg-inc.fandom.com/wiki/Prestige?oldid=9210">fandom.com</a> ·
+    Melvor Idle 1.0: <a href="https://wiki.melvoridle.com/w/V1.0">wiki.melvoridle.com</a> ·
+    Supersonic on first-time experience: <a href="https://www.pocketgamer.biz/first-impressions-count-creating-the-ultimate-first-time-user-experience/">pocketgamer.biz</a> ·
+    Rule-of-thumb timings (opinion, no data): <a href="https://dev.to/aguier/i-built-7-idle-games-in-30-days-what-i-learned-about-incremental-design-5d3f">dev.to</a> ·
+    Player complaints about text walls and late automation: <a href="https://itch.io/post/7592228">itch.io</a>.</p>
+  </div>
+</section>
+</div>
