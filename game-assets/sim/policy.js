@@ -48,8 +48,9 @@ window.BOT = (function () {
     while (guard++ < 10) {
       const c = [];
       const ok = (k) => !G.gateOK || G.gateOK(k);   /* unlocks that wait for a prestige */
-      G.VAR_ORDER.forEach((v) => { if (!S.vars[v] && v !== 'geisha' && ok('var:' + v)) c.push(['var:' + v, G.VAR[v].cost]); });   /* coffees open as their home farms do */
-      const nv = G.VAR_ORDER.find((v) => !S.vars[v] && v !== 'geisha' && ok('var:' + v));
+      if (S.lastVar && !(S.planted || {})[S.lastVar]) { const v = S.lastVar, home = G.LOCS.find((l) => S.farms[l].unlocked && !S.dormant[l] && G.isNative && G.isNative(l, v)) || 'mogiana', back = S.loc; act('go:' + home); act('plant:1.' + v); act('go:' + back); }   /* plant the newest coffee, as the Unlock tab asks */
+      G.VAR_ORDER.forEach((v) => { if (!S.vars[v] && ok('var:' + v)) c.push(['var:' + v, G.VAR[v].cost]); });   /* coffees open as their home farms do */
+      const nv = G.VAR_ORDER.find((v) => !S.vars[v] && ok('var:' + v));
       Object.keys(G.METHODS).forEach((m) => { if (!S.methods[m] && G.METHODS[m].cost && ok('method:' + m)) c.push(['method:' + m, G.METHODS[m].cost]); });
       G.LOCS.forEach((l) => { if (G.canOpen(l)) c.push(['farm:' + l, G.FARM_COST[l]]); });
       if (G.researchCost && !nv) c.push(['research', G.researchCost()]);
