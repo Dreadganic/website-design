@@ -49,7 +49,7 @@ exports.handler = async (event) => {
       mine: att && { used: att.list.length, left: E.ATTEMPTS - att.list.length, list: att.list, best: mi > -1 ? b.rows[mi].total : null, rank: mi + 1 || null, players: b.rows.length },
       board: b.rows.slice(0, 20).map(pub), players: b.rows.length,
       hall: hall.rows.slice(0, 20).map((r, i) => ({ rank: i + 1, name: r.name, look: r.look, rating: r.rating })), rating: hi > -1 ? hall.rows[hi].rating : null, hallRank: hi + 1 || null,
-      last: lf && lf.pct[me.id] !== undefined ? { week: last, pct: Math.round(lf.pct[me.id]), players: lf.n } : null
+      last: lf && lf.pct[me.id] !== undefined ? { week: last, pct: Math.round(lf.pct[me.id]), players: lf.n, rank: Math.round(lf.n - lf.pct[me.id] * lf.n / 100) + 1, top: Math.round(lf.n - lf.pct[me.id] * lf.n / 100) + 1 <= Math.max(1, Math.ceil(lf.n * 0.1)) } : null   /* top: the weekly top 10%, and always the winner */
     });
   }
   if (event.httpMethod !== "POST") return G.json(405, { error: "method_not_allowed" });

@@ -26,7 +26,7 @@ const HARVEST_GOALS = [
   { unit: "lots", name: "Big harvest weekend", text: "Sell or deliver lots of any coffee" }
 ];
 /* how big the goal is per active player, the smallest goal, and how fast one player can add (per minute, plus a burst for time away) */
-const HARVEST_UNIT = { lots: { perPlayer: 60, min: 500, perMin: 30, burst: 300 }, cups: { perPlayer: 25, min: 200, perMin: 30, burst: 60 }, golden: { perPlayer: 8, min: 60, perMin: 2, burst: 6 } };
+const HARVEST_UNIT = { lots: { perPlayer: 60, min: 200, perMin: 30, burst: 300 }, cups: { perPlayer: 25, min: 100, perMin: 30, burst: 60 }, golden: { perPlayer: 3, min: 25, perMin: 2, burst: 6 } };   /* small floors so a handful of players can reach it at launch */
 const ID = /^[a-z0-9_-]{1,24}$/;
 function firstSaturday(y, m) {   /* 10:00 Japan time on the month's first Saturday */
   for (let d = 1; d <= 7; d++) { const t = Date.parse(y + "-" + pad(m) + "-" + pad(d) + "T10:00:00+09:00"); if (new Date(t + JST).getUTCDay() === 6) return t; }
@@ -50,10 +50,11 @@ function harvestAllowed(unit, lastAt, starts, now) {
 /* ---------- cooperatives ---------- */
 const COOP_MAX = 8;
 const COOP_PROCESSES = ["washed", "natural", "honey"];   /* the weekly co-op order rotates through the processes everyone has */
-const COOP_TIERS = [[0.25, 2], [0.5, 4], [0.75, 6], [1, 10]];   /* share of the order reached, cranes for each member who helped */
-const COOP_MIN_TARGET = 3000, COOP_NEW_BASE = 1000;   /* kg of green coffee; a new member counts as 1,000 kg until they have a week behind them */
+const COOP_TIERS = [[0.25, 1], [0.5, 2], [0.75, 3], [1, 4]];   /* share of the order reached, cranes for each member who helped: 10 in all, like the solo weekly order, so play cranes stay low */
+const COOP_MIN_PER = 1000, COOP_NEW_BASE = 1000, COOP_SHARE = 0.8;   /* kg of green coffee: at least 1,000 per active member; a new member counts as 1,000 until they have a week behind them; the order asks for 80% of what the members brought last week */
+const COOP_AWAY_DAYS = 7, COOP_GONE_DAYS = 30;   /* away a week: not counted in the order; away a month: leaves the co-op, freeing the place */
 const STICKERS = ["hello", "thanks", "nice", "onit", "washed", "natural", "honey", "roast", "golden", "prestige", "harvest", "night"];
-const HELPS_PER_DAY = 7;   /* how many helps one farmer can receive in a day */
+const HELPS_PER_DAY = 3;   /* how many helps one farmer can receive in a day; each speeds their drying by 10% */
 const coopProcess = (wk) => COOP_PROCESSES[Math.round(weekStart(wk) / (7 * DAY)) % COOP_PROCESSES.length];
 function cleanCoopName(s) {
   s = String(s || "").normalize("NFKC").replace(/[\u0000-\u001f<>"'`\\]/g, "").replace(/\s+/g, " ").trim().slice(0, 24);
@@ -65,4 +66,4 @@ const coopAutoName = (n) => "Cooperativa " + COOP_WORDS[n % COOP_WORDS.length] +
 const coopAllowed = (baseline, lastAt, now) => Math.round(Math.max(5000, baseline * 0.5) * Math.max(1 / 60, Math.min(12, (now - (lastAt || now - 3600e3)) / 3600e3)) + baseline);
 
 module.exports = { JST, DAY, weekKey, weekStart, prevWeek, activePlayers, HARVEST_GOALS, HARVEST_UNIT, firstSaturday, harvestFor, harvestAllowed,
-  COOP_MAX, COOP_PROCESSES, COOP_TIERS, COOP_MIN_TARGET, COOP_NEW_BASE, STICKERS, HELPS_PER_DAY, coopProcess, cleanCoopName, coopAutoName, coopAllowed };
+  COOP_MAX, COOP_PROCESSES, COOP_TIERS, COOP_MIN_PER, COOP_NEW_BASE, COOP_SHARE, COOP_AWAY_DAYS, COOP_GONE_DAYS, STICKERS, HELPS_PER_DAY, coopProcess, cleanCoopName, coopAutoName, coopAllowed };

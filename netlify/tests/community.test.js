@@ -55,21 +55,32 @@ test("harvest day: the goal scales with players, contributions are rate-capped, 
   const u = C.HARVEST_UNIT[day.unit];
   assert.equal(g.body.day.target, Math.max(u.min, Math.round(3 * u.perPlayer / 10) * 10), "three active players");
   clock = day.starts + 60e3;
+  assert.equal((await call(harvest, "POST", { id: day.id, claim: true }, a)).body.error, "not_reached");
   const huge = await call(harvest, "POST", { id: day.id, n: 1e6 }, a);
   assert.ok(huge.body.accepted < 1e6 && huge.body.accepted === C.harvestAllowed(day.unit, 0, day.starts, clock), "a made-up count is capped");
   assert.equal((await call(harvest, "POST", { id: "1999-01", n: 5 }, a)).status, 409);
   clock += 120e3;
   const again = await call(harvest, "POST", { id: day.id, n: huge.body.mine }, a);
   assert.equal(again.body.accepted, 0, "only the rise counts");
-  assert.equal((await call(harvest, "POST", { id: day.id, claim: true }, a)).body.error, "not_reached");
-  // reach the goal over the weekend
+  clock += 180 * 60e3; await call(harvest, "POST", { id: day.id, n: 1 }, b);   /* Ben joins in */
+  // halfway pays a little, once
   const target = g.body.day.target;
+  for (let i = 0; i < 40 && (await call(harvest, "GET")).body.day.total < target / 2; i++) { clock += 180 * 60e3; const m = (await call(harvest, "GET", undefined, b)).body.mine.n; await call(harvest, "POST", { id: day.id, n: m + Math.min(400, Math.ceil(target / 2)) }, b); }
+  clock += 61e3;
+  if ((await call(harvest, "GET")).body.day.total < target) {
+    const half = await call(harvest, "POST", { id: day.id, claim: true }, a);
+    assert.equal(half.body.half, true); assert.equal(half.body.cranes, 2);
+    assert.equal((await call(harvest, "POST", { id: day.id, claim: true }, a)).body.error, "already_claimed", "halfway once");
+  }
+  // reach the goal over the weekend
   for (let i = 0; i < 40 && (await call(harvest, "GET")).body.day.total < target; i++) { clock += 180 * 60e3; const m = (await call(harvest, "GET", undefined, b)).body.mine.n; await call(harvest, "POST", { id: day.id, n: m + 400 }, b); }
   clock += 61e3;
   const done = await call(harvest, "GET", undefined, b);
   assert.ok(done.body.day.reached, "goal reached"); assert.equal(done.body.day.players, 2);
   const first = await call(harvest, "POST", { id: day.id, claim: true }, a);
   assert.equal(first.body.reward, "decor", "the first reached Harvest Day gives the decoration");
+  const firstB = await call(harvest, "POST", { id: day.id, claim: true }, b);
+  assert.equal(firstB.body.cranes, 2, "claiming at the end pays the halfway cranes too"); assert.equal(firstB.body.reward, "decor");
   assert.equal((await call(harvest, "POST", { id: day.id, claim: true }, a)).body.error, "already_claimed");
   assert.equal((await call(harvest, "POST", { id: day.id, claim: true }, c)).body.error, "did_not_take_part");
 });
@@ -99,10 +110,10 @@ test("co-ops: the weekly order scales with members, counts only rises, and pays 
   const made = (await call(coop, "POST", { act: "create", name: "Cerrado" }, a)).body.coop;
   await call(coop, "POST", { act: "join", code: made.code }, b); await call(coop, "POST", { act: "join", code: made.code }, c);
   let v = (await call(coop, "GET", undefined, a)).body.coop;
-  assert.equal(v.order.target, C.COOP_MIN_TARGET, "three new members: the smallest order");
+  assert.equal(v.order.target, 3 * C.COOP_MIN_PER, "three new members: 1,000 kg each");
   assert.equal(v.order.process, C.coopProcess(v.order.week));
   const wk = v.order.week;
-  assert.equal((await call(coop, "POST", { act: "claim", tier: 0 }, a)).body.error, "not_reached");
+  assert.equal((await call(coop, "POST", { act: "claim" }, a)).body.error, "did_not_help");
   clock += 3600e3;
   v = (await call(coop, "POST", { act: "sync", week: wk, kg: 2000, est: 9000 }, a)).body.coop;
   assert.equal(v.order.total, 2000);
@@ -111,16 +122,17 @@ test("co-ops: the weekly order scales with members, counts only rises, and pays 
   clock += 60e3;
   v = (await call(coop, "POST", { act: "sync", week: wk, kg: 9e9 }, b)).body.coop;
   assert.ok(v.order.total < 9e9 && v.order.total > 2000, "a made-up number is capped");
-  const claim = await call(coop, "POST", { act: "claim", tier: 3 }, a);
-  assert.equal(claim.body.cranes, 10); assert.equal(claim.body.full, true);
-  assert.equal((await call(coop, "POST", { act: "claim", tier: 3 }, a)).body.error, "already_claimed");
-  assert.equal((await call(coop, "POST", { act: "claim", tier: 0 }, c)).body.error, "did_not_help");
+  const claim = await call(coop, "POST", { act: "claim" }, a);
+  assert.equal(claim.body.cranes, 10, "one claim pays every tier: 1 + 2 + 3 + 4"); assert.equal(claim.body.full, true); assert.deepEqual(claim.body.tiers, [0, 1, 2, 3]);
+  assert.equal((await call(coop, "POST", { act: "claim" }, a)).body.error, "already_claimed");
+  assert.equal((await call(coop, "POST", { act: "claim" }, c)).body.error, "did_not_help");
   // next week the order is sized from last week's shares, and the new member's estimate
   clock += 7 * C.DAY;
   v = (await call(coop, "GET", undefined, a)).body.coop;
   assert.notEqual(v.order.week, wk);
   const last = await store.get("coops/" + (await store.get("players/" + a.split(".")[0])).coop + "/week/" + wk);
-  assert.equal(v.order.target, Math.round((last.shares[a.split(".")[0]] + last.shares[b.split(".")[0]] + C.COOP_NEW_BASE) / 100) * 100);
+  assert.equal(v.order.target, Math.max(2 * C.COOP_MIN_PER, Math.round((last.shares[a.split(".")[0]] + last.shares[b.split(".")[0]]) * C.COOP_SHARE / 100) * 100), "80% of last week; Cai, away a week with nothing added, counts as zero");
+  assert.equal(v.members.find((m) => m.name === "Cai").away, true);
 });
 
 test("co-ops: stickers only from the list, helps once a day per mate, and the helped farmer collects them", async () => {
@@ -144,32 +156,54 @@ test("co-ops: stickers only from the list, helps once a day per mate, and the he
   assert.equal((await call(coop, "POST", { act: "help", i: benAt }, a)).status, 200, "again the next day");
 });
 
-test("derby: waits for enough co-ops, groups them, scores capped task counts, and moves leagues at the week's end", async () => {
+test("derby: from 4 co-ops as one group without leagues; leagues and moves from 20", async () => {
   const lead = [];
-  for (let i = 0; i < D.DERBY_MIN_COOPS - 1; i++) {
-    const a = await newPlayer("L" + i), b = await newPlayer("M" + i), made = (await call(coop, "POST", { act: "create", name: "Coop " + i }, a)).body.coop;
-    await call(coop, "POST", { act: "join", code: made.code }, b); lead.push(a);
-  }
+  const addCoop = async (i) => { const a = await newPlayer("L" + i), b = await newPlayer("M" + i), made = (await call(coop, "POST", { act: "create", name: "Coop " + i }, a)).body.coop; await call(coop, "POST", { act: "join", code: made.code }, b); lead.push(a); };
+  for (let i = 0; i < D.DERBY_MIN_COOPS - 1; i++) await addCoop(i);
   let v = (await call(coop, "GET", undefined, lead[0])).body.coop;
   assert.equal(v.derby.on, false); assert.equal(v.derby.have, D.DERBY_MIN_COOPS - 1);
-  const a = await newPlayer("Last"), b = await newPlayer("Last2"), made = (await call(coop, "POST", { act: "create", name: "Coop last" }, a)).body.coop;
-  await call(coop, "POST", { act: "join", code: made.code }, b); lead.push(a);
+  await addCoop(99);
   v = (await call(coop, "GET", undefined, lead[0])).body.coop;
-  assert.equal(v.derby.on, true, "the 20th co-op starts it"); assert.equal(v.derby.group.length, D.GROUP, "two groups of 10"); assert.equal(v.derby.board.length, 4);
-  const x = await newPlayer("X"), y = await newPlayer("Y"), late = (await call(coop, "POST", { act: "create", name: "Coop late" }, x)).body.coop;
-  await call(coop, "POST", { act: "join", code: late.code }, y);
-  assert.equal((await call(coop, "GET", undefined, x)).body.coop.derby.joinsNext, true, "a co-op formed mid-week joins next week");
+  assert.equal(v.derby.on, true, "the 4th co-op starts it"); assert.equal(v.derby.group.length, 4); assert.equal(v.derby.leagues, false, "no leagues yet");
+  await addCoop(98);
+  assert.equal((await call(coop, "GET", undefined, lead[lead.length - 1])).body.coop.derby.group.length, 5, "without leagues, a co-op formed mid-week joins the one group straight away");
   const k = v.derby.board[0], counts = {}; counts[k.id] = 1e6;
   v = (await call(coop, "POST", { act: "sync", week: v.derby.week, kg: 0, derby: counts }, lead[0])).body.coop;
-  assert.equal(v.derby.board[0].mine, k.cap, "capped per member"); assert.equal(v.derby.group[0].you, true); assert.equal(v.derby.group[0].pts, k.cap * k.pts);
+  assert.equal(v.derby.board[0].mine, k.cap, "capped per member"); assert.equal(v.derby.group[0].you, true);
   clock += 7 * C.DAY;
-  const next = (await call(coop, "GET", undefined, x)).body.coop.derby;
-  assert.equal(next.on, true, "the late co-op is grouped the next week"); assert.equal(next.group.length + 0 > 0, true);
   v = (await call(coop, "GET", undefined, lead[0])).body.coop;
-  assert.equal(v.derby.last.rank, 1); assert.equal(v.derby.last.to, 2, "first place moves up a league"); assert.equal(v.derby.last.canClaim, true);
-  const cl = await call(coop, "POST", { act: "derbyclaim" }, lead[0]);
-  assert.equal(cl.body.cranes, 8);
+  assert.equal(v.derby.last.rank, 1); assert.equal(v.derby.last.to, v.derby.last.league, "no league moves in a small community"); assert.equal(v.derby.last.cranes, 3);
+  assert.equal((await call(coop, "POST", { act: "derbyclaim" }, lead[0])).body.cranes, 3);
   assert.equal((await call(coop, "POST", { act: "derbyclaim" }, lead[0])).body.error, "already_claimed");
+  // grow to 20 co-ops: next week brings leagues, groups of 10, and moves
+  for (let i = 5; i < D.LEAGUE_COOPS; i++) await addCoop(i);
+  clock += 7 * C.DAY;
+  v = (await call(coop, "GET", undefined, lead[0])).body.coop;
+  assert.equal(v.derby.leagues, true); assert.equal(v.derby.group.length, D.GROUP);
+  v = (await call(coop, "POST", { act: "sync", week: v.derby.week, kg: 0, derby: counts }, lead[0])).body.coop;
+  clock += 7 * C.DAY;
+  v = (await call(coop, "GET", undefined, lead[0])).body.coop;
+  assert.equal(v.derby.last.rank, 1); assert.equal(v.derby.last.to, 2, "first place moves up a league");
+  const x = await newPlayer("X"), y = await newPlayer("Y"), lateR = await call(coop, "POST", { act: "create", name: "Coop late" }, x), late = lateR.body.coop;
+  assert.ok(late, JSON.stringify(lateR.body));
+  await call(coop, "POST", { act: "join", code: late.code }, y);
+  const lv = (await call(coop, "GET", undefined, x)).body;
+  assert.ok(lv.coop, JSON.stringify(lv));
+  assert.equal(lv.coop.derby.joinsNext, true, "a co-op formed mid-week joins next week");
+});
+
+test("co-ops: find prefers a co-op someone played in this week, and members gone a month leave", async () => {
+  const a = await newPlayer("Old"), b = await newPlayer("Fresh");
+  const oldc = (await call(coop, "POST", { act: "create", name: "Sleepy Hollow" }, a)).body.coop;
+  clock += 10 * C.DAY;
+  const freshc = (await call(coop, "POST", { act: "create", name: "Busy Bees" }, b)).body.coop;
+  const found = await call(coop, "POST", { act: "find" }, await newPlayer("New"));
+  assert.equal(found.body.coop.name, "Busy Bees", "not the co-op nobody has played in for 10 days");
+  const c = await newPlayer("Joiner"); await call(coop, "POST", { act: "join", code: oldc.code }, c);
+  clock += 25 * C.DAY; await call(score, "POST", { name: "Joiner", prestige: 0, seasonP: 0, level: 1, points: 0 }, c);
+  const v = (await call(coop, "GET", undefined, c)).body.coop;
+  assert.deepEqual(v.members.map((m) => m.name), ["Joiner"], "Old, away 35 days, left the co-op");
+  assert.equal((await call(coop, "GET", undefined, a)).body.coop, null);
 });
 
 test("cup of excellence: one brief for everyone, scores worked out on the server, three attempts, best counts", async () => {
@@ -211,6 +245,7 @@ test("cup of excellence: the week's final places feed the Q grader rating and th
   }
   const g = (await call(coe, "GET", undefined, b)).body;
   assert.equal(g.hall[0].name, "Ana"); assert.equal(g.hall[0].rating, 1000, "first of two every week for four weeks");
-  assert.equal(g.rating, 500); assert.equal(g.hallRank, 2); assert.equal(g.last.pct, 50);
+  assert.equal(g.rating, 500); assert.equal(g.hallRank, 2); assert.equal(g.last.pct, 50); assert.equal(g.last.top, false, "second of two isn't the top 10%");
+  assert.equal((await call(coe, "GET", undefined, a)).body.last.top, true, "the winner always is, however few play");
   assert.equal(E.ratingFrom([100, 100]), 500, "two good weeks out of the last eight is half the way");
 });

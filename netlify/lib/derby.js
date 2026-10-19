@@ -1,9 +1,9 @@
-/* The Co-op Derby: a weekly league for cooperatives. Each week co-ops are grouped about 10 at a time by league and strength,
-   members score points from a shared board of tasks, and at the end of the week the top 3 of each group move up a league and the bottom 3 move down.
-   It only runs once enough co-ops are playing (DERBY_MIN_COOPS); until then derbyView says how many more are needed. */
+/* The Co-op Derby: a weekly race between cooperatives. Members score points from a shared board of tasks.
+   With 4 to 19 co-ops it runs as one group with no leagues, so a small community still has it. From 20, co-ops are grouped about 10 at a time
+   by league and strength, and at the end of the week the top 3 of each group move up a league and the bottom 3 move down. */
 const C = require("./community");
 
-const DERBY_MIN_COOPS = 20, GROUP = 10, LEAGUES = 5, MOVE = 3;
+const DERBY_MIN_COOPS = 4, LEAGUE_COOPS = 20, GROUP = 10, LEAGUES = 5, MOVE = 3;   /* from 4 co-ops it runs as one group; leagues (moving up and down) start at 20 */
 /* each task: points per unit, and the most one member can count in a week (so one big farm can't carry a co-op alone) */
 const DERBY_TASKS = {
   sell: { name: "Sell or deliver lots", pts: 1, cap: 400 },
@@ -14,8 +14,8 @@ const DERBY_TASKS = {
   boat: { name: "Fill the trader's boat", pts: 10, cap: 20 }
 };
 const BASIC = ["sell", "cup", "golden", "contract"];
-const RANK_CRANES = [8, 6, 5, 4, 3, 3, 2, 2, 2, 2];
-const leagueName = (l) => ["", "Seedling", "Sprout", "Cherry", "Roaster", "Q grader"][l] || "Seedling";
+const RANK_CRANES = [3, 2, 2, 1, 1, 1, 1, 1, 1, 1];   /* a little, plus a badge: play cranes stay low */
+const leagueName = (l) => ["", "Seedling", "Sprout", "Cherry", "Roaster", "Geisha"][l] || "Seedling";
 function boardFor(wk) {   /* four tasks a week: three everyone can do, and one more from the whole list */
   const n = Math.round(C.weekStart(wk) / (7 * C.DAY)), all = Object.keys(DERBY_TASKS);
   const basic = [0, 1, 2, 3].map((i) => BASIC[(n + i) % BASIC.length]).slice(0, 3);
@@ -32,9 +32,12 @@ async function ensureWeek(store, wk, now) {   /* group this week's co-ops, settl
   const coops = await Promise.all(live.map(([id]) => store.get("coops/" + id)));
   const rows = live.map(([id, x], i) => ({ id, p: x.p, league: (coops[i] && coops[i].league) || 1 })).sort((a, b) => b.league - a.league || b.p - a.p);
   const groups = [];
-  for (let i = 0; i < rows.length; i += GROUP) groups.push(rows.slice(i, i + GROUP).map((r) => r.id));
-  if (groups.length > 1 && groups[groups.length - 1].length < GROUP / 2) groups[groups.length - 2].push(...groups.pop());   /* no tiny last group */
-  d = { week: wk, on: true, board: boardFor(wk), groups, at: now };
+  if (rows.length < LEAGUE_COOPS) groups.push(rows.map((r) => r.id));   /* a small community: everyone in one group, no leagues yet */
+  else {
+    for (let i = 0; i < rows.length; i += GROUP) groups.push(rows.slice(i, i + GROUP).map((r) => r.id));
+    if (groups[groups.length - 1].length < GROUP / 2) groups[groups.length - 2].push(...groups.pop());   /* no tiny last group */
+  }
+  d = { week: wk, on: true, leagues: groups.length > 1, board: boardFor(wk), groups, at: now };
   await store.set(key, d);
   return d;
 }
@@ -45,16 +48,20 @@ async function settle(store, wk, d) {   /* last week's places, league moves and 
     pts.sort((a, b) => b.pts - a.pts);
     for (let i = 0; i < pts.length; i++) {
       const coop = await store.get("coops/" + pts[i].id); if (!coop) continue;
-      const league = coop.league || 1, move = i < MOVE && pts[i].pts > 0 ? 1 : i >= pts.length - MOVE ? -1 : 0;
+      const league = coop.league || 1, move = !d.leagues ? 0 : i < MOVE && pts[i].pts > 0 ? 1 : i >= pts.length - MOVE ? -1 : 0;
       coop.league = Math.max(1, Math.min(LEAGUES, league + move)); await store.set("coops/" + coop.id, coop);
-      await store.set("derby/" + wk + "/result/" + coop.id, { rank: i + 1, of: pts.length, league, to: coop.league, pts: pts[i].pts, cranes: Math.round((RANK_CRANES[i] || 2) * (1 + 0.5 * (league - 1))), claimed: [] });
+      await store.set("derby/" + wk + "/result/" + coop.id, { rank: i + 1, of: pts.length, league, to: coop.league, pts: pts[i].pts, cranes: RANK_CRANES[i] || 1, claimed: [] });
     }
   }
   d.settled = true; await store.set("derby/" + wk, d);
 }
+async function joinLate(store, d, coop) {   /* without leagues there's one group, so a co-op formed mid-week joins it straight away */
+  if (d.on && !d.leagues && coop.members.length >= 2 && !d.groups.some((g) => g.includes(coop.id))) { d.groups[0].push(coop.id); await store.set("derby/" + d.week, d); }
+  return d;
+}
 async function derbyAdd(store, coop, me, counts, now) {   /* a member's task counts this week; only rises count, each capped */
   if (!counts || typeof counts !== "object") return;
-  const wk = C.weekKey(now), d = await ensureWeek(store, wk, now);
+  const wk = C.weekKey(now), d = await joinLate(store, await ensureWeek(store, wk, now), coop);
   if (!d.on || !d.groups.some((g) => g.includes(coop.id))) return;
   const key = "derby/" + wk + "/c/" + coop.id, rec = (await store.get(key)) || { pts: 0, m: {} }, mine = rec.m[me.id] || {};
   let changed = false;
@@ -62,7 +69,7 @@ async function derbyAdd(store, coop, me, counts, now) {   /* a member's task cou
   if (changed) { rec.m[me.id] = mine; await store.set(key, rec); }
 }
 async function derbyView(store, coop, me, now) {
-  const wk = C.weekKey(now), d = await ensureWeek(store, wk, now);
+  const wk = C.weekKey(now), d = await joinLate(store, await ensureWeek(store, wk, now), coop);
   const lastWk = C.prevWeek(wk), res = await store.get("derby/" + lastWk + "/result/" + coop.id);
   const lastRec = res && (await store.get("derby/" + lastWk + "/c/" + coop.id));
   const last = res ? { rank: res.rank, of: res.of, league: res.league, to: res.to, cranes: res.cranes, canClaim: !!(lastRec && lastRec.m[me.id]) && !res.claimed.includes(me.id) } : null;
@@ -72,7 +79,7 @@ async function derbyView(store, coop, me, now) {
   const rows = await Promise.all(g.map(async (id) => { const c = await store.get("coops/" + id), r = (await store.get("derby/" + wk + "/c/" + id)) || { pts: 0, m: {} }; return { you: id === coop.id, name: (c && c.name) || "Co-op", pts: r.pts, m: r.m }; }));
   rows.sort((a, b) => b.pts - a.pts);
   const mineRow = rows.find((r) => r.you);
-  return { on: true, week: wk, ends: C.weekStart(wk) + 7 * C.DAY, league: coop.league || 1, leagueName: leagueName(coop.league || 1),
+  return { on: true, week: wk, ends: C.weekStart(wk) + 7 * C.DAY, leagues: !!d.leagues, league: coop.league || 1, leagueName: leagueName(coop.league || 1),
     board: d.board.map((k) => ({ id: k, name: DERBY_TASKS[k].name, pts: DERBY_TASKS[k].pts, cap: DERBY_TASKS[k].cap, mine: ((mineRow.m[me.id] || {})[k]) || 0 })),
     group: rows.map((r, i) => ({ rank: i + 1, name: r.name, pts: r.pts, you: r.you })), rank: rows.indexOf(mineRow) + 1, last };
 }
@@ -86,4 +93,4 @@ async function derbyClaim(store, coop, me, now) {
   return { cranes: res.cranes };
 }
 
-module.exports = { DERBY_MIN_COOPS, DERBY_TASKS, GROUP, LEAGUES, boardFor, ensureWeek, derbyAdd, derbyView, derbyClaim, leagueName };
+module.exports = { DERBY_MIN_COOPS, LEAGUE_COOPS, DERBY_TASKS, GROUP, LEAGUES, boardFor, ensureWeek, derbyAdd, derbyView, derbyClaim, leagueName };
