@@ -1,0 +1,82 @@
+const { chromium } = require('/opt/node-tools/node_modules/playwright');
+const N = require('path').join(__dirname, '../../netlify/');
+const G = require(N + 'lib/game'), C = require(N + 'lib/community'); const store = G.memoryStore();
+const now0 = Date.now(), hv = { days: [{ id: 'test-hv', name: 'Test weekend', text: 'Sell or deliver washed lots', unit: 'lots', method: 'washed', starts: new Date(now0 - 3600e3).toISOString(), ends: new Date(now0 + 864e5).toISOString(), target: 20 }] };
+const fns = {}; ['game-account', 'game-save', 'game-score', 'game-visit', 'game-events', 'game-grants', 'game-samples', 'game-claim', 'game-harvest', 'game-coop', 'game-coe', 'game-checkin'].forEach((n) => { fns[n] = require(N + 'functions/' + n); Object.defineProperty(fns[n], '__deps', { get: () => ({ store, now: Date.now(), harvest: hv }), configurable: true }); });
+const callAs = async (name, method, auth, body, q) => JSON.parse((await fns[name].handler({ httpMethod: method, headers: auth, queryStringParameters: q || {}, body: body ? JSON.stringify(body) : undefined })).body);
+const farmer = async (name, prestige) => { const acc = await callAs('game-account', 'POST', {}, { name }), auth = { authorization: 'Bearer ' + acc.player + '.' + acc.token };
+  await callAs('game-score', 'POST', auth, { name, prestige: 0, seasonP: 0, level: 1, points: 0, look: { crest: 0, skin: 2, bg: 'gedeo' } });
+  const row = await store.get('scores/' + acc.player); row.prestige = prestige; await store.set('scores/' + acc.player, row); return auth; };
+(async () => {
+  const mika = await farmer('Mika', 6), ken = await farmer('Ken', 5);
+  const made = await callAs('game-coop', 'POST', mika, { act: 'create', name: 'Las Nubes' }); await callAs('game-coop', 'POST', ken, { act: 'join', code: made.coop.code });
+  await callAs('game-coop', 'POST', mika, { act: 'sticker', id: 'hello' });
+  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' }); const p = await b.newPage({ viewport: { width: 400, height: 1300 } }); const errs = []; p.on('pageerror', (e) => errs.push(e.message));
+  await p.route('**/fn/**', async (route) => { const req = route.request(), u = new URL(req.url()), name = u.pathname.split('/').pop(), fn = fns[name];
+    if (!fn) return route.fulfill({ status: 404, body: '{}' });
+    const r = await fn.handler({ httpMethod: req.method(), headers: req.headers(), body: req.postData(), queryStringParameters: Object.fromEntries(u.searchParams) });
+    route.fulfill({ status: r.statusCode, headers: { 'content-type': 'application/json' }, body: r.body }); });
+  await p.addInitScript(() => { try { localStorage.clear(); } catch (e) {} });
+  await p.goto('file://' + process.argv[2]); await p.waitForTimeout(2500);
+  const me = await p.evaluate(() => window.__T.NET.acct.player);
+  // a late-game farm: every unlock, foreman and agent, prestige 6
+  await p.evaluate(() => { const T = window.__T, S = T.S; for (let i = 0; i < 10; i++) T.closeModal(); S.guide = T.GUIDE.length; S.prestige = 6; S.xp = T.XP_AT(12) + 1; S.navSeen = {}; T.NAV.forEach((n) => { S.navSeen[n.id] = true; });
+    Object.keys(S.farms).forEach((l) => { S.farms[l].unlocked = true; }); ['caturra', 'catimor', 'catuai', 'castillo', 'mundonovo', 'yellowbourbon', 'pinkbourbon', 'heirloom', 'geisha'].forEach((v) => { S.vars[v] = true; }); ['washed', 'natural', 'honey', 'rum', 'whiskey', 'strawberry'].forEach((m) => { S.methods[m] = true; });
+    S.staff.foreman = false; S.staff.agent = true; S.tabs.orders = S.tabs.ranks = S.tabs.unlock = S.tabs.upgrades = S.tabs.shop = true; });
+  const row = await store.get('scores/' + me) || { name: 'Farmer', look: {} }; row.prestige = 6; row.name = row.name || 'Farmer'; await store.set('scores/' + me, Object.assign(row, { id: me, at: Date.now() }));
+  await p.evaluate(async () => { const T = window.__T; await T.harvestSync(true); await T.coopSync(true); T.setTab('orders'); });
+  await p.waitForTimeout(600);
+  const daily1 = await p.evaluate(() => ({ hv: document.getElementById('harvestH')?.innerText, hvText: document.querySelector('#harvestH + p')?.innerText, coop: document.getElementById('coopH')?.innerText, btns: [...document.querySelectorAll('#panel [data-act^="coop"]')].map((x) => x.dataset.act) }));
+  console.log('daily before joining:', JSON.stringify(daily1));
+  await p.screenshot({ path: 'arr/comm-daily-1.png', fullPage: false });
+  // join by finding, then a washed lot sold counts for Harvest Day and (if washed week) the co-op order
+  await p.evaluate(async () => { await window.__T.coopAct({ act: 'find' }); });
+  await p.waitForTimeout(500);
+  const coopV = await p.evaluate(() => { const c = window.__T.NET.coop; return c && { name: c.name, n: c.members.length, process: c.order.process, target: c.order.target, feed: c.feed.map((f) => f.name + ':' + f.s) }; });
+  console.log('joined:', JSON.stringify(coopV));
+  await p.evaluate(async (proc) => { const T = window.__T, S = T.S; S.cherries = { caturra: 2000, heirloom: 2000 }; S.lots = []; T.startLot('caturra', 'washed', true); T.startLot('heirloom', proc, true); S.lots.forEach((l) => { l.left = 0; }); T.act('sell:0'); T.act('sell:0'); for (let i = 0; i < 5; i++) T.closeModal(); }, coopV.process);
+  const tallies = await p.evaluate(() => ({ hv: window.__T.S.hv, cw: window.__T.S.cw }));
+  console.log('tallies after two sales:', JSON.stringify(tallies));
+  await p.evaluate(async () => { const T = window.__T; window.__hvPost = true; await T.harvestSync(true); });
+  await new Promise((r) => setTimeout(r, 300));
+  const hvServer = await callAs('game-harvest', 'GET', mika);
+  console.log('server harvest total:', hvServer.day.total, '/', hvServer.day.target);
+  await p.evaluate(async () => { await window.__T.coopSync(true); });
+  const after = await callAs('game-coop', 'GET', mika);
+  console.log('server co-op order:', after.coop.order.total, '/', after.coop.order.target, 'members', after.coop.members.map((m) => m.name + ' ' + m.share).join(', '));
+  // a sticker, a help for Mika, and Mika helps back
+  await p.evaluate(async () => { const T = window.__T; await T.coopAct({ act: 'sticker', id: 'thanks' }); const i = T.NET.coop.members.findIndex((m) => m.name === 'Mika'); await T.coopAct({ act: 'help', i }); });
+  const youAt = (await callAs('game-coop', 'GET', mika)).coop.members.findIndex((m) => m.name !== 'Mika' && m.name !== 'Ken');
+  await callAs('game-coop', 'POST', mika, { act: 'help', i: youAt });
+  await p.evaluate(() => { const S = window.__T.S; S.cherries = { caturra: 500 }; window.__T.startLot('caturra', 'washed', true); window.__left0 = S.lots[0].left; });
+  await p.evaluate(async () => { window.__T.NET.coop.helpsIn = 0; await window.__T.coopSync(true); });
+  await p.waitForTimeout(700);
+  console.log('help received: lot left', await p.evaluate(() => [window.__left0, window.__T.S.lots[0] && window.__T.S.lots[0].left, document.getElementById('toast').innerText]));
+  await p.evaluate(() => { window.__T.renderPanel(); }); await p.waitForTimeout(300);
+  await p.screenshot({ path: 'arr/comm-daily-2.png', fullPage: true });
+  // reach the Harvest Day goal (Mika and Ken bring it home), then claim in the game
+  for (const who of [mika, ken]) { for (let k = 0; k < 3; k++) { const m = (await callAs('game-harvest', 'GET', who)).mine.n; await callAs('game-harvest', 'POST', who, { id: 'test-hv', n: m + 10 }); } }
+  await new Promise((r) => setTimeout(r, 62000));
+  await p.evaluate(async () => { const T = window.__T; for (let i = 0; i < 6; i++) T.closeModal(); await T.harvestSync(true); T.setTab('orders'); });
+  await p.waitForTimeout(400);
+  console.log('harvest reached:', await p.evaluate(() => [window.__T.NET.hv.total, window.__T.NET.hv.reached, !!document.querySelector('[data-act="hvclaim"]')]));
+  await p.evaluate(() => window.__T.act('hvclaim')); await p.waitForTimeout(800);
+  console.log('claimed:', await p.evaluate(() => [document.getElementById('modalCard').innerText.replace(/\s+/g, ' ').slice(0, 120), window.__T.S.decor.harvest]));
+  await p.evaluate(() => { const T = window.__T; for (let i = 0; i < 6; i++) T.closeModal(); T.S.loc = 'mogiana'; T.setTab('farm'); }); await p.waitForTimeout(500);
+  await (await p.$('#cv')).screenshot({ path: 'arr/comm-basket.png' });
+  // the Cup of Excellence
+  await p.evaluate(async () => { const T = window.__T, S = T.S; for (let i = 0; i < 6; i++) T.closeModal(); S.staff.foreman = true; await T.coeFetch(true); S.rankSub = 'cup'; T.setTab('ranks'); });
+  await p.waitForTimeout(500);
+  console.log('cup page:', await p.evaluate(() => (document.querySelector('#panel').innerText.match(/Cup of Excellence[\s\S]{0,400}/) || [''])[0].replace(/\s+/g, ' ')));
+  await p.screenshot({ path: 'arr/comm-cup.png', fullPage: false });
+  await p.evaluate(() => { const T = window.__T, b = T.NET.coe.brief; T.coeStep('start'); T.coeStep('v.' + b.vars[0]); T.coeStep('m.' + b.methods[0]); T.coeStep('p.medium'); });
+  await p.waitForTimeout(1200);
+  await (await p.$('#modalCard')).screenshot({ path: 'arr/comm-roast.png' });
+  const c = await p.evaluate(() => [window.__T.NET.coe.brief.dur]);
+  await p.waitForTimeout(3600);
+  await p.evaluate(() => window.__T.coeStep('crack')); await p.waitForTimeout(800);
+  console.log('cup result:', await p.evaluate(() => document.getElementById('modalCard').innerText.replace(/\s+/g, ' ').slice(0, 300)));
+  await (await p.$('#modalCard')).screenshot({ path: 'arr/comm-result.png' });
+  await p.evaluate(() => { const T = window.__T; for (let i = 0; i < 6; i++) T.closeModal(); T.S.rankSub = 'board'; T.S.rankTab = 'hall'; T.renderPanel(); }); await p.waitForTimeout(600);
+  console.log('hall:', await p.evaluate(() => (document.querySelector('#panel').innerText.match(/Hall of Excellence[\s\S]{0,300}/g) || []).slice(-1)[0].replace(/\s+/g, ' ')));
+  console.log('errors', errs); await b.close(); })();

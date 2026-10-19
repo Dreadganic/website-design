@@ -74,6 +74,16 @@ b .n, h2 .n, h3 .n, .row .grow b .n, .tile b .n { color: inherit; font-size: 1.1
 .visit { display: flex; flex-direction: column; gap: 8px; }
 .visit-pic { width: 100%; max-width: 384px; align-self: center; image-rendering: pixelated; border-radius: 8px; border: 2px solid var(--edge); }
 .visit-farms { flex-wrap: wrap; }
+.stickers { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.stickers .btn { padding: 4px 2px; font-size: 11px; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
+.stickers .btn img { width: 22px; height: 22px; image-rendering: pixelated; object-fit: contain; }
+.feed { display: flex; flex-direction: column; gap: 4px; font-size: 13px; } .feed span { display: flex; align-items: center; gap: 6px; } .feed img { width: 18px; height: 18px; image-rendering: pixelated; object-fit: contain; }
+.tiers { display: flex; flex-wrap: wrap; gap: 6px; } .tiers .chip.got { opacity: 0.6; }
+.dtab { width: 100%; font-size: 13px; border-collapse: collapse; } .dtab td { padding: 3px 4px; border-bottom: 1px dashed var(--edge); } .dtab tr.you td { font-weight: 700; }
+.roastbar { position: relative; width: 100%; align-self: stretch; box-sizing: border-box; height: 26px; border: 3px solid var(--edge); border-radius: 8px; background: #3E2A1C; overflow: hidden; margin: 10px 0; }
+.roastbar .win { position: absolute; top: 0; bottom: 0; background: #F2C04A; opacity: 0.85; }
+.roastbar .needle { position: absolute; top: -2px; bottom: -2px; width: 4px; background: #FFF4DE; box-shadow: 0 0 0 1px #3E2A1C; }
+.coe-pick { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; } .coe-pick .btn { min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; } .coe-pick img { width: 30px; height: 30px; image-rendering: pixelated; object-fit: contain; }
 .visit-btn { grid-column: 1 / -1; justify-self: end; margin-top: 2px; font: inherit; font-size: 11px; padding: 2px 10px; border-radius: 99px; border: 2px solid var(--edge); background: #FBF4E2; cursor: pointer; }
 .code { letter-spacing: 0.12em; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0; }
@@ -671,7 +681,7 @@ const DECOR = {
   cart: { name: 'Coffee cart', cost: 25000, sub: 'A little Beju cart serving the pickers' }
 };
 const SEASON_DECO_AT = [[8, 24], [44, 20], [80, 24]];   /* along the top of the drying patio, clear of the paths and the farm buildings */
-const DECOR_AT = { bench: [[138, 96]], planter: [[179, 104]], lantern: [[91, 140], [91, 186]], flag: [[2, 86]], cart: [[154, 92]] };
+const DECOR_AT = { harvest: [[76, 92]], bench: [[138, 96]], planter: [[179, 104]], lantern: [[91, 140], [91, 186]], flag: [[2, 86]], cart: [[154, 92]] };
 /* prestige: purely for show. It ranks you above everyone on a lower prestige, unlocks a nameplate, border and farmer outfit per tier,
    and costs you level, points and access to farms until you level back up. Coins, upgrades and cosmetics are never touched. */
 const PRESTIGE_LEVEL = 10;
@@ -723,9 +733,9 @@ const perkAt = (p) => PERKS[p] || null;
 const prestigeNeed = () => PRESTIGE_LEVEL + 8 * S.prestige;   /* 10, 18, 26, 34 ... and each level past 10 costs 1.22x the last */
 const BADGE = (rank) => (rank === 1 ? 'Champion' : rank <= 3 ? 'Top 3' : rank <= 10 ? 'Top 10' : 'Farmer');
 /* season stars come from things done on a real day, each with a daily cap, so an hour a day earns nearly as much as six */
-const STAR_PER = { cheers: 1, checkin: 2, task: 2, golden: 1, cup: 1, contract: 1, roast: 1, weekly: 15, drop: 5, prestige: 10 };
-const STAR_CAP = { cheers: 1, checkin: 2, task: 6, golden: 5, cup: 3, contract: 3, roast: 3 };
-const STAR_WHAT = { cheers: 'Cheers for a farm', checkin: 'Daily check-in', task: 'Daily tasks', golden: 'Golden bushes', cup: 'Lots cupped by hand', contract: 'Supply contracts', roast: 'Roasts' };
+const STAR_PER = { help: 1, cheers: 1, checkin: 2, task: 2, golden: 1, cup: 1, contract: 1, roast: 1, weekly: 15, drop: 5, prestige: 10 };
+const STAR_CAP = { help: 1, cheers: 1, checkin: 2, task: 6, golden: 5, cup: 3, contract: 3, roast: 3 };
+const STAR_WHAT = { help: 'Help a co-op mate', cheers: 'Cheers for a farm', checkin: 'Daily check-in', task: 'Daily tasks', golden: 'Golden bushes', cup: 'Lots cupped by hand', contract: 'Supply contracts', roast: 'Roasts' };
 const TRACK_TIERS = 30, TIER_STARS = 15;
 const tierAt = (st) => Math.min(TRACK_TIERS, Math.floor(st / TIER_STARS));
 const newSeason = () => ({ key: seasonKey(), prestige: 0, kh: 0, stars: 0, claimed: {}, caps: {}, capDay: '' });
@@ -1518,7 +1528,7 @@ function rerollTask(i) {
   S.tasks[i] = taskOf(TASK_KINDS, k, t.reward, t.slot);   /* same reward, so the crane task stays a crane task */
   S.rerollDay = today; SFX.play('page'); toast('New task: ' + S.tasks[i].text);
 }
-function task(id, n) { S.tasks.concat((S.wtasks || {}).list || []).forEach((t) => { if (t.id === id && !t.done) t.have = Math.min(t.goal, t.have + n); }); }
+function task(id, n) { if (DERBY_KINDS.includes(id) && S.dw) S.dw.c[id] = (S.dw.c[id] || 0) + n; S.tasks.concat((S.wtasks || {}).list || []).forEach((t) => { if (t.id === id && !t.done) t.have = Math.min(t.goal, t.have + n); }); }
 
 /* ---------- the world loop ---------- */
 const cv = $('cv'), ctx = cv.getContext('2d'), frame = document.createElement('canvas'); frame.width = W; frame.height = H;
@@ -2085,7 +2095,7 @@ cv.addEventListener('click', (e) => {
   const s = f.shrubs.find((x) => lx >= x.x && lx < x.x + 18 && ly >= x.y && ly < x.y + 22);
   if (s && golden && golden.loc === S.loc && f.shrubs.indexOf(s) === golden.i) {   /* golden bush: about two minutes of your current income */
     const gm = rule('hanabi') ? 2.5 : 2, c = Math.max(150, Math.round(rateC * gm)), k = Math.max(40, Math.round(rateX * gm));
-    golden = null; earn({ coins: c, points: k }); earnedC -= c; earnedX -= k; S.stats.golden = (S.stats.golden || 0) + 1; star('golden'); task('golden', 1);
+    golden = null; earn({ coins: c, points: k }); earnedC -= c; earnedX -= k; S.stats.golden = (S.stats.golden || 0) + 1; star('golden'); task('golden', 1); hvAdd('golden');
     SFX.play('achieve'); SFX.play('coins'); floats.push({ x: s.x + 9, y: s.y - 4, text: '+' + fmt(c) + ' coins', t: 0 }); floats.push({ x: s.x + 9, y: s.y + 8, text: '+' + fmt(k) + ' know-how', t: -0.3 });
     for (let i = 0; i < 24; i++) bursts.push({ x: s.x + 9, y: s.y + 8, vx: (rnd() - 0.5) * 90, vy: -40 - rnd() * 60, t: 0, c: i % 2 ? '#F2C04A' : '#FFF4B0' });
     toast('Golden bush! +' + fmt(c) + ' coins, +' + fmt(k) + ' know-how'); return;
@@ -2218,11 +2228,11 @@ function saleFor(v, method, green, lot) {
 }
 function cupLot(i) {
   const l = S.lots[i]; if (!l || l.cupped) return;
-  l.cupped = true; S.stats.cupped = (S.stats.cupped || 0) + 1; star('cup'); task('cup', 1); guideStep('cup'); SFX.play('cup'); if (S.stats.cupped <= 3) toast('Cupped by hand: +' + CUP_BONUS + ' cup score, +' + Math.round((CUP_PAY - 1) * 100) + '% pay');
+  l.cupped = true; S.stats.cupped = (S.stats.cupped || 0) + 1; star('cup'); task('cup', 1); hvAdd('cups'); guideStep('cup'); SFX.play('cup'); if (S.stats.cupped <= 3) toast('Cupped by hand: +' + CUP_BONUS + ' cup score, +' + Math.round((CUP_PAY - 1) * 100) + '% pay');
 }
 function cupAll() {
   if (!hasPerk('cupall')) return; let n = 0;
-  S.lots.forEach((l) => { if (!l.cupped) { l.cupped = true; n += 1; S.stats.cupped = (S.stats.cupped || 0) + 1; star('cup'); task('cup', 1); } });
+  S.lots.forEach((l) => { if (!l.cupped) { l.cupped = true; n += 1; S.stats.cupped = (S.stats.cupped || 0) + 1; star('cup'); task('cup', 1); hvAdd('cups'); } });
   if (n) { SFX.play('cup'); toast('Cupped ' + n + ' lot' + (n > 1 ? 's' : '') + ' by hand: +' + CUP_BONUS + ' cup score, +' + Math.round((CUP_PAY - 1) * 100) + '% pay'); }
 }
 function crackRoast(i) {
@@ -2239,7 +2249,7 @@ function sellLot(i, quiet) {
   earn({ coins: r.coins, points: r.points });
   if (l.method === 'washed') S.weekly.mine += green;
   millSold(i, '+' + fmt(r.coins) + ' coins'); S.lots.splice(i, 1); nbAdd(l.v, l.method, 1);
-  S.stats.sold += green; S.stats.lotsSold += 1; task('sell', 1);
+  S.stats.sold += green; S.stats.lotsSold += 1; task('sell', 1); hvAdd('lots', l.v, l.method); coopAdd(l.method, green);
   SFX.play(quiet ? 'xp' : 'coins', { n: pea ? 9 : 5 });
   if (!quiet) guideStep('sell');
   if (quiet) return r;
@@ -2279,7 +2289,7 @@ function deliver(i, id, quiet, haggle) {
   const green = l.kg * 0.2, use = Math.min(green, c.kg - c.have), spare = green - use;
   c.have += use; if (c.boat && !haggle) chore('boat');   /* each delivery you make to the boat counts towards meeting the harbour master */
   if (l.method === 'washed') S.weekly.mine += green;
-  millSold(i, c.buyer.split(' ')[0]); S.lots.splice(i, 1); nbAdd(l.v, l.method, 1); S.stats.lotsSold += 1; task('sell', 1); guideStep('deliver');
+  millSold(i, c.buyer.split(' ')[0]); S.lots.splice(i, 1); nbAdd(l.v, l.method, 1); S.stats.lotsSold += 1; task('sell', 1); hvAdd('lots', l.v, l.method); coopAdd(l.method, green); guideStep('deliver');
   let extra = { coins: 0, points: 0 };
   if (spare > 0.05) { extra = saleFor(l.v, l.method, spare, l); earn(extra); }
   /* each delivery is paid its share straight away, so coffee in a contract that runs out of time is never lost */
@@ -2557,6 +2567,9 @@ const NAV = [
   { id: 'rrep', when: () => roasteryOpen() && repLevel() >= 8, text: 'Repeat roast: bins restart by themselves', t: '[data-act^="rrep:"], .tab[data-tab="roast"]' },
   { id: 'blend', when: () => roasteryOpen() && repLevel() >= 10, text: 'House blends: blend two bags', t: '[data-act^="blendask:"], .tab[data-tab="roast"]' },
   ...EM_LOCS.map((l) => navStaff('em:' + l, () => emCan(l), EMGR[l].name + ', ' + EMGR[l].role.toLowerCase() + ', to hire', 'emhire:' + l)),
+  { id: 'coe', when: () => coeOK(), text: 'The Cup of Excellence: a weekly championship on equal terms', t: '[data-act="ranksub:cup"], .tab[data-tab="ranks"]' },
+  { id: 'coop', teach: true, when: () => coopOK() && NET.status === 'online' && NET.coopSeen && !NET.coop, text: 'Cooperatives: fill a weekly order with up to 7 other farmers', t: '#coopH, .tab[data-tab="orders"]' },
+  { id: 'harvest', teach: true, when: () => hvLive() && S.guide >= GUIDE.length && !!S.tabs.orders, text: 'Harvest Day: every farmer works towards one goal this weekend', t: '#harvestH, .tab[data-tab="orders"]' },
   { id: 'visits', when: () => !!S.farmCode && !!S.tabs.ranks, text: 'Farm visits: tap Visit on the board', t: '.visit-btn, [data-act="ranksub:board"], .tab[data-tab="ranks"]' }
 ];
 let navArrive = 0, navStart = 0, navSeenAt = '';
@@ -2924,6 +2937,7 @@ function renderPanel() {
     else h += '<p class="note">Research never runs out. Spend spare know-how here before you prestige.</p>' + row(img('i_points', 30), 'Research level ' + (S.research || 0), '+' + (S.research || 0) + '% know-how from every sale. Each level adds 1%, with no limit, and stays through prestige. Know-how itself resets when you prestige, so spend spare know-how here first.', btn('Research', fmt(researchCost()) + ' know-how', 'research', S.points >= researchCost(), 'green'));
     }
   } else if (tab === 'orders') {
+    h += harvestCard();
     h += '<h2>Daily brew check-in</h2><p class="note">' + S.checkin.streak + '-day streak · ' + S.checkin.freezes + ' streak freeze' + (S.checkin.freezes === 1 ? '' : 's') + '. Open the game once a day to keep it going.</p>';
     h += '<h2>Daily tasks</h2><p class="note">New tasks every day.</p>';
     const goBtn = (K, t, rl) => { const d = K[t.id] || {}; return d.est ? btn('Go', rl, 'estgo:' + d.est, true, 'blue') : btn('Go', rl, 'taskgo:' + (d.go || 'farm'), true, 'blue'); };
@@ -2938,17 +2952,18 @@ function renderPanel() {
       S.wtasks.list.forEach((t, i) => { const rl = rewardText(t.reward);
         h += row(img((WEEK_KINDS[t.id] || {}).img || 'board', 28), t.text, '<span class="bar" style="display:block"><i style="width:' + Math.round(t.have / t.goal * 100) + '%"></i></span>' + fmt(t.have) + ' / ' + fmt(t.goal), t.done ? btn('Done', '', 'none', false) : t.have >= t.goal ? btn('Claim', rl, 'wtask:' + i, true, 'green') : goBtn(WEEK_KINDS, t, rl)); });
     }
+    h += coopCard();
     const wk = S.weekly, tot = Math.min(wk.target, wk.team + wk.mine);
-    h += '<h2>Weekly roastery order</h2><p class="note">Ends in ' + Math.max(0, 7 - (Math.floor(Date.now() / 864e5) - wk.start)) + ' days.</p>' + help('weekly', 'Washed lots you sell count towards the team order.', 'Deliver ' + fmt(wk.target) + ' kg of washed green coffee as a team. Your washed lots count when you sell them.');
-    h += '<div class="bar"><i style="width:' + Math.round(tot / wk.target * 100) + '%"></i></div><p class="note">' + fmt(tot) + ' / ' + fmt(wk.target) + ' kg · you: ' + fmt(wk.mine) + ' kg · mika.brews, kenji_pourover and hana.at.home: ' + fmt(wk.team) + ' kg</p>';
-    h += btn(wk.claimed ? 'Claimed' : 'Claim ' + WEEKLY_CRANES + ' cranes', '', 'weekly', tot >= wk.target && !wk.claimed && wk.mine > 0, 'green');
+    if (!NET.coop) h += '<h2>Weekly roastery order</h2><p class="note">Ends in ' + Math.max(0, 7 - (Math.floor(Date.now() / 864e5) - wk.start)) + ' days.</p>' + help('weekly', 'Washed lots you sell count towards the team order.', 'Deliver ' + fmt(wk.target) + ' kg of washed green coffee as a team. Your washed lots count when you sell them.');
+    if (!NET.coop) h += '<div class="bar"><i style="width:' + Math.round(tot / wk.target * 100) + '%"></i></div><p class="note">' + fmt(tot) + ' / ' + fmt(wk.target) + ' kg · you: ' + fmt(wk.mine) + ' kg · Beju\'s other farms: ' + fmt(wk.team) + ' kg</p>' + btn(wk.claimed ? 'Claimed' : 'Claim ' + WEEKLY_CRANES + ' cranes', '', 'weekly', tot >= wk.target && !wk.claimed && wk.mine > 0, 'green');
   } else if (tab === 'ranks') {
-    const mode = S.rankTab || 'season', list = board(mode), pos = list.findIndex((x) => x.you) + 1, t = tierOf(S.prestige), need = prestigeNeed(), ready = level() >= need;
+    const mode = S.rankTab || 'season', list = board(mode === 'hall' ? 'all' : mode), pos = list.findIndex((x) => x.you) + 1, t = tierOf(S.prestige), need = prestigeNeed(), ready = level() >= need;
     h += '<div class="me">' + avatar(S.look, 64) + '<div class="me-t">' + plate(S.name, S.look.crest, starsFor(S.prestige), S.look.charm) + rBadge(S.look) + '<span class="note">Prestige ' + S.prestige + ' · ' + TIERS[t] + (S.look.title ? ' · ' + titleText(S.look.title) : '') + '</span><span class="note">Level ' + level() + ' · ' + fmt(Math.round(S.xp)) + ' know-how · rank #' + pos + ' of ' + list.length + '</span></div></div>';
-    const rsub = ['board', 'season', 'prestige'].includes(S.rankSub) ? S.rankSub : 'board', rdot = ready, ss = S.season, reached = tierAt(ss.stars), sdot = Array.from({ length: reached }, (_, i) => i + 1).some((n) => !ss.claimed[n]);
-    h += '<div class="seg subtabs">' + [['board', 'Leaderboard'], ['season', 'Season'], ['prestige', 'Prestige']].map(([k, tl]) => '<button type="button" data-act="ranksub:' + k + '" aria-pressed="' + (rsub === k) + '">' + tl + ((k === 'prestige' && rdot) || (k === 'season' && sdot) ? ' <i class="dot" aria-label="something waiting"></i>' : '') + '</button>').join('') + '</div>';
+    const rsub = ['board', 'season', 'prestige'].concat(coeOK() ? ['cup'] : []).includes(S.rankSub) ? S.rankSub : 'board', rdot = ready, ss = S.season, reached = tierAt(ss.stars), sdot = Array.from({ length: reached }, (_, i) => i + 1).some((n) => !ss.claimed[n]);
+    h += '<div class="seg subtabs">' + [['board', 'Leaderboard'], ['season', 'Season'], ['prestige', 'Prestige']].concat(coeOK() ? [['cup', 'Cup']] : []).map(([k, tl]) => '<button type="button" data-act="ranksub:' + k + '" aria-pressed="' + (rsub === k) + '">' + tl + ((k === 'prestige' && rdot) || (k === 'season' && sdot) ? ' <i class="dot" aria-label="something waiting"></i>' : '') + '</button>').join('') + '</div>';
     const strip = '<div class="season"><b>' + seasonName(ss.key) + ' season</b><span>' + daysLeft() + ' day' + (daysLeft() === 1 ? '' : 's') + ' left · ★ ' + ss.stars + ' season star' + (ss.stars === 1 ? '' : 's') + ' · track tier ' + reached + ' of ' + TRACK_TIERS + '</span></div>';
-    if (rsub === 'season') {
+    if (rsub === 'cup') h += coePage();
+    else if (rsub === 'season') {
     const th = theme(), into = ss.stars - reached * TIER_STARS, today = ss.capDay === dayKey(new Date()) ? ss.caps : {};
     h += strip;
     const howOpen = S.seasonHow === undefined ? !Object.keys(ss.claimed).length : S.seasonHow;
@@ -2969,11 +2984,11 @@ function renderPanel() {
     } else if (rsub === 'board') {
     h += strip;
     if (S.badges.length) h += '<div class="badges">' + S.badges.slice(-6).map((bd) => '<span class="badge r' + Math.min(bd.rank, 11) + (bd.gold ? ' gold' : '') + '">' + (bd.label || 'Event') + '<small>' + (bd.key ? seasonName(bd.key) : bd.event) + '</small></span>').join('') + '</div>';
-    h += '<h3>Leaderboard</h3><div class="seg">' + [['season', 'This season'], ['rookie', 'Rookies'], ['all', 'All time']].map(([k, tl]) => '<button type="button" data-act="ranktab:' + k + '" aria-pressed="' + (mode === k) + '">' + tl + '</button>').join('') + '</div>' + (mode === 'rookie' ? '<p class="note">Farmers in their first season. ' + (isRookie() ? 'That\'s you this month: finish in the top 10 for a Rookie badge.' : 'You\'ve graduated, but you can still watch the newcomers.') + '</p>' : '') + '<div class="lb">' + list.slice(0, 15).concat(pos > 15 ? [list[pos - 1]] : []).map((x) => {
+    h += '<h3>Leaderboard</h3><div class="seg">' + [['season', 'This season'], ['rookie', 'Rookies'], ['all', 'Legacy'], ['hall', 'Hall of Excellence']].map(([k, tl]) => '<button type="button" data-act="ranktab:' + k + '" aria-pressed="' + (mode === k) + '">' + tl + '</button>').join('') + '</div>' + (mode === 'rookie' ? '<p class="note">Farmers in their first season. ' + (isRookie() ? 'That\'s you this month: finish in the top 10 for a Rookie badge.' : 'You\'ve graduated, but you can still watch the newcomers.') + '</p>' : '') + (mode === 'hall' ? hallRows() : '<div class="lb">' + list.slice(0, 15).concat(pos > 15 ? [list[pos - 1]] : []).map((x) => {
       const r = list.indexOf(x) + 1;
       return '<div class="lb-row' + (x.you ? ' you' : '') + '"><b class="rk">' + r + '</b>' + avatar(x.look, 40) + '<div class="lb-n">' + plate(x.name, normLook(x.look).crest, starsFor(x.prestige), normLook(x.look).charm) + rBadge(normLook(x.look)) + '<span class="note">' + (normLook(x.look).title ? titleText(normLook(x.look).title) : TIERS[tierOf(x.prestige)]) + (x.rookie && mode === 'season' ? ' · Rookie' : '') + '</span></div><div class="lb-s"><b>' + (mode === 'all' ? 'P' + x.prestige : '★ ' + (x.seasonStars || 0)) + '</b><span>' + (mode === 'all' ? 'Lv ' + x.level : fmt(x.seasonKh || 0) + ' kh this season') + '</span><span>' + (mode === 'all' ? fmt(x.points) + ' kh' : 'P' + x.prestige + (x.seasonP ? ' (+' + x.seasonP + ' this season)' : '')) + '</span>' + (x.code && !x.you ? '<button type="button" class="visit-btn" data-act="visit:' + x.code + '">Visit</button>' : '') + '</div></div>';
-    }).join('') + '</div>';
-    h += '<p class="note">' + (NET.status === 'online' && NET.board[mode] ? 'Live leaderboard · ' + NET.board[mode].players + ' farmer' + (NET.board[mode].players === 1 ? '' : 's') : 'Practice board: the live leaderboard appears when the game is played on bejucoffee.com.') + '</p>';
+    }).join('') + '</div>');
+    if (mode !== 'hall') h += '<p class="note">' + (NET.status === 'online' && NET.board[mode] ? 'Live leaderboard · ' + NET.board[mode].players + ' farmer' + (NET.board[mode].players === 1 ? '' : 's') : 'Practice board: the live leaderboard appears when the game is played on bejucoffee.com.') + '</p>';
     h += '<h3>Farm visits</h3>' + help('visits', 'Tap Visit on a farmer, or enter a farm code.', 'Tap Visit on a farmer or type their farm code to see their farm. One Cheers a day per farm; your first earns a season star.') +
       (API && NET.status === 'online' ? (S.farmCode ? '<p class="note">Your farm code: <b class="code">' + S.farmCode + '</b> · ♥ ' + fmt(S.farmCheers || 0) + ' Cheers <button type="button" class="linkbtn" data-act="visit:' + S.farmCode + '">see how it looks</button></p>' : '<p class="note">Your farm code arrives in a moment.</p>') +
         '<p class="note">Show visitors: <select data-showloc="1" aria-label="Farm visitors see first">' + LOCS.filter((l) => S.farms[l].unlocked).map((l) => '<option value="' + l + '"' + ((S.showLoc || S.loc) === l ? ' selected' : '') + '>' + fname(l) + '</option>').join('') + '</select></p>' +
@@ -3059,6 +3074,7 @@ function renderPanel() {
       const d = DECOR[k], own = S.decor[k] !== undefined;
       h += row(img('deco_' + k, k === 'bunting' || k === 'cart' ? 40 : 30), d.name, d.sub, own ? btn(S.decor[k] ? 'Shown' : 'Hidden', 'tap to switch', 'decor:' + k, true, S.decor[k] ? 'blue' : '') : btn('Buy', fmt(d.cost) + ' coins', 'decor:' + k, S.coins >= d.cost));
     });
+    if (S.decor.harvest !== undefined) h += row(img('deco_harvest', 28), 'Harvest basket', 'From Harvest Day' + (S.hvWins > 1 ? ' · ' + S.hvWins + ' goals reached' : '') + '.', btn(S.decor.harvest ? 'Shown' : 'Hidden', 'tap to switch', 'decor:harvest', true, S.decor.harvest ? 'blue' : ''));
     Object.keys(S.decor).filter((k) => k.startsWith('s_')).forEach((k) => {
       h += row(img('deco_' + k, 26), themeById(k).name + ' decoration', 'From the season track. Up to three season decorations show at once.', btn(S.decor[k] ? 'Shown' : 'Hidden', 'tap to switch', 'decor:' + k, true, S.decor[k] ? 'blue' : ''));
     });
@@ -3179,6 +3195,14 @@ document.addEventListener('click', (e) => {
   else if (a === 'arch') { const [kind, id] = v.split('.'); if (archiveKeys().some((k) => theme(k).id === id) && !archOwned(kind, id) && spend('cranes', ARCHIVE[kind])) { archGive(kind, id); toast(themeById(id).name + ' ' + ARCHIVE_WHAT[kind] + ' is yours'); } }
   else if (a === 'pwalkgo') { closeModal(); S.pwalk = 2; S.rankSub = 'prestige'; setTab('ranks'); setTimeout(() => showModal(coachCard('Prestige', 'Prestige restarts your level for a new crest. Coins, buildings and farms all stay. Tap Prestige when you\'re ready.')), 300); }
   else if (a === 'navend') navFinish();
+  else if (a === 'hvclaim') harvestClaim();
+  else if (a === 'coe') coeStep(v);
+  else if (a === 'coop') coopAct(v === 'find' ? { act: 'find' } : v === 'leave' ? { act: 'leave' } : v === 'derbyclaim' ? { act: 'derbyclaim' } : v.startsWith('sticker.') ? { act: 'sticker', id: v.slice(8) } : v.startsWith('help.') ? { act: 'help', i: +v.slice(5) } : v.startsWith('claim.') ? { act: 'claim', tier: +v.slice(6) } : null);
+  else if (a === 'coopnew') showModal('<h2>Start a co-op</h2><p class="note">Name it after your farms, a place or a coffee. Up to 8 farmers can join with its invite code.</p><input id="coopName" maxlength="24" placeholder="Las Nubes" style="width:100%;font:inherit;padding:8px;border:2px solid var(--edge);border-radius:8px"><button class="btn green" data-act="coopmake">Start it</button><button class="btn" data-act="close">Cancel</button>');
+  else if (a === 'coopmake') { const n = ($('coopName') || {}).value || ''; closeModal(); coopAct({ act: 'create', name: n }); }
+  else if (a === 'coopcode') showModal('<h2>Join with a code</h2><p class="note">Ask a co-op member for their six-letter invite code.</p><input id="coopCode" maxlength="6" placeholder="ABC234" style="width:100%;font:inherit;padding:8px;border:2px solid var(--edge);border-radius:8px;text-transform:uppercase"><button class="btn green" data-act="coopjoin">Join</button><button class="btn" data-act="close">Cancel</button>');
+  else if (a === 'coopjoin') { const c = (($('coopCode') || {}).value || '').toUpperCase().trim(); closeModal(); coopAct({ act: 'join', code: c }); }
+  else if (a === 'coopleaveask') showModal('<h2>Leave ' + (NET.coop ? NET.coop.name : 'the co-op') + '?</h2><p class="note">Your share of this week\'s order stays with them. You can join another co-op straight away.</p><button class="btn" data-act="coop:leave">Leave</button><button class="btn green" data-act="close">Stay</button>');
   else if (a === 'shopwait') { closeModal(); S.shopTab = v; setTab('shop'); }
   else if (a === 'pwalkend') { closeModal(); S.pwalk = 0; S.pwalkDone = true; }
   else if (a === 'prestigetab') { S.rankSub = 'prestige'; setTab('ranks'); }
@@ -3333,7 +3357,7 @@ async function online() {
     const ev = await api('game-events');
     const live = ev.status === 200 && ev.data.events.find((x) => x.live);
     if (live && (!S.event || S.event.id !== live.id)) startDrop(live.id, live);
-    NET.status = 'online'; cloudSync(); await visitSync(true); await submitScore(); syncSamples();
+    NET.status = 'online'; cloudSync(); await visitSync(true); await submitScore(); syncSamples(); harvestSync(true); coopSync(true);
     const gr = await api('game-grants', 'POST', {}).catch(() => null);
     if (gr && gr.status === 200) gr.data.grants.forEach((g) => applyGrant({ cranes: g.cranes, coffees: [], order: g.order + (g.reason === 'subscription' ? ' (subscription renewal)' : '') }));
   } catch (e) { NET.status = 'offline'; }
@@ -3372,6 +3396,189 @@ async function liveBoard(mode) {
 }
 /* farm visits: a small snapshot of how your farms look goes to the server, which gives you a farm code. Anyone can visit by code or from the
    leaderboard and leave one Cheers a day. Visitors only look; nothing they do changes your farm */
+/* ---------- Harvest Day: one weekend a month, every farmer works towards one goal (server: game-harvest) ---------- */
+const HV_UNIT = { lots: 'lots', cups: 'lots cupped', golden: 'golden bushes' };
+const hvLive = () => { const d = NET.hv; return !!d && Date.now() >= d.starts && Date.now() < d.ends; };
+function hvAdd(unit, v, m) {   /* one more towards Harvest Day */
+  const d = NET.hv; if (!d || d.unit !== unit || !hvLive()) return;
+  if (unit === 'lots' && ((d.method && d.method !== m) || (d.variety && d.variety !== v))) return;
+  if (!S.hv || S.hv.id !== d.id) S.hv = { id: d.id, n: 0, sent: 0 };
+  S.hv.n += 1;
+}
+let hvAt = 0, hvPostAt = 0;
+async function harvestSync(force) {
+  if (!API || !NET.acct || NET.status !== 'online' || S.guide < GUIDE.length) return;
+  const now = Date.now();
+  if (force || now - hvAt > 120e3) {
+    hvAt = now; const r = await api('game-harvest').catch(() => null);
+    if (r && r.status === 200) {
+      NET.hv = r.data.day; const mine = r.data.mine || { n: 0, claimed: false };
+      if (!S.hv || S.hv.id !== NET.hv.id) S.hv = { id: NET.hv.id, n: mine.n, sent: mine.n, claimed: mine.claimed };
+      else { S.hv.sent = Math.max(S.hv.sent || 0, mine.n); S.hv.n = Math.max(S.hv.n, mine.n); S.hv.claimed = S.hv.claimed || mine.claimed; }
+      if (hvLive() && S.hv.told !== NET.hv.id) { S.hv.told = NET.hv.id; toast('Harvest Day is on: ' + NET.hv.text.toLowerCase() + ', together with every farmer'); }
+    }
+  }
+  if (hvLive() && S.hv && S.hv.n > S.hv.sent && now - hvPostAt > 60e3) {
+    hvPostAt = now; const r = await api('game-harvest', 'POST', { id: S.hv.id, n: S.hv.n }).catch(() => null);
+    if (r && r.status === 200) { S.hv.sent = r.data.mine; NET.hv.total = r.data.total; NET.hv.reached = r.data.reached; }
+  }
+}
+async function harvestClaim() {
+  const r = await api('game-harvest', 'POST', { id: S.hv.id, claim: true }).catch(() => null);
+  if (!r || r.status !== 200) { if (r && r.data.error === 'already_claimed') S.hv.claimed = true; toast(r && r.data.error === 'already_claimed' ? 'Already claimed' : 'Could not claim that yet'); renderPanel(); return; }
+  S.hv.claimed = true; S.hvWins = (S.hvWins || 0) + 1; SFX.play('achieve');
+  if (r.data.reward === 'decor') { S.decor.harvest = true; showModal('<h2>Harvest Day reached!</h2>' + img('deco_harvest', 56) + '<p class="note">Everyone who helped gets the <b>Harvest basket</b>. It\'s on your farms now; hide or show it in Shop › Farm style.</p><button class="btn green" data-act="close">Lovely</button>'); }
+  else { earn({ cranes: r.data.cranes }); toast('Harvest Day reached! +' + r.data.cranes + ' cranes'); }
+  renderPanel();
+}
+function harvestCard() {   /* the Daily tab's Harvest Day section: the next one, the live goal, or a reward to claim */
+  const d = NET.hv; if (!d || S.guide < GUIDE.length) return '';
+  const now = Date.now(), live = now >= d.starts && now < d.ends, mine = S.hv && S.hv.id === d.id ? S.hv : { n: 0 }, unit = HV_UNIT[d.unit] || 'lots';
+  if (now < d.starts) return d.starts - now > 7 * 864e5 ? '' : '<h2 id="harvestH">Harvest Day</h2><p class="note">Next: <b>' + d.name + '</b>, from ' + new Date(d.starts).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) + ' for two days. ' + d.text + ', together with every farmer.</p>';
+  if (!live && (now - d.ends > 3 * 864e5 || !d.reached || !mine.n || mine.claimed)) return '';
+  const tgt = d.target || 1, hrs = Math.max(1, Math.ceil((d.ends - now) / 3600e3)), more = S.decor.harvest !== undefined;
+  return '<h2 id="harvestH">Harvest Day · ' + d.name + '</h2><p class="note">' + d.text + ', together with every farmer. ' + (live ? 'Ends in ' + (hrs > 24 ? Math.ceil(hrs / 24) + ' days' : hrs + ' h') + '.' : 'It\'s over.') + '</p>' +
+    '<div class="bar"><i style="width:' + Math.round(Math.min(tgt, d.total) / tgt * 100) + '%"></i></div><p class="note">' + fmt(d.total) + ' / ' + fmt(tgt) + ' ' + unit + ' · ' + d.players + ' farmer' + (d.players === 1 ? '' : 's') + ' · you: ' + fmt(mine.n) + '</p>' +
+    (d.reached ? (mine.n > 0 && !mine.claimed ? btn('Claim', more ? 'cranes' : 'the Harvest basket', 'hvclaim', true, 'green') : '<p class="note">Reached! ' + (mine.claimed ? 'Claimed.' : 'Everyone who helped gets the reward.') + '</p>') : '<p class="note">Reach it and everyone who helped gets ' + (more ? '5 cranes' : 'the Harvest basket for their farm') + '.</p>');
+}
+/* ---------- cooperatives and the Co-op Derby (server: game-coop) ---------- */
+const DERBY_KINDS = ['sell', 'cup', 'golden', 'contract', 'roast', 'boat'];
+const STICKERS = { hello: ['Hello!', 'worker_down_0'], thanks: ['Thanks!', 'i_heart'], nice: ['Nice one!', 'sparkle'], onit: ['On it!', 'i_cherry'], washed: ['Need washed', 'proc_washed'], natural: ['Need natural', 'proc_natural'], honey: ['Need honey', 'proc_honey'], roast: ['Roasting!', 'roaster_0'], golden: ['Golden bush!', 'i_coin'], prestige: ['Prestige soon', 'i_trophy'], harvest: ['Harvest Day!', 'deco_harvest'], night: ['Good night', 'crane_fly_0'] };
+const coopOK = () => !!API && S.guide >= GUIDE.length && (level() >= 9 || S.prestige >= 1);   /* co-ops open with Ranks */
+function coopAdd(method, green) {   /* green coffee sold: the 7-day log for the co-op estimate, and the week's co-op order */
+  const dk = dayKey(new Date()); S.soldLog = S.soldLog || {}; S.soldLog[dk] = (S.soldLog[dk] || 0) + green;
+  const o = NET.coop && NET.coop.order; if (o && S.cw && S.cw.wk === o.week && method === o.process) S.cw.kg += green;
+}
+const coopEst = () => { const keys = Object.keys(S.soldLog || {}).sort().slice(-8); keys.slice(0, -7).forEach((k) => { delete S.soldLog[k]; }); return Math.round(Object.values(S.soldLog || {}).reduce((a, b) => a + b, 0) / 3); };   /* about a third of a week's green coffee is in any one process */
+function coopTake(v) {   /* a fresh view from the server: line up this week's tallies with it */
+  NET.coop = v; NET.coopSeen = true; S.coopName = v ? v.name : '';
+  if (!v) return;
+  const me = v.members.find((m) => m.you) || { share: 0 };
+  if (!S.cw || S.cw.wk !== v.order.week) S.cw = { wk: v.order.week, kg: me.share, sent: me.share };
+  else { S.cw.sent = Math.max(S.cw.sent || 0, me.share); S.cw.kg = Math.max(S.cw.kg, me.share); }
+  if (v.derby && v.derby.on && (!S.dw || S.dw.wk !== v.derby.week)) S.dw = { wk: v.derby.week, c: {}, sent: '' };
+  if (v.helpsIn > 0) coopHelps();
+}
+let coopAt = 0, coopPostAt = 0;
+async function coopSync(force) {
+  if (!coopOK() || !NET.acct || NET.status !== 'online') return;
+  const now = Date.now(), dc = S.dw ? JSON.stringify(S.dw.c) : '';
+  if (NET.coop && S.cw && (S.cw.kg > S.cw.sent + 0.5 || (S.dw && dc !== S.dw.sent)) && (force || now - coopPostAt > 60e3)) {
+    coopPostAt = now; coopAt = now;
+    const r = await api('game-coop', 'POST', { act: 'sync', week: S.cw.wk, kg: Math.floor(S.cw.kg), est: coopEst(), derby: S.dw ? S.dw.c : null }).catch(() => null);
+    if (r && r.status === 200) { if (S.dw) S.dw.sent = dc; coopTake(r.data.coop); }
+    return;
+  }
+  if (force || now - coopAt > (tab === 'orders' ? 60e3 : 300e3)) { coopAt = now; const r = await api('game-coop').catch(() => null); if (r && r.status === 200) coopTake(r.data.coop); }
+}
+async function coopAct(body) {
+  if (!body) return;
+  const r = await api('game-coop', 'POST', body).catch(() => null);
+  const err = { bad_name: 'Pick a name of 3 to 24 letters', no_coop: 'No co-op has that code', coop_full: 'That co-op is full', too_soon: 'One sticker every 20 seconds', already_today: 'You\'ve helped them today', mate_has_enough: 'They\'ve had all their help today', not_reached: 'Not reached yet', did_not_help: 'Add some coffee to the order first', already_claimed: 'Already claimed', did_not_play: 'You didn\'t play in last week\'s Derby' };
+  if (!r || r.status !== 200) { toast((r && err[r.data.error]) || 'The co-op can\'t be reached right now'); return; }
+  if (body.act === 'claim') { earn({ cranes: r.data.cranes }); if (r.data.full) star('weekly'); SFX.play('crane'); toast('Co-op order: +' + r.data.cranes + ' cranes'); coopSync(true); return; }
+  if (body.act === 'derbyclaim') { earn({ cranes: r.data.cranes }); SFX.play('crane'); toast('Co-op Derby: +' + r.data.cranes + ' cranes'); coopSync(true); return; }
+  if (body.act === 'help') { SFX.play('pop'); star('help'); toast('Help sent: their drying lots go a little faster'); }
+  if (body.act === 'sticker') SFX.play('pop');
+  if (body.act === 'create' || body.act === 'join' || body.act === 'find') { SFX.play('achieve'); toast('Welcome to ' + r.data.coop.name); }
+  if (body.act === 'leave') toast('You left the co-op');
+  coopTake(r.data.coop); renderPanel();
+}
+async function coopHelps() {   /* help from co-op mates: each one dries every lot on your racks a fifth faster */
+  const r = await api('game-coop', 'POST', { act: 'takehelp' }).catch(() => null);
+  if (!r || r.status !== 200 || !r.data.n) return;
+  for (let k = 0; k < r.data.n; k++) S.lots.forEach((l) => { if (l.left > 0) l.left *= 0.8; });
+  NET.coop.helpsIn = 0; SFX.play('achieve');
+  toast([...new Set(r.data.from)].join(', ') + ' helped your lots dry faster');
+}
+function coopCard() {   /* the Daily tab's co-op section */
+  if (!coopOK() || NET.status !== 'online' || !NET.coopSeen) return '';
+  const c = NET.coop;
+  if (!c) return '<h2 id="coopH">Cooperative</h2><p class="note">Join up to 7 other farmers: fill a weekly order together, send stickers and help each other\'s lots dry.</p><div class="seg">' + btn('Find a co-op', 'near your prestige', 'coop:find', true, 'green') + btn('Start one', '', 'coopnew', true, 'blue') + btn('Join with a code', '', 'coopcode', true) + '</div>';
+  const o = c.order, days = Math.max(1, Math.ceil((o.ends - Date.now()) / 864e5)), mine = c.members.find((m) => m.you) || { share: 0 }, pname = (METHODS[o.process] || { name: o.process }).name.toLowerCase();
+  let h = '<h2 id="coopH">' + c.name + '</h2><p class="note">Invite code <b>' + c.code + '</b> · ' + c.members.length + ' of 8 farmers</p>';
+  h += '<h3>Weekly co-op order</h3><p class="note">Deliver ' + fmt(o.target) + ' kg of ' + pname + ' green coffee together. Your ' + pname + ' lots count when you sell or deliver them. Ends in ' + days + ' day' + (days === 1 ? '' : 's') + '.</p>';
+  h += '<div class="bar"><i style="width:' + Math.min(100, Math.round(o.total / o.target * 100)) + '%"></i></div><p class="note">' + fmt(o.total) + ' / ' + fmt(o.target) + ' kg · you: ' + fmt(Math.max(mine.share, S.cw ? S.cw.kg : 0)) + ' kg</p>';
+  h += '<div class="tiers">' + o.tiers.map((t, i) => { const got = o.claimed.includes(i), ok = o.total >= t.at && mine.share > 0; return got ? '<span class="chip got">' + [25, 50, 75, 100][i] + '% · claimed</span>' : ok ? btn([25, 50, 75, 100][i] + '%', t.cranes + ' cranes', 'coop:claim.' + i, true, 'green') : '<span class="chip">' + [25, 50, 75, 100][i] + '% · ' + t.cranes + ' cranes</span>'; }).join('') + '</div>';
+  h += '<h3>Members</h3>' + c.members.map((m, i) => row(avatar(m.look, 30), m.name + (m.you ? ' (you)' : ''), 'Prestige ' + m.prestige + ' · ' + fmt(m.share) + ' kg this week', m.you ? '' : '<div class="seg" style="flex-direction:column;gap:4px">' + btn(m.helped ? 'Helped' : 'Help', m.helped ? 'today' : 'dry their lots', 'coop:help.' + i, !m.helped, 'blue') + (m.code ? '<button type="button" class="visit-btn" data-act="visit:' + m.code + '">Visit</button>' : '') + '</div>')).join('');
+  h += '<h3>Stickers</h3><div class="stickers">' + Object.keys(STICKERS).map((k) => '<button type="button" class="btn" data-act="coop:sticker.' + k + '"><img src="' + url(STICKERS[k][1]) + '" alt="">' + STICKERS[k][0] + '</button>').join('') + '</div>';
+  if (c.feed.length) h += '<div class="feed">' + c.feed.slice(-8).reverse().map((f) => '<span><img src="' + url((STICKERS[f.s] || STICKERS.hello)[1]) + '" alt=""><b>' + f.name + '</b> ' + (STICKERS[f.s] || STICKERS.hello)[0] + ' <small>' + agoText(f.at) + '</small></span>').join('') + '</div>';
+  const d = c.derby;
+  if (d && d.last && d.last.canClaim) h += row(img('i_trophy', 30), 'Last week\'s Co-op Derby', 'Place ' + d.last.rank + ' of ' + d.last.of + (d.last.to > d.last.league ? ', up a league' : d.last.to < d.last.league ? ', down a league' : ''), btn('Claim', d.last.cranes + ' cranes', 'coop:derbyclaim', true, 'green'));
+  if (d && d.on) {
+    const dl = Math.max(1, Math.ceil((d.ends - Date.now()) / 864e5));
+    h += '<h3>Co-op Derby · ' + d.leagueName + ' league</h3><p class="note">Place ' + d.rank + ' of ' + d.group.length + '. The top 3 move up a league and the bottom 3 move down when the week ends, in ' + dl + ' day' + (dl === 1 ? '' : 's') + '.</p>';
+    h += '<table class="dtab">' + d.board.map((t) => '<tr><td>' + t.name + '</td><td>' + t.pts + ' pt' + (t.pts > 1 ? 's' : '') + ' each</td><td>you: ' + fmt(t.mine) + ' / ' + fmt(t.cap) + '</td></tr>').join('') + '</table>';
+    h += '<table class="dtab">' + d.group.map((g) => '<tr class="' + (g.you ? 'you' : '') + '"><td>' + g.rank + '</td><td>' + g.name + '</td><td>' + fmt(g.pts) + ' pts</td></tr>').join('') + '</table>';
+  } else if (d) h += '<p class="note">' + (d.joinsNext ? 'Your co-op joins the Co-op Derby next week.' : 'The Co-op Derby, a weekly league for co-ops, starts once ' + d.need + ' co-ops of two or more are playing (now ' + d.have + ').') + '</p>';
+  h += '<button type="button" class="linkbtn" data-act="coopleaveask">Leave the co-op</button>';
+  return h;
+}
+const agoText = (t) => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m / 60) + ' h ago' : Math.round(m / 1440) + ' d ago'; };
+/* ---------- the Cup of Excellence: a weekly championship on equal terms (server: game-coe) ---------- */
+const coeOK = () => !!API && S.prestige >= 5 && researchOpen() && !!S.staff.foreman && !!S.staff.agent;   /* once everything is open and runs itself */
+const COE_ROAST = ['light', 'medium', 'dark'];
+let coeAt = 0, coeRun = null;
+async function coeFetch(force) {
+  if (!API || NET.status !== 'online') return;
+  if (!force && Date.now() - coeAt < 120e3) return; coeAt = Date.now();
+  const r = await api('game-coe').catch(() => null);
+  if (r && r.status === 200) { NET.coe = r.data; if (tab === 'ranks') renderPanel(); }
+}
+function coeTick() {   /* the first time it opens, Rosa hands over */
+  if (!coeOK()) return;
+  if (!S.coeSeen && $('modal').hidden) { S.coeSeen = true; showModal(coachCard('Cup of Excellence', 'You don\'t need me any more. Time to see how good you really are: every week, the same brief for every farmer, and only how well you play counts.', 'Show me', 'coe:open')); }
+  if (tab === 'ranks' && (S.rankSub === 'cup' || S.rankTab === 'hall')) coeFetch();
+}
+function hallRows() {
+  coeFetch(); const c = NET.coe;
+  if (!c) return '<p class="note">' + (API && NET.status === 'online' ? 'Loading the Hall of Excellence…' : 'The Hall of Excellence appears when the game is played online.') + '</p>';
+  if (!c.hall.length) return '<p class="note">The Hall of Excellence ranks the Q grader rating from the Cup of Excellence, a weekly championship that opens around prestige 5. No ratings yet: the first arrive when a Cup week ends.</p>';
+  return '<p class="note">Ranked by Q grader rating: your best 4 weekly finishes of the last 8 Cup of Excellence weeks.' + (c.rating !== null ? ' You: <b>' + c.rating + '</b>, #' + c.hallRank + '.' : '') + '</p><div class="lb">' + c.hall.map((x) => '<div class="lb-row"><b class="rk">' + x.rank + '</b>' + avatar(x.look, 40) + '<div class="lb-n"><b>' + x.name + '</b></div><b>' + x.rating + '</b></div>').join('') + '</div>';
+}
+function coePage() {
+  coeFetch(); const c = NET.coe;
+  if (!c) return '<p class="note">Loading this week\'s brief…</p>';
+  const b = c.brief, m = c.mine || { left: 3, list: [] }, days = Math.max(1, Math.ceil((c.ends - Date.now()) / 864e5));
+  let h = '<h3>Cup of Excellence</h3>' + help('coe', 'The same brief for everyone. Three tries a week; the best counts.', 'Every farmer gets the same brief and the same crack windows, with no staff, upgrades or estates. Choose a coffee, a process and a roast, then tap Crack inside the gold window. You have three tries a week and your best counts. Your weekly finishes make your Q grader rating.');
+  h += '<p class="rule"><b>' + b.weather.name + '.</b> ' + b.weather.note + ' ' + b.judgeNote + '</p>';
+  h += '<p class="note">This week\'s coffees: ' + b.vars.map((v) => ART.varieties[v]).join(', ') + '. Processes: ' + b.methods.map((k) => METHODS[k].name.toLowerCase()).join(', ') + '. Ends in ' + days + ' day' + (days === 1 ? '' : 's') + '.</p>';
+  h += row(img('i_trophy', 30), m.best !== null && m.best !== undefined ? 'Your best: ' + m.best + ' points' : 'No entry yet this week', (m.rank ? 'Place ' + m.rank + ' of ' + m.players + ' · ' : '') + m.left + ' tr' + (m.left === 1 ? 'y' : 'ies') + ' left', btn('Enter a lot', m.left ? 'try ' + (4 - m.left) + ' of 3' : 'next week', 'coe:start', m.left > 0, 'green'));
+  if (c.last) h += '<p class="note">Last week you finished in the top ' + Math.max(1, 100 - c.last.pct + 1) + '% of ' + c.last.players + ' farmers.</p>';
+  if (c.rating !== null) h += '<p class="note">Your Q grader rating: <b>' + c.rating + '</b>, #' + c.hallRank + ' in the Hall of Excellence.</p>';
+  if (c.board.length) h += '<h3>This week</h3><div class="lb">' + c.board.slice(0, 10).map((x) => '<div class="lb-row"><b class="rk">' + x.rank + '</b>' + avatar(x.look, 36) + '<div class="lb-n"><b>' + x.name + '</b></div><b>' + x.total + '</b></div>').join('') + '</div>';
+  return h;
+}
+function coeStep(v) {   /* the steps of an entry: coffee, process, roast, then the roast itself */
+  const c = NET.coe; if (!c && v !== 'open') return;
+  if (v === 'open') { closeModal(); S.rankSub = 'cup'; setTab('ranks'); coeFetch(true); return; }
+  const b = c.brief;
+  if (v === 'start') { coeRun = {}; showModal('<h2>Choose your coffee</h2><div class="coe-pick">' + b.vars.map((x) => '<button type="button" class="btn" data-act="coe:v.' + x + '"><img src="' + url('bush_' + x + '_ripe') + '" alt="">' + ART.varieties[x] + '</button>').join('') + '</div><button class="btn" data-act="close">Cancel</button>', true); return; }
+  if (v.startsWith('v.')) { coeRun.v = v.slice(2); showModal('<h2>Choose a process</h2><p class="note">' + b.weather.note + '</p><div class="coe-pick">' + b.methods.map((x) => '<button type="button" class="btn" data-act="coe:m.' + x + '"><img src="' + url(METHODS[x].art) + '" alt="">' + METHODS[x].name + '</button>').join('') + '</div><button class="btn" data-act="close">Cancel</button>', true); return; }
+  if (v.startsWith('m.')) { coeRun.m = v.slice(2); showModal('<h2>Choose a roast</h2><p class="note">' + ART.varieties[coeRun.v] + ', ' + METHODS[coeRun.m].name.toLowerCase() + '. Which roast brings out the best in it?</p><div class="coe-pick">' + COE_ROAST.map((x) => '<button type="button" class="btn" data-act="coe:p.' + x + '">' + x.charAt(0).toUpperCase() + x.slice(1) + '</button>').join('') + '</div><button class="btn" data-act="close">Cancel</button>', true); return; }
+  if (v.startsWith('p.')) { coeRun.profile = v.slice(2); coeRoast(); return; }
+  if (v === 'crack') { coeCrack(); return; }
+}
+async function coeRoast() {
+  const r = await api('game-coe', 'POST', { act: 'start', v: coeRun.v, m: coeRun.m, profile: coeRun.profile }).catch(() => null);
+  if (!r || r.status !== 200) { closeModal(); toast(r && r.data.error === 'no_attempts_left' ? 'No tries left this week' : 'The Cup can\'t be reached right now'); return; }
+  Object.assign(coeRun, r.data, { t0: performance.now(), done: false });
+  const pct = (ms) => (ms / r.data.dur * 100).toFixed(2) + '%';
+  showModal('<h2>Roasting</h2><p class="note">Tap <b>Crack!</b> when the needle is in the gold window, as close to its middle as you can.</p><div class="roastbar"><i class="win" style="left:' + pct(r.data.c - r.data.hw) + ';width:' + pct(2 * r.data.hw) + '"></i><i class="needle" id="coeNeedle" style="left:0"></i></div><button class="btn green" data-act="coe:crack" style="font-size:20px;padding:14px">Crack!</button>', true);
+  SFX.play('pour');
+  const step = () => { if (!coeRun || coeRun.done) return; const t = performance.now() - coeRun.t0, n = $('coeNeedle'); if (n) n.style.left = pct(Math.min(t, coeRun.dur)); if (t >= coeRun.dur + 400) { coeCrack(coeRun.dur); return; } requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+}
+async function coeCrack(late) {
+  if (!coeRun || coeRun.done) return; coeRun.done = true;
+  const t = Math.round(late || performance.now() - coeRun.t0);
+  const r = await api('game-coe', 'POST', { act: 'submit', n: coeRun.n, t }).catch(() => null);
+  if (!r || r.status !== 200) { closeModal(); toast('That roast didn\'t reach the judges. Try again.'); return; }
+  const s = r.data.score, mm = r.data.mine, sign = (x) => (x > 0 ? '+' : '') + x;
+  SFX.play(s.crack > 0 ? 'achieve' : 'nope');
+  showModal('<h2>' + s.total + ' points</h2><div class="stats"><div><small>Cup</small><b>' + s.base + '</b></div><div><small>Weather</small><b>' + sign(s.weather) + '</b></div><div><small>Judges</small><b>' + sign(s.judge) + '</b></div><div><small>Crack</small><b>' + sign(s.crack) + '</b></div><div><small>Roast</small><b>' + sign(s.roast) + '</b></div></div><p class="note">' + (s.crack > 0 ? 'First crack caught.' : s.early ? 'Too early: the crack hadn\'t come yet.' : 'Too late: the crack had passed.') + ' ' + (s.roast === 5 ? 'The judges loved the ' + coeRun.profile + ' roast.' : 'The judges would have roasted it ' + s.best + '.') + '</p><p class="note">Your best this week: <b>' + mm.best + '</b>, place ' + mm.rank + ' of ' + mm.players + '. ' + mm.left + ' tr' + (mm.left === 1 ? 'y' : 'ies') + ' left.</p><button class="btn green" data-act="close">Done</button>', true);
+  coeRun = null; coeFetch(true);
+}
 function farmSnapshot() {
   const farms = {};
   LOCS.forEach((l) => { const f = S.farms[l]; if (!f.unlocked) return; farms[l] = { u: 1, b: BUILD_ORDER.map((k) => f.build[k] || 0), f: !!f.field, s: f.skin || '', e: est(l), h: houseTier(farmLevel(f)), beds: f.beds.slice(0, 4) }; });
@@ -3445,7 +3652,7 @@ function loop(t) {
   tick(dt); draw(t / 1000);
   uiT += dt; saveT += dt;
   if (toastT > 0) { toastT -= dt; if (toastT <= 0) $('toast').hidden = true; }
-  if (uiT > 0.5) { uiT = 0; refreshHud(); syncMusic(); if (!panelBusy()) { if (!(document.activeElement && document.activeElement.id === 'nameIn')) renderPanel(); checkTabs(); renderTabs(); renderGuide(); } }
+  if (uiT > 0.5) { uiT = 0; refreshHud(); syncMusic(); if (!panelBusy()) { if (!(document.activeElement && document.activeElement.id === 'nameIn')) renderPanel(); checkTabs(); renderTabs(); renderGuide(); } harvestSync(); coopSync(); coeTick(); }
   if (saveT > 5) { saveT = 0; save(); }
   requestAnimationFrame(loop);
 }

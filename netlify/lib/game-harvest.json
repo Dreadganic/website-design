@@ -1,0 +1,4 @@
+{
+  "about": "Harvest Day: one weekend a month, every player works towards one goal. Without anything here, the game runs one automatically on the first weekend of each month (Saturday 10:00 to Monday 10:00, Japan time), rotating through six goals. Add a day here to replace that month's automatic one. unit is lots, cups or golden; method (washed, natural, honey ...) and variety are optional game ids for lots; target is optional (otherwise it scales with how many people play).",
+  "days": []
+}

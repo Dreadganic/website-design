@@ -481,3 +481,34 @@ Two late staff who take over chores, never as well as you do them yourself (`ROA
   - tap the rack when it's dry to sell it (`@dry`, which points at the drying rack until it's done).
 - If you're on another scene, the arrow points at the tab that leads back. When a lesson's target is on the map and you've scrolled down into the panel, the page scrolls the map back on screen once. The panel buttons still work and complete the step too.
 - **Rewards that live in the Shop wait for it.** A building style (farm level 5) or a gold passport stamp (farm level 15) earned before the Shop opens at level 8 is still given, but quietly. The toast just names the farm level. When the Shop opens, one card lists what's waiting, and **Show me** opens Shop › Farm style, or Real coffee if only stamps are waiting (`S.shopWait`, `shopWaitCard`).
+
+## Community and the endgame (plan in `review/community-and-endgame.html`)
+All of this needs the online game (a real site or a Netlify preview), so none of it shows in the offline Claude preview. The server code is in `netlify/lib/community.js`, `netlify/lib/derby.js` and `netlify/lib/coe.js`, with one function each: `game-harvest`, `game-coop` and `game-coe`. Tests are in `netlify/tests/community.test.js`.
+
+- **Harvest Day** (`game-harvest`, `harvestCard`, `hvAdd`, `harvestSync`).
+  - **When:** one weekend a month, from Saturday 10:00 to Monday 10:00 Japan time on the first weekend. Goals rotate through washed, natural, honey or any lots sold or delivered, lots cupped by hand, and golden bushes. Add a day to `netlify/lib/game-harvest.json` to replace a month's automatic one, for example to tie in with a real coffee launch.
+  - **The goal:** fixed three days before, at about 60 lots (or 25 cups, or 8 golden bushes) per player active in the last two weeks, with a floor.
+  - **Counting:** the game sends its running count every minute or so. The server only counts rises and caps how fast one player can add.
+  - **Rewards:** when the goal is reached, everyone who added at least one can claim. The first time it's the **Harvest basket** decoration, which shows on every farm and can be hidden in Shop › Farm style; after that it's 5 cranes.
+  - **In the game:** a section at the top of the Daily tab shows the next Harvest Day a week ahead, the live progress bar during it, and the claim for 3 days after. A walk points to it the first time.
+- **Cooperatives** (`game-coop`, `coopCard`, `coopSync`). These open with Ranks at level 9 (or after a prestige).
+  - **Joining:** find a co-op near your prestige, start one, or join with a six-letter invite code. Up to 8 farmers.
+  - **The weekly co-op order** replaces the old team order, which used made-up farmers; farmers outside a co-op keep a solo order filled by "Beju's other farms".
+    - It asks for green coffee of one process, rotating weekly through washed, natural and honey.
+    - Its size is the sum of each member's last week in the co-op. A new member's starts at their own estimate (a third of their last 7 days' green coffee), at least 1,000 kg, and the order is never under 3,000 kg.
+    - Tiers at 25, 50, 75 and 100% pay 2, 4, 6 and 10 cranes to each member who added coffee, and the full order also gives the weekly season stars.
+  - **Stickers:** 12 preset stickers, with no free chat and so nothing to moderate. One every 20 seconds, and the feed keeps the last 30.
+  - **Help:** once a day per mate. Each help dries every lot on the mate's racks a fifth faster, up to 7 helps a day, and helping earns a season star (cap 1).
+  - Members show their week's share, with Visit buttons to their farms. Player ids never reach other players.
+- **Co-op Derby** (`netlify/lib/derby.js`, shown inside the co-op section). It starts once **20 co-ops of two or more** are playing (`DERBY_MIN_COOPS`); until then the co-op section says how many are playing.
+  - Each week co-ops are grouped about 10 at a time by league and strength.
+  - A board of 4 tasks (three from selling, cupping, golden bushes and contracts, plus one more, which can be roasting or the boat) scores points from members' task counts, each capped per member.
+  - At the week's end the top 3 of each group go up a league and the bottom 3 go down. There are five leagues, from Seedling to Q grader.
+  - Members who played claim cranes by place, more in higher leagues. A co-op formed mid-week joins the next week.
+- **Cup of Excellence** (`game-coe`, `coePage`, `coeStep`). It opens once every coffee, process and farm is open, the foreman and agent are hired and you're at prestige 5 or more; Rosa hands over with a one-time card.
+  - **The brief:** every week, the same for everyone. Three coffees, three processes, the weather (which helps or hurts each process) and what the judges like.
+  - **An attempt:** pick a coffee, a process and a roast, then tap Crack in the gold window on a live roast bar.
+  - **Scoring:** the server works out the score from the brief: cup score, weather, judges, crack timing (+10 to +15, or -5 for a miss) and roast (+5 for the right one, -5 for the opposite). Everyone gets the same crack windows; rarer beans have tighter ones.
+  - Three tries a week; the best counts. The weekly board shows the top 20 and your place.
+  - **Rating:** when a week ends, places become percentiles. The **Q grader rating** is your best 4 of the last 8 weeks, averaged over 4 and times 10 (0 to 1000). The **Hall of Excellence** board ranks it. The old all-time board is now called **Legacy**.
+  - **Honesty:** the server checks every choice against the brief and rejects a tap that comes before the roast could have got there. It can't prove the tap timing itself, which is fine while there are no prizes. Add a server replay before any real prizes, and check contest rules.

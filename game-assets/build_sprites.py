@@ -2226,8 +2226,22 @@ def d_bandana(p):
     p(5, 4, "#F8F4EC"); p(7, 4, "#F8F4EC")
 
 
+def d_harvest(p):   # Harvest Day: a woven basket heaped with ripe cherries and a gold ribbon, given to everyone who helped reach a monthly goal
+    for x in range(1, 13):
+        p(x, 13, "#2A2A0850")
+    for (x, y, c) in [(3, 3, "#E83A30"), (5, 2, "#C8282A"), (7, 2, "#E83A30"), (9, 3, "#C8282A"), (4, 4, "#C8282A"), (6, 3, "#F05A48"), (8, 4, "#E83A30"), (10, 4, "#E83A30"), (2, 5, "#C8282A"), (11, 5, "#C8282A")]:
+        rect(p, x, y, 2, 2, OUT); p(x, y, c); p(x + 1, y, c); p(x, y + 1, c)
+    p(6, 2, "#FFB0A0"); p(8, 3, "#FFB0A0")
+    rect(p, 1, 6, 12, 7, OUT)
+    for y in range(7, 12):
+        for x in range(2, 12):
+            p(x, y, WOOD[1] if (x + y) % 3 == 0 else WOOD[2] if (x * 2 + y) % 4 else WOOD[3])
+    rect(p, 2, 7, 10, 1, WOOD[0])
+    rect(p, 5, 8, 4, 2, "#F2C04A"); p(6, 8, "#FFF0A0"); p(4, 10, "#E0A830"); p(9, 10, "#E0A830"); p(4, 11, "#C08820"); p(9, 11, "#C08820")
+
+
 for k, fn, w, h in [("bench", d_bench, 16, 10), ("lantern", d_lantern, 7, 14), ("flag", d_flag, 12, 22), ("bunting", d_bunting, 24, 8),
-                    ("planter", d_planter, 12, 12), ("cart", d_cart, 22, 16), ("bandana", d_bandana, 12, 10)]:
+                    ("planter", d_planter, 12, 12), ("cart", d_cart, 22, 16), ("bandana", d_bandana, 12, 10), ("harvest", d_harvest, 14, 14)]:
     add_layer("deco_" + k, w, h, fn)
 
 
