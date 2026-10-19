@@ -480,3 +480,4 @@ Two late staff who take over chores, never as well as you do them yourself (`ROA
   - tap the drying rack to cup it (`@cup`);
   - tap the rack when it's dry to sell it (`@dry`, which points at the drying rack until it's done).
 - If you're on another scene, the arrow points at the tab that leads back. When a lesson's target is on the map and you've scrolled down into the panel, the page scrolls the map back on screen once. The panel buttons still work and complete the step too.
+- **Rewards that live in the Shop wait for it.** A building style (farm level 5) or a gold passport stamp (farm level 15) earned before the Shop opens at level 8 is still given, but quietly. The toast just names the farm level. When the Shop opens, one card lists what's waiting, and **Show me** opens Shop › Farm style, or Real coffee if only stamps are waiting (`S.shopWait`, `shopWaitCard`).

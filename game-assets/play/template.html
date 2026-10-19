@@ -601,8 +601,10 @@ function checkFarmMilestones() {   /* hands out each farm's milestones once, wit
     got.forEach((m) => { if (m.kind === 'skin') S.bskins[ORIGIN[l].skin] = true; if (m.kind === 'gold') { S.goldStamps = S.goldStamps || {}; S.goldStamps[l] = true; } });
     S.farmMs[l] = got[got.length - 1].lv;
     const nm = ART.locations[l].name.split(',')[0];
-    if (!got.some((m) => m.kind === 'skin')) { toast(nm + ' reached farm level ' + got[got.length - 1].lv + ': ' + got.map((m) => m.label(l)).join(', ')); SFX.play('achieve'); return; }
-    showModal('<h2>' + nm + ' reached farm level ' + got[got.length - 1].lv + '</h2>' + img('stamp_' + l, 54) + '<p class="note">' + got.map((m) => '<b>' + m.label(l) + '</b>').join('<br>') + '</p>' + (got.some((m) => m.kind === 'skin') ? '<p class="note">The style is yours in Shop > Farm style, for any farm.</p>' : '') + '<button class="btn green" data-act="close">Lovely</button>');
+    const held = S.tabs.shop ? [] : got.filter((m) => m.kind === 'skin' || m.kind === 'gold'), told = got.filter((m) => !held.includes(m));   /* styles and stamps live in the Shop: keep the news until it opens */
+    if (held.length) S.shopWait = (S.shopWait || []).concat(held.map((m) => [l, m.kind, m.lv]));
+    if (!told.some((m) => m.kind === 'skin')) { toast(nm + ' reached farm level ' + got[got.length - 1].lv + (told.length ? ': ' + told.map((m) => m.label(l)).join(', ') : '')); SFX.play('achieve'); return; }
+    showModal('<h2>' + nm + ' reached farm level ' + got[got.length - 1].lv + '</h2>' + img('stamp_' + l, 54) + '<p class="note">' + told.map((m) => '<b>' + m.label(l) + '</b>').join('<br>') + '</p>' + (told.some((m) => m.kind === 'skin') ? '<p class="note">The style is yours in Shop > Farm style, for any farm.</p>' : '') + '<button class="btn green" data-act="close">Lovely</button>');
     SFX.play('achieve');
   });
 }
@@ -2642,9 +2644,15 @@ const TAB_SHORT = { looks: 'P1', roast: 'P3', upgrades: '3 sales', unlock: 'Lv 2
 const TAB_WHAT = { shop: 'Shop: characters, building styles, boosts and decor', orders: 'Daily tab: daily and weekly tasks', ranks: 'Ranks: the leaderboard, the season and prestige' };
 const BUYERS_LV = 5, buyersOn = () => !!S.buyers;   /* buyer contracts start at level 5, after the guide, and stay on through prestige */
 const tabLocked = (id) => !!TAB_OPEN[id] && !S.tabs[id];
+function shopWaitCard() {   /* what you earned before the Shop opened */
+  const w = S.shopWait || []; if (!w.length) return; S.shopWait = [];
+  const rows = w.map(([l, k, lv]) => row(img(k === 'skin' ? 'build_housing_' + ORIGIN[l].skin : 'stamp_' + l, 34), k === 'skin' ? ART.bskins[ORIGIN[l].skin].name + ' building style' : 'A gold ' + fname(l) + ' passport stamp', fname(l) + ' farm level ' + lv, '')).join('');
+  const skin = w.some((x) => x[1] === 'skin');
+  showModal('<h2>Waiting for you in the Shop</h2><p class="note">You earned these while the Shop was closed.' + (skin ? ' Building styles work on any farm, in Shop › Farm style.' : ' Your passport is in Shop › Real coffee.') + '</p>' + rows + '<button class="btn green" data-act="shopwait:' + (skin ? 'bskin' : 'beju') + '">Show me</button><button class="btn" data-act="close">Later</button>');
+}
 function checkTabs() {
   if (!S.buyers && S.guide >= GUIDE.length && level() >= BUYERS_LV) { S.buyers = true; S.contracts = S.contracts.filter((c) => c.event); S.nextContract = 0; setTimeout(() => showModal(coachCard('Buyers', 'Buyers have started posting contracts in the Mill. Fill one with a matching lot for about twice the usual pay.', 'Show me', 'coachgo:mill')), 1200); }
-  Object.keys(TAB_OPEN).forEach((k) => { if (!S.tabs[k] && TAB_OPEN[k]()) { S.tabs[k] = true; S.newTab = k === 'upgrades' ? 'farm' : k; toast(k === 'upgrades' ? 'New in the Farm tab: Upgrades, Buildings and Staff' : 'New tab: ' + TABS.find((x) => x[0] === k)[1]); SFX.play('achieve'); const c = TAB_COACH[k]; if (c && !(k === 'looks' && S.pwalk)) setTimeout(() => showModal(coachCard(c[0], c[1] || seasonPitch(), c[2], c[3])), 1200); } });
+  Object.keys(TAB_OPEN).forEach((k) => { if (!S.tabs[k] && TAB_OPEN[k]()) { S.tabs[k] = true; if (k === 'shop' && (S.shopWait || []).length) setTimeout(shopWaitCard, 1300); S.newTab = k === 'upgrades' ? 'farm' : k; toast(k === 'upgrades' ? 'New in the Farm tab: Upgrades, Buildings and Staff' : 'New tab: ' + TABS.find((x) => x[0] === k)[1]); SFX.play('achieve'); const c = TAB_COACH[k]; if (c && !(k === 'looks' && S.pwalk)) setTimeout(() => showModal(coachCard(c[0], c[1] || seasonPitch(), c[2], c[3])), 1200); } });
 }
 /* readable numbers: the pixel font stays for words, but every run of digits in the panels and windows is set in the clean body font */
 const numify = (html) => ('>' + html + '<').replace(/>([^<]+)</g, (m, t) => '>' + t.split(/(&#?\w+;)/).map((p) => (p[0] === '&' ? p : p.replace(/\d[\d,.:]*\d|\d/g, '<span class="n">$&</span>'))).join('') + '<').slice(1, -1);
@@ -3171,6 +3179,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'arch') { const [kind, id] = v.split('.'); if (archiveKeys().some((k) => theme(k).id === id) && !archOwned(kind, id) && spend('cranes', ARCHIVE[kind])) { archGive(kind, id); toast(themeById(id).name + ' ' + ARCHIVE_WHAT[kind] + ' is yours'); } }
   else if (a === 'pwalkgo') { closeModal(); S.pwalk = 2; S.rankSub = 'prestige'; setTab('ranks'); setTimeout(() => showModal(coachCard('Prestige', 'Prestige restarts your level for a new crest. Coins, buildings and farms all stay. Tap Prestige when you\'re ready.')), 300); }
   else if (a === 'navend') navFinish();
+  else if (a === 'shopwait') { closeModal(); S.shopTab = v; setTab('shop'); }
   else if (a === 'pwalkend') { closeModal(); S.pwalk = 0; S.pwalkDone = true; }
   else if (a === 'prestigetab') { S.rankSub = 'prestige'; setTab('ranks'); }
   else if (a === 'shoptab') S.shopTab = v;
