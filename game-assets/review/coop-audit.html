@@ -1,0 +1,191 @@
+<title>Co-op Audit</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column like the other Beju Farm reviews; verdict first, then amount, complexity, comparison and a keep/change/cut inventory */
+:root {
+  --bg: #F5F3EE; --panel: #FFFFFF; --fg: #23201B; --muted: #6A6358; --line: #DED8CC;
+  --bean: #6B3F22; --leaf: #2F6B4F; --cherry: #B8323A; --gold: #A8791A; --soft: #EFE9DD;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #171512; --panel: #201D19; --fg: #EDE7DC; --muted: #A79F92; --line: #383229;
+  --bean: #D9A47A; --leaf: #6CC59A; --cherry: #F07880; --gold: #E2B64A; --soft: #2A2620; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #171512; --panel: #201D19; --fg: #EDE7DC; --muted: #A79F92; --line: #383229;
+  --bean: #D9A47A; --leaf: #6CC59A; --cherry: #F07880; --gold: #E2B64A; --soft: #2A2620; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font: 16px/1.6 var(--body); }
+.wrap { max-width: 820px; margin: 0 auto; padding-block: 40px 72px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 44px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(30px, 6vw, 42px); font-weight: 800; }
+h2 { font-size: 24px; font-weight: 800; }
+h3 { font-size: 18px; font-weight: 800; }
+p { margin: 0; max-width: 68ch; }
+section { display: flex; flex-direction: column; gap: 14px; }
+.eyebrow { font: 600 12px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--bean); }
+.lede { font-size: 18px; color: var(--muted); }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; }
+.kpi b { font: 800 26px/1.1 var(--display); font-variant-numeric: tabular-nums; color: var(--cherry); }
+.kpi span { font-size: 13px; color: var(--muted); }
+.verdicts { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.v { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+.v .tag { font: 600 12px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; }
+.v.good .tag { color: var(--leaf); } .v.more .tag { color: var(--gold); } .v.less .tag { color: var(--cherry); }
+.v ul { font-size: 14px; }
+.tw { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 12px/1.3 var(--mono); letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.keep { color: var(--leaf); font-weight: 600; } td.change { color: var(--gold); font-weight: 600; } td.cut { color: var(--cherry); font-weight: 600; }
+tr:last-child td { border-bottom: 0; }
+ul, ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 70ch; }
+.note { font-size: 14px; color: var(--muted); }
+.phase { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+.phase .tag { font: 600 12px var(--mono); color: var(--leaf); }
+.src { font-size: 13px; color: var(--muted); }
+.src a { color: var(--bean); overflow-wrap: anywhere; }
+a:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+</style>
+<div class="wrap">
+<header style="display:flex;flex-direction:column;gap:12px">
+  <span class="eyebrow">Design audit · 19 October 2026 · community, co-op and the endgame</span>
+  <h1>Co-op audit: the right amount of play, too much on screen</h1>
+  <p class="lede">I checked everything built for the community side against three questions: is it asking for the right amount of co-op play, does it fit the rest of the game, and should each piece be there at all. The numbers come from the game itself, the server code, the earlier playthroughs and a test with every feature switched on. I compared it with how other idle and casual games run their co-op. Nothing has been changed yet.</p>
+</header>
+
+<section>
+  <h2>The short version</h2>
+  <div class="kpis">
+    <div class="kpi"><b>~1 min</b><span>a day of deliberate co-op play: a few Help taps, a sticker, a claim. Everything else counts from normal play.</span></div>
+    <div class="kpi"><b>11</b><span>goals on the Daily tab at once for a co-op member (3 daily, 2 weekly, the co-op order, 4 Derby tasks, Harvest Day), on a 2,300 px page with 409 words and 23 buttons</span></div>
+    <div class="kpi"><b>+50% to +130%</b><span>more cranes from play each week, against a design that keeps play cranes low so real orders are the fast lane</span></div>
+    <div class="kpi"><b>5 at once</b><span>new things at level 9: Ranks, the season track, farm visits, co-ops and Yellow Bourbon</span></div>
+  </div>
+  <div class="verdicts">
+    <div class="v good"><span class="tag">Spot on</span><ul><li>How much co-op play it asks for. It's light and passive, which suits 8-minute idle sessions.</li><li>The themes: real coffee co-ops, Harvest Day and the Cup of Excellence all belong in a coffee game.</li><li>Stickers only, with no chat to moderate.</li><li>The Cup of Excellence as the endgame.</li></ul></div>
+    <div class="v more"><span class="tag">Too much</span><ul><li>Screen space: the co-op section is longer than the rest of the Daily tab.</li><li>Cranes: about 22 a week from the co-op order and up to 24 from the Derby.</li><li>Help: seven helps cut drying time by 79%.</li><li>Goals that ratchet up: a co-op only hits 100% by repeating last week exactly.</li></ul></div>
+    <div class="v less"><span class="tag">Missing or wrong</span><ul><li>Inactive members still add at least 1,000 kg each to the order.</li><li>Golden-bush Harvest Days ask for 1.5–2 hours from each player who joins in.</li><li>"Q grader" now means three different things.</li><li>New players can see Harvest Day at minute 5.</li><li>The Cup has no reward beyond the board.</li></ul></div>
+  </div>
+</section>
+
+<section>
+  <h2>How much co-op play</h2>
+  <p>Co-op play here is mostly passive. The coffee you sell anyway fills the co-op order, your normal play scores Derby points, and Harvest Day counts what you already do. The only deliberate co-op actions are these:</p>
+  <div class="tw"><table>
+    <thead><tr><th>Action</th><th>How often</th><th>Time</th><th>Read</th></tr></thead>
+    <tbody>
+      <tr><td>Help a co-op mate</td><td class="n">once a day each, up to 7</td><td class="n">~10 s</td><td>The one real co-op act. Too strong: each help cuts their drying by a fifth.</td></tr>
+      <tr><td>Send a sticker</td><td class="n">any time</td><td class="n">~2 s</td><td>Optional and safe. It doesn't need 12 on screen.</td></tr>
+      <tr><td>Claim order tiers</td><td class="n">up to 4 a week</td><td class="n">~5 s</td><td>Fine, but four claims for one order is fiddly.</td></tr>
+      <tr><td>Claim the Derby</td><td class="n">once a week</td><td class="n">~2 s</td><td>Fine</td></tr>
+      <tr><td>Choose the week's process</td><td class="n">weekly</td><td class="n">none</td><td>The order rotates washed, natural and honey, so the only co-op decision is to process more of that.</td></tr>
+      <tr><td>Harvest Day</td><td class="n">monthly</td><td class="n">none</td><td>Passive, plus one claim</td></tr>
+    </tbody>
+  </table></div>
+  <p><b>Verdict: about right.</b> Idle players play in short sessions, and the strongest lesson from other games (below) is that co-op features become chores when they demand coordination or daily attendance. Here, missing a day costs nothing, and nobody can be kicked or let down by a missed slot. The one thing a little thin is shared decisions: a co-op never chooses anything together. That's a fair trade for now, and the place to add it later is the weekly order, for example by letting the co-op pick between two processes.</p>
+</section>
+
+<section>
+  <h2>Complexity and fit</h2>
+  <h3>New ideas a player has to learn</h3>
+  <div class="tw"><table>
+    <thead><tr><th>When it arrives</th><th>New ideas</th></tr></thead>
+    <tbody>
+      <tr><td class="n">minute 5+ (on its weekend)</td><td>Harvest Day: a shared goal, your share, a claim</td></tr>
+      <tr><td class="n">level 9 (~40 min)</td><td>Ranks and the season track arrive with co-ops, which bring an invite code, the weekly order, tiers, members, Help and stickers. Farm visits come too.</td></tr>
+      <tr><td class="n">with 20+ co-ops</td><td>The Derby: leagues, a task board, points, moving up and down</td></tr>
+      <tr><td class="n">prestige 5+</td><td>The Cup of Excellence: a weekly brief (weather, judges), tries, the crack tap, the Q grader rating, the Hall of Excellence and Legacy</td></tr>
+    </tbody>
+  </table></div>
+  <ul>
+    <li><b>Level 9 is crowded again.</b> We spaced the start out so nothing brings more than three new things, and this puts five at level 9, a level before the prestige walk.</li>
+    <li><b>Too many goal lists in one place.</b> A co-op member sees daily tasks, weekly tasks, the co-op order with 4 tiers, a 4-task Derby board, Harvest Day and the season track. Some overlap: in the test, "Cup 80 lots by hand" was a weekly task and a Derby task at the same time. One action counting twice is fine; showing both in full on one page isn't.</li>
+    <li><b>Names collide.</b> "Q grader" is the cupping notebook's top title and charm, the Derby's top league, and the Cup of Excellence rating. Keep it for the Cup, where it means a certified cupper, and rename the other two.</li>
+    <li><b>Fits the game's themes well.</b> Co-ops are how real smallholders sell. Harvest Day lines up with real launches. The Cup of Excellence is a real competition and turns the skills the game teaches (cupping, picking a process, catching the crack) into an endgame.</li>
+    <li><b>Fits the economy badly.</b> The README says play cranes are kept low so real bejucoffee.com orders are the fast lane.</li>
+  </ul>
+  <div class="tw"><table>
+    <thead><tr><th>Cranes from play, per week</th><th>Before</th><th>Now</th></tr></thead>
+    <tbody>
+      <tr><td>Daily tasks, weekly tasks, check-in, level milestones</td><td class="n">~15–18</td><td class="n">~15–18</td></tr>
+      <tr><td>Weekly order</td><td class="n">10</td><td class="n">22 (co-op tiers 2+4+6+10)</td></tr>
+      <tr><td>Co-op Derby</td><td class="n">0</td><td class="n">2 to 24</td></tr>
+      <tr><td>Harvest Day (monthly, after the basket)</td><td class="n">0</td><td class="n">~1</td></tr>
+      <tr><td><b>Total</b></td><td class="n"><b>~25–28</b></td><td class="n"><b>~40–65</b></td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">For scale: a ¥3,000 order gives about 30 cranes, a building style costs 30–80, and the Osaka garden 60. At the new rate, the co-op alone buys a building style every two weeks.</p>
+</section>
+
+<section>
+  <h2>How other games do it</h2>
+  <div class="tw"><table>
+    <thead><tr><th>Game</th><th>Group</th><th>What it asks</th><th>Shared goal</th><th>Lesson for us</th></tr></thead>
+    <tbody>
+      <tr><td>Egg, Inc.</td><td>A co-op per contract, auto-join</td><td>Deliberate: boosts, chicken runs, staying active</td><td>Scaled by each player's grade and last 30 days</td><td>Grades that ratchet up became "a chore". The creator can kick inactive players; "leechers" check in just to avoid it.</td></tr>
+      <tr><td>Hay Day</td><td>Neighbourhoods of up to 30</td><td>Derby: pick 5–9 tasks a week</td><td>5 leagues, bottom 3 demoted, nothing for members who did no tasks</td><td>Added a Chill Derby (5 tasks a day) and leader opt-outs to ease pressure. The team says social features keep players longer than content does.</td></tr>
+      <tr><td>Township</td><td>Co-ops of up to 30, free chat</td><td>Weekly Regatta tasks</td><td>Matched by active racers, not members</td><td>Size goals by who's playing, so sleepers don't drag a co-op down</td></tr>
+      <tr><td>Clash Royale / Clash of Clans</td><td>Clans of 50</td><td>Card donations every 7 hours</td><td>Clan Games tiers with a personal cap</td><td>Donors are paid gold and XP. Preset emotes still needed a mute.</td></tr>
+      <tr><td>Pokémon GO</td><td>Friends, no chat</td><td>20 gifts a day, Community Day</td><td>Global challenge in tiers, built to succeed: 3.36 billion against a 3 billion goal</td><td>Short windows suit real play: few played past 3 hours, so Community Day went from 6 hours to 3</td></tr>
+      <tr><td>Animal Crossing</td><td>Dream visits</td><td>Look around; nothing changes</td><td>None</td><td>Read-only visits are safe and loved: the same model as our farm visits</td></tr>
+      <tr><td>Cookie Run: Kingdom, AFK Arena</td><td>Guilds of 30</td><td>Daily boss or battle attempts</td><td>Guild rank plus personal contribution</td><td>Reward each player's own part as well as the group's</td></tr>
+    </tbody>
+  </table></div>
+  <ul>
+    <li><b>Ours is lighter than all of them, on purpose.</b> They are session-heavy games where the group is the main loop. In an idle game the farm runs itself, so light, passive co-op play fits. Casual games tend to start with light social features and add team competitions later, which is the order we're in.</li>
+    <li><b>Small groups need sleeper protection.</b> Lasting groups are usually 30–50, and small ones (Egg, Inc.) re-form every contract. At 8, one sleeper is 12.5% of a co-op, which is why inactive members should count as zero.</li>
+    <li><b>Help is always capped, and the helper is paid.</b> Ours pays a season star and is capped, which matches. It's just stronger than anyone else's.</li>
+    <li><b>Presets aren't immune to misuse.</b> Add a "hide stickers" switch for anyone who'd rather not see them.</li>
+    <li><b>Global goals should be built to succeed, in tiers.</b> Harvest Day could add a halfway tier, so a quiet weekend still pays something.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Should each piece be there?</h2>
+  <div class="tw"><table>
+    <thead><tr><th>Piece</th><th>Call</th><th>Why, and what to change</th></tr></thead>
+    <tbody>
+      <tr><td>Farm visits and Cheers</td><td class="keep">Keep</td><td>Cheap, safe, gives cosmetics an audience. No change.</td></tr>
+      <tr><td>Harvest Day</td><td class="change">Keep, tune</td><td>Show it from level 5, not minute 5. Golden goals are too big: golden bushes appear every 3–6 minutes, so 8 per active player, with perhaps 40% joining in on a given weekend, means about 20 each, or 1.5–2 hours of play. Make it 3 per active player. Lower the smallest goals (lots 200, cups 100, golden 25) so it works with a handful of players at launch. Add a halfway tier of 2 cranes, so a quiet weekend still pays.</td></tr>
+      <tr><td>Co-ops: joining, members, invite codes</td><td class="change">Keep, move</td><td>Open them after the first prestige (level 6 of P1) rather than at level 9, which is already crowded. Give the co-op its own page inside the Daily tab (Today · Co-op) instead of stacking it under the tasks.</td></tr>
+      <tr><td>Weekly co-op order</td><td class="change">Keep, fix</td><td>Size it at 80% of last week instead of 100%, so a normal week reaches the top tier. Members who added nothing last week and haven't been seen for 7 days count as zero. Make one claim that pays every tier reached, not four buttons.</td></tr>
+      <tr><td>Co-op cranes</td><td class="change">Cut back</td><td>Tiers of 1, 2, 3 and 4 cranes (10 in all, the same as the old weekly order), so play cranes stay where they were.</td></tr>
+      <tr><td>Help</td><td class="change">Keep, soften</td><td>10% per help instead of 20%, and at most 3 a day received, so the best case is about 27% faster rather than 79%.</td></tr>
+      <tr><td>Stickers</td><td class="change">Keep, trim</td><td>Show 6 common ones with a "more" for the rest. Show the feed's last 3, not 8. Add a "hide stickers" switch in Settings.</td></tr>
+      <tr><td>Co-op Derby</td><td class="change">Keep, quiet</td><td>It only switches on at 20 co-ops, so it costs nothing until then. Pay a league badge plus 1–3 cranes rather than up to 24. When it's on, show your place and the top 3, with "see all". Rename the top league.</td></tr>
+      <tr><td>Solo weekly order</td><td class="keep">Keep</td><td>Still needed for offline play and anyone not in a co-op</td></tr>
+      <tr><td>Cup of Excellence</td><td class="change">Keep, add</td><td>Add a small badge for the weekly top 10% (the badge system already exists), so a good week leaves something behind. Keep it free of cranes.</td></tr>
+      <tr><td>Hall of Excellence and Legacy</td><td class="keep">Keep</td><td>Fair split between skill and time</td></tr>
+      <tr><td>"Q grader" names</td><td class="change">Rename</td><td>The Derby's top league becomes "Geisha". The notebook's top title becomes "Master cupper".</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">Nothing needs cutting outright. The Derby is the only piece built ahead of need, and it stays hidden until there are players for it.</p>
+</section>
+
+<section>
+  <h2>Suggested changes</h2>
+  <div class="phase"><span class="tag">1 · Economy and fairness</span><p>Co-op tiers 1/2/3/4 cranes and one claim. The order at 80% of last week. Inactive members count as zero. Help at 10%, three a day. Derby rewards: a badge plus 1–3 cranes.</p></div>
+  <div class="phase"><span class="tag">2 · Space and timing</span><p>A Co-op page inside the Daily tab, with stickers and the Derby trimmed. Co-ops at P1 level 6. Harvest Day from level 5.</p></div>
+  <div class="phase"><span class="tag">3 · Names and goals</span><p>Golden and smallest Harvest goals lowered, with a halfway tier. A "hide stickers" switch. "Q grader" kept for the Cup only. A weekly badge for the Cup's top 10%.</p></div>
+  <p class="note">All three are small and touch code built this week. The server tests cover the order and Help rules, so they'd be updated in the same change.</p>
+</section>
+
+<section>
+  <h2>How this was checked</h2>
+  <p class="note">The test ran the real server code on an in-memory store, with 100 test farmers in 20 co-ops so the Derby switched on. One save joined a co-op during a live Harvest Day; the Daily tab was then measured and screenshotted on a 390 px phone screen. Lot, cup and golden-bush rates come from the three playthroughs to prestige 3 (the bot misses 45% of golden bushes, as a person might). Crane figures come from the game's reward tables. The comparison with other games is from published sources, listed below.</p>
+  <div class="src"><p><b>Sources.</b>
+  Egg, Inc.: <a href="https://egg-inc.fandom.com/wiki/Contracts/Contract_Score">contract score (fan wiki)</a>, <a href="https://apkmirror.com/apk/auxbrain-inc/egg-inc/egg-inc-1-11-release">v1.11 notes</a> ·
+  Hay Day: <a href="https://www.app4vn.com/archives/17319">Derby format</a>, <a href="https://hayday.fandom.com/wiki/Derby_Types">Derby types (fan wiki)</a>, <a href="https://mobilegamer.biz/what-supercells-hay-day-team-learned-from-ten-years-of-updates/">ten years of updates</a>, <a href="https://www.pocketgamer.biz/supercell-looking-back-10-years-of-hay-day-part-one/">retention as the metric</a> ·
+  Township: <a href="https://lootbar.gg/blog/en/township-regatta-guide.html">Regatta matching</a> ·
+  Clash: <a href="https://clashroyale.fandom.com/wiki/Clans">Royale clans (fan wiki)</a>, <a href="https://supercell.com/en/games/clashofclans/blog/news/the-next-clan-games-are-coming/">Clan Games tiers</a>, <a href="https://toucharcade.com/2016/11/01/clash-royale-update-is-live-brings-rebalancing-along-with-improvements">emote mute</a> ·
+  Pokémon GO: <a href="https://toucharcade.com/2017/11/21/pokemon-go-global-catch-challenge-hits-500-million-bronze-rewards-unlocked/">Global Catch Challenge</a>, <a href="https://nintendowire.com/news/2017/11/26/pokemon-go-global-catch-challenge-brings-farfetchd-world-three-billion-catches/">final total</a>, <a href="https://automaton-media.com/en/news/20220324-10815/">Community Day hours</a> ·
+  Animal Crossing: <a href="https://nookipedia.com/wiki/Dream">dream visits</a> ·
+  Guilds in casual games: <a href="https://www.gamerefinery.com/casual-games-guilding-up/">GameRefinery</a>, <a href="https://www.pocketgamer.biz/discord-brings-social-layer-to-mobile-after-seeing-31-retention-increase-on-pc/">social features and retention</a>.
+  Some figures come from fan wikis; retention studies show correlation more than cause.</p></div>
+</section>
+</div>
