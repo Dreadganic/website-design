@@ -2426,6 +2426,37 @@ function drawFloats() {
   });
   ctx.globalAlpha = 1;
 }
+/* map arrows: the same bouncing arrow as the guide, over anything on the map you can tap right now */
+const cerReady = () => estOn('gedeo', 2) && (S.estate || {}).cerDay !== dayKey(new Date());
+const koiReady = () => estOn('osaka', 1) && Date.now() - ((S.estate || {}).koiAt || 0) >= KOI_EVERY;
+const CHORE_AT = { mogiana: { x: [5, 100], y: [30, 92], at: [52, 62], ok: () => rakeReady(), go: () => { rakePatio(); estRefresh('mogiana'); }, text: 'raked!' },
+  gedeo: { x: [62, 110], y: [27, 86], at: [86, 30], ok: cerReady, go: () => { holdCeremony(); estRefresh('gedeo'); }, text: 'ceremony!' },
+  osaka: { x: [2, 52], y: [66, 97], at: [27, 70], ok: koiReady, go: () => { feedKoi(); estRefresh('osaka'); }, text: 'fed!' } };
+const choreHere = () => { const c = CHORE_AT[S.loc]; return c && S.farms[S.loc].unlocked && c.ok() ? c : null; };
+function hintAt(sc) {   /* where the map arrow points, in scene pixels, or null */
+  if (!$('garrow').hidden || !$('modal').hidden) return null;   /* the guide's own arrow wins */
+  if (sc === 'farm') {
+    const f = S.farms[S.loc], g = golden && golden.loc === S.loc && f.shrubs[golden.i]; if (g) return [g.x + 9, g.y - 2];
+    const c = choreHere(); return c ? c.at : null;
+  }
+  if (sc === 'mill') {
+    const n = Math.min(RACK_SHOWN, racks()), slots = rackSlots();
+    let i = slots.slice(0, n).findIndex((l) => l && !l.cupped);
+    if (i < 0 && !S.staff.foreman) i = slots.slice(0, n).findIndex((l) => l && l.cupped && l.left <= 0 && !reqLot(l));
+    if (i < 0) return null; const r = rackAt(i); return [r.x + 20, r.y + 6];
+  }
+  const RS = S.roastery, n = Math.min(BAYS.length, roasterCount());
+  let i = RS.roasters.slice(0, n).findIndex((r) => r && inCrack(r) && !r.crack);
+  if (i < 0 && Object.keys(RS.beans).length) for (let k = 0; k < n; k++) if (!RS.roasters[k]) { i = k; break; }
+  return i < 0 ? null : [BAYS[i] + 13, BAY_Y - 4];
+}
+const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function drawHint(sc, time) {
+  const h = hintAt(sc); if (!h) return;
+  const x = Math.round(h[0]) * 2, y = Math.round(h[1]) * 2 - 8 + (calm ? 0 : Math.round(Math.sin(time * 7.8) * 3));
+  ctx.fillStyle = '#3E2A1C'; ctx.beginPath(); ctx.moveTo(x - 13, y - 24); ctx.lineTo(x + 13, y - 24); ctx.lineTo(x, y + 3); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#F2C04A'; ctx.beginPath(); ctx.moveTo(x - 9, y - 21); ctx.lineTo(x + 9, y - 21); ctx.lineTo(x, y - 3); ctx.closePath(); ctx.fill();
+}
 function draw(time) {
   const sc = scene(); if (sc !== 'farm') return drawInside(sc, time);
   const f = S.farms[S.loc], sea = season(S.loc), b = bg(S.loc);
@@ -2537,6 +2568,7 @@ function draw(time) {
     ctx.fillStyle = '#9C6C3C'; ctx.fillRect(W - w / 2, 226, w, 2); ctx.fillStyle = '#FFF4DE'; ctx.fillText(tx, W, 233);
   }
   if (!f.field) { ctx.font = '700 13px "Pixelify Sans", monospace'; ctx.fillStyle = '#4A2E18'; ctx.fillText('EXPAND', 142 * 2, 173 * 2); }
+  drawHint('farm', time);
   drawFloats();
 }
 /* ---------- the mill yard and the roastery: what the stage shows on the Mill tab ---------- */
@@ -2777,6 +2809,7 @@ function drawInside(sc, time) {
     if (S.roastery.bags.length > SHELF_SHOWN) { const tx = '+' + (S.roastery.bags.length - SHELF_SHOWN); ctx.fillStyle = 'rgba(30,20,12,0.72)'; ctx.fillRect(214, 100, 36, 18); ctx.fillStyle = '#FFF4DE'; ctx.fillText(tx, 232, 113); }
     for (let i = roasterCount(); i < BAYS.length; i++) { const tx = 'REP ' + (i === 1 ? 4 : 15); ctx.fillStyle = 'rgba(62,42,28,0.55)'; ctx.fillText(tx, (BAYS[i] + 13) * 2, (BAY_Y + 16) * 2); }
   }
+  drawHint(sc, time);
   drawFloats();
 }
 function insideClick(lx, ly) {
@@ -2836,6 +2869,7 @@ cv.addEventListener('click', (e) => {
   }
   if (!f.field && lx > 104 && lx < 182 && ly > 160 && ly < 200) { S.farmSub = 'upgrades'; setTab('farm'); toast('Clear the fourth field in Farm › Upgrades'); return; }
   if (lx > STORE_AT.x && lx < STORE_AT.x + 40 && ly > STORE_AT.y && ly < STORE_AT.y + 38) { setTab('mill'); return; }
+  { const c = choreHere(); if (c && lx >= c.x[0] && lx < c.x[1] && ly >= c.y[0] && ly < c.y[1]) { c.go(); floats.push({ x: c.at[0], y: c.at[1] + 6, text: c.text, t: 0 }); return; } }   /* estate chores you can do right on the map */
   if (f.unlocked && lx < 96 && ly > 28 && ly < 112 && (est(S.loc) || S.prestige >= ESTATE_P)) { showModal(estateCard(S.loc) + '<button class="btn" data-act="close">Close</button>'); return; }   /* the drying area opens its estate project */
   if (Math.abs(lx - me.x) < 8 && ly > me.y - 24 && ly < me.y + 2) { setTab('ranks'); return; }
   if (Math.hypot(lx - f.dog.x, ly - f.dog.y + 5) < 9) SFX.play('woof'), floats.push({ x: f.dog.x, y: f.dog.y - 14, text: 'woof!', t: 0 });

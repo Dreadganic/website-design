@@ -416,3 +416,11 @@ Two late staff who take over chores, never as well as you do them yourself (`ROA
 - **Cheers:** one per visitor per farm per Japan day, never on your own, and at most 30 farms a day. The first Cheers each day earns a season star (cap 1).
 - **Chat:** none; co-op messages will be stickers only when co-ops come.
 - **Early Farm tab.** Only what matters yet. "Prestige 0" waits for a prestige or the Ranks tab, the farm level card for building upgrades, and the terroir line for a coffee native to that farm. Replant all waits for its perk. Picker and field rows are one short line. The "Hire a picker" lesson completes by itself when the farm already has every picker it has room for.
+
+## Map arrows
+- **What they point at:** the same bouncing gold arrow as the guide, over anything on the map you can tap right now (`hintAt`, `drawHint`). One at a time, in this order:
+  - **Farm:** the golden bush, else a ready estate chore.
+  - **Mill:** the first uncupped rack, else a dry lot to sell when there's no foreman.
+  - **Roastery:** a roaster in its crack window, else a free roaster when there's green coffee.
+- **Estate chores on the map** (`CHORE_AT`): tap the Mogiana patio to rake it, the Gedeo compound to hold the day's ceremony, and the Osaka pond to feed the koi. When none is ready, tapping the same area opens the estate card as before.
+- **When they hide:** while the guide's own arrow is up or a window is open. They also stop bobbing for players who turn on reduced motion.
