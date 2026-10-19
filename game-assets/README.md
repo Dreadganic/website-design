@@ -384,10 +384,26 @@ Two late staff who take over chores, never as well as you do them yourself (`ROA
   - **Away:** roasts at half your pace while you're away, and the welcome-back card counts his batches.
   - **Switch:** "Give him a break" in the Roastery turns him off.
   - **In the scene:** a white-jacketed roaster minds his drum in the roastery.
-- **Estate manager:** from 3 estate stages built (about P5), 3M coins.
-  - **Effectiveness:** works at 40% of what you would (+5% per training level, 90% at most, `estateEff`).
-  - **Ceremony:** he holds it only if you haven't after 30 minutes of play that day, and it lasts that share of its length.
-  - **Koi:** he feeds them 20 minutes after they're ready, for that share of the crack bonus and never a golden koi.
-  - **Cellar:** he keeps it full and takes his lots out at a lower age, +1 cup untrained to +2.5 trained, where yours reach +3.
-  - **In the scene:** he walks the path below each built estate.
-- **Coin sinks:** hiring is 4.5M. Training starts at 600k (head roaster) and 800k (estate manager), doubling each level up to 10, alongside the existing staff training from P5.
+- **Estate managers:** five, one for each estate chore (`EMGR`). Huila's micro-lots come by chance, so it has none.
+
+  | Manager | Estate | Chore they take over | Hire after you've… | Cost |
+  |---|---|---|---|---|
+  | Zé, Terreiro foreman | Mogiana | Raking the patio (new) | raked 5 times | 1.0M |
+  | Almaz, Ceremony host | Gedeo | The daily ceremony | held 3 ceremonies | 1.6M |
+  | Tigor, Harbour master | Lake Toba | The trader's boat | filled 2 boat orders | 1.9M |
+  | Mario, Cellar master | Turrialba | The barrel cellar | aged 2 lots fully | 2.2M |
+  | Yuki, Koi keeper | Osaka | Feeding the koi | fed them 5 times | 2.5M |
+
+  - **How well:** each works at 40% of your result (+5% per training level, 90% at most, `emEff`) and steps in only once you've had your chance (`emTick`).
+    - **Zé:** rakes 20 minutes after it's ready, for +0.2 cup instead of +0.5.
+    - **Almaz:** holds the ceremony after 30 minutes of play, for a share of its length.
+    - **Yuki:** feeds the koi 20 minutes after they're ready, for a smaller crack bonus and no golden koi.
+    - **Mario:** ages his own lots to +1 cup, up to +2.5 trained.
+    - **Tigor:** delivers boat-ready lots for the market price plus his share of the boat's premium. Once he has delivered to a boat, its cranes are lost.
+  - **No stars:** their work earns no season stars, tasks or cranes.
+  - **Hiring:** each is hired from their estate's card, and the card then shows what they did last. Farm › Staff lists all five with their training (300k × the estate's cost factor to start, doubling to level 10).
+  - **In the scene:** each stands at their own estate in its colours.
+  - **The rake:** Mogiana's new chore. From stage 1, tap Rake on the estate card every 2 hours, and natural lots started in the next 30 minutes cup +0.5 (`rakePatio`). It's a daily task option too.
+  - **The boat:** the foreman now sets boat-ready lots aside (`boatWants`), and the contracts agent no longer fills boat orders, so the boat is your chore or Tigor's.
+  - **Old saves:** the earlier single estate manager is refunded.
+- **Coin sinks:** hiring the head roaster is 1.5M and all five estate managers 9.2M. Training doubles each level up to 10, alongside the existing staff training from P5.

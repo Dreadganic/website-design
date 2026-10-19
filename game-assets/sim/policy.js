@@ -3,8 +3,8 @@ window.BOT = (function () {
   const G = window.__G, cv = document.getElementById('cv');
   /* where each action lives in the interface, to measure how much tab hopping a player would do */
   const LOCOF = (x) => { const a = x.split(':')[0];
-    if (['hire', 'plant', 'bed', 'replantall', 'replantask', 'sellraw', 'mv', 'estbuy', 'ceremony', 'koi', 'age', 'unage'].includes(a)) return 'farm:fields'; if (a === 'up') return 'farm:upgrades'; if (a === 'build') return 'farm:build';
-    if (['mgr', 'master', 'foreman', 'agent', 'rule', 'train', 'hireroaster', 'hireestate'].includes(a)) return 'farm:staff';
+    if (['hire', 'plant', 'bed', 'replantall', 'replantask', 'sellraw', 'mv', 'estbuy', 'ceremony', 'koi', 'age', 'unage', 'rake'].includes(a)) return 'farm:fields'; if (a === 'up') return 'farm:upgrades'; if (a === 'build') return 'farm:build';
+    if (['mgr', 'master', 'foreman', 'agent', 'rule', 'train', 'hireroaster', 'emhire'].includes(a)) return 'farm:staff';
     if (['lot', 'cup', 'sell', 'deliver', 'toroast', 'sellall', 'cupall', 'reqfill', 'reqskip'].includes(a)) return 'mill';
     if (['roast', 'crack', 'sellbag', 'sellbags', 'roastfeed', 'rreq', 'binsell', 'blendask', 'blendwith'].includes(a)) return 'roast';
     if (['var', 'method', 'farm', 'research'].includes(a)) return 'unlock'; if (['task', 'weekly', 'wtask'].includes(a)) return 'orders';
@@ -86,9 +86,9 @@ window.BOT = (function () {
         if (!f.field && l !== 'osaka') c.push([l, 'up:field', G.UP.field.cost()]);
       });
       ['storage', 'pickers', 'racks', 'hearts'].forEach((k) => { if (S.lv[k] < G.UP[k].max && !(k === 'storage' && G.STORE && G.STORE[S.lv[k]] && G.STORE[S.lv[k]].p > S.prestige)) c.push([S.loc, 'up:' + k, G.UP[k].cost(S.lv[k])]); });
-      if (G.trainCost && S.prestige >= 5) { G.LOCS.forEach((l) => { if (live(l) && S.farms[l].manager && G.trainLv('mgr', l) < 10) c.push([l, 'train:mgr', G.trainCost('mgr', l)]); }); ['foreman', 'agent', 'roaster', 'estate'].forEach((w) => { if (S.staff[w] && G.trainLv(w) < 10) c.push([S.loc, 'train:' + w, G.trainCost(w)]); }); }
+      if (G.trainCost && S.prestige >= 5) { G.LOCS.forEach((l) => { if (live(l) && S.farms[l].manager && G.trainLv('mgr', l) < 10) c.push([l, 'train:mgr', G.trainCost('mgr', l)]); }); ['foreman', 'agent', 'roaster'].forEach((w) => { if (S.staff[w] && G.trainLv(w) < 10) c.push([S.loc, 'train:' + w, G.trainCost(w)]); }); }
       if (G.roasterOK && !S.staff.roaster && G.roasterOK()) c.push([S.loc, 'hireroaster', G.ROASTER_COST]);   /* the late staff */
-      if (G.estateMgrOK && !S.staff.estate && S.prestige >= 4 && G.estateMgrOK()) c.push([S.loc, 'hireestate', G.ESTATE_MGR_COST]);   /* staff training */
+      if (G.EM_LOCS) G.EM_LOCS.forEach((l) => { if (G.emCan(l)) c.push([S.loc, 'emhire:' + l, G.emHire(l)]); else if (G.emHired(l) && G.trainLv('em_' + l) < 10 && S.prestige >= 5) c.push([S.loc, 'train:em_' + l, G.trainCost('em_' + l)]); });   /* estate managers */   /* staff training */
       if (G.estateNext && !B.cfg.noEstate) G.LOCS.forEach((l) => { const n = G.estateNext(l); if (n && !n.why && S.points >= n.k) c.push([l, 'estbuy:' + l, n.c]); });   /* estate projects */
       if (!S.staff.foreman) { if (!G.foremanOK || G.foremanOK()) c.push([S.loc, 'foreman', G.FOREMAN_COST]); } else if (!S.staff.agent && (!G.agentOK || G.agentOK())) c.push([S.loc, 'agent', G.AGENT_COST]);
       c.sort((a, b) => a[2] - b[2]);
@@ -128,6 +128,7 @@ window.BOT = (function () {
   function estate() {   /* the estate projects' tap-in moments: the daily ceremony, the koi and the barrel cellar */
     const S = G.S, E = S.estate; if (!E || !G.estOn) return;
     if (G.estOn('gedeo', 2) && !G.cerOn() && (!H() || rnd() < 0.05)) { const n0 = E.cerDay; act('ceremony'); closeAll(); if (E.cerDay !== n0) B.cer = (B.cer || 0) + 1; }
+    if (G.rakeReady && G.rakeReady() && (!H() || rnd() < 0.1)) { act('rake'); closeAll(); }
     if (G.estOn('osaka', 1) && Date.now() - (E.koiAt || 0) >= 3 * 3600e3 && (!H() || rnd() < 0.1)) { act('koi'); closeAll(); B.koi = (B.koi || 0) + 1; }
     E.cellar.forEach((c, j) => { if (G.agedCup(c) >= 3) { act('unage:' + j); closeAll(); } });
     if (E.cellar.length < G.cellarSlots() && (!H() || rnd() < 0.2)) { const i = S.lots.reduce((bi, l, i) => (l.left <= 0 && (bi < 0 || G.saleFor(l.v, l.method, l.kg).coins > G.saleFor(S.lots[bi].v, S.lots[bi].method, S.lots[bi].kg).coins) ? i : bi), -1); if (i > -1) { act('age:' + i); closeAll(); B.aged = (B.aged || 0) + 1; } }
