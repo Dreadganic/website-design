@@ -1319,16 +1319,16 @@ function newFarm(loc) {
 /* the tutorial: Rosa walks a new farmer through the whole loop in five short chapters. Each step says why, points at what to tap, and pays a small reward */
 const COACH = { name: 'Rosa', look: { shirt: ['#E8603A', '#C0402C', '#8A2A20'], hat: ['#F4DE9C', '#D8B868', '#A88440'] } };
 const GUIDE = [
-  { ch: 'First harvest', text: 'Tap 5 ripe bushes', goal: 5, ev: 'pick', target: '#cv', reward: { coins: 100 }, react: 'Nice picking!',
+  { ch: 'First harvest', text: 'Tap 5 ripe bushes', goal: 5, ev: 'pick', target: 'cv:farm:@ripe, .tab[data-tab="farm"]', reward: { coins: 100 }, react: 'Nice picking!',
     say: 'Welcome to your farm! I\'m Rosa. Ripe bushes sparkle red. Tap them to pick.' },
   { ch: 'First harvest', text: 'Open the Mill', ev: 'tab:mill', target: '.tab[data-tab="mill"]', reward: { coins: 50 }, react: 'This is the Mill.',
     say: 'Your cherries are in the store. The Mill turns them into coffee.' },
-  { ch: 'First harvest', text: 'Tap Process on Washed', ev: 'lot', target: '[data-act="lot:washed"], .tab[data-tab="mill"]', reward: { points: 50 }, react: 'Your first lot is drying.',
-    say: 'Washed dries quickest. Start a lot.' },
-  { ch: 'First harvest', text: 'Tap Cup on the drying lot', ev: 'cup', target: '[data-act^="cup:"], .tab[data-tab="mill"]', reward: { coins: 50 }, react: 'Hand-cupped lots pay 20% more.', done: () => S.lots.some((l) => l.cupped) || S.stats.lotsSold > 0,
-    say: 'Tap Cup while it dries. Cupping by hand makes it pay more.' },
-  { ch: 'First harvest', text: 'Sell the lot once it\'s dry', ev: 'sell', target: '[data-act^="sell:"], .tab[data-tab="mill"]', reward: { coins: 150 }, react: 'Sold! Coins build, know-how unlocks.', done: () => S.stats.lotsSold > 0,
-    say: 'When its bar fills, sell it.' },
+  { ch: 'First harvest', text: 'Tap an empty rack to start a lot', ev: 'lot', target: 'cv:mill:@free, .tab[data-tab="mill"]', reward: { points: 50 }, react: 'Your first lot is drying.',
+    say: 'Tap an empty rack in the yard. I\'ll start the best-paying lot from your cherries.' },
+  { ch: 'First harvest', text: 'Tap the drying rack to cup it', ev: 'cup', target: 'cv:mill:@cup, .tab[data-tab="mill"]', reward: { coins: 50 }, react: 'Hand-cupped lots pay 20% more.', done: () => S.lots.some((l) => l.cupped) || S.stats.lotsSold > 0,
+    say: 'Tap the rack while it dries to cup it by hand. Hand-cupped lots pay more.' },
+  { ch: 'First harvest', text: 'Tap the rack when it\'s dry to sell it', ev: 'sell', target: 'cv:mill:@dry, .tab[data-tab="mill"]', reward: { coins: 150 }, react: 'Sold! Coins build, know-how unlocks.', done: () => S.stats.lotsSold > 0,
+    say: 'When its bar fills, tap the rack to sell it.' },
   { ch: 'Grow', text: 'Hire a picker on the Farm tab', ev: 'hire', done: () => LOCS.some((l) => S.farms[l].unlocked && S.farms[l].workers.length >= maxPickers(S.farms[l])), target: '[data-act="hire"], [data-act="uptab:fields"], .tab[data-tab="farm"]', reward: { points: 50 }, react: 'Another pair of hands.', when: () => S.stats.lotsSold >= 3,
     say: 'You\'ve sold a few lots. More pickers bring in more cherries.' },
   { ch: 'Grow', text: 'Build bigger storage in Farm › Upgrades', ev: 'up:storage', target: '[data-act="up:storage"], [data-act="uptab:farm"], .tab[data-tab="farm"]', reward: { coins: 150 }, react: 'Room for more cherries.', done: () => S.lv.storage > 1,
@@ -1672,6 +1672,7 @@ function hintAt(sc) {   /* where the map arrow points, in scene pixels, or null 
     if (hasPerk('cupall') && S.lots.filter((l) => !l.cupped).length > 1) return [CUP_TABLE.x + 18, CUP_TABLE.y + 2];
     let i = slots.slice(0, n).findIndex((l) => l && !l.cupped);
     if (i < 0 && !S.staff.foreman) i = slots.slice(0, n).findIndex((l) => l && l.cupped && l.left <= 0 && !reqLot(l));
+    if (i < 0 && !S.staff.foreman && stored() > 0) i = Array.from({ length: n }, (_, k) => k).find((k) => !slots[k]) ?? -1;
     if (i < 0) return null; const r = rackAt(i); return [r.x + 20, r.y + 6];
   }
   const RS = S.roastery, n = Math.min(BAYS.length, roasterCount());
@@ -2046,7 +2047,11 @@ function insideClick(lx, ly) {
     for (let i = 0; i < Math.min(RACK_SHOWN, racks()); i++) {
       const r = rackAt(i); if (lx < r.x || lx >= r.x + 40 || ly < r.y - 4 || ly >= r.y + 18) continue;
       const l = rackSlots()[i], j = S.lots.indexOf(l);
-      if (!l) { SFX.play('knock'); floats.push({ x: r.x + 20, y: r.y, text: 'empty rack', t: 0 }); return; }
+      if (!l) {   /* an empty rack starts the best-paying lot, on this rack */
+        const b = bestLot(); if (!b) { SFX.play('knock'); floats.push({ x: r.x + 20, y: r.y, text: 'no cherries', t: 0 }); return; }
+        if (startLot(b[0], b[1])) { lotSlot.set(S.lots[S.lots.length - 1], i); floats.push({ x: r.x + 20, y: r.y, text: METHODS[b[1]].name.split(' ')[0].toLowerCase() + ' ' + ART.varieties[b[0]], t: 0 }); }
+        return;
+      }
       if (!l.cupped) { cupLot(j); floats.push({ x: r.x + 20, y: r.y, text: 'cupped +' + CUP_BONUS, t: 0 }); return; }
       if (l.left > 0) { SFX.play('brush'); floats.push({ x: r.x + 20, y: r.y, text: 'drying ' + Math.round((1 - l.left / l.total) * 100) + '%', t: 0 }); return; }
       if (reqLot(l)) { SFX.play('knock'); floats.push({ x: r.x + 20, y: r.y, text: 'for your regular', t: 0 }); return; }
@@ -2565,11 +2570,20 @@ function navTick() {
   if (!$('modal').hidden) return;
   const n = NAV.find((x) => !S.navSeen[x.id] && x.when()); if (n) { S.nav = n.id; navArrive = 0; navStart = Date.now(); SFX.play('achieve'); }
 }
+function rackPt(kind) {   /* a spot on the map: @ripe (a ripe bush on the farm), or a mill rack: @free, @cup (uncupped) or @dry (dry, else still drying) */
+  if (kind === 'ripe') { const sh = S.farms[S.loc].shrubs.find((x) => x.p >= 1); return sh ? [sh.x + 9, sh.y] : null; }
+  const n = Math.min(RACK_SHOWN, racks()), sl = rackSlots();
+  let i = -1;
+  if (kind === 'free') i = Array.from({ length: n }, (_, k) => k).find((k) => !sl[k]) ?? -1;
+  if (kind === 'cup') i = sl.slice(0, n).findIndex((l) => l && !l.cupped);
+  if (kind === 'dry') { i = sl.slice(0, n).findIndex((l) => l && l.left <= 0); if (i < 0) i = sl.slice(0, n).findIndex((l) => l); }
+  if (i < 0) return null; const r = rackAt(i); return [r.x + 20, r.y + 6];
+}
 function navTarget(chain) {   /* the first step on the way that's on screen: a button, a tab, or a spot on the map ('cv:scene:x,y') */
   const qs = chain.split(', ');
   for (let i = 0; i < qs.length; i++) {
     const q = qs[i];
-    if (q.startsWith('cv:')) { const [, sc, xy] = q.split(':'); if (scene() === sc) return { i, el: cv, pt: xy.split(',').map(Number) }; continue; }
+    if (q.startsWith('cv:')) { const [, sc, xy] = q.split(':'); if (scene() !== sc) continue; const pt = xy[0] === '@' ? rackPt(xy.slice(1)) : xy.split(',').map(Number); if (pt) return { i, el: cv, pt }; continue; }
     const el = document.querySelector(q); if (el && el.offsetParent !== null) return { i, el };
   }
   return null;
@@ -2604,9 +2618,10 @@ function renderGuide() {
   const g = GUIDE[S.guide]; el.hidden = false;
   setHTML(el, '<span class="gstep">' + g.ch + ' · ' + (S.guide + 1) + '/' + GUIDE.length + '</span><span class="gtext">' + g.text + (g.goal > 1 ? ' (' + (S.guideN || 0) + '/' + g.goal + ')' : '') + '</span><button type="button" class="gskip" data-act="guideNext" aria-label="Skip this step">›</button><button type="button" class="gskip" data-act="guideSkip">Skip all</button>');
   if (g.say && S.guideSaid !== S.guide && $('modal').hidden) { S.guideSaid = S.guide; showModal(coachCard(g.ch, g.say)); }
-  const t = g.target.split(', ').map((q) => document.querySelector(q)).find((x) => x && x.offsetParent !== null);
-  if (t) t.classList.add('hint');
-  placeArrow(t);
+  const tt = navTarget(g.target), t = tt && tt.el;
+  if (t && t !== cv) t.classList.add('hint');
+  if (t === cv && S.guideSeenAt !== S.guide && $('modal').hidden) { S.guideSeenAt = S.guide; const r = cv.getBoundingClientRect(); if (r.top < 0 || r.bottom > innerHeight) cv.scrollIntoView({ block: 'start', behavior: calm ? 'auto' : 'smooth' }); }   /* lessons on the map bring the map back on screen */
+  placeArrow(t, tt && tt.pt);
 }
 function placeArrow(t, pt) {   /* a bouncing arrow over what to tap; on the farm it points at a ripe bush, or at pt on the map */
   const arrow = $('garrow');
@@ -2684,6 +2699,13 @@ function lotValue(v, method, kg) {
   if (!c) return { coins: sale, c: null };
   const use = Math.min(green, c.kg - c.have);
   return { coins: Math.round(c.coins * use / c.kg + saleFor(v, method, green - use).coins), c };
+}
+function bestLot() {   /* the coffee and process whose lot pays most right now, contracts included */
+  let best = null;
+  Object.keys(S.cherries).filter((v) => S.cherries[v] > 0).forEach((v) => Object.keys(METHODS).filter((m) => S.methods[m]).forEach((m) => {
+    const c = lotValue(v, m, S.cherries[v]).coins; if (!best || c > best[2]) best = [v, m, c];
+  }));
+  return best;
 }
 const wanted = (v) => (buyersOn() ? S.contracts.filter((c) => c.v === v && c.have < c.kg) : []);
 function row(art, title, sub, button) { return '<div class="row"><div class="art">' + art + '</div><div class="grow"><b>' + title + '</b><span>' + sub + '</span></div>' + button + '</div>'; }

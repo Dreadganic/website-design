@@ -420,8 +420,9 @@ Two late staff who take over chores, never as well as you do them yourself (`ROA
 ## Map arrows
 - **What they point at:** the same bouncing gold arrow as the guide, over anything on the map you can tap right now (`hintAt`, `drawHint`). One at a time, in this order:
   - **Farm:** the golden bush, else a ready estate chore.
-  - **Mill:** the cupping table when Cup all is yours and two or more lots need cupping, else the first uncupped rack, else a dry lot to sell when there's no foreman.
+  - **Mill:** the cupping table when Cup all is yours and two or more lots need cupping, else the first uncupped rack, else a dry lot to sell when there's no foreman, else an empty rack when there are cherries and no foreman.
   - **Roastery:** a roaster in its crack window, else a free roaster when there's green coffee.
+- **Empty racks start a lot.** Tapping an empty rack on the mill map starts the best-paying lot from the cherries in store, on that rack (`bestLot`). It compares every coffee you have against every process you own, using `lotValue`, so a matching contract and today's market bonus count.
 - **Estate chores on the map** (`CHORE_AT`): tap the Mogiana patio to rake it, the Gedeo compound to hold the day's ceremony, and the Osaka pond to feed the koi. When none is ready, tapping the same area opens the estate card as before.
 - **When they hide:** while the guide's own arrow is up or a window is open. They also stop bobbing for players who turn on reduced motion.
 - **The cupping table** sits mid-patio in the mill (`CUP_TABLE`, and `tx, ty` in `scene_mill`), clear of the counters at the top right.
@@ -471,3 +472,11 @@ Two late staff who take over chores, never as well as you do them yourself (`ROA
   - the cupping notebook card's sentence;
   - the resting-farm card reads its wake level before the delay;
   - the first season-star toast no longer names the wrong level.
+
+## Rosa teaches on the map
+- The first chapter points at the map rather than the panel buttons. Map targets are spots like `cv:mill:@free`; `rackPt` and `navTarget` turn them into positions.
+  - pick ripe bushes on the farm (`cv:farm:@ripe`);
+  - tap an empty rack to start a lot (`@free`);
+  - tap the drying rack to cup it (`@cup`);
+  - tap the rack when it's dry to sell it (`@dry`, which points at the drying rack until it's done).
+- If you're on another scene, the arrow points at the tab that leads back. When a lesson's target is on the map and you've scrolled down into the panel, the page scrolls the map back on screen once. The panel buttons still work and complete the step too.
