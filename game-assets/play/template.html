@@ -73,6 +73,10 @@ b .n, h2 .n, h3 .n, .row .grow b .n, .tile b .n { color: inherit; font-size: 1.1
 .pr-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; } .pr-row .btn { padding: 4px 8px; }
 .visit { display: flex; flex-direction: column; gap: 8px; }
 .visit-pic { width: 100%; max-width: 384px; align-self: center; image-rendering: pixelated; border-radius: 8px; border: 2px solid var(--edge); }
+.visit-stage { position: relative; width: 100%; max-width: 384px; align-self: center; display: flex; }
+.visit-fx { position: absolute; inset: 2px; width: calc(100% - 4px); height: calc(100% - 4px); image-rendering: pixelated; pointer-events: none; border-radius: 6px; }
+.trow { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.trow .tro { width: 21px; height: 27px; image-rendering: pixelated; }
 .visit-farms { flex-wrap: wrap; }
 .stickers { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
 .stickers .btn { padding: 4px 2px; font-size: 11px; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
@@ -174,6 +178,7 @@ button, a.btn, [data-act], [data-tab] { touch-action: manipulation; -webkit-tap-
 .season { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; padding: 8px 10px; background: #E2F0E6; border: 2px solid #2D6A46; border-radius: 8px; font-size: 13px; }
 .plate .charm { width: 14px; height: 14px; image-rendering: pixelated; vertical-align: -2px; margin-left: 4px; }
 .rbadge { width: 16px; height: 16px; image-rendering: pixelated; vertical-align: -3px; margin-left: 4px; }
+.plate .pin { width: 12px; height: 15px; image-rendering: pixelated; vertical-align: -3px; margin-left: 4px; }
 .badge.gold { border-color: #E8B830; box-shadow: 0 0 0 2px #FFF1C4, 0 0 0 4px #E8B830; }
 .track { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px; }
 .tier { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px; border: 2px solid #C8BCA4; border-radius: 8px; background: #FBF7EE; font-size: 11px; text-align: center; line-height: 1.2; }
@@ -681,7 +686,145 @@ const DECOR = {
   cart: { name: 'Coffee cart', cost: 25000, sub: 'A little Beju cart serving the pickers' }
 };
 const SEASON_DECO_AT = [[8, 24], [44, 20], [80, 24]];   /* along the top of the drying patio, clear of the paths and the farm buildings */
-const DECOR_AT = { harvest: [[76, 92]], bench: [[138, 96]], planter: [[179, 104]], lantern: [[91, 140], [91, 186]], flag: [[2, 86]], cart: [[154, 92]] };
+const DECOR_AT = { harvest: [[76, 92]], bench: [[138, 96]], planter: [[179, 104]], lantern: [[91, 140], [91, 186]], flag: [[2, 86]], cart: [[154, 92]], gift: [[126, 94]] };
+/* showing off: a trophy shelf and a stack of origin sacks stand in front of each farmhouse, where visitors see them */
+const SHELF_AT = { mogiana: [44, 90], huila: [40, 90], gedeo: [40, 90], toba: [48, 90], turrialba: [36, 92], osaka: [42, 92] };
+const SACKS_AT = { mogiana: [16, 91], huila: [14, 91], gedeo: [14, 91], toba: [18, 92], turrialba: [12, 92], osaka: [124, 88] };
+const SACK_COL = { mogiana: '#7A5230', huila: '#B2455F', gedeo: '#6A4C9C', toba: '#17788A', turrialba: '#A5650F' };   /* each origin's stamp colour */
+/* trophies: wins the server has checked (Cup of Excellence, Derby podiums, Harvest Day goals, top 10 season finishes) and Founding farmer */
+const TROPHY_RE = /^(coe|derby|harvest|season|rookie|founder):[0-9A-Za-z-]{1,16}$/;
+const TSWAP = { silver: { '#FFF0A0': '#FFFFFF', '#F2C04A': '#C8D0D8', '#B8862A': '#8A96A2' }, bronze: { '#FFF0A0': '#F0C8A0', '#F2C04A': '#C88A4A', '#B8862A': '#8A5A2A' }, green: { '#FFF0A0': '#C8E8B0', '#F2C04A': '#6CB86A', '#B8862A': '#3E7A3E' } };
+const trophyRank = (t) => { const r = t.r || 99; return t.k === 'coe' ? (r === 1 ? 0 : 3) : t.k === 'season' ? (r === 1 ? 1 : r <= 3 ? 4 : 7) : t.k === 'derby' ? (r === 1 ? 2 : 6) : t.k === 'rookie' ? (r === 1 ? 5 : 8) : t.k === 'harvest' ? 9 : 10; };   /* the server's order: grandest first */
+const dayName = (d) => (/^\d{4}-\d{2}-\d{2}$/.test(d || '') ? new Date(d + 'T00:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }) : '');
+const monthName = (d) => (/^\d{4}-\d{2}$/.test(d || '') ? new Date(d + '-01T00:00:00Z').toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' }) : '');
+function trophyInfo(t) {   /* the picture and the words for a trophy */
+  const r = t.r || 0, tier = r === 1 ? '' : r === 2 ? 'silver' : r === 3 ? 'bronze' : 'green', sw = (k) => (k ? { swap: Object.assign({}, TSWAP[k]) } : null);
+  if (t.k === 'coe') return { spr: 'tro_cup', opt: sw(r === 1 ? '' : 'silver'), name: r === 1 ? 'Cup of Excellence winner' : 'Cup of Excellence top 10%', when: t.w ? 'Week of ' + dayName(t.w) : '' };
+  if (t.k === 'derby') return { spr: 'tro_pennant', opt: sw(tier), name: r === 1 ? 'Co-op Derby winner' : 'Co-op Derby ' + r + ordinal(r), when: t.w ? 'Week of ' + dayName(t.w) : '' };
+  if (t.k === 'season' || t.k === 'rookie') { const o = sw(tier) || { swap: {} }; if (t.k === 'rookie') Object.assign(o.swap, { '#D8302C': '#4A8AB8', '#2D6A46': '#F8F4EC' }); return { spr: 'tro_medal', opt: o, name: (t.k === 'rookie' ? 'Rookie ' : 'Season ') + BADGE(r).toLowerCase(), when: /^\d{4}-\d{2}$/.test(t.s || '') ? seasonName(t.s) : '' }; }
+  if (t.k === 'harvest') return { spr: 'tro_basket', opt: null, name: 'Harvest Day goal', when: monthName(t.d) };
+  return { spr: 'tro_sprout', opt: null, name: 'Founding farmer', when: /^\d{4}-\d{2}$/.test(t.s || '') ? 'Since ' + seasonName(t.s) : 'Since before launch' };
+}
+const founder = () => S.firstSeason === '' || (!!S.firstSeason && S.firstSeason <= SEASON_FIRST);   /* saves from before rookies existed are older than the launch */
+function myTrophies() {   /* the server's record once online; until then, what this device has earned stands in */
+  const out = (S.trophies || []).slice();
+  if (!out.length) {
+    S.badges.forEach((b, i) => {
+      if (b.key && b.rank <= 10) out.push({ id: (/^Rookie/.test(b.label) ? 'rookie:' : 'season:') + b.key, k: /^Rookie/.test(b.label) ? 'rookie' : 'season', r: b.rank, s: b.key });
+      else if (b.event === 'Cup of Excellence') out.push({ id: 'coe:' + i, k: 'coe', r: b.rank });
+      else if (b.event === 'Co-op Derby' && b.rank <= 3) out.push({ id: 'derby:' + i, k: 'derby', r: b.rank });
+    });
+    if (S.hvWins) out.push({ id: 'harvest:1', k: 'harvest', d: '' });
+    if (founder()) out.push({ id: 'founder:' + (S.firstSeason || '1'), k: 'founder', s: S.firstSeason || '' });
+  }
+  return pinFirst(out, S.look.pin);
+}
+const pinFirst = (list, pin) => (list || []).slice().sort((a, b) => (b.id === pin) - (a.id === pin) || trophyRank(a) - trophyRank(b));
+const pinOf = (look, list) => { const p = look && look.pin; return p ? (list || []).find((t) => t.id === p) || null : null; };
+const trophyImg = (t, cls) => { const i = trophyInfo(t); return '<img class="' + (cls || 'pin') + '" src="' + url(i.spr, i.opt) + '" alt="' + i.name + '" title="' + i.name + (i.when ? ' · ' + i.when : '') + '">'; };
+function drawShowoff(c, loc, list, stamps, dv) {   /* the trophy shelf (up to three, pinned first) and the origin sacks, on your farm or a visit */
+  const sh = SHELF_AT[loc], sk = SACKS_AT[loc];
+  if (sh && list && list.length) {
+    c.drawImage(sprite('deco_shelf', dvOpt('shelf', dv)), sh[0], sh[1]);
+    list.slice(0, 3).forEach((t, i) => { const inf = trophyInfo(t); c.drawImage(sprite(inf.spr, inf.opt), sh[0] + 2 + i * 8, sh[1] - 8); });
+  }
+  if (sk && stamps && stamps.length) stamps.filter((o) => SACK_COL[o]).slice(0, 5).forEach((o, i) => { const top = i >= 3; c.drawImage(sprite('osack', { swap: { '#2D6A46': SACK_COL[o] } }), sk[0] + (top ? 4 + (i - 3) * 8 : i * 8), sk[1] - (top ? 5 : 0)); });
+}
+/* farm effects: small animations bought with cranes, two at a time, seen by visitors too. Hanabi is for Beju subscribers */
+const FX = { fireflies: { name: 'Fireflies', text: 'Glowing over the bushes from dusk', cost: 80 }, butterflies: { name: 'Butterflies', text: 'Fluttering over the farm by day', cost: 80 },
+  mist: { name: 'Morning mist', text: 'Drifting across the farm at dawn', cost: 90 }, sakura: { name: 'Sakura petals', text: 'Falling in every season', cost: 110 },
+  maple: { name: 'Maple leaves', text: 'Autumn colour all year', cost: 110 }, cranes: { name: 'Crane pair', text: 'Two cranes cross the sky now and then', cost: 150 },
+  hanabi: { name: 'Hanabi', text: 'Fireworks over the farm at night', cost: 0, subscriber: true } };
+const FX_MAX = 2, FX_GLOW = ['fireflies', 'hanabi'];   /* lights are drawn over the night tint */
+const fxOn = () => Object.keys(FX).filter((k) => S.fx[k]).slice(0, FX_MAX);
+function drawFx(c, ids, time, hr, glow) {
+  (ids || []).forEach((k) => {
+    if (!FX[k] || FX_GLOW.includes(k) !== !!glow) return;
+    if (k === 'fireflies' && (hr >= 18 || hr < 5)) for (let i = 0; i < 10; i++) {
+      const x = Math.round(8 + ((i * 37) % 176) + Math.sin(time * 0.7 + i) * 8), y = Math.round(112 + ((i * 23) % 80) + Math.cos(time * 0.9 + i * 1.7) * 6), a = 0.5 + 0.5 * Math.sin(time * 3 + i * 2);
+      c.fillStyle = 'rgba(220,240,120,' + (a * 0.35).toFixed(2) + ')'; c.fillRect(x - 1, y - 1, 3, 3);
+      c.fillStyle = 'rgba(250,250,170,' + a.toFixed(2) + ')'; c.fillRect(x, y, 1, 1);
+    }
+    else if (k === 'butterflies' && hr >= 7 && hr < 18) for (let i = 0; i < 3; i++) {
+      const x = Math.round(((time * 10 + i * 64) % 200) - 4), y = Math.round(104 + i * 32 + Math.sin(time * 2 + i * 2) * 8), open = Math.floor(time * 8 + i) % 2;
+      c.fillStyle = '#3E2A1C'; c.fillRect(x + 1, y, 1, 2);
+      c.fillStyle = ['#F08838', '#F8F4EC', '#F2D04A'][i];
+      if (open) { c.fillRect(x - 1, y - 1, 2, 2); c.fillRect(x + 2, y - 1, 2, 2); } else { c.fillRect(x, y - 1, 1, 2); c.fillRect(x + 2, y - 1, 1, 2); }
+    }
+    else if (k === 'mist' && hr >= 4.5 && hr < 10) {
+      const f = Math.min(1, hr - 4.5, (10 - hr) / 1.5);
+      for (let i = 0; i < 4; i++) { const w = 70 + i * 12, x = Math.round(((time * (3 + i) + i * 70) % (W + w)) - w), y = 56 + i * 44; c.fillStyle = 'rgba(255,255,255,' + (0.22 * f).toFixed(2) + ')'; c.fillRect(x, y, w, 7); c.fillRect(x + 6, y - 2, w - 12, 2); c.fillRect(x + 6, y + 7, w - 12, 2); }
+    }
+    else if (k === 'sakura' || k === 'maple') for (let i = 0; i < 14; i++) {
+      const v = 0.7 + (i % 3) * 0.2, yy = ((i * 97) % H + time * 14 * v) % (H + 10) - 5, xx = (((i * 53) % W + Math.sin(time * 1.3 + i) * 6 + time * 6 * v) % W + W) % W;
+      c.fillStyle = k === 'sakura' ? (i % 2 ? '#F8B8CC' : '#F48CAC') : ['#D04A2A', '#E8803A', '#F2B030'][i % 3];
+      c.fillRect(Math.round(xx), Math.round(yy), 2, k === 'maple' ? 2 : 1);
+    }
+    else if (k === 'cranes') {
+      const ct = (Date.now() / 1000 + 20) % 60;
+      if (ct < 11) [[0, 0], [11, 6]].forEach(([dx, dy]) => { const X = Math.round(W + 14 - ct / 10 * (W + 40)) + dx, Y = Math.round(26 + dy + Math.sin(ct * 1.3) * 3); c.save(); c.translate(X + 13, Y); c.scale(-1, 1); c.drawImage(sprite('crane_fly_' + (Math.floor(Date.now() / 260 + dx) % 2)), 0, 0); c.restore(); });
+    }
+    else if (k === 'hanabi' && (hr >= 19 || hr < 4)) for (let j = 0; j < 2; j++) {
+      const per = 2.6, tt = time + j * 1.3, cyc = Math.floor(tt / per), p = (tt % per) / per, cx = 24 + ((cyc * 53 + j * 71) % 144), cy = 16 + ((cyc * 29 + j * 17) % 40);
+      if (p < 0.15) { c.fillStyle = '#FFF4C0'; c.fillRect(cx, Math.round(cy + 30 - p / 0.15 * 30), 1, 2); continue; }
+      const q = (p - 0.15) / 0.85, r = 3 + q * 13;
+      c.globalAlpha = Math.max(0, 1 - q); c.fillStyle = ['#F06A58', '#F2C04A', '#7EC8F0', '#F8B8CC', '#A8E07A'][(cyc + j) % 5];
+      for (let a = 0; a < 12; a++) c.fillRect(Math.round(cx + Math.cos(a * Math.PI / 6) * r), Math.round(cy + Math.sin(a * Math.PI / 6) * r + q * q * 6), 1, 1);
+      c.globalAlpha = 1;
+    }
+  });
+}
+/* the market stall: three colourways a month for decorations you have, each back in the same month next year. Colours are swapped from each sprite's own */
+const MKT_KINDS = { bench: ['#E0B070', '#C08C50', '#4A2E18'], planter: ['#C8603A', '#E07C50'], lantern: ['#E84A3A', '#F8C870'], flag: ['#2D6A46', '#F8F4EC'], bunting: ['#D8302C', '#F2C04A', '#2D6A46', '#4A8AB8'],
+  cart: ['#D8302C', '#F8F4EC', '#2D6A46'], bandana: ['#D8302C'], shelf: ['#2D6A46', '#C08C50'], harvest: ['#F2C04A', '#FFF0A0'] };
+const MKT = [
+  ['bench', 'white', 'White-painted bench', ['#FFFFFF', '#E8E4DC', '#8A867E']], ['planter', 'blue', 'Blue glaze planter', ['#3A68A8', '#5A88C8']], ['lantern', 'blue', 'Indigo lanterns', ['#3A5AA8', '#C8E0F8']],
+  ['flag', 'red', 'Red Beju flag', ['#C8302C', '#F8F4EC']], ['bunting', 'pastel', 'Pastel bunting', ['#F8B8CC', '#F8E8A0', '#B8E0C0', '#B8D8F0']], ['cart', 'blue', 'Blue-striped cart', ['#3A68A8', '#F8F4EC', '#2C3A80']],
+  ['bandana', 'blue', 'Blue bandana', ['#3A68A8']], ['shelf', 'red', 'Red cloth shelf', ['#C8302C', '#C08C50']], ['harvest', 'red', 'Red-ribbon basket', ['#D8302C', '#F8A0A0']],
+  ['bench', 'red', 'Red lacquer bench', ['#E84A3A', '#C8302C', '#6A1E1C']], ['planter', 'white', 'White porcelain planter', ['#E8E4DC', '#FFFFFF']], ['lantern', 'white', 'White lanterns', ['#F8F4EC', '#FFF8D8']],
+  ['flag', 'navy', 'Navy Beju flag', ['#2C3A80', '#F8F4EC']], ['bunting', 'beju', 'Beju green bunting', ['#2D6A46', '#F8F4EC', '#2D6A46', '#F2C04A']], ['cart', 'green', 'Green-striped cart', ['#2D6A46', '#F8F4EC', '#F2C04A']],
+  ['bandana', 'yellow', 'Yellow bandana', ['#F2C04A']], ['shelf', 'navy', 'Navy cloth shelf', ['#2C3A80', '#C08C50']], ['harvest', 'blue', 'Blue-ribbon basket', ['#4A8AB8', '#B8D8F0']],
+  ['bench', 'sage', 'Sage green bench', ['#A8C8A0', '#7EA878', '#3E5A3A']], ['planter', 'black', 'Black glaze planter', ['#3A3A3A', '#5A5A5A']], ['lantern', 'green', 'Green lanterns', ['#3E8A4A', '#E8F0A0']],
+  ['flag', 'black', 'Black Beju flag', ['#2A2A2A', '#F2C04A']], ['bunting', 'redwhite', 'Red and white bunting', ['#D8302C', '#F8F4EC', '#D8302C', '#F8F4EC']], ['cart', 'yellow', 'Yellow-striped cart', ['#F2C04A', '#FFF8EC', '#7A5230']],
+  ['bandana', 'green', 'Green bandana', ['#2D6A46']], ['shelf', 'purple', 'Purple cloth shelf', ['#6A4C9C', '#C08C50']], ['harvest', 'white', 'White-ribbon basket', ['#F8F4EC', '#FFFFFF']],
+  ['bench', 'black', 'Black lacquer bench', ['#5A5A5A', '#3A3A3A', '#1A1A1A']], ['planter', 'celadon', 'Celadon planter', ['#8AB8A0', '#A8D0B8']], ['lantern', 'gold', 'Gold lanterns', ['#F2C04A', '#FFF4C0']],
+  ['flag', 'sakura', 'Sakura Beju flag', ['#E68EAC', '#FFFFFF']], ['bunting', 'night', 'Night market bunting', ['#2C3A80', '#F2C04A', '#2C3A80', '#F2C04A']], ['cart', 'black', 'Kissaten cart', ['#2A2A2A', '#F2C04A', '#7A4A28']],
+  ['bandana', 'purple', 'Purple bandana', ['#6A4C9C']], ['shelf', 'gold', 'Gold cloth shelf', ['#F2C04A', '#7A5230']], ['harvest', 'green', 'Green-ribbon basket', ['#2D6A46', '#A8D0B8']]
+].map(([kind, v, name, cols]) => ({ id: kind + '_' + v, kind, name, cols, cost: { bunting: 30, cart: 30, shelf: 25, bandana: 15, harvest: 15 }[kind] || 20 }));
+const mktNow = () => { const m = new Date(Date.now() + 9 * 3600e3).getUTCMonth(); return MKT.slice(m * 3, m * 3 + 3); };   /* Japan's calendar month */
+function dvOpt(kind, dv) { const m = MKT.find((x) => x.id === (dv || S.dv || {})[kind]); if (!m) return null; const sw = {}; MKT_KINDS[kind].forEach((c, i) => { sw[c] = m.cols[i]; }); return { swap: sw }; }
+const kindName = (k) => (DECOR[k] ? DECOR[k].name : { shelf: 'Trophy shelf', harvest: 'Harvest basket' }[k] || k);
+const kindOwned = (k) => S.decor[k] !== undefined;
+/* achievements: each pays a few cranes once, most of them in the first weeks, so new farmers get a start without raising the weekly rate */
+const ach = (id, name, text, need, have, cr) => ({ id, name, text, need, have, cr });
+const stampN = () => ORIGINS.filter((l) => S.stamps[l]).length, farmN = () => ORIGINS.filter((l) => S.farms[l].unlocked).length;
+const ACH = [
+  ach('sell1', 'Market regular', 'Sell 50 lots', 50, () => S.stats.lotsSold || 0, 5), ach('sell2', 'Mill hand', 'Sell 500 lots', 500, () => S.stats.lotsSold || 0, 10), ach('sell3', 'Exporter', 'Sell 5,000 lots', 5000, () => S.stats.lotsSold || 0, 15),
+  ach('cup1', 'First slurp', 'Cup 25 lots by hand', 25, () => S.stats.cupped || 0, 5), ach('cup2', 'Cupping table', 'Cup 250 lots by hand', 250, () => S.stats.cupped || 0, 10), ach('cup3', 'Golden spoon', 'Cup 2,500 lots by hand', 2500, () => S.stats.cupped || 0, 15),
+  ach('gold1', 'Lucky bush', 'Catch 10 golden bushes', 10, () => S.stats.golden || 0, 5), ach('gold2', 'Gold rush', 'Catch 100 golden bushes', 100, () => S.stats.golden || 0, 10), ach('gold3', 'Midas farm', 'Catch 500 golden bushes', 500, () => S.stats.golden || 0, 15),
+  ach('con1', 'Reliable supplier', 'Deliver 25 contracts', 25, () => S.stats.contracts || 0, 5), ach('con2', 'Trusted partner', 'Deliver 250 contracts', 250, () => S.stats.contracts || 0, 10),
+  ach('micro', 'Micro-lot', 'Sell a micro-lot', 1, () => S.stats.micro || 0, 5), ach('pea', 'Peaberry', 'Find a peaberry lot', 1, () => (S.peaSeen ? 1 : 0), 5),
+  ach('farm3', 'Three origins', 'Open 3 origin farms', 3, farmN, 5), ach('farm5', 'Coffee belt', 'Open all 5 origin farms', 5, farmN, 10),
+  ach('p1', 'New crest', 'Prestige for the first time', 1, () => S.prestige, 5), ach('p3', 'Seasoned grower', 'Reach prestige 3', 3, () => S.prestige, 10), ach('p5', 'Estate owner', 'Reach prestige 5', 5, () => S.prestige, 15), ach('p10', 'Living legend', 'Reach prestige 10', 10, () => S.prestige, 25),
+  ach('est1', 'Groundbreaking', 'Finish an estate project', 1, () => LOCS.filter((l) => est(l) > 0).length, 5), ach('est5', 'Five estates', 'Bring every origin estate to stage 3', 5, () => ORIGINS.filter((l) => est(l) >= 3).length, 20),
+  ach('nb', 'Master cupper', 'Earn 162 notebook stars', 162, () => nbTotal(), 15), ach('rep', 'Known roaster', 'Reach roastery reputation 15', 15, () => (roasteryOpen() ? repLevel() : 0), 10),
+  ach('streak7', 'Daily brew', 'Check in 7 days in a row', 7, () => S.checkin.streak || 0, 5), ach('streak30', 'Morning ritual', 'Check in 30 days in a row', 30, () => S.checkin.streak || 0, 10),
+  ach('coop', 'Co-op member', 'Join a co-op', 1, () => (S.coopName ? 1 : 0), 5), ach('cheers', 'Good neighbour', 'Cheer 10 different farms', 10, () => Object.keys(S.cheered || {}).length, 5), ach('harvest', 'Harvest helper', 'Help reach a Harvest Day goal', 1, () => S.hvWins || 0, 5),
+  ach('stamp1', 'First stamp', 'Link a bejucoffee.com order', 1, stampN, 5), ach('stamp5', 'Full passport', 'Collect all 5 origin stamps', 5, stampN, 20)
+];
+function achTick() {   /* pays any achievement reached, once */
+  if (S.guide < GUIDE.length) return;
+  const got = ACH.filter((x) => !S.ach[x.id] && x.have() >= x.need);
+  if (!got.length) return;
+  let cr = 0; got.forEach((x) => { S.ach[x.id] = Date.now(); cr += x.cr; });
+  earn({ cranes: cr }); SFX.play('achieve');
+  toast(got.length === 1 ? 'Achievement: ' + got[0].name + ' · +' + cr + ' cranes' : got.length + ' achievements · +' + cr + ' cranes. See Ranks › Records');
+}
+function showoffTick() {   /* the Founding farmer charm, the trophy shelf and the origin sacks turn up once there's something to show */
+  if (founder() && !S.sitems.charm.founder && S.guide >= GUIDE.length) { S.sitems.charm.founder = true; toast('Founding farmer: a charm for your nameplate, in Looks'); }
+  if (S.decor.shelf === undefined && myTrophies().length) S.decor.shelf = true;
+  if (S.decor.sacks === undefined && stampN()) S.decor.sacks = true;
+}
 /* prestige: purely for show. It ranks you above everyone on a lower prestige, unlocks a nameplate, border and farmer outfit per tier,
    and costs you level, points and access to farms until you level back up. Coins, upgrades and cosmetics are never touched. */
 const PRESTIGE_LEVEL = 10;
@@ -981,22 +1124,23 @@ function roastShopPanel() {
   h += '<p class="note">Buyer gifts so far: ' + Object.keys(RBUYERS).map((b) => BUYER_SHORT[b] + ' ' + fmt(S.rcos.sold[b] || 0) + ' bags').join(' · ') + '. Perfect cracks: ' + fmt(S.rcos.cracks || 0) + '.</p>';
   return h;
 }
-function drawNoren() {   /* the cloth over the door, in three panels */
-  const n = norenOf(S.rcos.on.noren);
-  for (let k = 0; k < 3; k++) { fx.fillStyle = n.cloth; fx.fillRect(84 + k * 8, 206, 7, 11); fx.fillStyle = 'rgba(0,0,0,0.18)'; fx.fillRect(84 + k * 8, 215, 7, 2); }
-  fx.fillStyle = n.mark;
-  const px = (pts) => pts.forEach(([a, b]) => fx.fillRect(a, b, 1, 1));
+function drawNoren(v, c) {   /* the cloth over the door, in three panels; v and c draw someone else's, for a visit */
+  const n = norenOf(v === undefined ? S.rcos.on.noren : v), g = c || fx;
+  for (let k = 0; k < 3; k++) { g.fillStyle = n.cloth; g.fillRect(84 + k * 8, 206, 7, 11); g.fillStyle = 'rgba(0,0,0,0.18)'; g.fillRect(84 + k * 8, 215, 7, 2); }
+  g.fillStyle = n.mark;
+  const px = (pts) => pts.forEach(([a, b]) => g.fillRect(a, b, 1, 1));
   if (n.pat === 'crest') px([[95, 209], [96, 209], [94, 210], [97, 210], [95, 211], [96, 211], [95, 212]]);
   else if (n.pat === 'crane') px([[92, 210], [93, 209], [94, 210], [95, 210], [96, 210], [97, 209], [98, 208], [99, 210], [95, 211], [96, 211], [95, 212]]);
-  else { fx.fillRect(94, 209, 4, 4); fx.fillRect(93, 210, 6, 2); }
+  else { g.fillRect(94, 209, 4, 4); g.fillRect(93, 210, 6, 2); }
 }
-function drawProps(time) {
+function drawProps(time, list, c) {   /* list and c draw a visited roastery's props */
+  const g = c || fx;
   Object.keys(RPROP).forEach((v) => {
-    const id = 'prop:' + v; if (!S.rcos.own[id] || S.rcos.hide[id]) return;
+    const id = 'prop:' + v; if (list ? !list.includes(v) : !S.rcos.own[id] || S.rcos.hide[id]) return;
     const [x, y] = RPROP[v].at, f = v === 'maneki' ? Math.floor(time * 1.6) % 2 : v === 'neon' ? (Math.floor(time * 9) % 31 === 0 ? 1 : 0) : v === 'cat' ? Math.floor(time * 0.7) % 2 : -1;
-    fx.drawImage(sprite('rp_' + v + (f > -1 ? '_' + f : '')), x, y);
-    if (v === 'record' && S.music) { const t = (time * 0.6) % 1; fx.globalAlpha = 1 - t; fx.fillStyle = '#3E2A1C'; const nx = Math.round(x + 4 + Math.sin(time * 2) * 2), ny = Math.round(y - 2 - t * 10); fx.fillRect(nx, ny, 1, 3); fx.fillRect(nx - 1, ny + 2, 1, 1); fx.fillRect(nx + 1, ny, 1, 1); fx.globalAlpha = 1; }
-    if (v === 'neon' && !f) { fx.fillStyle = 'rgba(255,138,180,0.10)'; fx.fillRect(x - 3, y - 2, 32, 13); }
+    g.drawImage(sprite('rp_' + v + (f > -1 ? '_' + f : '')), x, y);
+    if (v === 'record' && S.music && !list) { const t = (time * 0.6) % 1; g.globalAlpha = 1 - t; g.fillStyle = '#3E2A1C'; const nx = Math.round(x + 4 + Math.sin(time * 2) * 2), ny = Math.round(y - 2 - t * 10); g.fillRect(nx, ny, 1, 3); g.fillRect(nx - 1, ny + 2, 1, 1); g.fillRect(nx + 1, ny, 1, 1); g.globalAlpha = 1; }
+    if (v === 'neon' && !f) { g.fillStyle = 'rgba(255,138,180,0.10)'; g.fillRect(x - 3, y - 2, 32, 13); }
   });
 }
 /* seasonal roasts: each month's recipe, learned at season track tier 8. A matching bag gets the season's label and sells for 20% more that season */
@@ -1110,7 +1254,7 @@ function roasteryPanel() {
   h += row(img('rp_maneki_1', 26), 'Shop charm +' + Math.round(shopCharm() * 100) + '%', 'Every roastery cosmetic you own adds 1% to bag prices, up to +20%. You own ' + rCount() + '.', btn('Decorate', 'Shop › Roastery', 'decorgo', true, 'blue')) + '<p class="note">Each finished roast gives a season star (up to 3 a day).</p>';
   return h;
 }
-const charmName = (k) => (k === 'qgrader' ? 'Master cupper' : k === 'crack' ? 'Crack master' : themeById(k) ? themeById(k).name : '');
+const charmName = (k) => (k === 'qgrader' ? 'Master cupper' : k === 'crack' ? 'Crack master' : k === 'founder' ? 'Founding farmer' : themeById(k) ? themeById(k).name : '');
 const FARM_LEVEL = { huila: 3, gedeo: 5, toba: 7, turrialba: 9 };   /* the lowest level each dormant farm reopens at after a prestige */
 /* each farm reopens at a share of the XP the run needs for the next prestige, so reopening stays a string of milestones through the run at every prestige, not a minute's work */
 const FARM_WAKE = { huila: 0.02, gedeo: 0.05, toba: 0.10, turrialba: 0.18 };
@@ -1139,7 +1283,7 @@ const themeById = (id) => ART.seasons[Object.keys(ART.seasons).find((m) => ART.s
 const bgOpen = (id) => id === 'none' || (id.startsWith('s_') ? !!S.sitems.bg[sid(id)] : (id === 'beju' ? ORIGINS.every((l) => S.stamps[l]) : id === 'osaka' ? S.farms.osaka.unlocked : !!S.stamps[id]));
 const bgName = (id) => id.startsWith('s_') ? themeById(id).name : id === 'none' ? 'Plain' : id === 'beju' ? 'Beju gold' : ART.locations[id].name.split(',')[0];
 const bgHow = (id) => id.startsWith('s_') ? 'Season track' : id === 'beju' ? 'All 5 stamps' : id === 'osaka' ? 'Open Osaka' : bgName(id) + ' stamp';
-const normLook = (l) => { l = l || {}; const n = (x) => Math.max(0, Math.min(7, Math.floor(Number(x) || 0))); return { crest: n(l.crest !== undefined ? l.crest : l.plate), skin: n(l.skin), bg: BG_LIST.indexOf(l.bg) > -1 ? l.bg : 'none', char: ART.chars[l.char] ? l.char : 'none', hat: themeById(l.hat) ? 's_' + sid(l.hat) : '', charm: l.charm === 'qgrader' || l.charm === 'crack' ? l.charm : themeById(l.charm) ? sid(l.charm) : '', title: /^(\d{4}-\d{2}|nbm?:[a-z]+|nbt:[a-z]+|rr:master|rr:crack)$/.test(l.title || '') ? l.title : '', roaster: RFIN[l.roaster] && l.roaster !== 'classic' ? l.roaster : '' }; };
+const normLook = (l) => { l = l || {}; const n = (x) => Math.max(0, Math.min(7, Math.floor(Number(x) || 0))); return { crest: n(l.crest !== undefined ? l.crest : l.plate), skin: n(l.skin), bg: BG_LIST.indexOf(l.bg) > -1 ? l.bg : 'none', char: ART.chars[l.char] ? l.char : 'none', hat: themeById(l.hat) ? 's_' + sid(l.hat) : '', charm: l.charm === 'qgrader' || l.charm === 'crack' || l.charm === 'founder' ? l.charm : themeById(l.charm) ? sid(l.charm) : '', title: /^(\d{4}-\d{2}|nbm?:[a-z]+|nbt:[a-z]+|rr:master|rr:crack)$/.test(l.title || '') ? l.title : '', roaster: RFIN[l.roaster] && l.roaster !== 'classic' ? l.roaster : '', pin: TROPHY_RE.test(l.pin || '') ? l.pin : '' }; };
 /* character models replace the farmer's body; the outfit colours still go on top */
 const bodyOf = (look) => (look && ART.chars[look.char] ? 'chr_' + look.char + '_' : 'worker_');
 const CHAR_IDS = Object.keys(ART.chars).sort((a, b) => ART.chars[a].cost - ART.chars[b].cost);
@@ -1175,12 +1319,12 @@ function board(mode, fin) {   /* fin: the practice board as it stood when the se
   const live = !fin && NET.board[mode];
   if (live && NET.status === 'online') {
     liveBoard(mode);
-    const rows = live.top.map((r) => ({ code: r.code || '', name: r.name, prestige: r.prestige, seasonP: r.seasonP, seasonKh: r.seasonKh || 0, seasonStars: r.seasonStars || 0, level: r.level, points: r.points, look: normLook(r.look), rookie: !!r.rookie, you: live.me && r.rank === live.me.rank }));
+    const rows = live.top.map((r) => ({ pin: r.pin || null, code: r.code || '', name: r.name, prestige: r.prestige, seasonP: r.seasonP, seasonKh: r.seasonKh || 0, seasonStars: r.seasonStars || 0, level: r.level, points: r.points, look: normLook(r.look), rookie: !!r.rookie, you: live.me && r.rank === live.me.rank }));
     if (live.me && !rows.some((r) => r.you)) rows.push(Object.assign({}, live.me, { look: normLook(live.me.look), you: true }));
     return rows;
   }
   if (!fin && API && NET.status === 'online') liveBoard(mode);
-  const me = { name: S.name, prestige: S.prestige, seasonP: S.season.prestige, seasonKh: Math.round(S.season.kh || 0), seasonStars: S.season.stars, starsAt: S.season.starsAt, level: level(), points: Math.round(S.xp), look: S.look, rookie: isRookie(), you: true };
+  const me = { pin: pinOf(S.look, myTrophies()), name: S.name, prestige: S.prestige, seasonP: S.season.prestige, seasonKh: Math.round(S.season.kh || 0), seasonStars: S.season.stars, starsAt: S.season.starsAt, level: level(), points: Math.round(S.xp), look: S.look, rookie: isRookie(), you: true };
   /* all time: prestige, then level, then know-how this run. This season (and the Rookie board of first-season players): season stars, then whoever reached them first */
   return bots(fin).concat([me]).filter((x) => mode !== 'rookie' || x.rookie).sort(mode === 'all' ? (a, b) => b.prestige - a.prestige || b.level - a.level || b.points - a.points : seasonSort);
 }
@@ -1397,6 +1541,7 @@ let S = load() || fresh();
   S.estate = Object.assign({ st: {}, cellar: [] }, S.estate || {});
   if (S.staff && S.staff.estate) { S.coins += 3e6; delete S.staff.estate; }   /* the single estate manager became five: his fee comes back */   /* estate projects arrived after this save */
   S.rcos = Object.assign({ own: {}, hide: {}, sold: {}, cracks: 0 }, S.rcos || {}); S.rcos.on = Object.assign({ fin: 'classic', room: 'brick', noren: 'indigo', label: 'house', apron: 'plain' }, S.rcos.on);   /* roastery cosmetics arrived after this save */
+  ['ach', 'fx', 'mkt', 'dv'].forEach((k) => { if (!S[k] || typeof S[k] !== 'object') S[k] = {}; });   /* achievements, farm effects and market colourways arrived after this save */
 })();
 LOCS.forEach((l) => { const f = S.farms[l]; if (!f.shrubs.length) plant(f); f.workers.forEach((w) => { w.state = 'seek'; w.path = []; w.target = null; }); });
 if (!S.farms[START].workers.length) { addWorker(S.farms[START]); addWorker(S.farms[START]); }
@@ -1715,13 +1860,14 @@ function draw(time) {
     drawGuy({ x: M.at[0], y: M.at[1], path: [], dir: M.pose === 'rake' ? 'up' : turn ? 'down' : 'up', flip: false, walk: 0, work: time, look: M.look, state: M.pose === 'rake' ? 'rake' : 'idle' });
   }
   { const sp = spieceOn(); if (sp && f.unlocked) { const th = themeById(sp), [sx, sy, sk] = SHOWPIECE[S.loc]; fx.drawImage(sprite('showpiece_' + sk, { swap: { '#3E8A4A': th.main, '#E8B830': th.accent } }), sx, sy); } }   /* the season's showpiece */
-  if (S.decor.bunting) for (let x = 8; x < 184; x += 24) fx.drawImage(sprite('deco_bunting'), x, 103);
+  if (S.decor.bunting) for (let x = 8; x < 184; x += 24) fx.drawImage(sprite('deco_bunting', dvOpt('bunting')), x, 103);
   BUILD_ORDER.forEach((k, i) => {
     const n = f.build[k] || 0; if (!n) return;
     fx.drawImage(sprite('build_' + k + (ART.bskins[f.skin] ? '_' + f.skin : '')), SLOTS[i], 197);
     fx.fillStyle = '#F2C04A'; for (let j = 0; j < n; j++) fx.fillRect(SLOTS[i] + 22 - j * 3, 221, 2, 2);
   });
-  Object.keys(DECOR_AT).forEach((k) => { if (S.decor[k]) DECOR_AT[k].forEach(([x, y]) => fx.drawImage(sprite('deco_' + k), x, y)); });
+  Object.keys(DECOR_AT).forEach((k) => { if (S.decor[k]) DECOR_AT[k].forEach(([x, y]) => fx.drawImage(sprite('deco_' + k, dvOpt(k)), x, y)); });
+  drawShowoff(fx, S.loc, S.decor.shelf ? myTrophies() : [], S.decor.sacks ? ORIGINS.filter((l) => S.stamps[l]) : []);
   if (hasPerk('goldsign')) {   /* Golden Crane: the gold sign, and a crane crossing the sky every 45 seconds */
     fx.drawImage(sprite('perk_sign'), 100, 66);
     const ct = (Date.now() / 1000) % 45;
@@ -1749,7 +1895,7 @@ function draw(time) {
       const g = o.dog, spr = sprite('shiba_' + (g.moving ? Math.floor(g.walk * 8) % 2 : 0)), X = Math.round(g.x) - 8, Y = Math.round(g.y) - 11;
       fx.fillStyle = 'rgba(42,42,8,0.28)'; fx.beginPath(); fx.ellipse(X + 8, Y + 11, 6, 1.5, 0, 0, 7); fx.fill();
       if (g.flip) { fx.save(); fx.translate(X + 16, Y); fx.scale(-1, 1); fx.drawImage(spr, 0, 0); fx.restore(); } else fx.drawImage(spr, X, Y);
-      if (S.decor.bandana) { fx.fillStyle = '#D8302C'; const bx = g.flip ? X + 9 : X + 5; fx.fillRect(bx, Y + 6, 2, 2); fx.fillRect(bx + (g.flip ? 1 : 0), Y + 8, 1, 1); }
+      if (S.decor.bandana) { fx.fillStyle = (dvOpt('bandana') || { swap: { '#D8302C': '#D8302C' } }).swap['#D8302C']; const bx = g.flip ? X + 9 : X + 5; fx.fillRect(bx, Y + 6, 2, 2); fx.fillRect(bx + (g.flip ? 1 : 0), Y + 8, 1, 1); }
     } else if (o.me) {
       const fr = me.moving ? (me.dir === 'side' ? Math.floor(me.walk * 7) % 2 : WALK[Math.floor(me.walk * 7) % 4]) : 0;
       const spr = sprite(bodyOf(S.look) + me.dir + '_' + (me.dir === 'side' ? Math.min(fr, 1) : fr), skinLook(S.look.skin)), X = Math.round(me.x) - 8, Y = Math.round(me.y) - 23;
@@ -1792,12 +1938,14 @@ function draw(time) {
     if (wx[1] === 'rain') { fx.fillStyle = 'rgba(40,60,90,0.12)'; fx.fillRect(0, 0, W, H); }
   }
   const hr = S.minutes / 60;
+  drawFx(fx, fxOn(), time, hr, false);
   const tint = hr >= 20 || hr < 5 ? 'rgba(30,40,110,0.38)' : hr >= 17.5 ? 'rgba(240,120,40,' + (0.08 + (hr - 17.5) * 0.06).toFixed(2) + ')' : hr < 7 ? 'rgba(240,150,170,0.14)' : null;
   if (tint) { fx.fillStyle = tint; fx.fillRect(0, 0, W, H); }
   if (asleep) {   /* drain the colour, then warm it: a resting farm, not weather */
     fx.save(); fx.globalCompositeOperation = 'saturation'; fx.fillStyle = '#808080'; fx.fillRect(0, 0, W, H);
     fx.globalCompositeOperation = 'multiply'; fx.fillStyle = '#E8D2AA'; fx.fillRect(0, 0, W, H); fx.restore();
   }
+  drawFx(fx, fxOn(), time, hr, true);
   if (S.decor.lantern && (hr >= 18 || hr < 6)) DECOR_AT.lantern.forEach(([x, y]) => { const gl = fx.createRadialGradient(x + 3, y + 5, 1, x + 3, y + 5, 16); gl.addColorStop(0, 'rgba(255,200,110,0.55)'); gl.addColorStop(1, 'rgba(255,200,110,0)'); fx.fillStyle = gl; fx.fillRect(x - 14, y - 12, 34, 34); });
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(frame, 0, 0, W * 2, H * 2);
@@ -2348,15 +2496,18 @@ function applyCoffee(id) {   /* stamps and processes from one coffee; returns wh
 }
 function applyGrant(g) {   /* a real order, counted by the server */
   S.cranes += g.cranes;
-  const got = [].concat(...g.coffees.map(applyCoffee));
-  showModal('<h2>Order linked!</h2><p class="note">Your bejucoffee.com order ' + g.order + ' is now part of your farm: <b>+' + g.cranes + ' cranes</b>' + (got.length ? ', plus ' + got.join(', ') : '') + '.</p><button class="btn green" data-act="close">Wonderful</button>');
+  const got = [].concat(...(g.coffees || []).map(applyCoffee));
+  if (g.gift) { S.giftCodes = (S.giftCodes || []).concat([g.gift]); NET.giftsAt = 0; }
+  if ((g.sub || g.reason === 'subscription') && S.fx.hanabi === undefined) { S.fx.hanabi = fxOn().length < FX_MAX; got.push('Hanabi fireworks for your farm, for subscribers'); }
+  showModal('<h2>Order linked!</h2><p class="note">Your bejucoffee.com order ' + g.order + ' is now part of your farm: <b>+' + g.cranes + ' cranes</b>' + (g.bonus ? ' (with ' + g.bonus + ' bonus for ' + (g.reason === 'subscription' ? 'subscribing' : 'your first order this month') + ')' : '') + (got.length ? ', plus ' + got.join(', ') : '') + '.</p>' +
+    (g.gift ? '<p class="note">It came with a gift for a friend: code <b class="code">' + g.gift + '</b>. They open it in Shop › Real coffee, and you get 10 cranes.</p>' : '') + '<button class="btn green" data-act="close">Wonderful</button>');
   SFX.play('crane');
 }
-function realOrder(id) {
-  const c = COFFEES[id], cranes = Math.round(c.price / 100);
-  S.cranes += cranes;
+function realOrder(id) {   /* the Test tab's pretend order, paid like a real one */
+  const c = COFFEES[id], bonus = S.orderMonth !== monthKey() ? 30 : 0, cranes = Math.round(c.price / 100) + bonus;
+  S.cranes += cranes; S.orderMonth = monthKey();
   const next = c.stamps.find((s) => !S.stamps[s]) || null;   /* one stamp per order line; a blend stamps its next origin by share */
-  let msg = '+' + cranes + ' cranes';
+  let msg = '+' + cranes + ' cranes' + (bonus ? ' (with ' + bonus + ' for your first order this month)' : '');
   if (next) { S.stamps[next] = true; S.cranes += 20; stampBg(next); msg += ', +20 for a new stamp: ' + ART.locations[next].name; }
   if (c.method && !S.methods[c.method]) { S.methods[c.method] = true; msg += ', and ' + METHODS[c.method].name.toLowerCase() + ' processing unlocked'; }
   if (BEJU_CARDS[id] && !(S.bejuCards || {})[id]) { S.bejuCards = S.bejuCards || {}; S.bejuCards[id] = true; msg += ', a Roasted by Beju card for your notebook'; }
@@ -2695,7 +2846,7 @@ function shopTabs() {
 }
 function avatar(look, size) { look = normLook(look); return '<span class="fr b-' + PLATES[look.crest] + (look.bg === 'beju' ? ' bg-beju' : '') + '" style="width:' + size + 'px;height:' + size + 'px">' + (bgThumb(look.bg) ? '<img class="fbg" src="' + bgThumb(look.bg) + '" alt="">' : '') + '<img src="' + url(bodyOf(look) + 'down_0', Object.assign(skinLook(look.skin), look.hat ? { hat: ART.hats[look.hat] } : {})) + '" alt="" style="height:' + Math.round(size * 0.78) + 'px"></span>'; }
 const bgThumb = (id) => (id.startsWith('s_') ? url('sbg_' + sid(id)) : BG_THUMB[id]);
-function plate(name, i, stars, charm) { return '<span class="plate p-' + PLATES[i] + '">' + name + (stars ? ' ' + '★'.repeat(Math.min(5, stars)) : '') + (charm ? '<img class="charm" src="' + url('charm_' + charm) + '" alt="' + charmName(charm) + ' charm">' : '') + '</span>'; }
+function plate(name, i, stars, charm, pin) { return '<span class="plate p-' + PLATES[i] + '">' + name + (stars ? ' ' + '★'.repeat(Math.min(5, stars)) : '') + (charm ? '<img class="charm" src="' + url('charm_' + charm) + '" alt="' + charmName(charm) + ' charm">' : '') + (pin ? trophyImg(pin) : '') + '</span>'; }
 const starsFor = (p) => (p >= TIERS.length ? p - TIERS.length + 1 : 0);
 function bottleneck() {   /* name the one thing slowing the farm down right now */
   const f = S.farms[S.loc];
@@ -2760,7 +2911,7 @@ function farmSubtabs(cur, f) {   /* the Farm tab: your fields, plus the pages wh
 }
 function renderPanel() {
   const P = $('panel'), f = S.farms[S.loc], L = ART.locations[S.loc];
-  checkFarmMilestones();
+  checkFarmMilestones(); achTick(); showoffTick();
   let h = '';
   h += eventBanner();
   const fsub = S.tabs.upgrades && ['upgrades', 'build', 'staff'].includes(S.farmSub) ? S.farmSub : 'fields';
@@ -2963,11 +3114,17 @@ function renderPanel() {
     }
   } else if (tab === 'ranks') {
     const mode = S.rankTab || 'season', list = board(mode === 'hall' ? 'all' : mode), pos = list.findIndex((x) => x.you) + 1, t = tierOf(S.prestige), need = prestigeNeed(), ready = level() >= need;
-    h += '<div class="me">' + avatar(S.look, 64) + '<div class="me-t">' + plate(S.name, S.look.crest, starsFor(S.prestige), S.look.charm) + rBadge(S.look) + '<span class="note">Prestige ' + S.prestige + ' · ' + TIERS[t] + (S.look.title ? ' · ' + titleText(S.look.title) : '') + '</span><span class="note">Level ' + level() + ' · ' + fmt(Math.round(S.xp)) + ' know-how · rank #' + pos + ' of ' + list.length + '</span></div></div>';
-    const rsub = ['board', 'season', 'prestige'].concat(coeOK() ? ['cup'] : []).includes(S.rankSub) ? S.rankSub : 'board', rdot = ready, ss = S.season, reached = tierAt(ss.stars), sdot = Array.from({ length: reached }, (_, i) => i + 1).some((n) => !ss.claimed[n]);
-    h += '<div class="seg subtabs">' + [['board', 'Leaderboard'], ['season', 'Season'], ['prestige', 'Prestige']].concat(coeOK() ? [['cup', 'Cup']] : []).map(([k, tl]) => '<button type="button" data-act="ranksub:' + k + '" aria-pressed="' + (rsub === k) + '">' + tl + ((k === 'prestige' && rdot) || (k === 'season' && sdot) ? ' <i class="dot" aria-label="something waiting"></i>' : '') + '</button>').join('') + '</div>';
+    h += '<div class="me">' + avatar(S.look, 64) + '<div class="me-t">' + plate(S.name, S.look.crest, starsFor(S.prestige), S.look.charm, pinOf(S.look, myTrophies())) + rBadge(S.look) + '<span class="note">Prestige ' + S.prestige + ' · ' + TIERS[t] + (S.look.title ? ' · ' + titleText(S.look.title) : '') + '</span><span class="note">Level ' + level() + ' · ' + fmt(Math.round(S.xp)) + ' know-how · rank #' + pos + ' of ' + list.length + '</span></div></div>';
+    const rsub = ['board', 'season', 'prestige'].concat(coeOK() ? ['cup'] : [], ['records']).includes(S.rankSub) ? S.rankSub : 'board', rdot = ready, ss = S.season, reached = tierAt(ss.stars), sdot = Array.from({ length: reached }, (_, i) => i + 1).some((n) => !ss.claimed[n]);
+    h += '<div class="seg subtabs">' + [['board', 'Leaderboard'], ['season', 'Season'], ['prestige', 'Prestige']].concat(coeOK() ? [['cup', 'Cup']] : [], [['records', 'Records']]).map(([k, tl]) => '<button type="button" data-act="ranksub:' + k + '" aria-pressed="' + (rsub === k) + '">' + tl + ((k === 'prestige' && rdot) || (k === 'season' && sdot) ? ' <i class="dot" aria-label="something waiting"></i>' : '') + '</button>').join('') + '</div>';
     const strip = '<div class="season"><b>' + seasonName(ss.key) + ' season</b><span>' + daysLeft() + ' day' + (daysLeft() === 1 ? '' : 's') + ' left · ★ ' + ss.stars + ' season star' + (ss.stars === 1 ? '' : 's') + ' · track tier ' + reached + ' of ' + TRACK_TIERS + '</span></div>';
     if (rsub === 'cup') h += coePage();
+    else if (rsub === 'records') {
+      const got = ACH.filter((x) => S.ach[x.id]), all = ACH.reduce((a, x) => a + x.cr, 0);
+      h += '<h3>Achievements</h3><p class="note">' + got.length + ' of ' + ACH.length + ' · ' + got.reduce((a, x) => a + x.cr, 0) + ' of ' + all + ' cranes. Each one pays once.</p>';
+      h += ACH.filter((x) => !S.ach[x.id]).map((x) => row(img('i_crane', 26), x.name, x.text + (x.need > 1 ? ' · ' + fmt(Math.min(x.need, x.have())) + ' / ' + fmt(x.need) : ''), '<span class="note">+' + x.cr + '</span>')).join('');
+      if (got.length) h += '<p class="note"><b>Done:</b> ' + got.map((x) => x.name).join(' · ') + '</p>';
+    }
     else if (rsub === 'season') {
     const th = theme(), into = ss.stars - reached * TIER_STARS, today = ss.capDay === dayKey(new Date()) ? ss.caps : {};
     h += strip;
@@ -2991,7 +3148,7 @@ function renderPanel() {
     if (S.badges.length) h += '<div class="badges">' + S.badges.slice(-6).map((bd) => '<span class="badge r' + Math.min(bd.rank, 11) + (bd.gold ? ' gold' : '') + '">' + (bd.label || 'Event') + '<small>' + (bd.key ? seasonName(bd.key) : bd.event) + '</small></span>').join('') + '</div>';
     h += '<h3>Leaderboard</h3><div class="seg">' + [['season', 'This season'], ['rookie', 'Rookies'], ['all', 'Legacy'], ['hall', 'Hall of Excellence']].map(([k, tl]) => '<button type="button" data-act="ranktab:' + k + '" aria-pressed="' + (mode === k) + '">' + tl + '</button>').join('') + '</div>' + (mode === 'rookie' ? '<p class="note">Farmers in their first season. ' + (isRookie() ? 'That\'s you this month: finish in the top 10 for a Rookie badge.' : 'You\'ve graduated, but you can still watch the newcomers.') + '</p>' : '') + (mode === 'hall' ? hallRows() : '<div class="lb">' + list.slice(0, 15).concat(pos > 15 ? [list[pos - 1]] : []).map((x) => {
       const r = list.indexOf(x) + 1;
-      return '<div class="lb-row' + (x.you ? ' you' : '') + '"><b class="rk">' + r + '</b>' + avatar(x.look, 40) + '<div class="lb-n">' + plate(x.name, normLook(x.look).crest, starsFor(x.prestige), normLook(x.look).charm) + rBadge(normLook(x.look)) + '<span class="note">' + (normLook(x.look).title ? titleText(normLook(x.look).title) : TIERS[tierOf(x.prestige)]) + (x.rookie && mode === 'season' ? ' · Rookie' : '') + '</span></div><div class="lb-s"><b>' + (mode === 'all' ? 'P' + x.prestige : '★ ' + (x.seasonStars || 0)) + '</b><span>' + (mode === 'all' ? 'Lv ' + x.level : fmt(x.seasonKh || 0) + ' kh this season') + '</span><span>' + (mode === 'all' ? fmt(x.points) + ' kh' : 'P' + x.prestige + (x.seasonP ? ' (+' + x.seasonP + ' this season)' : '')) + '</span>' + (x.code && !x.you ? '<button type="button" class="visit-btn" data-act="visit:' + x.code + '">Visit</button>' : '') + '</div></div>';
+      return '<div class="lb-row' + (x.you ? ' you' : '') + '"><b class="rk">' + r + '</b>' + avatar(x.look, 40) + '<div class="lb-n">' + plate(x.name, normLook(x.look).crest, starsFor(x.prestige), normLook(x.look).charm, x.pin) + rBadge(normLook(x.look)) + '<span class="note">' + (normLook(x.look).title ? titleText(normLook(x.look).title) : TIERS[tierOf(x.prestige)]) + (x.rookie && mode === 'season' ? ' · Rookie' : '') + '</span></div><div class="lb-s"><b>' + (mode === 'all' ? 'P' + x.prestige : '★ ' + (x.seasonStars || 0)) + '</b><span>' + (mode === 'all' ? 'Lv ' + x.level : fmt(x.seasonKh || 0) + ' kh this season') + '</span><span>' + (mode === 'all' ? fmt(x.points) + ' kh' : 'P' + x.prestige + (x.seasonP ? ' (+' + x.seasonP + ' this season)' : '')) + '</span>' + (x.code && !x.you ? '<button type="button" class="visit-btn" data-act="visit:' + x.code + '">Visit</button>' : '') + '</div></div>';
     }).join('') + '</div>');
     if (mode !== 'hall') h += '<p class="note">' + (NET.status === 'online' && NET.board[mode] ? 'Live leaderboard · ' + NET.board[mode].players + ' farmer' + (NET.board[mode].players === 1 ? '' : 's') : 'Practice board: the live leaderboard appears when the game is played on bejucoffee.com.') + '</p>';
     h += '<h3>Farm visits</h3>' + help('visits', 'Tap Visit on a farmer, or enter a farm code.', 'Tap Visit on a farmer or type their farm code to see their farm. One Cheers a day per farm; your first earns a season star.') +
@@ -3010,7 +3167,7 @@ function renderPanel() {
     }
   } else if (tab === 'looks') {   /* everything you own and wear; the Shop is where you buy */
     const t = tierOf(S.prestige);
-    h += '<div class="me">' + avatar(S.look, 64) + '<div class="me-t">' + plate(S.name, S.look.crest, starsFor(S.prestige), S.look.charm) + rBadge(S.look) + '<span class="note">' + TIERS[t] + ' crest' + (S.look.title ? ' · ' + titleText(S.look.title) : '') + '</span></div></div>';
+    h += '<div class="me">' + avatar(S.look, 64) + '<div class="me-t">' + plate(S.name, S.look.crest, starsFor(S.prestige), S.look.charm, pinOf(S.look, myTrophies())) + rBadge(S.look) + '<span class="note">' + TIERS[t] + ' crest' + (S.look.title ? ' · ' + titleText(S.look.title) : '') + '</span></div></div>';
     h += '<h2>Looks</h2>' + help('looks', 'Everything you own and wear. Tap one to use it.', 'Everything you own and wear: crests, outfits, characters, backgrounds, hats, charms and titles. Tap one to use it.');
     const has = () => ORIGINS.filter((l) => S.stamps[l]).length;
     h += '<h3>Crest</h3><div class="looks">' + TIERS.map((nm, i) => {
@@ -3032,10 +3189,14 @@ function renderPanel() {
     h += '<p class="note"><b>Nameplate charm</b></p><div class="looks">' + [''].concat(charms).map((k) => '<button type="button" class="look" data-act="lookcharm:' + k + '" aria-pressed="' + (S.look.charm === k) + '">' + plate('P' + S.prestige, S.look.crest, 0, k) + '<small>' + (k ? charmName(k) : 'None') + '</small></button>').join('') + '</div>';
     h += '<p class="note"><b>Title</b> (shown under your name on the board)</p><div class="looks">' + [''].concat(titles).map((k) => '<button type="button" class="look" data-act="looktitle:' + k + '" aria-pressed="' + (S.look.title === k) + '"><small>' + (k ? titleText(k) : 'Crest name') + '</small></button>').join('') + '</div>';
     if (!hats.length && !charms.length && !titles.length) h += '<p class="note">Reach tier 18 on the season track for a hat, 25 for a charm and 30 for a title.</p>';
+    const tro = myTrophies();
+    h += '<h3>Trophies</h3>' + help('trophies', 'Pin one to show it beside your name.', 'Cup of Excellence weeks, Co-op Derby podiums, Harvest Day goals, top 10 season finishes and Founding farmer, each checked by the server. Pin one to show it beside your name on every board. Your best three stand on the trophy shelf on your farm, where visitors see them.');
+    h += tro.length ? '<div class="looks">' + tro.map((t) => { const i = trophyInfo(t); return '<button type="button" class="look" data-act="pin:' + t.id.replace(':', '~') + '" aria-pressed="' + (S.look.pin === t.id) + '"><img src="' + url(i.spr, i.opt) + '" alt="" style="width:28px;image-rendering:pixelated"><small>' + i.name + (i.when ? '<br>' + i.when : '') + '</small></button>'; }).join('') + '</div><p class="note">' + (S.look.pin ? 'Tap the pinned trophy again to unpin it.' : 'Tap a trophy to pin it beside your name.') + '</p>'
+      : '<p class="note">Win a Cup of Excellence week, a Derby podium, a Harvest Day goal or a top 10 season finish to start your trophy shelf.</p>';
         h += row(img('build_housing', 30), 'Building styles', 'Farm buildings in a different style, for any farm.', btn('Farm style', 'in the Shop', 'shoptab:bskin', true, 'blue'));
   } else if (tab === 'shop' && S.shopTab === 'beju') {
     h += shopTabs();
-    h += '<h2>Real coffee, real rewards</h2><p class="note">Every order on bejucoffee.com feeds your farm: 1 crane for every ¥100, and a passport stamp for each new origin. Blends stamp their next origin by share. Free 100 g samples come from your Mogiana welcome harvest, each origin\'s prestige milestone and monthly check-ins.</p>';
+    h += '<h2>Real coffee, real rewards</h2><p class="note">Every order on bejucoffee.com feeds your farm: 1 crane for every ¥100, 30 more for your first order each month, and a passport stamp for each new origin. Subscribers get 10 more with every renewal, and Hanabi fireworks for their farm. Blends stamp their next origin by share. Free 100 g samples come from your Mogiana welcome harvest, each origin\'s prestige milestone and monthly check-ins.</p>';
     h += '<p><a class="btn green" href="https://bejucoffee.com" target="_blank" rel="noopener">Shop at bejucoffee.com</a></p>';
     h += '<h3>Passport</h3><div class="stamps">' + LOCS.map((l) => '<img src="' + url('stamp_' + l) + '" alt="' + ART.locations[l].name + (S.stamps[l] ? ', stamped' : ', not yet') + '" class="' + (S.stamps[l] ? '' : 'off') + ((S.goldStamps || {})[l] ? ' gold' : '') + '">').join('') + '</div>';
     h += '<h3>What each coffee gives</h3>' + Object.keys(COFFEES).map((k) => { const c = COFFEES[k], next = c.stamps.find((x) => !S.stamps[x]); return row(img(next ? 'stamp_' + next : 'i_crane', 30), c.name, '¥' + fmt(c.price) + ' · ' + Math.round(c.price / 100) + ' cranes' + (next ? ' · stamp: ' + ART.locations[next].name.split(',')[0] : ' · all stamps collected') + (c.method ? ' · unlocks ' + METHODS[c.method].name.toLowerCase() + ' processing' : ''), ''); }).join('');
@@ -3043,6 +3204,12 @@ function renderPanel() {
     h += '<h3>Free coffee samples</h3><p class="note">Each sample is a free 100 g bag that comes in the box with a bejucoffee.com order of ¥' + fmt(SAMPLE_MIN) + ' or more, one per order, within ' + SAMPLE_DAYS + ' days of earning it.' + (API ? '' : ' (Practice copy: samples become redeemable when Beju Farm launches on bejucoffee.com.)') + '</p>' + (S.samples.length ? S.samples.map((s) => { const st = sampleState(s); return row(img('green_sack', 28), '100 g ' + s.coffee, (s.kind === 'welcome' ? 'Welcome sample' : s.kind === 'monthly' ? 'Monthly check-in sample' : ART.locations[s.origin].name.split(',')[0] + ' origin sample') + ' · ' + (st === 'earned' ? ST.earned + new Date(s.expires).toLocaleDateString() : ST[st] || st), ''); }).join('') : '<p class="note">None yet.</p>');
     const nextS = SAMPLE_LADDER.find((r) => !sampleOf(r.id)), days = ((S.checkin.days || {})[monthKey()] || []).length;
     h += '<p class="note">' + (nextS ? 'Next sample: ' + (nextS.prestige ? 'reach prestige ' + nextS.prestige + ' for ' : 'bring in 1,000 kg at Mogiana for ') + ART.locations[nextS.origin].reward + '. ' : '') + 'Monthly sample: ' + days + ' / ' + MONTH_CHECKINS + ' check-in days this month.</p>';
+    giftsSync();
+    const gifts = (NET.gifts && NET.gifts.gifts) || (S.giftCodes || []).map((code) => ({ code, opened: false }));
+    h += '<h3>Gifts for friends</h3><p class="note">Every order you link brings a gift for a friend. They open it with its code and get a furoshiki bundle for their farm, and you get 10 cranes.</p>';
+    h += gifts.length ? gifts.map((g) => row(img('deco_gift', 26), 'Gift code <b class="code">' + g.code + '</b>', g.opened ? 'Opened by a friend' : 'Waiting for a friend to open it', '')).join('') : '<p class="note">Your first linked order brings your first gift code.</p>';
+    if (S.giftFrom) h += '<p class="note">You opened a gift from ' + S.giftFrom + '.</p>';
+    else if (API && NET.status === 'online') h += '<div class="seg"><input id="giftIn" maxlength="7" placeholder="Gift code" aria-label="A friend\'s gift code" autocapitalize="characters"><button type="button" data-act="giftopen">Open a gift</button></div>';
   } else if (tab === 'shop' && S.shopTab === 'chars') {
     h += shopTabs();
     h += '<h2>Farmer</h2><p class="note">' + icon('i_crane') + ' ' + S.cranes + ' cranes. Farm as someone else. Your outfit, crest and background go on top, and other players see your character on the leaderboard.</p>';
@@ -3083,6 +3250,26 @@ function renderPanel() {
     Object.keys(S.decor).filter((k) => k.startsWith('s_')).forEach((k) => {
       h += row(img('deco_' + k, 26), themeById(k).name + ' decoration', 'From the season track. Up to three season decorations show at once.', btn(S.decor[k] ? 'Shown' : 'Hidden', 'tap to switch', 'decor:' + k, true, S.decor[k] ? 'blue' : ''));
     });
+    const tog = (k) => btn(S.decor[k] ? 'Shown' : 'Hidden', 'tap to switch', 'decor:' + k, true, S.decor[k] ? 'blue' : '');
+    if (S.decor.shelf !== undefined) h += row(img('deco_shelf', 34), 'Trophy shelf', 'Your best three trophies in front of the farmhouse. Pin one in Looks to put it first.', tog('shelf'));
+    if (S.decor.sacks !== undefined) h += row(img('osack', 24), 'Origin sacks', 'A sack for each origin stamp in your passport, so visitors see which coffees you drink.', tog('sacks'));
+    if (S.decor.gift !== undefined) h += row(img('deco_gift', 26), 'Furoshiki gift', 'Opened from ' + (S.giftFrom || 'a friend') + '\'s gift.', tog('gift'));
+    const cw = Object.keys(MKT_KINDS).filter((k) => MKT.some((m) => m.kind === k && S.mkt[m.id]));
+    if (cw.length) {
+      h += '<h3>Colours</h3><p class="note">Colourways from the market stall. Tap one to use it on every farm.</p>';
+      cw.forEach((k) => { h += '<p class="note"><b>' + kindName(k) + '</b></p><div class="looks">' + [''].concat(MKT.filter((m) => m.kind === k && S.mkt[m.id]).map((m) => m.id)).map((id) => '<button type="button" class="look" data-act="dv:' + k + '.' + id + '" aria-pressed="' + ((S.dv[k] || '') === id) + '"><img src="' + url('deco_' + k, id ? dvOpt(k, { [k]: id }) : undefined) + '" alt="" style="height:26px;image-rendering:pixelated"><small>' + (id ? MKT.find((m) => m.id === id).name : 'Original') + '</small></button>').join('') + '</div>'; });
+    }
+    const mo = new Date(Date.now() + 9 * 3600e3).toLocaleString('en', { month: 'long', timeZone: 'UTC' });
+    h += '<h3>Market stall · ' + mo + '</h3><p class="note">' + icon('i_crane') + ' ' + S.cranes + ' cranes. Three colourways a month for decorations you have. Each one comes back in ' + mo + ' next year.</p><div class="grid2">' + mktNow().map((m) => {
+      const own = !!S.mkt[m.id], on = S.dv[m.kind] === m.id;
+      return '<div class="tile" aria-pressed="' + on + '"><div style="display:flex;justify-content:center;min-height:40px;align-items:center"><img src="' + url('deco_' + m.kind, dvOpt(m.kind, { [m.kind]: m.id })) + '" alt="" style="max-width:48px;height:32px;object-fit:contain;image-rendering:pixelated"></div><b>' + m.name + '</b>' +
+        (own ? btn(on ? 'In use' : 'Use', '', 'dv:' + m.kind + '.' + m.id, !on, 'blue') : kindOwned(m.kind) ? btn('Buy', m.cost + ' cranes', 'mktbuy:' + m.id, S.cranes >= m.cost) : '<span>Needs the ' + kindName(m.kind).toLowerCase() + '</span>') + '</div>';
+    }).join('') + '</div>';
+    h += '<h3>Farm effects</h3><p class="note">' + icon('i_crane') + ' ' + S.cranes + ' cranes. Little animations on every farm, and visitors see them too. Up to ' + FX_MAX + ' at once.</p><div class="grid2">' + Object.keys(FX).map((k) => {
+      const e = FX[k], own = S.fx[k] !== undefined;
+      return '<div class="tile" aria-pressed="' + !!S.fx[k] + '"><img src="' + url('fx_' + k) + '" alt="" style="width:40px;image-rendering:pixelated"><b>' + e.name + '</b><span>' + e.text + '</span>' +
+        (own ? btn(S.fx[k] ? 'Shown' : 'Hidden', 'tap to switch', 'fx:' + k, true, S.fx[k] ? 'blue' : '') : e.subscriber ? '<span>For Beju coffee subscribers</span>' : btn('Buy', e.cost + ' cranes', 'fxbuy:' + k, S.cranes >= e.cost)) + '</div>';
+    }).join('') + '</div>';
   } else if (tab === 'shop') {
     h += shopTabs();
     h += '<h2>Boosts</h2><p class="note">' + icon('i_crane') + ' ' + S.cranes + ' cranes. Earn 1 crane per ¥100 spent on bejucoffee.com and 20 for each new passport stamp' + (TEST_TOOLS ? ' (try it in the Test tab)' : '') + '.</p>' + (S.farms.osaka.unlocked ? '' : row(img('stamp_osaka', 30), 'Osaka roastery garden', 'Rare varieties all year, four seasons. Cranes only.', btn('Open', OSAKA_CRANES + ' cranes', 'farm:osaka', S.cranes >= OSAKA_CRANES)));
@@ -3132,8 +3319,8 @@ document.addEventListener('click', (e) => {
   const wallet = S.coins + S.points + S.cranes, decorOwned = S.decor[v] !== undefined;
   setTimeout(() => {   /* sound for the action, once its effect is known */
     const spent = S.coins + S.points + S.cranes < wallet;
-    const BUY = { hire: 'hire', up: 'buy', build: 'build', mgr: 'hire', foreman: 'hire', agent: 'hire', var: 'achieve', farm: 'achieve', method: 'achieve', buyhat: 'achieve', master: 'buy', research: 'achieve', buychar: 'achieve', buybskin: 'achieve', boost: 'crane', decor: 'achieve' };
-    const ALWAYS = { dailysub: 'tick', stickersall: 'tick', derbyall: 'tick', hidestickers: 'tick', ranktab: 'tick', ranksub: 'tick', millview: 'tick', millsub: 'tick', untab: 'tick', crest: 'tick', skin: 'tick', bg: 'tick', char: 'tick', bskin: 'build', bskinall: 'build', rename: 'tick', mvol: 'tick', uptab: 'tick', shoptab: 'tick', hat: 'tick', rule: 'tick', mv: 'tick', speed: 'tick', season: 'tick', go: 'click', bed: 'click', skip: 'page', plant: 'dig', task: 'coins', weekly: 'crane', order: 'crane', sellraw: 'coins', add: 'xp' };
+    const BUY = { hire: 'hire', up: 'buy', build: 'build', mgr: 'hire', foreman: 'hire', agent: 'hire', var: 'achieve', farm: 'achieve', method: 'achieve', buyhat: 'achieve', master: 'buy', research: 'achieve', buychar: 'achieve', buybskin: 'achieve', boost: 'crane', decor: 'achieve', fxbuy: 'achieve', mktbuy: 'achieve' };
+    const ALWAYS = { pin: 'tick', fx: 'tick', dv: 'tick', dailysub: 'tick', stickersall: 'tick', derbyall: 'tick', hidestickers: 'tick', ranktab: 'tick', ranksub: 'tick', millview: 'tick', millsub: 'tick', untab: 'tick', crest: 'tick', skin: 'tick', bg: 'tick', char: 'tick', bskin: 'build', bskinall: 'build', rename: 'tick', mvol: 'tick', uptab: 'tick', shoptab: 'tick', hat: 'tick', rule: 'tick', mv: 'tick', speed: 'tick', season: 'tick', go: 'click', bed: 'click', skip: 'page', plant: 'dig', task: 'coins', weekly: 'crane', order: 'crane', sellraw: 'coins', add: 'xp' };
     if (BUY[a] && spent) SFX.play(BUY[a]); else if (a === 'decor' && decorOwned) SFX.play('tick'); else if (ALWAYS[a]) SFX.play(ALWAYS[a]);
   }, 0);
   if (a === 'hire') { if (f.workers.length < maxPickers(f) && spend('coins', hireCost())) { addWorker(f); guideStep('hire'); toast('A new picker joins you'); } }
@@ -3199,6 +3386,12 @@ document.addEventListener('click', (e) => {
   else if (a === 'lookhat') { if (!v || S.hats[v]) S.look.hat = v; }
   else if (a === 'lookcharm') { if (!v || S.sitems.charm[v]) S.look.charm = v; }
   else if (a === 'looktitle') { if (!v || S.sitems.title[v]) S.look.title = v; }
+  else if (a === 'pin') { const id = v.replace('~', ':'); S.look.pin = S.look.pin === id ? '' : id; }
+  else if (a === 'fx') { if (S.fx[v] !== undefined) { if (!S.fx[v] && fxOn().length >= FX_MAX) toast('Two effects show at once: hide one first'); else S.fx[v] = !S.fx[v]; } }
+  else if (a === 'fxbuy') { if (FX[v] && !FX[v].subscriber && S.fx[v] === undefined && spend('cranes', FX[v].cost)) { S.fx[v] = fxOn().length < FX_MAX; toast(FX[v].name + ' is yours' + (S.fx[v] ? '' : ': hide another effect to show it')); } }
+  else if (a === 'mktbuy') { const m = MKT.find((x) => x.id === v); if (m && mktNow().includes(m) && !S.mkt[v] && kindOwned(m.kind) && spend('cranes', m.cost)) { S.mkt[v] = true; S.dv[m.kind] = v; toast(m.name + ' is yours'); } }
+  else if (a === 'dv') { const [k, id] = v.split('.'); if (MKT_KINDS[k] && (!id || S.mkt[id])) S.dv[k] = id || ''; }
+  else if (a === 'giftopen') giftOpen(($('giftIn') || {}).value);
   else if (a === 'arch') { const [kind, id] = v.split('.'); if (archiveKeys().some((k) => theme(k).id === id) && !archOwned(kind, id) && spend('cranes', ARCHIVE[kind])) { archGive(kind, id); toast(themeById(id).name + ' ' + ARCHIVE_WHAT[kind] + ' is yours'); } }
   else if (a === 'pwalkgo') { closeModal(); S.pwalk = 2; S.rankSub = 'prestige'; setTab('ranks'); setTimeout(() => showModal(coachCard('Prestige', 'Prestige restarts your level for a new crest. Coins, buildings and farms all stay. Tap Prestige when you\'re ready.')), 300); }
   else if (a === 'navend') navFinish();
@@ -3370,7 +3563,7 @@ async function online() {
     if (live && (!S.event || S.event.id !== live.id)) startDrop(live.id, live);
     NET.status = 'online'; cloudSync(); await visitSync(true); await submitScore(); syncSamples(); harvestSync(true); coopSync(true);
     const gr = await api('game-grants', 'POST', {}).catch(() => null);
-    if (gr && gr.status === 200) gr.data.grants.forEach((g) => applyGrant({ cranes: g.cranes, coffees: [], order: g.order + (g.reason === 'subscription' ? ' (subscription renewal)' : '') }));
+    if (gr && gr.status === 200) gr.data.grants.forEach((g) => { if (g.reason === 'gift') { S.cranes += g.cranes; NET.giftsAt = 0; SFX.play('crane'); toast('A friend opened your gift: +' + g.cranes + ' cranes'); } else applyGrant({ cranes: g.cranes, bonus: g.bonus, reason: g.reason, coffees: [], order: g.order + (g.reason === 'subscription' ? ' (subscription renewal)' : '') }); });
   } catch (e) { NET.status = 'offline'; }
 }
 async function cloudSync(force) {
@@ -3397,12 +3590,25 @@ async function syncSamples() {   /* the server's sample list is the real one; lo
   const server = r.data.samples.map((s) => Object.assign(s, { local: false }));
   S.samples = server.concat(S.samples.filter((s) => s.local && !server.some((x) => x.id === s.id)).map((s) => Object.assign(s, { status: 'pending' })));
 }
+async function giftsSync() {   /* your gift codes and whether friends have opened them */
+  if (!API || !NET.acct || NET.status !== 'online' || Date.now() - (NET.giftsAt || 0) < 60000) return;
+  NET.giftsAt = Date.now();
+  const r = await api('game-gift').catch(() => null);
+  if (r && r.status === 200) { NET.gifts = r.data; if (r.data.from && !S.giftFrom) { S.giftFrom = r.data.from; if (S.decor.gift === undefined) S.decor.gift = true; } if (tab === 'shop') renderPanel(); }
+}
+async function giftOpen(code) {
+  code = String(code || '').toUpperCase().replace(/[^A-Z2-9]/g, '');
+  if (code.length !== 6) { SFX.play('nope'); toast('A gift code has 6 letters and numbers'); return; }
+  const r = await api('game-gift', 'POST', { code }).catch(() => null);
+  if (r && r.status === 200) { S.giftFrom = r.data.from; S.decor.gift = true; SFX.play('achieve'); showModal('<h2>A gift from ' + r.data.from + '</h2><p class="note">A furoshiki bundle for your farm: it sits in front of the farmhouse on every farm. ' + r.data.from + ' gets 10 cranes for sharing.</p><button class="btn green" data-act="close">Lovely</button>'); renderPanel(); return; }
+  SFX.play('nope'); toast({ own_gift: 'That one is yours: share it with a friend', already_opened: 'Someone has already opened that gift', one_gift_each: 'You\'ve opened a gift already', no_gift: 'No gift has that code' }[r && r.data && r.data.error] || 'Could not open that gift');
+}
 async function liveBoard(mode) {
   if (!API || NET.status !== 'online') return null;
   if (NET.board[mode] && Date.now() - NET.boardAt[mode] < 30000) return NET.board[mode];
   NET.boardAt[mode] = Date.now();
   const r = await api('game-score?mode=' + mode).catch(() => null);
-  if (r && r.status === 200) { NET.board[mode] = r.data; if (tab === 'ranks') renderPanel(); }
+  if (r && r.status === 200) { NET.board[mode] = r.data; if (r.data.me && r.data.me.trophies) S.trophies = r.data.me.trophies; if (tab === 'ranks') renderPanel(); }
   return NET.board[mode] || null;
 }
 /* farm visits: a small snapshot of how your farms look goes to the server, which gives you a farm code. Anyone can visit by code or from the
@@ -3609,7 +3815,9 @@ async function coeCrack(late) {
 function farmSnapshot() {
   const farms = {};
   LOCS.forEach((l) => { const f = S.farms[l]; if (!f.unlocked) return; farms[l] = { u: 1, b: BUILD_ORDER.map((k) => f.build[k] || 0), f: !!f.field, s: f.skin || '', e: est(l), h: houseTier(farmLevel(f)), beds: f.beds.slice(0, 4) }; });
-  return { loc: S.showLoc && S.farms[S.showLoc].unlocked ? S.showLoc : S.loc, farms, store: S.lv.storage, decor: Object.keys(S.decor).filter((k) => S.decor[k]), spiece: spieceOn() || '', perk: hasPerk('goldsign') };
+  const rst = roasteryOpen() ? { room: S.rcos.on.room, fin: S.rcos.on.fin, noren: S.rcos.on.noren, label: S.rcos.on.label, apron: S.rcos.on.apron, props: Object.keys(RPROP).filter((v) => S.rcos.own['prop:' + v] && !S.rcos.hide['prop:' + v]),
+    trim: !!S.rcos.own['trim:gold'] && !S.rcos.hide['trim:gold'], n: roasterCount(), big: roastCap() >= 160, lab: repLevel() >= 6, stars: masterStars() } : null;   /* enough to draw the roastery for visitors */
+  return { loc: S.showLoc && S.farms[S.showLoc].unlocked ? S.showLoc : S.loc, farms, store: S.lv.storage, decor: Object.keys(S.decor).filter((k) => S.decor[k]), spiece: spieceOn() || '', perk: hasPerk('goldsign'), fx: fxOn(), dv: S.dv, rst };
 }
 async function visitSync(force) {
   if (!API || !NET.acct || NET.status !== 'online') return;
@@ -3636,9 +3844,10 @@ async function renderVisit(v, loc) {   /* draws a visited farm, still and read-o
   x.drawImage(b, 0, 0); if (e) x.drawImage(e.im, e.x, e.y);
   if (fm.h && ART.sprites['house_up_' + loc + '_' + fm.h]) x.drawImage(sprite('house_up_' + loc + '_' + fm.h), 72, 0);
   const dec = new Set(v.farm.decor);
-  if (dec.has('bunting')) for (let bx = 8; bx < 184; bx += 24) x.drawImage(sprite('deco_bunting'), bx, 103);
+  if (dec.has('bunting')) for (let bx = 8; bx < 184; bx += 24) x.drawImage(sprite('deco_bunting', dvOpt('bunting', v.farm.dv || {})), bx, 103);
   BUILD_ORDER.forEach((bk, i) => { const n = fm.b[i] || 0; if (!n) return; x.drawImage(sprite('build_' + bk + (ART.bskins[fm.s] ? '_' + fm.s : '')), SLOTS[i], 197); x.fillStyle = '#F2C04A'; for (let j = 0; j < Math.min(n, 8); j++) x.fillRect(SLOTS[i] + 22 - j * 3, 221, 2, 2); });
-  Object.keys(DECOR_AT).forEach((dk) => { if (dec.has(dk) && ART.sprites['deco_' + dk]) DECOR_AT[dk].forEach(([dx, dy]) => x.drawImage(sprite('deco_' + dk), dx, dy)); });
+  Object.keys(DECOR_AT).forEach((dk) => { if (dec.has(dk) && ART.sprites['deco_' + dk]) DECOR_AT[dk].forEach(([dx, dy]) => x.drawImage(sprite('deco_' + dk, dvOpt(dk, v.farm.dv || {})), dx, dy)); });
+  drawShowoff(x, loc, dec.has('shelf') ? pinFirst(v.trophies, (v.look || {}).pin) : [], dec.has('sacks') ? v.sacks || [] : [], v.farm.dv || {});
   [...dec].filter((d) => d.startsWith('s_') && ART.sprites['deco_' + d]).slice(0, SEASON_DECO_AT.length).forEach((d, i) => x.drawImage(sprite('deco_' + d), SEASON_DECO_AT[i][0], SEASON_DECO_AT[i][1]));
   if (v.farm.perk) x.drawImage(sprite('perk_sign'), 100, 66);
   if (fm.f && loc !== 'osaka') x.drawImage(sprite('bed_open'), 104, 160); else if (loc !== 'osaka') x.drawImage(sprite('sign'), 134, 168);
@@ -3652,20 +3861,45 @@ async function renderVisit(v, loc) {   /* draws a visited farm, still and read-o
 }
 async function showVisit(fresh) {
   const v = NET.visit; if (!v) return;
-  const loc = v.farm.farms[NET.visitLoc] ? NET.visitLoc : v.farm.loc, pic = await renderVisit(v, loc), mine = v.code === S.farmCode, done = (S.cheered || {})[v.code] === dayKey(new Date());
-  const est = Object.keys(v.farm.farms).filter((l) => v.farm.farms[l].e).map((l) => fname(l) + ' ' + v.farm.farms[l].e).join(' · ');
-  showModal('<div class="visit"><div class="me">' + avatar(normLook(v.look), 52) + '<div class="me-t">' + plate(v.name, normLook(v.look).crest, starsFor(v.prestige), normLook(v.look).charm) + '<span class="note">Prestige ' + v.prestige + ' · ' + TIERS[tierOf(v.prestige)] + ' · ♥ ' + fmt(v.cheers) + ' Cheers</span></div></div>' +
-    '<img class="visit-pic" src="' + pic + '" alt="' + v.name + '\'s farm at ' + fname(loc) + '">' +
-    '<div class="seg visit-farms">' + Object.keys(v.farm.farms).map((l) => '<button type="button" data-act="visitloc:' + l + '" aria-pressed="' + (l === loc) + '">' + fname(l) + '</button>').join('') + '</div>' +
+  const roast = NET.visitLoc === 'roast' && !!v.farm.rst, loc = roast ? 'roast' : v.farm.farms[NET.visitLoc] ? NET.visitLoc : v.farm.loc, pic = roast ? await renderRoastVisit(v) : await renderVisit(v, loc), mine = v.code === S.farmCode, done = (S.cheered || {})[v.code] === dayKey(new Date());
+  const est = Object.keys(v.farm.farms).filter((l) => v.farm.farms[l].e).map((l) => fname(l) + ' ' + v.farm.farms[l].e).join(' · '), lk = normLook(v.look), tro = pinFirst(v.trophies, lk.pin);
+  NET.visitFx = roast ? [] : (v.farm.fx || []).filter((k) => FX[k]);
+  showModal('<div class="visit"><div class="me">' + avatar(lk, 52) + '<div class="me-t">' + plate(v.name, lk.crest, starsFor(v.prestige), lk.charm, pinOf(lk, v.trophies)) + '<span class="note">Prestige ' + v.prestige + ' · ' + TIERS[tierOf(v.prestige)] + ' · ♥ ' + fmt(v.cheers) + ' Cheers</span></div></div>' +
+    '<div class="visit-stage"><img class="visit-pic" src="' + pic + '" alt="' + v.name + '\'s ' + (roast ? 'roastery' : 'farm at ' + fname(loc)) + '">' + (NET.visitFx.length ? '<canvas class="visit-fx" width="' + W + '" height="' + H + '" aria-hidden="true"></canvas>' : '') + '</div>' +
+    '<div class="seg visit-farms">' + Object.keys(v.farm.farms).map((l) => '<button type="button" data-act="visitloc:' + l + '" aria-pressed="' + (l === loc) + '">' + fname(l) + '</button>').join('') + (v.farm.rst ? '<button type="button" data-act="visitloc:roast" aria-pressed="' + roast + '">Roastery</button>' : '') + '</div>' +
+    (tro.length ? '<div class="trow">' + tro.map((t) => trophyImg(t, 'tro')).join('') + '</div>' : '') +
     (est ? '<p class="note">Estates: ' + est + '</p>' : '') + '<p class="note">Farm code ' + v.code + '</p>' +
     (mine ? '<p class="note">This is how visitors see your farm.</p>' : btn(done ? 'Cheered today' : 'Cheers! ♥', done ? 'come back tomorrow' : 'one a day for each farm', 'cheers:' + v.code, !done, 'gold')) + '<button class="btn" data-act="close">Leave</button></div>', !fresh);
+  if (NET.visitFx.length && !NET.visitFxOn) { NET.visitFxOn = true; requestAnimationFrame(visitFxLoop); }
+}
+function visitFxLoop() {   /* a visited farm's effects, drawn over its still picture while the card is open */
+  const c = document.querySelector('.visit-fx');
+  if (!c || $('modal').hidden || !NET.visitFx.length) { NET.visitFxOn = false; return; }
+  const x = c.getContext('2d'), t = performance.now() / 1000, hr = S.minutes / 60;
+  x.clearRect(0, 0, W, H); drawFx(x, NET.visitFx, t, hr, false); drawFx(x, NET.visitFx, t, hr, true);
+  requestAnimationFrame(visitFxLoop);
+}
+async function renderRoastVisit(v) {   /* a visited roastery, still: its room, roasters, noren, props and a shelf of bags in its own label */
+  const r = v.farm.rst, k = v.code + 'roast' + v.at; if (visitImgs[k]) return visitImgs[k];
+  const c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d'); x.imageSmoothingEnabled = false;
+  const b = sceneBg(r.room && r.room !== 'brick' && BGS['roastery-' + r.room] ? 'roastery-' + r.room : 'roastery'); await loaded(b); x.drawImage(b, 0, 0);
+  for (let i = 0; i < SHELF_SHOWN; i++) x.drawImage(bagSprite(['light', 'medium', 'dark'][i % 3], r.label || 'house'), 106 + (i % 4) * 12, SHELF_Y[Math.floor(i / 4)]);
+  if (r.lab) x.drawImage(sprite('cup_lab'), 124, 84);
+  drawNoren(r.noren || 'indigo', x); drawProps(0, r.props || [], x);
+  for (let s2 = 0; s2 < (r.stars || 0); s2++) { x.fillStyle = '#F2C04A'; x.fillRect(106 + (s2 % 5) * 3, 3 + Math.floor(s2 / 5) * 3, 2, 2); }
+  for (let i = 0; i < Math.min(Math.max(1, r.n || 1), BAYS.length); i++) {
+    const bx = BAYS[i]; x.drawImage(sprite((r.big ? 'roasterB_' : 'roaster_') + 2, finSwap(r.fin, r.big)), bx, BAY_Y);
+    if (r.trim) { x.fillStyle = '#F2C04A'; x.fillRect(bx + 8, BAY_Y + 10, 10, 1); x.fillRect(bx + 8, BAY_Y + 17, 10, 1); x.fillRect(bx + 8, BAY_Y + 10, 1, 8); x.fillRect(bx + 17, BAY_Y + 10, 1, 8); }
+  }
+  const sh = apronShirt(r.apron); x.drawImage(sprite('worker_down_0', sh ? { shirt: sh, hat: HELP_LOOK.hat } : HELP_LOOK), 88, 150);   /* the barista, in the house aprons */
+  return (visitImgs[k] = c.toDataURL());
 }
 async function cheersFarm(code) {
   const r = await api('game-visit?code=' + code, 'POST', {}).catch(() => null);
   if (r && r.status === 200) { S.cheered = S.cheered || {}; S.cheered[code] = dayKey(new Date()); if (NET.visit && NET.visit.code === code) NET.visit.cheers = r.data.cheers; star('cheers'); SFX.play('achieve'); toast('Cheers sent!'); showVisit(); }
   else { SFX.play('nope'); toast(r && r.data.error === 'already_today' ? 'You cheered this farm today' : r && r.data.error === 'enough_today' ? 'That\'s enough Cheers for today' : 'Could not send Cheers'); if (r && r.data.error === 'already_today') { S.cheered = S.cheered || {}; S.cheered[code] = dayKey(new Date()); showVisit(); } }
 }
-setInterval(() => { cloudSync(); submitScore(); visitSync(); }, 30000);
+setInterval(() => { cloudSync(); submitScore(); visitSync(); if (API && NET.acct && NET.status === 'online' && Date.now() - (NET.trophiesAt || 0) > 600000) { NET.trophiesAt = Date.now(); liveBoard('all'); } }, 30000);   /* the trophy list comes with your board row */
 
 /* ---------- start: offline earnings, intro, loop ---------- */
 const awayMs = Date.now() - (S.last || Date.now());

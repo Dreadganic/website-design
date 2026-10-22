@@ -514,3 +514,36 @@ All of this needs the online game (a real site or a Netlify preview), so none of
   - **Rating:** places become percentiles when a week ends. The **Q grader rating** is the best 4 of the last 8 weeks, averaged over 4 and times 10 (0 to 1000). The **Hall of Excellence** board ranks it. The old all-time board is called **Legacy**.
   - The cupping notebook's top title and charm are now **Master cupper**, so "Q grader" means only the Cup's rating.
   - **Honesty:** the server checks every choice against the brief and rejects impossible tap times. It can't prove the tap itself, which is fine without prizes. Add a server replay before any real prizes.
+
+## Showing off and coffee rewards (audit in `review/cranes-audit.html`)
+The crane audit found play cranes about right and the order side too small, with too little to show for what players earn. Play earnings are unchanged. Server code is in `netlify/lib/game.js` (trophies, order bonus, stamps), `game-score`, `game-visit`, `game-claim`, `game-gift` and `stripe-webhook`; tests are in `netlify/tests/showoff.test.js`.
+
+- **Trophies** (`myTrophies`, `trophyInfo`; server `addTrophy`). The server records wins it can check for itself:
+  - a Cup of Excellence week (winner gold, top 10% silver);
+  - a Co-op Derby podium (gold, silver, bronze);
+  - each reached Harvest Day goal;
+  - a top 10 season or rookie finish;
+  - **Founding farmer**, for anyone whose first season is `SEASON_FIRST` or earlier.
+
+  They live on the player record, with a copy on the score row, so they can't be edited in a save. Offline, the game's own badges stand in.
+- **Pinned trophy:** Looks › Trophies. One trophy shows beside your name on every board, in the Looks header and on farm visits. The server drops a pin you don't hold.
+- **Trophy shelf** (`deco_shelf`, `SHELF_AT`). It appears in front of each farmhouse with your best three trophies, the pinned one first, as soon as you have one; every launch farmer has the Founding farmer sprout. It can be hidden in Shop › Farm style.
+- **Origin sacks** (`osack`, `SACKS_AT`). A stack of jute sacks, one per origin stamp, each in its stamp colour, so visitors see which real coffees you drink. Visitors see the server's record of stamps, which `game-claim` now keeps.
+- **Founding farmer charm:** a nameplate charm for the launch season. It's given when the tutorial ends, and the server strips it from anyone who joined later.
+- **Achievements** (Ranks › Records, `ACH`, `achTick`). 30 one-time goals paying 290 cranes in all. They cover lots, hand cupping, golden bushes, contracts, the first micro-lot and peaberry, farms, prestige 1/3/5/10, estates, the notebook, roastery reputation, check-in streaks, joining a co-op, Cheers, Harvest Day and passport stamps. The bot earns about 65 by prestige 3; the rest take weeks to months. They're paid with a toast, never a pop-up, and only after the tutorial.
+- **Farm effects** (Shop › Farm style, `FX`, `drawFx`). Up to two at once:
+  - Fireflies (80, from dusk) and Butterflies (80, by day).
+  - Morning mist (90, at dawn).
+  - Sakura petals (110) and Maple leaves (110).
+  - Crane pair (150, every minute).
+  - **Hanabi**, fireworks at night, only for subscribers: a subscription order unlocks it.
+
+  Visitors see them animated over the still farm picture.
+- **Market stall** (Shop › Farm style, `MKT`, `mktNow`). Three colourways a month, in Japan time, for decorations you already have, at 15–30 cranes. There are 36 in all: benches, planters, lanterns, flags, bunting, carts, the dog's bandana, the trophy shelf and the Harvest basket. Each comes back in the same month next year. Owned colours are picked under Colours, and visitors see them.
+- **Roastery on visits.** A Roastery button on the visit card shows the visitor's roastery, still: room, roaster finish, noren, props, gold trim, label and aprons.
+- **Coffee pays more** (server; the game shows it when an order is linked):
+  - The first order of each Japan-time month pays **+30 cranes** on top of 1 per ¥100 (`MONTH_BONUS`).
+  - Each subscription renewal pays **+10** more (`SUB_BONUS`), plus the monthly 30 if it's the month's first.
+  - Every linked order brings a **gift code** for a friend (`game-gift`). The friend opens it in Shop › Real coffee and gets a furoshiki bundle for their farm; the sender gets 10 cranes through `game-grants`. A player opens one gift ever, never their own.
+  - The Test tab's pretend orders pay the monthly bonus too.
+- **Launch kit:** the thank-you card text and a new line on each coffee's page (`launch/site/farm-product.js`) say what the coffee does in the game. They go live only with `launch/apply.py`.

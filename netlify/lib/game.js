@@ -44,6 +44,9 @@ const prestigeNeed = (p) => PRESTIGE_LEVEL + 8 * p;   /* by lifetime prestige: 1
 /* Seasons follow the calendar month in Japan time. SEASON_JOIN folds a month into an earlier season, e.g. { "2026-12": "2026-11" } when the game launches after the 15th.
    Keep it in step with SEASON_JOIN in game-assets/play/template.html. */
 const SEASON_JOIN = {};
+/* The live game's first season. Anyone whose first season is this one or earlier is a Founding farmer. Keep in step with SEASON_FIRST in template.html */
+const SEASON_FIRST = "2026-11";
+const isFounder = (row) => !!(row && row.firstSeason && row.firstSeason <= SEASON_FIRST);
 const monthKey = (y, m) => { while (m < 1) { m += 12; y -= 1; } while (m > 12) { m -= 12; y += 1; } return y + "-" + String(m).padStart(2, "0"); };
 const seasonKey = (ms) => { const d = new Date((ms || Date.now()) + 9 * 3600e3), k = monthKey(d.getUTCFullYear(), d.getUTCMonth() + 1); return SEASON_JOIN[k] || k; };
 const prevSeason = (key) => { const k = monthKey(+key.slice(0, 4), +key.slice(5) - 1); return SEASON_JOIN[k] || k; };   /* a season's key is its first month */
@@ -106,10 +109,30 @@ const cleanLook = (l, prestige) => {
   const cap = prestige === undefined ? 7 : n(prestige, 7);
   const sid = (x) => String(x || "").replace(/^s_/, ""), now = seasonKey();
   return { crest: n(l.crest !== undefined ? l.crest : l.plate, cap), skin: cap > 0 ? n(l.skin, 7) : 0, bg: BGS.includes(l.bg) || (/^s_/.test(l.bg || "") && SEASON_IDS.includes(sid(l.bg))) ? l.bg : "none", char: CHARS.includes(l.char) ? l.char : "none",
-    hat: SEASON_IDS.includes(sid(l.hat)) ? "s_" + sid(l.hat) : "", charm: l.charm === "qgrader" || l.charm === "crack" ? l.charm : SEASON_IDS.includes(sid(l.charm)) ? sid(l.charm) : "",
-    roaster: ROASTER_FINISHES.includes(l.roaster) ? l.roaster : "",
+    hat: SEASON_IDS.includes(sid(l.hat)) ? "s_" + sid(l.hat) : "", charm: l.charm === "qgrader" || l.charm === "crack" || l.charm === "founder" ? l.charm : SEASON_IDS.includes(sid(l.charm)) ? sid(l.charm) : "",
+    roaster: ROASTER_FINISHES.includes(l.roaster) ? l.roaster : "", pin: TROPHY_ID.test(l.pin || "") ? l.pin : "",
     title: (/^\d{4}-\d{2}$/.test(l.title || "") && l.title <= now) || /^nbm?:[a-z]{3,16}$|^nbt:(cupper|head|q)$|^rr:(master|crack)$/.test(l.title || "") ? l.title : "" };   /* season titles, and cupping notebook titles */   /* season track cosmetics; a title names a season that has started */
 };
+
+/* Trophies: wins the server checks for itself (Cup of Excellence, the Co-op Derby, Harvest Day, season and rookie finishes) and Founding farmer.
+   They live on the player record, and a copy sits on the score row so boards, farm visits and the trophy shelf can show them. Fields: w a week, s a season, d a Harvest Day. */
+const TROPHY_ID = /^(coe|derby|harvest|season|rookie|founder):[0-9A-Za-z-]{1,16}$/;
+function trophyRank(t) {   /* lower is grander: the shelf and the board show the grandest first */
+  const r = t.r || 99;
+  return t.k === "coe" ? (r === 1 ? 0 : 3) : t.k === "season" ? (r === 1 ? 1 : r <= 3 ? 4 : 7) : t.k === "derby" ? (r === 1 ? 2 : 6) : t.k === "rookie" ? (r === 1 ? 5 : 8) : t.k === "harvest" ? 9 : 10;
+}
+const trophyId = (t) => t.k + ":" + (t.w || t.s || t.d || "1");
+const publicTrophies = (list) => (list || []).slice().sort((a, b) => trophyRank(a) - trophyRank(b) || (b.at || 0) - (a.at || 0)).slice(0, 24).map((t) => ({ id: t.id, k: t.k, r: t.r || 0, w: t.w || "", s: t.s || "", d: t.d || "" }));
+async function addTrophy(store, me, t, now) {   /* once per trophy; saves the player and refreshes their score row */
+  const id = trophyId(t);
+  me.trophies = me.trophies || [];
+  if (me.trophies.some((x) => x.id === id)) return false;
+  me.trophies.push(Object.assign({ id, at: now || Date.now() }, t));
+  await savePlayer(store, me);
+  const row = await store.get("scores/" + me.id);
+  if (row) { row.trophies = publicTrophies(me.trophies); await store.set("scores/" + me.id, row); }
+  return true;
+}
 
 /* Free coffee samples earned in the game. The server decides who has earned what, from its own records:
    a welcome bag once a new farmer gets going, one per origin at prestige 2-5, and one a month for checking in on 20 days.
@@ -149,11 +172,22 @@ function cleanFarm(f) {
     farms[l] = { u: true, b: (Array.isArray(x.b) ? x.b : []).slice(0, 6).map((n) => int(n, 0, 12)), f: !!x.f, s: ID.test(x.s || "") ? x.s : "", e: int(x.e, 0, 3), h: int(x.h, 0, 3), beds: (Array.isArray(x.beds) ? x.beds : []).slice(0, 4).filter((v) => ID.test(v)) };
   });
   if (!Object.keys(farms).length) return null;
-  return { loc: farms[f.loc] ? f.loc : Object.keys(farms)[0], farms, store: int(f.store, 1, 10), decor: (Array.isArray(f.decor) ? f.decor : []).filter((d) => ID.test(d)).slice(0, 40), spiece: ID.test(f.spiece || "") ? f.spiece : "", perk: !!f.perk };
+  const dv = {}; if (f.dv && typeof f.dv === "object") Object.keys(f.dv).slice(0, 12).forEach((k) => { if (ID.test(k) && ID.test(f.dv[k] || "")) dv[k] = f.dv[k]; });
+  const r = f.rst && typeof f.rst === "object" ? f.rst : null;
+  const rst = r ? { room: ID.test(r.room || "") ? r.room : "", fin: ID.test(r.fin || "") ? r.fin : "", noren: ID.test(r.noren || "") ? r.noren : "", label: ID.test(r.label || "") ? r.label : "", apron: ID.test(r.apron || "") ? r.apron : "",
+    props: (Array.isArray(r.props) ? r.props : []).filter((v) => ID.test(v)).slice(0, 8), trim: !!r.trim, n: int(r.n, 0, 4), big: !!r.big, lab: !!r.lab, stars: int(r.stars, 0, 20) } : null;
+  return { loc: farms[f.loc] ? f.loc : Object.keys(farms)[0], farms, store: int(f.store, 1, 10), decor: (Array.isArray(f.decor) ? f.decor : []).filter((d) => ID.test(d)).slice(0, 40), spiece: ID.test(f.spiece || "") ? f.spiece : "", perk: !!f.perk,
+    fx: (Array.isArray(f.fx) ? f.fx : []).filter((d) => ID.test(d)).slice(0, 3), dv, rst };
 }
 async function savePlayer(store, me) { const { id, ...rest } = me; await store.set("players/" + id, rest); }
 
 /* Which passport origins each real coffee can stamp, in blend order (mirrors the game's COFFEES) */
 const STAMPS = { casablanca: ["mogiana", "huila", "turrialba"], pinkwhiskey: ["huila"], rumbarrel: ["huila"], yirgacheffe: ["gedeo"], strawberry: ["toba"] };
 
-module.exports = { cleanFarm, FARM_LOCS, SAMPLE_RULES, SAMPLE_LADDER, dayJST, newSamples, sampleView, savePlayer, json, parse, stores, memoryStore, authed, hash, newId, newToken, XP_AT, levelFor, prestigeNeed, seasonKey, prevSeason, SEASON_JOIN, SEASON_IDS, RULES, checkScore, cleanName, cleanLook, STAMPS };
+/* The first order of each month (Japan time) pays a bonus; a subscription renewal pays a little extra on top */
+const MONTH_BONUS = 30, SUB_BONUS = 10;
+const firstThisMonth = (me, now) => !(me.grants || []).some((g) => g.at && dayJST(g.at).slice(0, 7) === dayJST(now).slice(0, 7));
+/* passport stamps the server has seen: each coffee stamps the first of its origins not stamped yet, as the game does */
+function addStamps(me, coffees) { me.stamps = me.stamps || []; (coffees || []).forEach((pid) => { const o = (STAMPS[pid] || []).find((x) => !me.stamps.includes(x)); if (o) me.stamps.push(o); }); }
+
+module.exports = { MONTH_BONUS, SUB_BONUS, firstThisMonth, addStamps, SEASON_FIRST, isFounder, TROPHY_ID, trophyRank, trophyId, publicTrophies, addTrophy, cleanFarm, FARM_LOCS, SAMPLE_RULES, SAMPLE_LADDER, dayJST, newSamples, sampleView, savePlayer, json, parse, stores, memoryStore, authed, hash, newId, newToken, XP_AT, levelFor, prestigeNeed, seasonKey, prevSeason, SEASON_JOIN, SEASON_IDS, RULES, checkScore, cleanName, cleanLook, STAMPS };

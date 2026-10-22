@@ -17,7 +17,8 @@ async function boardFor(store, mode, season) {
   const live = mode === "all" ? rows : rows.filter((r) => r.season === season && (mode !== "rookie" || r.firstSeason === season));
   return live.sort(mode === "all" ? rankSort("prestige") : seasonSort);
 }
-const publicRow = (r, i) => ({ rank: i + 1, name: r.name, prestige: r.prestige, seasonP: r.seasonP, seasonKh: r.seasonKh || 0, seasonStars: r.seasonStars || 0, level: r.level, points: r.points, look: r.look, rookie: !!r.firstSeason && r.firstSeason === r.season, code: r.code || "" });   /* code: for visiting their farm */
+const pinOf = (r) => { const p = r.look && r.look.pin; return p ? (r.trophies || []).find((t) => t.id === p) || null : null; };   /* the one trophy a player shows beside their name */
+const publicRow = (r, i) => ({ pin: pinOf(r), rank: i + 1, name: r.name, prestige: r.prestige, seasonP: r.seasonP, seasonKh: r.seasonKh || 0, seasonStars: r.seasonStars || 0, level: r.level, points: r.points, look: r.look, rookie: !!r.firstSeason && r.firstSeason === r.season, code: r.code || "" });   /* code: for visiting their farm */
 
 async function closeSeason(store, season, now) {   /* save last season's final standings once, while every row still holds them */
   const prev = G.prevSeason(season), key = "seasons/" + prev;
@@ -38,12 +39,14 @@ exports.handler = async (event) => {
       if (!done) return G.json(404, { error: q.season >= season ? "season_not_over" : "no_record" });
       const me = await G.authed(event, store), mine = me ? done.rows.findIndex((r) => r.id === me.id) : -1;
       const rookies = done.rows.filter((r) => r.firstSeason === q.season), rk = me ? rookies.findIndex((r) => r.id === me.id) : -1;   /* first-season players also get a rookie rank */
-      return G.json(200, { season: q.season, mode: "final", players: done.rows.length, top: done.rows.slice(0, 50).map(publicRow), me: mine > -1 ? Object.assign(publicRow(done.rows[mine], mine), { rookieRank: rk > -1 ? rk + 1 : null }) : null }, { "Cache-Control": "public, max-age=300" });
+      if (mine > -1 && mine < 10) await G.addTrophy(store, me, { k: "season", s: q.season, r: mine + 1 }, now);   /* a top 10 finish goes on the trophy shelf */
+      if (rk > -1 && rk < 10) await G.addTrophy(store, me, { k: "rookie", s: q.season, r: rk + 1 }, now);
+      return G.json(200, { season: q.season, mode: "final", players: done.rows.length, top: done.rows.slice(0, 50).map(publicRow), me: mine > -1 ? Object.assign(publicRow(done.rows[mine], mine), { rookieRank: rk > -1 ? rk + 1 : null }) : null }, { "Cache-Control": me ? "private, no-store" : "public, max-age=300" });
     }
     const mode = q.mode === "all" ? "all" : q.mode === "rookie" ? "rookie" : "season";
     const list = await boardFor(store, mode, season), me = await G.authed(event, store);
     const mine = me ? list.findIndex((r) => r.id === me.id) : -1;
-    return G.json(200, { season, mode, players: list.length, top: list.slice(0, 50).map(publicRow), me: mine > -1 ? publicRow(list[mine], mine) : null }, { "Cache-Control": "public, max-age=30" });
+    return G.json(200, { season, mode, players: list.length, top: list.slice(0, 50).map(publicRow), me: mine > -1 ? Object.assign(publicRow(list[mine], mine), { trophies: list[mine].trophies || [] }) : null }, { "Cache-Control": me ? "private, no-store" : "public, max-age=30" });
   }
   if (event.httpMethod !== "POST") return G.json(405, { error: "method_not_allowed" });
   const me = await G.authed(event, store);
@@ -60,6 +63,11 @@ exports.handler = async (event) => {
   const row = Object.assign(next, { id: me.id, name, look: G.cleanLook(b.look, next.prestige), season, at: now, prestigeAt: !prev || next.prestige > prev.prestige ? now : prev.prestigeAt,
     starsAt: !prev || prev.season !== season || next.seasonStars > (prev.seasonStars || 0) ? now : prev.starsAt,   /* when they reached this star total, for ties */
     firstSeason: prev ? prev.firstSeason || "" : season, code: me.farmCode || "" });   /* rows from before rookies existed count as veterans */
+  const founder = G.isFounder(row);
+  if (founder) await G.addTrophy(store, me, { k: "founder", s: row.firstSeason }, now);
+  if (row.look.charm === "founder" && !founder) row.look.charm = "";   /* the Founding farmer charm is only for the launch season's farmers */
+  if (row.look.pin && !(me.trophies || []).some((t) => t.id === row.look.pin)) row.look.pin = "";   /* only a trophy you hold can be pinned */
+  row.trophies = G.publicTrophies(me.trophies);
   await store.set(key, row);
   const list = await boardFor(store, "season", season);
   return G.json(200, { ok: true, rank: list.findIndex((r) => r.id === me.id) + 1, players: list.length });

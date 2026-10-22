@@ -37,7 +37,7 @@ exports.handler = async (event) => {
     const s = evt.data.object;
     if (s.metadata && s.metadata.farm_sample) await farmSampleStatus(event, deps, s, "earned");
   }
-  if (evt.type === "invoice.paid") {   /* a paid subscription renewal earns Beju Farm cranes, like any order */
+  if (evt.type === "invoice.paid") {   /* a paid subscription renewal earns Beju Farm cranes like any order, plus a subscriber's bonus */
     const inv = evt.data.object;
     if (inv.billing_reason === "subscription_cycle" && inv.subscription) {
       try {
@@ -45,7 +45,8 @@ exports.handler = async (event) => {
         const link = await store.get("subs/" + inv.subscription);
         const p = link && await store.get("players/" + link.player);
         if (p && !(p.pending || []).some((g) => g.invoice === inv.id) && !(p.grants || []).some((g) => g.invoice === inv.id)) {
-          const grant = { invoice: inv.id, cranes: Math.floor((inv.amount_paid || 0) / 100), order: inv.id.slice(-8), reason: "subscription", at: Date.now() };
+          const now = (deps && deps.now) || Date.now(), bonus = G.SUB_BONUS + (G.firstThisMonth(p, now) ? G.MONTH_BONUS : 0);
+          const grant = { invoice: inv.id, cranes: Math.floor((inv.amount_paid || 0) / 100) + bonus, bonus, order: inv.id.slice(-8), reason: "subscription", at: now };
           p.pending = (p.pending || []).concat([grant]); p.grants = (p.grants || []).concat([grant]);
           await store.set("players/" + link.player, p);
         }

@@ -6,7 +6,8 @@
 What it changes (nothing here is live until you run it):
   1. Builds /farm/ without its noindex tag and removes the /farm/* noindex header.
   2. Adds /farm/ to the sitemap and a "Beju Farm" link to every footer (EN and JA).
-  3. Adds the thank-you page button that adds the order to the farm (assets/farm-thanks.<hash>.js).
+  3. Adds the thank-you page button that adds the order to the farm (assets/farm-thanks.<hash>.js),
+     and a line on each coffee's page saying what it does in the game (assets/farm-product.<hash>.js).
   4. Adds the checkout sample offer (assets/farm-checkout.<hash>.js) and makes the site's checkout call send it,
      by rebuilding the site script under a new hashed name (assets are cached for a year, so names must change).
 Then set GAME_SAMPLES=on in Netlify (Site configuration > Environment variables) so checkout honours samples.
@@ -59,6 +60,7 @@ if "/farm/" not in sm:
 # 3 and 4. scripts
 thanks_js = hashed(os.path.join(HERE, "site", "farm-thanks.js"), "farm-thanks")
 checkout_js = hashed(os.path.join(HERE, "site", "farm-checkout.js"), "farm-checkout")
+product_js = hashed(os.path.join(HERE, "site", "farm-product.js"), "farm-product")
 call = "body: JSON.stringify({ lang: lang, lines: cart.map("
 if src.count(call) != 1: sys.exit("site script: checkout call not found exactly once; update apply.py")
 src = src.replace(call, "body: JSON.stringify({ farm: window.BejuFarm && window.BejuFarm.checkoutExtra ? window.BejuFarm.checkoutExtra() : undefined, lang: lang, lines: cart.map(")
@@ -74,6 +76,8 @@ for p in pages:
     t = t.replace("/assets/" + old, "/assets/" + new)
     if "/assets/" + new in t and checkout_js not in t:
         t = t.replace("</body>", '<script src="/assets/%s" defer></script>\n</body>' % checkout_js)
+    if os.path.basename(os.path.dirname(os.path.dirname(p))) == "shop" and 'data-add-cp="' in t and product_js not in t:
+        t = t.replace("</body>", '<script src="/assets/%s" defer></script>\n</body>' % product_js)
     if os.path.basename(os.path.dirname(p)) == "thanks" and thanks_js not in t:
         t = t.replace("</body>", '<script src="/assets/%s" defer></script>\n</body>' % thanks_js)
     j = '<li><a href="/ja/journal/">読みもの</a></li>' if ja else '<li><a href="/journal/">Journal</a></li>'

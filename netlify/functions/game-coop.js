@@ -9,7 +9,7 @@
    POST /.netlify/functions/game-coop  { act: "help", i }              ->  { coop }   (i: the mate's place in the member list; once a day per mate)
    POST /.netlify/functions/game-coop  { act: "takehelp" }             ->  { n, from }   (helps waiting for you; the game speeds up your drying lots)
    POST /.netlify/functions/game-coop  { act: "claim" }                ->  { cranes, tiers, full }   (every tier of this week's order reached so far, once per member who helped)
-   POST /.netlify/functions/game-coop  { act: "derbyclaim" }           ->  { cranes }   (last week's Co-op Derby reward)
+   POST /.netlify/functions/game-coop  { act: "derbyclaim" }           ->  { cranes, rank, of, week }   (last week's Co-op Derby reward; a top 3 place adds a trophy)
    The weekly order asks for 80% of what the members brought last week (a new member counts their own estimate), never less than 1,000 kg per active member, so small and large co-ops both get a goal an ordinary week reaches. Members away a week don't count; away a month, they leave. */
 const G = require("../lib/game");
 const C = require("../lib/community");
@@ -166,6 +166,11 @@ exports.handler = async (event) => {
     w.claimed[me.id] = mine.concat(ready); await store.set("coops/" + coop.id + "/week/" + wk, w);
     return G.json(200, { cranes: ready.reduce((a, i) => a + C.COOP_TIERS[i][1], 0), tiers: ready, full: ready.includes(C.COOP_TIERS.length - 1) });
   }
-  if (act === "derbyclaim") { const r = await D.derbyClaim(store, coop, me, now); return r.error ? G.json(422, r) : G.json(200, r); }
+  if (act === "derbyclaim") {
+    const r = await D.derbyClaim(store, coop, me, now);
+    if (r.error) return G.json(422, r);
+    if (r.rank <= 3) await G.addTrophy(store, me, { k: "derby", w: r.week, r: r.rank }, now);   /* a Derby podium goes on the trophy shelf */
+    return G.json(200, r);
+  }
   return G.json(400, { error: "bad_act" });
 };

@@ -65,6 +65,34 @@ a:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 </header>
 
 <section>
+  <h2>Built, 22 October 2026</h2>
+  <p>All three phases are in. Play earnings are unchanged. Anything on the public website waits in the launch kit.</p>
+  <ul>
+    <li><b>Showing off.</b>
+      <ul>
+        <li>The server records trophies it can check: Cup of Excellence weeks, Derby podiums, Harvest Day goals, top 10 season finishes and Founding farmer.</li>
+        <li>You pin one beside your name on every board.</li>
+        <li>A trophy shelf and a stack of origin sacks, one per stamp in the stamp's colour, stand in front of each farmhouse. Visitors see both from the server's records.</li>
+        <li>Every launch-season farmer gets the Founding farmer sprout and charm.</li>
+      </ul></li>
+    <li><b>Achievements.</b> 30 one-time goals worth 290 cranes, in Ranks › Records. The playtest bot earns about 65 by prestige 3, and the rest take weeks to months.</li>
+    <li><b>Things worth wanting.</b>
+      <ul>
+        <li>Seven animated farm effects, two at a time: Fireflies, Butterflies, Morning mist, Sakura petals, Maple leaves, Crane pair (80–150 cranes) and Hanabi, for subscribers only. Visitors see them move.</li>
+        <li>A monthly market stall of three colourways (15–30 cranes) from 36, each back in the same month next year.</li>
+        <li>Visitors can look into your roastery.</li>
+      </ul></li>
+    <li><b>Coffee pays more.</b>
+      <ul>
+        <li>The month's first order pays 30 cranes more, and subscription renewals pay 10 more.</li>
+        <li>Every linked order brings a gift code. A friend who opens it gets a furoshiki bundle for their farm, and you get 10 cranes.</li>
+        <li>The thank-you card and a new line on each coffee's page explain this, ready in <code>launch/</code>.</li>
+      </ul></li>
+  </ul>
+  <p class="note">Checked with 34 server tests, a browser test against the real server functions (trophies, visits, gifts) and the playtest bot to prestige 3 with no errors.</p>
+</section>
+
+<section>
   <div class="kpis">
     <div class="kpi"><b>~35 / week</b><span>cranes from play for an engaged daily player in a co-op</span></div>
     <div class="kpi"><b>~15 / week</b><span>cranes from play for a casual player (about 10 minutes most days)</span></div>
@@ -232,7 +260,7 @@ a:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 
 <section>
   <h2>Proposed changes</h2>
-  <p>Nothing here is built yet. Say go and I'll build them in this order, with anything on the live site kept separate until launch.</p>
+  <p>All three phases were built on 22 October 2026 (see the top of this page). Anything on the live site is kept separate until launch.</p>
   <div class="phase"><span class="tag">Phase 1 · showing off (game and server)</span>
     <ul>
       <li>The server stores the badges it can check, and players pin one to their board row.</li>
@@ -260,7 +288,7 @@ a:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
   <h2>For launch</h2>
   <ul>
     <li>Ask a lawyer about the points above, starting with sample size against the 20% cap, before samples are promised to anyone.</li>
-    <li>The thank-you page still needs its "Add this order to Beju Farm" link, or no order earns cranes.</li>
+    <li>On launch day, <code>launch/apply.py</code> adds the "Add this order to Beju Farm" card to the thank-you page and the new line to each coffee's page. Without the card, no order earns cranes.</li>
     <li>Still open from before: Stripe test events, the 100 g sample bags, a test order on a preview with GAME_SAMPLES=on, SEASON_FIRST and SEASON_JOIN in both files, a look at the estate art and the moved cupping table, your own first 10 minutes of play, a co-op test on a preview (stickers, help, a Cup attempt, farm visits), and a decision on November's Harvest Day (Saturday 7 November is the default).</li>
   </ul>
 </section>

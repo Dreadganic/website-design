@@ -1,4 +1,4 @@
-/* GET  /.netlify/functions/game-visit?code=ABC123   ->  { code, name, look, prestige, level, farm, cheers, at }   (anyone can look)
+/* GET  /.netlify/functions/game-visit?code=ABC123   ->  { code, name, look, prestige, level, farm, cheers, at, trophies, sacks }   (anyone can look)
    PUT  /.netlify/functions/game-visit  { farm }     ->  { code, cheers }   (your own farm's snapshot; the code is made once and kept)
    POST /.netlify/functions/game-visit?code=ABC123   ->  { cheers }   (one Cheers per visitor per farm per day, never on your own farm)
    Farm visits: a read-only snapshot of how a farm looks. Nothing a visitor does changes it, apart from the Cheers count. */
@@ -16,8 +16,9 @@ exports.handler = async (event) => {
     if (!/^[A-Z2-9]{6}$/.test(code)) return G.json(400, { error: "bad_code" });
     const id = await store.get("codes/" + code), farm = id && await store.get("farms/" + id);
     if (!farm) return G.json(404, { error: "no_farm" });
-    const row = (await store.get("scores/" + id)) || {};
-    return G.json(200, { code, name: row.name || "Farmer", look: row.look || {}, prestige: row.prestige || 0, level: row.level || 1, farm: farm.farm, cheers: farm.cheers || 0, at: farm.at }, { "Cache-Control": "public, max-age=60" });
+    const row = (await store.get("scores/" + id)) || {}, owner = (await store.get("players/" + id)) || {};
+    return G.json(200, { code, name: row.name || "Farmer", look: row.look || {}, prestige: row.prestige || 0, level: row.level || 1, farm: farm.farm, cheers: farm.cheers || 0, at: farm.at,
+      trophies: (row.trophies || []).slice(0, 12), sacks: (owner.stamps || []).slice(0, 5) }, { "Cache-Control": "public, max-age=60" });   /* the trophy shelf and origin sacks, from the server's own records */
   }
   const me = await G.authed(event, store);
   if (!me) return G.json(401, { error: "sign_in" });
@@ -25,6 +26,8 @@ exports.handler = async (event) => {
     if ((event.body || "").length > G.RULES.maxFarmBytes) return G.json(413, { error: "too_big" });
     const b = G.parse(event), farm = b && G.cleanFarm(b.farm);
     if (!farm) return G.json(400, { error: "bad_farm" });
+    if (!me.sub) farm.fx = farm.fx.filter((k) => k !== "hanabi");   /* the fireworks are for subscribers */
+    if (!me.giftFrom) farm.decor = farm.decor.filter((k) => k !== "gift");   /* the furoshiki comes from opening a friend's gift */
     const key = "farms/" + me.id, cur = await store.get(key);
     if (cur && now - cur.at < G.RULES.minFarmGapSec * 1000) return G.json(429, { error: "too_soon", code: cur.code });
     let c = cur && cur.code;

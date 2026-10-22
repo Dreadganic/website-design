@@ -2245,6 +2245,118 @@ for k, fn, w, h in [("bench", d_bench, 16, 10), ("lantern", d_lantern, 7, 14), (
     add_layer("deco_" + k, w, h, fn)
 
 
+# ---- showing off: the trophy shelf, trophies, origin sacks, the Founding farmer charm and the furoshiki gift ----
+GOLD3 = ["#FFF0A0", "#F2C04A", "#B8862A"]   # light, main, dark: the game swaps these for silver and bronze
+
+
+def grid_art(rows, pal):   # a small sprite drawn from rows of letters
+    def draw(p):
+        for y, row in enumerate(rows):
+            for x, ch in enumerate(row):
+                if ch in pal:
+                    p(x, y, pal[ch])
+    return draw
+
+
+def d_shelf(p):   # a low stand with a green cloth; the game sets up to three trophies on top
+    for x in range(1, 25):
+        p(x, 9, "#2A2A0850")
+    rect(p, 0, 0, 26, 3, OUT); rect(p, 1, 1, 24, 1, WOOD[1]); rect(p, 1, 2, 24, 1, "#2D6A46")
+    for x in (2, 22):
+        rect(p, x, 3, 2, 6, OUT); p(x + 1, 3, WOOD[3])
+    rect(p, 2, 6, 22, 2, OUT); rect(p, 4, 6, 18, 1, WOOD[2])
+    for x in range(3, 24, 4):
+        p(x, 2, "#F2C04A")   # a gold fringe on the cloth
+
+
+TPAL = {"o": OUT, "l": GOLD3[0], "m": GOLD3[1], "d": GOLD3[2], "r": "#D8302C", "b": "#2D6A46", "w": WOOD[1], "v": WOOD[3], "c": "#E83A30", "g": LUSH[1], "s": LUSH[3], "t": "#C8603A"}
+TROPHIES = {
+    "cup": [".ooooo.", "olmmmdo", "olmmmdo", ".olmdo.", "..omo..", "..omo..", ".ooooo.", ".odddo.", ".ooooo."],   # Cup of Excellence
+    "pennant": ["o......", "ommo...", "olmmo..", "olmmmmo", "olmmo..", "ommo...", "o......", "o......", "oo....."],   # Co-op Derby
+    "medal": [".rr.bb.", ".rr.bb.", "..rbb..", ".ooooo.", "olmmmdo", "olmlmdo", "olmmmdo", ".odddo.", "..ooo.."],   # season and rookie finishes
+    "basket": [".......", ".c.c.c.", "ccccccc", "owwwwwo", "owvwvwo", "owwwwwo", "owwwwwo", ".ooooo.", "......."],   # Harvest Day
+    "sprout": [".g...g.", "ggg.ggg", ".ggsgg.", "...s...", "...s...", "ooooooo", ".ottto.", ".ottto.", "..ooo.."],   # Founding farmer
+}
+for _k, _rows in TROPHIES.items():
+    add_layer("tro_" + _k, 7, 9, grid_art(_rows, TPAL))
+add_layer("deco_shelf", 26, 10, d_shelf)
+
+
+def o_sack(p):   # a 9x8 green coffee sack; the band is swapped for each origin's stamp colour
+    for y in range(1, 8):
+        for x in range(0, 9):
+            edge = x in (0, 8) or y in (1, 7)
+            if (x, y) in ((0, 1), (8, 1), (0, 7), (8, 7)):
+                continue
+            p(x, y, JUTE[4] if edge else JUTE[1] if y < 3 else JUTE[2] if (x + y) % 3 else JUTE[3])
+    for x in range(2, 7):
+        p(x, 4, "#2D6A46")
+    p(3, 0, JUTE[4]); p(5, 0, JUTE[4]); p(4, 1, JUTE[4])   # the tied neck
+
+
+add_layer("osack", 9, 8, o_sack)
+
+
+def founder_charm(p):   # 9x9 round tag: a gold-ringed sprout, for farmers from the launch season
+    for y in range(9):
+        for x in range(9):
+            d = (x - 4) ** 2 + (y - 4) ** 2
+            if d <= 20:
+                p(x, y, OUT if d > 13 else "#F2C04A" if d > 9 else "#FFF8EC")
+    for (x, y, c) in [(4, 4, LUSH[4]), (4, 5, LUSH[4]), (4, 6, LUSH[4]), (2, 3, LUSH[2]), (3, 3, LUSH[2]), (3, 4, LUSH[3]), (5, 3, LUSH[1]), (6, 2, LUSH[1]), (5, 2, LUSH[2])]:
+        p(x, y, c)
+
+
+add_layer("charm_founder", 9, 9, founder_charm)
+add_layer("deco_gift", 12, 10, grid_art(["....oo.oo...", "...oBBoBBo..", "....oBBBo...", "..oooBBBooo.", ".oBBBBBBBBBo", ".oBwBBBBwBBo", ".oBBBBwBBBBo", ".oBBwBBBBwBo", "..oooooooooo", "..SSSSSSSSS."],
+                                         {"o": OUT, "B": "#2C3A80", "w": "#F8F4EC", "S": "#2A2A0850"}))   # a furoshiki bundle: opened from a friend's gift
+
+
+def fx_icon(kind):   # 16x16 shop pictures for the farm effects
+    def draw(p):
+        bgc = {"fireflies": "#1E2A50", "hanabi": "#1E2A50", "butterflies": "#BFE0A0", "mist": "#C8D4DC", "sakura": "#FBE4EC", "maple": "#F6E2C4", "cranes": "#A8D4F0"}[kind]
+        for y in range(16):
+            for x in range(16):
+                if (x in (0, 15) and y in (0, 15)):
+                    continue
+                p(x, y, OUT if x in (0, 15) or y in (0, 15) else bgc)
+        if kind == "fireflies":
+            for (x, y) in [(4, 4), (11, 6), (6, 10), (12, 11), (8, 7)]:
+                p(x, y, "#F8F070"); p(x + 1, y, "#C8D860"); p(x, y + 1, "#C8D860")
+            for x in range(1, 15):
+                p(x, 14, "#2E4A2A"); p(x, 13, "#2E4A2A" if x % 3 else "#3E6034")
+        elif kind == "hanabi":
+            for a in range(12):
+                for r in (2, 4, 5):
+                    x, y = int(8 + r * math.cos(a * math.pi / 6)), int(7 + r * math.sin(a * math.pi / 6))
+                    if 1 <= x <= 14 and 1 <= y <= 14:
+                        p(x, y, "#F2C04A" if r < 5 else "#F06A58")
+            p(8, 7, "#FFFFFF")
+        elif kind == "butterflies":
+            for (x, y, c) in [(4, 5, "#F08838"), (10, 9, "#F8F4EC")]:
+                p(x, y, c); p(x + 1, y, c); p(x, y + 1, c); p(x + 3, y, c); p(x + 4, y, c); p(x + 4, y + 1, c); p(x + 2, y, OUT); p(x + 2, y + 1, OUT)
+        elif kind == "mist":
+            for (y, x0, x1) in [(4, 2, 11), (7, 5, 14), (10, 1, 9), (12, 7, 14)]:
+                for x in range(x0, x1):
+                    p(x, y, "#FFFFFF"); p(x, y + 1, "#E6EDF2")
+        elif kind in ("sakura", "maple"):
+            cols = ["#F8B8CC", "#F48CAC"] if kind == "sakura" else ["#E8803A", "#D04A2A"]
+            for i, (x, y) in enumerate([(3, 3), (10, 4), (6, 8), (12, 10), (4, 12), (8, 13)]):
+                p(x, y, cols[i % 2]); p(x + 1, y, cols[i % 2]); p(x, y + 1, cols[(i + 1) % 2])
+        elif kind == "cranes":
+            for (ox, oy) in [(2, 4), (7, 9)]:
+                for x in range(ox + 1, ox + 7):
+                    p(x, oy + 2, "#FFFFFF")
+                p(ox + 7, oy + 1, "#FFFFFF"); p(ox + 8, oy + 1, "#D8302C"); p(ox, oy + 2, "#2A2A2A")
+                for i in range(3):
+                    p(ox + 3 + i, oy + 1 - (1 if i == 1 else 0), "#FFFFFF")
+    return draw
+
+
+for _k in ["fireflies", "butterflies", "mist", "sakura", "maple", "cranes", "hanabi"]:
+    add_layer("fx_" + _k, 16, 16, fx_icon(_k))
+
+
 def motif_at(p, x0, y0, t, scale=1):
     cols = {"a": t["main"], "b": shade(t["deep"], -0.2), "c": t["accent"]}
     for y, row in enumerate(MOTIFS[t["motif"]]):

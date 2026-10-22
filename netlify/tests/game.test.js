@@ -51,8 +51,8 @@ test("scores: honest progress is accepted and ranked", async () => {
   assert.equal((await call(score, "POST", s(0, 0, 2400), a)).status, 200);
   const board = await call(score, "GET", undefined, b, { mode: "season" });
   assert.equal(board.body.top[0].points, 2400); assert.equal(board.body.me.rank, 2);
-  assert.deepEqual(board.body.top[0].look, { crest: 0, skin: 0, bg: "huila", char: "kitsune", hat: "", charm: "", roaster: "", title: "" }, "crest is capped at the prestige tier");
-  assert.deepEqual(G.cleanLook({ plate: 3, border: 3, skin: 2, bg: "<script>" }), { crest: 3, skin: 2, bg: "none", char: "none", hat: "", charm: "", roaster: "", title: "" }, "old looks still read");
+  assert.deepEqual(board.body.top[0].look, { crest: 0, skin: 0, bg: "huila", char: "kitsune", hat: "", charm: "", roaster: "", pin: "", title: "" }, "crest is capped at the prestige tier");
+  assert.deepEqual(G.cleanLook({ plate: 3, border: 3, skin: 2, bg: "<script>" }), { crest: 3, skin: 2, bg: "none", char: "none", hat: "", charm: "", roaster: "", pin: "", title: "" }, "old looks still read");
 });
 
 test("scores: impossible jumps are rejected", async () => {
@@ -91,7 +91,7 @@ test("claims: a paid order grants cranes and coffees once", async () => {
   process.env.STRIPE_SECRET_KEY = "sk_test_x";
   Object.defineProperty(claim, "__deps", { get: () => ({ store, now: clock, fetch: fakeStripe }), configurable: true });
   const r = await call(claim, "POST", { session_id: "cs_test_abcdefghijkl" }, a);
-  assert.equal(r.status, 200); assert.equal(r.body.cranes, 105); assert.deepEqual(r.body.coffees, ["casablanca", "casablanca", "pinkwhiskey"]);
+  assert.equal(r.status, 200); assert.equal(r.body.cranes, 135, "1 per ¥100 plus 30 for the month's first order"); assert.equal(r.body.bonus, 30); assert.deepEqual(r.body.coffees, ["casablanca", "casablanca", "pinkwhiskey"]);
   assert.equal((await call(claim, "POST", { session_id: "cs_test_abcdefghijkl" }, a)).body.again, true, "same player gets the same answer");
   assert.equal((await call(claim, "POST", { session_id: "cs_test_abcdefghijkl" }, b)).status, 409, "another player can't claim it");
   const unpaid = async (url) => ({ ok: true, json: async () => ({ payment_status: "unpaid", amount_total: 3000 }) });

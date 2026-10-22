@@ -54,6 +54,7 @@ exports.handler = async (event) => {
     if (!full) { await store.set(key, rec); return G.json(200, { reward: "cranes", cranes, half: true }); }
     rec.claimed = true; await store.set(key, rec);
     const first = !me.harvestDecor; if (first) { me.harvestDecor = true; await G.savePlayer(store, me); } else cranes += REPEAT_CRANES;
+    await G.addTrophy(store, me, { k: "harvest", d: day.id }, now);   /* each reached Harvest Day goes on the trophy shelf */
     return G.json(200, { reward: first ? "decor" : "cranes", cranes, half: false });
   }
   if (now < day.starts || now >= day.ends) return G.json(422, { error: "not_live" });

@@ -88,7 +88,7 @@ test("subscriptions: renewals of a claimed subscription pay cranes once each", a
   await call(webhook, "POST", undefined, null, signed({ type: "invoice.paid", data: { object: inv } }));
   await call(webhook, "POST", undefined, null, signed({ type: "invoice.paid", data: { object: inv } }));
   const g = await call(grants, "POST", {}, a);
-  assert.deepEqual(g.body.grants.map((x) => x.cranes), [33], "one grant per invoice");
+  assert.deepEqual(g.body.grants.map((x) => x.cranes), [43], "one grant per invoice: 33, plus 10 for subscribers (the claimed order was this month's first)");
   assert.deepEqual((await call(grants, "POST", {}, a)).body.grants, [], "handed over once");
   await call(webhook, "POST", undefined, null, signed({ type: "invoice.paid", data: { object: { id: "in_002", billing_reason: "subscription_create", subscription: "sub_123", amount_paid: 3300 } } }));
   assert.deepEqual((await call(grants, "POST", {}, a)).body.grants, [], "the first payment is the claimed order, not a renewal");

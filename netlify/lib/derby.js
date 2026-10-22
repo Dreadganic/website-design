@@ -90,7 +90,7 @@ async function derbyClaim(store, coop, me, now) {
   if (!rec || !rec.m[me.id]) return { error: "did_not_play" };
   if (res.claimed.includes(me.id)) return { error: "already_claimed" };
   res.claimed.push(me.id); await store.set(key, res);
-  return { cranes: res.cranes };
+  return { cranes: res.cranes, rank: res.rank, of: res.of, week: lastWk };
 }
 
 module.exports = { DERBY_MIN_COOPS, LEAGUE_COOPS, DERBY_TASKS, GROUP, LEAGUES, boardFor, ensureWeek, derbyAdd, derbyView, derbyClaim, leagueName };

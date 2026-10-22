@@ -44,6 +44,7 @@ exports.handler = async (event) => {
     const att = me ? (await store.get("coe/" + wk + "/att/" + me.id)) || { list: [] } : null;
     const mi = me ? b.rows.findIndex((r) => r.id === me.id) : -1, hi = me ? hall.rows.findIndex((r) => r.id === me.id) : -1;
     const lf = me && await store.get("coe/" + last + "/final");
+    if (lf && lf.pct[me.id] !== undefined) { const rk = Math.round(lf.n - lf.pct[me.id] * lf.n / 100) + 1; if (rk <= Math.max(1, Math.ceil(lf.n * 0.1))) await G.addTrophy(store, me, { k: "coe", w: last, r: rk }, now); }   /* the weekly top 10% (and always the winner) goes on the trophy shelf */
     return G.json(200, {
       brief: E.briefFor(wk), ends: C.weekStart(wk) + 7 * C.DAY,
       mine: att && { used: att.list.length, left: E.ATTEMPTS - att.list.length, list: att.list, best: mi > -1 ? b.rows[mi].total : null, rank: mi + 1 || null, players: b.rows.length },

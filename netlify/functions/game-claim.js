@@ -1,8 +1,13 @@
-/* POST /.netlify/functions/game-claim  { session_id }  ->  { cranes, coffees: [pid…], order }
+/* POST /.netlify/functions/game-claim  { session_id }  ->  { cranes, bonus, coffees: [pid…], order, gift, sub }
    Turns a paid bejucoffee.com order into game rewards, once. The order is checked with Stripe on the server;
-   the game is never trusted to say what was bought. 1 crane per ¥100; each coffee bought can stamp the passport. */
+   the game is never trusted to say what was bought. 1 crane per ¥100, plus MONTH_BONUS for the first order of the month (Japan time);
+   each coffee bought can stamp the passport. Every order also brings one gift code for a friend (game-gift), and a subscription
+   unlocks the subscribers' fireworks on the farm. */
 const G = require("../lib/game");
 const { stripe } = require("../lib/stripe");
+
+const CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+const newCode = () => Array.from({ length: 6 }, () => CODE_CHARS[require("crypto").randomInt(CODE_CHARS.length)]).join("");
 
 exports.handler = async (event) => {
   const deps = exports.__deps;
@@ -24,9 +29,15 @@ exports.handler = async (event) => {
   }
   const coffees = [];
   (items.data || []).forEach((li) => { const pid = li.price && li.price.product && li.price.product.metadata && li.price.product.metadata.pid; if (G.STAMPS[pid]) for (let k = 0; k < Math.min(li.quantity || 1, 5); k++) coffees.push(pid); });
-  const grant = { cranes: Math.floor((s.amount_total || 0) / 100), coffees, order: id.slice(-8) };
+  const bonus = G.firstThisMonth(me, now) ? G.MONTH_BONUS : 0, sub = s.mode === "subscription";
+  let gift; do { gift = newCode(); } while (await store.get("gifts/" + gift));
+  await store.set("gifts/" + gift, { from: me.id, order: id.slice(-8), at: now });
+  const grant = { cranes: Math.floor((s.amount_total || 0) / 100) + bonus, bonus, coffees, order: id.slice(-8), gift, sub };
   await store.set(claimKey, { player: me.id, at: now, grant });
-  if (s.mode === "subscription" && s.subscription) await store.set("subs/" + s.subscription, { player: me.id, at: now });   /* renewals of this subscription earn cranes too */
+  if (sub && s.subscription) await store.set("subs/" + s.subscription, { player: me.id, at: now });   /* renewals of this subscription earn cranes too */
+  if (sub) me.sub = true;
+  G.addStamps(me, coffees);   /* the origin sacks farm visitors see come from the server's own record */
+  me.gifts = (me.gifts || []).concat([gift]);
   me.grants = (me.grants || []).concat([{ order: id, at: now, cranes: grant.cranes }]);
   await G.savePlayer(store, me);
   return G.json(200, grant);

@@ -12,8 +12,11 @@ Before launch
 - [ ] Stock 100 g sample bags of Casablanca Blend, Colombia Pink Whiskey, Ethiopia Yirgacheffe and Sumatra Strawberry, plus a "Roaster's choice" for monthly samples. Order emails will say which to pack.
 - [ ] Place one test-mode order on a Netlify deploy preview with `GAME_SAMPLES=on` set for previews only: claim it in `/farm/`, earn the welcome sample, and check it rides with the next order and the email says to pack it. (The new backend has only run in tests so far.)
 
-- [ ] Season timing: set `SEASON_FIRST` in `game-assets/play/template.html` to the launch month (it decides when the Season archive opens, a year after the first season). If launch falls after the 15th, fold the next month into the first season by setting `SEASON_JOIN` to e.g. `{ '2026-12': '2026-11' }` in **both** `template.html` and `netlify/lib/game.js`, so nobody's first badge comes from a short season.
+- [ ] Season timing: set `SEASON_FIRST` to the launch month in **both** `game-assets/play/template.html` and `netlify/lib/game.js`. It decides when the Season archive opens (a year after the first season) and who counts as a Founding farmer (everyone whose first season is this one or earlier). If launch falls after the 15th, fold the next month into the first season by setting `SEASON_JOIN` to e.g. `{ '2026-12': '2026-11' }` in **both** `template.html` and `netlify/lib/game.js`, so nobody's first badge comes from a short season.
 - [ ] All 12 season themes (Momiji, Winter lights, Shōgatsu and on) are drawn by `game-assets/build_sprites.py`. Look over the season art sheet before launch and adjust any theme's colours there.
+
+- [ ] Legal check before promising samples (see `game-assets/review/cranes-audit.html`): a 100 g sample with a ¥3,000 order may be over the 20% cap on premiums given to every buyer. Ask a lawyer whether to make it a smaller taster, "100 g extra of a coffee in your order", or a higher minimum order. Also ask about the referral reward (10 cranes when a friend opens your gift).
+- [ ] On a preview: link a test order, check it pays 30 more as the month's first, shows a gift code, and that a second account can open the gift (furoshiki on the farm, 10 cranes to the sender). Link a subscription order and check Hanabi unlocks.
 
 Launch day
 - [ ] Try the kit on a copy: `cp -r beju-site /tmp/beju-launch && python3 launch/apply.py --target /tmp/beju-launch`
@@ -25,7 +28,8 @@ Launch day
 - **Free samples on the server** (`game-samples`): the welcome bag, one per origin at prestige 2-5, and one a month for 20 check-ins (`game-checkin`). The server decides from its own records; editing a save earns nothing. Samples last 60 days.
 - **Checkout redemption** (`create-checkout`): a sample rides with an order of ¥3,000 or more, shown on Stripe's page and noted on the order email. **Off until `GAME_SAMPLES=on`**, and a problem with a sample never blocks a purchase.
 - **Webhook** (`stripe-webhook`): marks a sample redeemed when the order is paid, gives it back if the checkout expires or a konbini payment fails, and pays cranes for every paid subscription renewal (`game-grants` hands them to the game).
-- **Subscriptions**: claiming a subscription order in the game links it, so renewals earn cranes.
+- **Subscriptions**: claiming a subscription order in the game links it, so renewals earn cranes (+10 per renewal), and unlocks the Hanabi farm effect.
+- **Order bonus and gifts** (`game-claim`, `game-gift`): the first order of each month pays 30 more cranes, and every linked order brings one gift code for a friend.
 - **Seasons** (`game-score`): the season board ranks season stars, then know-how this season, and checks stars against the daily caps. The first request of each new season saves the closed board as `seasons/<month>`, and `?mode=final&season=<month>` gives each player their final rank for the end-of-season badge.
 
 ## On launch day
@@ -37,7 +41,8 @@ Launch day
 ## What `apply.py` changes
 - `farm/index.html` rebuilt without noindex; `/farm/*` noindex header removed; `/farm/` added to the sitemap.
 - Footer link on every page (EN "Beju Farm game", JA "Beju Farm(ゲーム)").
-- Thank-you pages (EN and JA): an "Add this order to Beju Farm" card linking to `/farm/?claim=<session>` (`site/farm-thanks.js`).
+- Thank-you pages (EN and JA): an "Add this order to Beju Farm" card linking to `/farm/?claim=<session>` (`site/farm-thanks.js`). It mentions the monthly bonus and the gift code.
+- Each coffee's page (EN and JA): a line under Add to cart saying what it does in the game: cranes, the monthly bonus, its stamp or process, and a gift for a friend (`site/farm-product.js`).
 - Every page with the cart: the sample offer (`site/farm-checkout.js`), and the site script sends it with the checkout request. The script is saved under a new hashed name because assets are cached for a year.
 
 ## Fulfilment
