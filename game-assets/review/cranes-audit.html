@@ -1,0 +1,277 @@
+<title>Crane Economy Audit</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column like the other Beju Farm reviews; the four answers first, then the flow of cranes, the comparisons, the legal points and a phased plan */
+:root {
+  --bg: #F5F3EE; --panel: #FFFFFF; --fg: #23201B; --muted: #6A6358; --line: #DED8CC;
+  --bean: #6B3F22; --leaf: #2F6B4F; --cherry: #B8323A; --gold: #A8791A; --soft: #EFE9DD;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #171512; --panel: #201D19; --fg: #EDE7DC; --muted: #A79F92; --line: #383229;
+  --bean: #D9A47A; --leaf: #6CC59A; --cherry: #F07880; --gold: #E2B64A; --soft: #2A2620; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #171512; --panel: #201D19; --fg: #EDE7DC; --muted: #A79F92; --line: #383229;
+  --bean: #D9A47A; --leaf: #6CC59A; --cherry: #F07880; --gold: #E2B64A; --soft: #2A2620; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font: 16px/1.6 var(--body); }
+.wrap { max-width: 820px; margin: 0 auto; padding-block: 40px 72px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 44px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(30px, 6vw, 42px); font-weight: 800; }
+h2 { font-size: 24px; font-weight: 800; }
+h3 { font-size: 18px; font-weight: 800; }
+p { margin: 0; max-width: 68ch; }
+section { display: flex; flex-direction: column; gap: 14px; }
+.eyebrow { font: 600 12px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--bean); }
+.lede { font-size: 18px; color: var(--muted); }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; }
+.kpi b { font: 800 26px/1.1 var(--display); font-variant-numeric: tabular-nums; color: var(--cherry); }
+.kpi span { font-size: 13px; color: var(--muted); }
+.verdicts { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.v { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.v .q { font: 600 12px/1.3 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.v .tag { font: 600 12px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; }
+.v.good .tag { color: var(--leaf); } .v.more .tag { color: var(--gold); } .v.less .tag { color: var(--cherry); }
+.v p { font-size: 14px; }
+.tw { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 12px/1.3 var(--mono); letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+td.n, th.n { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
+td.yes { color: var(--leaf); font-weight: 600; } td.no { color: var(--cherry); font-weight: 600; } td.part { color: var(--gold); font-weight: 600; }
+tr.us td { background: var(--soft); font-weight: 600; }
+tr.sum td { font-weight: 600; border-top: 2px solid var(--line); }
+tr:last-child td { border-bottom: 0; }
+ul, ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 70ch; }
+.note { font-size: 14px; color: var(--muted); }
+.phase { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+.phase .tag { font: 600 12px var(--mono); color: var(--leaf); }
+.legal { background: var(--soft); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.legal .tag { font: 600 12px var(--mono); color: var(--cherry); letter-spacing: 0.04em; text-transform: uppercase; }
+.src { font-size: 13px; color: var(--muted); }
+.src a { color: var(--bean); overflow-wrap: anywhere; }
+a { color: var(--leaf); }
+a:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+</style>
+<div class="wrap">
+<header style="display:flex;flex-direction:column;gap:12px">
+  <span class="eyebrow">Design audit · 22 October 2026 · cranes, rewards and showing off</span>
+  <h1>Cranes: the right amount, too little to show for them</h1>
+  <p class="lede">I checked the crane economy against other idle games and real coffee loyalty programmes, with four questions in mind: more or less currency, more ways to earn, a way to pay money directly, and better cosmetics to show off. The figures come from the game code, the server functions and the earlier playtest bots. People play slower than bots, so read play figures as upper bounds.</p>
+</header>
+
+<section>
+  <div class="kpis">
+    <div class="kpi"><b>~35 / week</b><span>cranes from play for an engaged daily player in a co-op</span></div>
+    <div class="kpi"><b>~15 / week</b><span>cranes from play for a casual player (about 10 minutes most days)</span></div>
+    <div class="kpi"><b>30</b><span>cranes from a ¥3,000 order, about 6 days of engaged play</span></div>
+    <div class="kpi"><b>~1,225</b><span>cranes to buy everything in the crane shop once</span></div>
+  </div>
+</section>
+
+<section>
+  <h2>The four answers</h2>
+  <div class="verdicts">
+    <div class="v good"><span class="q">More or less currency?</span><span class="tag">About right in total</span>
+      <p>Don't cut play again. In a small community the free players are the community. The order side is what's too small: for an engaged player a ¥3,000 bag is worth less than a week of play. Add a first-order-of-the-month bonus so a monthly bag counts double.</p></div>
+    <div class="v more"><span class="q">More ways to earn?</span><span class="tag">A few, one-time only</span>
+      <p>No new weekly sources. Add one-time achievements (about 300 cranes in all) that reward new players early without raising the weekly rate for veterans, and a free Founding farmer charm for the launch season.</p></div>
+    <div class="v less"><span class="q">Pay money for cranes?</span><span class="tag">No: sell coffee that brings cranes</span>
+      <p>Selling cranes would earn little from a small community, would bring in prepaid-payment rules, and would put a yen price on every crane given with an order. Every paid route should go through coffee: monthly bonus, subscriptions, gift orders and seasonal coffee sets.</p></div>
+    <div class="v more"><span class="q">Better cosmetics to show off?</span><span class="tag">Yes, the main gap</span>
+      <p>Most of what players earn can't be seen by anyone else. Badges stay on the device, the roastery is private, and nothing on the farm shows which real coffees you've had. Make the farm visit the showroom, and add animated pieces as the top crane tier.</p></div>
+  </div>
+</section>
+
+<section>
+  <h2>Where cranes come from</h2>
+  <p>Two player types, after the tutorial, in a co-op, from about the second prestige. Cranes per week.</p>
+  <div class="tw"><table>
+    <thead><tr><th>Source</th><th class="n">Casual</th><th class="n">Engaged</th><th>How it works</th></tr></thead>
+    <tbody>
+      <tr><td>Daily tasks</td><td class="n">3</td><td class="n">7</td><td>The third task each day pays 1 crane.</td></tr>
+      <tr><td>Weekly estate goal</td><td class="n">0</td><td class="n">3</td><td>The estate goal pays 3 cranes.</td></tr>
+      <tr><td>Check-in streak</td><td class="n">4</td><td class="n">4</td><td>Day 4 pays 1 and day 7 pays 3. A streak freeze covers a missed day.</td></tr>
+      <tr><td>Co-op order</td><td class="n">6</td><td class="n">10</td><td>1, 2, 3 and 4 cranes at 25, 50, 75 and 100%. It replaces the solo weekly order, which also pays 10.</td></tr>
+      <tr><td>Co-op Derby</td><td class="n">0</td><td class="n">0–3</td><td>Runs only once there are 4 co-ops.</td></tr>
+      <tr><td>Harvest Day</td><td class="n">0.5</td><td class="n">1.6</td><td>Monthly: 2 at halfway, then 5 at the goal after the first basket.</td></tr>
+      <tr><td>Level milestones</td><td class="n">1</td><td class="n">2</td><td>1 crane every 5 levels, earned again on each prestige run.</td></tr>
+      <tr><td>Golden koi and the trader's boat</td><td class="n">0.5</td><td class="n">6</td><td>Koi: a 10% chance of 3 cranes per feed, every 3 hours. Boat: a 1 in 3 chance of 3 cranes, every 2 hours of play. Both grow with time played.</td></tr>
+      <tr><td>Coffee drop events</td><td class="n">0–2</td><td class="n">2.5</td><td>10 cranes for finishing three event contracts, about once a month.</td></tr>
+      <tr class="sum"><td>Play total</td><td class="n">~15</td><td class="n">~35</td><td>About 65 and 150 a month.</td></tr>
+      <tr class="us"><td>A ¥3,000 order</td><td class="n">30</td><td class="n">30</td><td>1 crane per ¥100, plus 20 for each new passport stamp (5 origins, 100 in all). Subscription renewals pay the same rate.</td></tr>
+    </tbody>
+  </table></div>
+  <p>The 18 October review cut play cranes so that a ¥3,000 bag would equal about two weeks of play. That holds for a casual player. For an engaged player it's closer to six days, because the co-op order, the koi and the boat came in afterwards and the last two grow with time played. Ordering coffee still helps, but it isn't the fast lane yet.</p>
+</section>
+
+<section>
+  <h2>Where cranes go</h2>
+  <div class="tw"><table>
+    <thead><tr><th>What cranes buy</th><th class="n">Items</th><th class="n">Cranes</th><th>Can others see it?</th></tr></thead>
+    <tbody>
+      <tr><td>Characters</td><td class="n">10</td><td class="n">800</td><td class="yes">Yes, on boards and farm visits</td></tr>
+      <tr><td>Building styles</td><td class="n">8</td><td class="n">335</td><td class="yes">Yes, on farm visits</td></tr>
+      <tr><td>Osaka garden farm</td><td class="n">1</td><td class="n">60</td><td class="yes">Yes, on farm visits</td></tr>
+      <tr><td>Roastery cosmetics (gold noren, Beju label)</td><td class="n">2 of 33</td><td class="n">30</td><td class="no">No, the roastery is private</td></tr>
+      <tr class="sum"><td>Everything once</td><td class="n"></td><td class="n">~1,225</td><td></td></tr>
+      <tr><td>Boosts</td><td class="n">4</td><td class="n">2–10 each</td><td>Repeatable</td></tr>
+      <tr><td>Season archive (from year 2)</td><td class="n">6 a season</td><td class="n">100</td><td>Monthly, repeatable</td></tr>
+    </tbody>
+  </table></div>
+  <div class="tw"><table>
+    <thead><tr><th>Months to buy everything once</th><th class="n">Today</th><th class="n">With +30 for the first order of each month</th></tr></thead>
+    <tbody>
+      <tr><td>Casual player, no orders</td><td class="n">19</td><td class="n">19</td></tr>
+      <tr class="us"><td>Casual player, one ¥3,000 bag a month</td><td class="n">12</td><td class="n">9</td></tr>
+      <tr><td>Engaged player, no orders</td><td class="n">8</td><td class="n">8</td></tr>
+      <tr><td>Engaged player, one ¥3,000 bag a month</td><td class="n">6</td><td class="n">5</td></tr>
+    </tbody>
+  </table></div>
+  <p>The highlighted row is Beju's real audience: coffee drinkers who play a little. With the monthly bonus, their monthly bag halves the time to the full shop compared with not ordering. The other problem is the end. An engaged player owns everything in about eight months, and until the season archive opens in year 2, boosts are the only thing left to buy. Cranes would pile up with nothing to want. That's a shortage of sinks, not too many cranes.</p>
+</section>
+
+<section>
+  <h2>Compared with other games</h2>
+  <div class="tw"><table>
+    <thead><tr><th>Game</th><th>Free players earn</th><th>Spent on</th><th>Lesson for Beju</th></tr></thead>
+    <tbody>
+      <tr><td>Pokémon GO (PokéCoins)</td><td>1 coin per 10 minutes a Pokémon defends a gym, up to 50 a day. 100 coins cost about $0.99.</td><td>Storage, passes, outfits</td><td>A daily cap keeps free earning steady and predictable.</td></tr>
+      <tr><td>Fortnite (V-Bucks)</td><td>The battle pass costs 950 and pays back up to 1,500 if you finish it.</td><td>Cosmetics only</td><td>Every item is seen by other players in every match. Visibility is what people pay for.</td></tr>
+      <tr><td>Pocket Camp (Leaf Tickets)</td><td>10 per level-up plus goals, slowing after level 15. 20 tickets cost $0.99. The subscription gave 60 a month.</td><td>Time-skips, furniture</td><td>Free income dried up for long-time players. The 2024 Complete version stopped selling tickets and lets players trade in-game money for 20 tokens, five times a month.</td></tr>
+      <tr><td>Hay Day (Diamonds)</td><td>1–3 per achievement tier, the daily mystery box and wheel, some level-ups</td><td>Speed-ups, slots, decorations</td><td>One-time achievements give new players a lot early on without raising the weekly rate.</td></tr>
+      <tr><td>Duolingo (Gems)</td><td>Streak milestones, league finishes, ads</td><td>Streak freezes (200), refills</td><td>The most loved thing to buy protects a habit people already care about.</td></tr>
+      <tr><td>Egg, Inc. (Golden eggs)</td><td>Drones, a daily gift calendar, a welcome-back gift after 7 days away</td><td>Boosts, upgrades</td><td>A welcome-back gift draws lapsed players in again.</td></tr>
+      <tr class="us"><td>Beju Farm (Cranes)</td><td>About 15–35 a week, and 1 per ¥100 of coffee</td><td>Cosmetics, one farm, boosts</td><td>Already cosmetic-first, like the best of these. It lacks visibility and repeat sinks.</td></tr>
+    </tbody>
+  </table></div>
+  <p>In these games, premium currency is scarce for free players because it is the product being sold. Beju sells coffee, so cranes work more like loyalty points with a game attached. That's why the comparison below matters more.</p>
+</section>
+
+<section>
+  <h2>Compared with coffee loyalty programmes</h2>
+  <div class="tw"><table>
+    <thead><tr><th>Programme</th><th>Earn</th><th>Reward</th><th>Back</th></tr></thead>
+    <tbody>
+      <tr><td>Starbucks Rewards Japan</td><td>1 Star per ¥50 before tax, on a registered card</td><td>150 Stars for a ¥700 drink, food or beans eTicket, valid 30 days. Green Stars reset if you don't reach 250 in a year.</td><td class="n">~9%</td></tr>
+      <tr><td>Starbucks Rewards US (2026)</td><td>1 Star per $1, 1.2 for Gold, 1.7 for Reserve</td><td>Tiers from 25 to 400 Stars; reviewers value a Star at 4–5¢</td><td class="n">~4–5%</td></tr>
+      <tr><td>Blue Bottle (from September 2025)</td><td>1 point per $1 in cafés. Online orders and subscriptions earn nothing.</td><td>150 points for a drink, or 75 to gift one. About half of members gift.</td><td class="n">~4%</td></tr>
+      <tr><td>Starbucks Odyssey (2022–2024)</td><td>Quizzes and purchase "journeys" earn collectible stamps</td><td>The top tier included a trip to Starbucks' Hacienda Alsacia farm. It closed in 2024.</td><td class="n">n/a</td></tr>
+      <tr><td>McDonald's Monopoly (US, 2025)</td><td>A game piece with eligible items, digital pieces in the app</td><td>1 in 5 odds at the start, mostly food. A free entry route and 10 plays a day.</td><td class="n">n/a</td></tr>
+      <tr class="us"><td>Beju Farm</td><td>1 crane per ¥100, plus stamps and play</td><td>Cosmetics and a farm; samples are planned</td><td class="n">n/a</td></tr>
+    </tbody>
+  </table></div>
+  <p>Two lessons carry over. Real coffee is earned by buying, at roughly 4–9% back. Gifting is unusually popular: half of Blue Bottle members choose to treat someone else. A gift order that gives both people something in the game would suit Beju's small community and bring in new players.</p>
+</section>
+
+<section>
+  <h2>Why not sell cranes</h2>
+  <ul>
+    <li><b>Little money.</b> Most players in free games never pay, and Beju's community will be small. A ¥3,000 bag earns far more than any likely crane sales would.</li>
+    <li><b>It changes what cranes mean.</b> Today a crane says "I drink Beju coffee" or "I play every day". Once they're for sale, they just mean "I paid".</li>
+    <li><b>Prepaid-payment rules.</b> Paid game currency counts as a prepaid payment instrument under the Payment Services Act. If the unused paid balance ever passes ¥10 million on 31 March or 30 September, Beju must notify the Local Finance Bureau within two months, deposit at least half of that balance, and refund players if the game closes. Below that line nothing is filed, but paid and free cranes still have to be kept apart from day one.</li>
+    <li><b>It puts a price on every crane.</b> While cranes can't be bought, those given with an order have no clear yen value. Once they have a shop price, every crane given with coffee becomes a valued premium (see the legal points below).</li>
+    <li><b>App stores later.</b> If the game ever ships as an app, digital purchases fall under Apple and Google's rules and fees. Since December 2025, Japan's smartphone competition law lets developers offer other payment methods, but Apple's own in-app purchase must be offered alongside, with fees of 5–26%. Physical coffee is outside those rules.</li>
+  </ul>
+  <h3>Paid routes that go through coffee instead</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Idea</th><th>What the player gets</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>First order of the month</td><td>+30 cranes on top of 1 per ¥100</td><td>Matches how often people buy coffee, and makes a monthly bag worth about two weeks of engaged play.</td></tr>
+      <tr><td>Subscription</td><td>+10 cranes per renewal and a subscriber-only animated piece others can see</td><td>Subscriptions are the steadiest income a roaster has.</td></tr>
+      <tr><td>Gift order</td><td>Cranes for the buyer, and a welcome cosmetic for the friend when they claim it</td><td>Doubles as a referral, which a small community needs.</td></tr>
+      <tr><td>Seasonal coffee set</td><td>A farm piece only that set brings, shown on visits</td><td>Turns a coffee launch into something players can see on each other's farms.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2>What other players can see</h2>
+  <div class="tw"><table>
+    <thead><tr><th>Earned thing</th><th>Who sees it today</th></tr></thead>
+    <tbody>
+      <tr><td>Character, outfit, hat, background, crest, charm, title</td><td class="yes">Everyone, on board rows</td></tr>
+      <tr><td>Building style, decorations, showpiece, estates, farmhouse</td><td class="yes">Visitors to your farm</td></tr>
+      <tr><td>Cup of Excellence, Derby, Harvest Day and season badges</td><td class="no">Only you; they stay on the device</td></tr>
+      <tr><td>Passport stamps (the real coffees you've had)</td><td class="part">Only as stamp backgrounds you choose to wear</td></tr>
+      <tr><td>33 roastery cosmetics, including each coffee's bag label</td><td class="no">Only you</td></tr>
+      <tr><td>Hall of Excellence rating</td><td class="part">On the hall board only</td></tr>
+    </tbody>
+  </table></div>
+  <p>The things that are hardest to earn are the ones nobody else sees: a Cup win, a Derby pennant, a full passport. In the games that sell cosmetics well, the best items are seen where other players already look, are tied to a moment or an achievement, and move. Beju's pixel farm is almost entirely still, so a few small animations would stand out a lot.</p>
+  <h3>Proposals</h3>
+  <ul>
+    <li><b>Trophy shelf on the farm.</b> A decoration that shows your best three badges to visitors. Only badges the server can check count (Cup, Derby, Harvest Day, season ranks), so they're stored on the server, not just on the device.</li>
+    <li><b>Origin sacks.</b> A stack of jute sacks by the farmhouse, one printed sack for each origin you've ordered. It shows visitors which real coffees you drink, and it advertises the shop at the same time.</li>
+    <li><b>Pinned badges on board rows.</b> One badge next to your name on every board, so a Cup winner is recognised everywhere.</li>
+    <li><b>Animated pieces as the top crane tier.</b> Fireflies at dusk, falling sakura, chimney steam from the roastery, swaying lanterns, a crane that crosses the farm now and then, maple leaves in autumn. 80–150 cranes each, above the 30–80 for still building styles.</li>
+    <li><b>A monthly market stall.</b> Three crane items a month (recolours of building styles and decorations, 15–30 each), each coming back a year later so nobody feels they have to rush.</li>
+    <li><b>A look into the roastery.</b> Let visitors see one screen of your roastery, so the 33 roastery cosmetics count too.</li>
+    <li><b>Founding farmer.</b> A free charm for everyone who plays in the launch season. A small community makes it rare and gives early players something to keep.</li>
+  </ul>
+  <p>With about 600 cranes of animated pieces and the market stall taking about 75 a month, an engaged player needs about a year to own the permanent shop, longer if they also buy from the stall. After that the stall and the season archive take about 175 a month against about 150 earned, so cranes keep their value.</p>
+</section>
+
+<section>
+  <h2>Points to check with a lawyer before launch</h2>
+  <div class="legal">
+    <span class="tag">Not legal advice · from public guidance, to confirm</span>
+    <ul>
+      <li><b>The 100 g samples and the 20% cap.</b> Under the Premiums and Representations Act, a premium given to everyone who buys (総付景品) can be worth at most 20% of the purchase, so ¥600 on a ¥3,000 order. A 100 g bag worth ¥1,400–2,250, redeemed with a ¥3,000 order, would be far over that if it counts as a premium. There are three ways it may not count. The guidance exempts genuine samples (見本) of a sensible size, which suggests a smaller taster. It treats a discount, or more of the same product at the same price, as a discount rather than a premium, which suggests "100 g extra of a coffee in your order". Or the minimum order could rise. The Consumer Affairs Agency is also looking at raising the caps, possibly from 2027.</li>
+      <li><b>Cranes given with orders.</b> Cosmetics that can't be bought anywhere have no clear market price, which keeps their value as a premium low. Selling cranes would change that.</li>
+      <li><b>Selling cranes or gift cards.</b> Both are prepaid payment instruments: the ¥10 million line on 31 March and 30 September, a deposit of half the unused balance above it, and fines for not filing. Instruments usable for six months or less are exempt.</li>
+      <li><b>No paid random boxes.</b> Since July 2012, "complete the set" rewards from paid random draws (コンプガチャ) are banned as card matching. The crane shop sells each item directly, so keep it that way. Prizes by chance tied to purchases are prize draws with their own limits.</li>
+      <li><b>Gift orders and referrals.</b> Check whether a reward to the person who refers counts as a premium on their own purchase.</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <h2>Proposed changes</h2>
+  <p>Nothing here is built yet. Say go and I'll build them in this order, with anything on the live site kept separate until launch.</p>
+  <div class="phase"><span class="tag">Phase 1 · showing off (game and server)</span>
+    <ul>
+      <li>The server stores the badges it can check, and players pin one to their board row.</li>
+      <li>A trophy shelf and origin sacks on the farm, shown on visits.</li>
+      <li>The Founding farmer charm for the launch season.</li>
+      <li>About 30 one-time achievements worth about 300 cranes in all, most of them in the first two months.</li>
+    </ul></div>
+  <div class="phase"><span class="tag">Phase 2 · things worth wanting (game and art)</span>
+    <ul>
+      <li>Six animated pieces at 80–150 cranes.</li>
+      <li>The monthly market stall with recolours.</li>
+      <li>A look into the roastery on farm visits.</li>
+    </ul></div>
+  <div class="phase"><span class="tag">Phase 3 · coffee pays more (server ready, site kept separate)</span>
+    <ul>
+      <li>+30 cranes for the first order of each month, checked on the server when an order is claimed.</li>
+      <li>+10 per subscription renewal, plus the subscriber piece.</li>
+      <li>Gift orders that give the friend a welcome cosmetic.</li>
+      <li>Product-page text and thank-you-page links waiting for launch day.</li>
+    </ul></div>
+  <p class="note">Play earnings stay as they are. Today's cranes and purchases stay valid, and nothing is taken from anyone.</p>
+</section>
+
+<section>
+  <h2>For launch</h2>
+  <ul>
+    <li>Ask a lawyer about the points above, starting with sample size against the 20% cap, before samples are promised to anyone.</li>
+    <li>The thank-you page still needs its "Add this order to Beju Farm" link, or no order earns cranes.</li>
+    <li>Still open from before: Stripe test events, the 100 g sample bags, a test order on a preview with GAME_SAMPLES=on, SEASON_FIRST and SEASON_JOIN in both files, a look at the estate art and the moved cupping table, your own first 10 minutes of play, a co-op test on a preview (stickers, help, a Cup attempt, farm visits), and a decision on November's Harvest Day (Saturday 7 November is the default).</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Sources</h2>
+  <p class="src">
+    Games: <a href="https://www.gfinityesports.com/article/pokemon-go-how-to-get-pokecoins">Gfinity: PokéCoins in Pokémon GO</a> · <a href="https://www.usgamer.net/articles/pokemon-go-how-to-earn-more-pokecoins">USgamer: earning PokéCoins</a> · <a href="https://afkgaming.com/esports/guide/how-much-is-the-fortnite-battle-pass">AFK Gaming: the Fortnite battle pass</a> · <a href="https://prosettings.net/blog/fortnite-v-bucks-explained/">ProSettings: V-Bucks explained</a> · <a href="https://primagames.com/tips/animal-crossing-pocket-camp-how-get-more-leaf-tickets">Prima Games: Leaf Tickets</a> · <a href="https://en.wikipedia.org/wiki/Animal_Crossing:_Pocket_Camp">Wikipedia: Pocket Camp</a> · <a href="https://nookipedia.com/wiki/Leaf_Token">Nookipedia: Leaf Tokens</a> · <a href="https://www.pocketgamer.com/hay-day/hay-day-all-the-ways-to-get-free-diamonds">Pocket Gamer: Hay Day diamonds</a> · <a href="https://duolingoguides.com/what-are-duolingo-gems-for/">Duolingo Guides: gems</a> · <a href="https://egg-inc.fandom.com/wiki/Piggy_Bank">Egg, Inc. wiki</a> · <a href="https://unity.com/resources/game-economy-design-guide">Unity: game economy design guide</a><br>
+    Loyalty: <a href="https://diamond.jp/zai/articles/-/200878">Diamond: Starbucks Rewards Japan</a> · <a href="https://paymentnavi.com/paymentnews/72450.html">Payment Navi: Starbucks Rewards Japan</a> · <a href="https://onemileatatime.com/news/starbucks-rewards-changes-devaluation-elite-status/">One Mile at a Time: 2026 Starbucks changes</a> · <a href="https://thepointsguy.com/news/starbucks-rewards-introduces-elite-status-tiers">The Points Guy: Starbucks tiers</a> · <a href="https://onemileatatime.com/starbucks-rewards-stars/">One Mile at a Time: value of a Star</a> · <a href="https://www.restaurantdive.com/news/starbucks-odyssey-beta-nft-rewards-loyalty/638516/">Restaurant Dive: Starbucks Odyssey</a> · <a href="https://www.mediapost.com/publications/article/380504/">MediaPost: Odyssey beta</a><br>
+    Law: <a href="https://www.fsa.go.jp/common/about/pamphlet/game.pdf">FSA: game items and the Payment Services Act (pamphlet)</a> · <a href="https://monolith.law/en/general-corporate/payment-services-act-mobile-games-application">Monolith Law: Payment Services Act and mobile games</a> · <a href="https://en.komoju.com/blog/general-advice/selling-digital-products-in-japan-video-gaming/">Komoju: selling digital products in Japan</a> · <a href="https://www.shigyo.co.jp/search_post/kinyu/prepaid/prepaid_tekiyougai/">Shigyo: prepaid instrument exemptions</a> · <a href="https://www.caa.go.jp/policies/policy/representation/fair_labeling/premium_regulation/">Consumer Affairs Agency: premium limits</a> · <a href="https://www.businesslawyers.jp/practices/159">Business Lawyers: points and premiums</a> · <a href="https://www.sakigake.jp/news/article/20260829CO0020/">Sakigake: premium caps under review (Aug 2026)</a> · <a href="https://monolith.law/de/general-corporate/game-random-complete-illegal">Monolith Law: kompu gacha</a><br>
+    Figures come from press coverage, guides, help pages and public guidance, not audited data. Game figures change with updates.
+  </p>
+</section>
+</div>
