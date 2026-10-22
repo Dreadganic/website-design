@@ -139,7 +139,7 @@ Prestiging opens a full-screen moment timed to a new anthem (`SFX.play('prestige
 Coins build, know-how unlocks, cranes buy looks, and the tabs follow that rule:
 - **Farm** your farm, pickers and fields. **Mill** contracts, drying racks, cupping and starting lots (only the processes you own; a link leads to the rest).
 - **Build** (coins): Farm (storage, pickers, racks, stamina, fourth field) · Buildings (six lots and farm mastery) · Staff (manager, foreman, contracts agent).
-- **Unlock** (know-how): Coffees · Process · Farms · Research. A dot on the tab means something is affordable; the header reminds you know-how resets at prestige.
+- **Unlock** (know-how): Coffees · Process · Farms · Research (techniques, then cupping research). A dot on the tab means something is affordable.
 - **Daily** check-in, daily tasks and the weekly order only. **Ranks** Leaderboard · Prestige & looks.
 - **Shop** (cranes): Boosts (boosts and the Osaka garden) · Farmer (characters and picker hats) · Farm style (building styles and decor) · Real coffee (orders, passport, free coffee earned).
 - Labels fit down to 360 px phones (smaller type under 400 px and 370 px).
@@ -220,7 +220,7 @@ Coins build, know-how unlocks, cranes buy looks, and the tabs follow that rule:
 - Measured: efficient bot P5 in 10.5 h (11.2 h before), with 30 of 54 pairs tried and 6 notebook titles.
 
 ## The roastery (Mill > Roastery)
-- Opens at prestige 3, or as soon as the Osaka garden opens. Rosa introduces it.
+- Opens at prestige 1, or as soon as the Osaka garden opens. Rosa introduces it.
 - **Loop:** tap Roast on a dry lot to send its green coffee to the roastery; roast up to the drum size in one go, light (75 s), medium (90 s) or dark (105 s). Each coffee has a best roast (light for Geisha, Heirloom and fine washed coffees; dark for barrel lots and Brazilian-style naturals; medium otherwise). Tap **Crack** during first crack (70-86% through) for +15 quality; too early or late misses it. Quality = cup score - 40, +15 for the best roast (-5 otherwise), +15 for the crack, +5 with the cupping lab.
 - **Buyers:** specialty cafés pay x1.7 for light, kissaten x1.6 for dark, konbini blends x1.3 for medium; a roast a buyer doesn't want sells at the green price; price also scales with quality (x0.6 + quality/100). Roasted coffee earns about 1.5-2.5x green, plus 1.2x the know-how.
 - **Reputation** (personal, not on a leaderboard) comes from bags sold, more when the buyer wanted that roast. Levels 1-20: 2 cooling tray (-20% roast time), 3 60 kg drum, 4 second roaster, 6 cupping lab (+5 quality), 7 150 kg drum, 10 house blends (two bags into a Beju-named blend: Casablanca Blend, Osaka Morning, Kissaten Dark, Sakura Light, Crane House Blend, Kyoto Evening, Beju Breakfast, Momiji Roast; +5 quality and every buyer wants it), 12 400 kg drum, 15 third roaster, 20 the Master roaster title.
@@ -275,13 +275,13 @@ All of these show in the roastery scene. `RCOS` in `template.html` lists every i
 ## Tabs
 Farm · Mill · Roastery · Unlock · Daily · Ranks · Shop · Test/Settings.
 - **Farm** has subtabs: Fields (the farm itself), Upgrades (storage, pickers, racks, hearts, the fourth field), Buildings and Staff. The last three appear after the first sale (`S.tabs.upgrades`) and show a dot when something is affordable. `S.farmSub` remembers the page. Old `setTab('upgrades')` calls land on the matching subtab, and `uptab:*` actions still work.
-- **Roastery** is its own tab, locked until the roastery opens (prestige 3 or the Osaka garden). It shows a dot when there's a crack to catch or bags to sell.
+- **Roastery** is its own tab, locked until the roastery opens (prestige 1 or the Osaka garden). It shows a dot when there's a crack to catch or bags to sell.
 
 ## Season fairness, Rookies and Repeat roast
 - **Ties:** the season board breaks ties by who reached the star total first. The client sets `S.season.starsAt`, and the server sets `starsAt` on each row when the stars go up. Season know-how only decides ties after that. Only the first prestige of a season pays stars, as before.
 - **Rookies board:** shows players in their first season (`S.firstSeason`, and `firstSeason` on server rows). Saves and rows from before this change count as veterans. `GET game-score?mode=rookie` serves the board, and `mode=final` also returns `me.rookieRank`. A rookie who finishes in the rookie top 10 gets a "Rookie Champion / Top 3 / Top 10" badge as well as their normal badge.
 - **Repeat roast** (reputation 8): a bin's Repeat button makes it start its next roast by itself, using the roast last chosen for that coffee, whenever a roaster is free (`S.roastery.repeat`). Catching the crack stays manual.
-- **Roastery tab:** hidden until prestige 2 (or until the roastery opens), then shown as locked until prestige 3.
+- **Roastery tab:** hidden until level 9 of the first run, then shown as locked until the first prestige.
 
 ## Crack difficulty
 First crack always opens at 70% of the roast. How long its window lasts depends on how rare the bean is (`CRACK_BEAN`: Catimor 0 up to Geisha 1) and how demanding the process is (`CRACK_METHOD`: washed 0 up to strawberry infused 1).
@@ -370,7 +370,7 @@ From prestige 4, each farm's drying area (left of the farmhouse) becomes an esta
 - **Rosa's lessons.** Nine steps in three chapters: First harvest (pick, Mill, process, cup, sell), Grow (after 3 sales: hire, storage) and A new coffee (at level 2: unlock and plant Catuai). A chapter waits (`when`, `guideWaiting`) until the last one's feature has been used for a while, and the bar hides meanwhile. Rosa says one short line; after each step comes a short reaction toast. During the lessons, Rosa's practice list (pick 10, sell 3, cup 1; small coins and know-how, no season stars or cranes) sits on the Farm and Mill pages. Live daily tasks start when the lessons end (`tutorialEnd`), and weekly tasks from level 8 after the first prestige (`weekOn`). The daily check-in counts from day one.
 - **Weekly tasks** are week-long goals (40 contracts, 80 cups, 15 golden bushes, 60 roasts and so on). They pay a coin bag (15 minutes of income), a 30-minute growth boost and 3 cranes, but no know-how, since know-how counts towards levels.
 - **Mill.** Racks show as tiles from 4 racks. Once the agent is hired, contracts fold into one line (tap to open), with the trader's boat still shown as a card. Staff show as status chips. Requests get **Start lot** when the coffee, process and a rack are there, then **Cup and send** once dry.
-- **Research** is locked until every coffee, process and farm except Osaka is unlocked (`researchOpen`), and shows its progress until then.
+- **Research** (cupping research) opens at the first prestige (`researchOpen`). The Cup of Excellence still needs every coffee, process and farm (`allOpen`).
 - **Help text** (`help(id, short, full)`): full until you tap Got it, then one line and an **i** button that opens the full text. Settings › Show help text keeps everything in full.
 - **Ranks and Looks.** Ranks opens on the Leaderboard, with Season and Prestige as its other pages. The Prestige page shows your crest and the next one side by side above the button. Cosmetics have their own **Looks** tab: crests, outfits, characters, backgrounds, hats, charms and titles, plus a link to building styles in the Shop. It opens at the first prestige or with your first cosmetic. Settings moved from the tab bar to a gear button on the farm, beside the sound buttons.
 - **The guided first prestige** (`S.pwalk`, `PWALK`, `pwalkTick`). When a first prestige is ready, Rosa offers to show you, and the guide bar and arrow lead to Ranks › Prestige and the Prestige button. After the ceremony comes Looks to pick an outfit, then the farm, where Rosa names the resting farm and its wake level. Later prestiges skip the walk.
@@ -547,3 +547,15 @@ The crane audit found play cranes about right and the order side too small, with
   - Every linked order brings a **gift code** for a friend (`game-gift`). The friend opens it in Shop › Real coffee and gets a furoshiki bundle for their farm; the sender gets 10 cranes through `game-grants`. A player opens one gift ever, never their own.
   - The Test tab's pretend orders pay the monthly bonus too.
 - **Launch kit:** the thank-you card text and a new line on each coffee's page (`launch/site/farm-product.js`) say what the coffee does in the game. They go live only with `launch/apply.py`.
+
+## Know-how, techniques and the foreman (from playtest feedback, 23 October 2026)
+Feedback: levels 3.5–7 felt empty, and know-how piled up before each prestige and was then wiped. The bot agreed: before this change it reached its prestiges holding 154k, 481k and 667k unspent know-how.
+
+- **Techniques** (Unlock › Research, `TECH`, `techSum`). 17 one-time know-how upgrades kept through every prestige. Their effects lean towards coins, drying and storage rather than know-how, so levels come no faster.
+  - **First run** (levels 3–9, 1,200 to 30,000): Pruning (bushes regrow 10% faster), Float sorting (+0.5 cup), Raised beds (lots dry 10% faster), Jute sacks (storage +20%), Buyer's ledger (contracts +10%), Golden eye (golden bushes 20% sooner) and Cupping lab (lots sell 5% higher). That's one at every level from 3 to 9, with an unlock walk at level 3.
+  - **Prestige 1** (levels 6–18, 25,000 to 140,000): Mechanical dryer (dry another 10%), Fermentation tanks (washed and honey dry 20% faster), Export grading (sell another 5%), Picker training (+10% picking) and Night watch (+2 hours away).
+  - **Prestige 2** (levels 8–24, 120,000 to 500,000): Compost tea (regrow another 10%), Bird-friendly shade (golden bushes another 20% sooner), Direct trade (contracts another 10%), Harvest crews (another 10% picking) and Warehouse (storage another 20%).
+- **Cupping research** opens at the first prestige instead of after every unlock. At each prestige, unspent know-how buys research levels automatically (`bankKnowhow`), and less than a level's worth carries into the next run. The prestige card says how many levels it bought, so nothing is lost.
+- **The roastery opens at prestige 1** (was 3). Its tab shows, locked, from level 9 of the first run.
+- **The foreman sizes lots by the mill.** He used to wait for a quarter of the store (or a whole contract's worth) before starting a lot. With a late-game store of 100,000 kg, that left 59 racks empty while 25,000 kg piled up. Now a lot is the store shared out over the racks (`cap / max(4, racks)`), so nothing changes on a small mill and a big mill keeps cherries flowing. In a late-game foreman-only test the store now never holds more than one lot's worth.
+- **Checked with the bot:** prestiges 1, 2 and 3 at 54, 93 and 126 minutes (were 54, 91 and 128). Peak unspent know-how is 85k, 121k and 152k, mostly saved towards the next technique.

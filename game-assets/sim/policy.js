@@ -7,7 +7,7 @@ window.BOT = (function () {
     if (['mgr', 'master', 'foreman', 'agent', 'rule', 'train', 'hireroaster', 'emhire'].includes(a)) return 'farm:staff';
     if (['lot', 'cup', 'sell', 'deliver', 'toroast', 'sellall', 'cupall', 'reqfill', 'reqskip'].includes(a)) return 'mill';
     if (['roast', 'crack', 'sellbag', 'sellbags', 'roastfeed', 'rreq', 'binsell', 'blendask', 'blendwith'].includes(a)) return 'roast';
-    if (['var', 'method', 'farm', 'research'].includes(a)) return 'unlock'; if (['task', 'weekly', 'wtask'].includes(a)) return 'orders';
+    if (['var', 'method', 'farm', 'research', 'tech'].includes(a)) return 'unlock'; if (['task', 'weekly', 'wtask'].includes(a)) return 'orders';
     if (['prestige', 'prestigeAsk', 'pickskin'].includes(a)) return 'ranks'; if (['decor', 'rbuy', 'buybskin', 'buychar', 'buyhat'].includes(a)) return 'shop'; return null; };
   const at = (loc) => { if (!loc) return; const T = B.tabs || (B.tabs = {}), p = G.S.prestige, st = T[p] || (T[p] = { cycles: 0, busy: 0, tabs: 0, subs: 0, acts: {}, combos: {}, cracks: 0 }); st.acts[loc] = (st.acts[loc] || 0) + 1; (B.cyc || (B.cyc = new Set())).add(loc); };
   const LOCKED = (loc) => { const S = G.S, m = loc && loc.split(':'); if (!m || !B.cfg.locks) return false;   /* cfg.locks: only use what the interface has opened */
@@ -56,6 +56,7 @@ window.BOT = (function () {
       const nv = G.VAR_ORDER.find((v) => !S.vars[v] && ok('var:' + v));
       Object.keys(G.METHODS).forEach((m) => { if (!S.methods[m] && G.METHODS[m].cost && ok('method:' + m)) c.push(['method:' + m, G.METHODS[m].cost]); });
       G.LOCS.forEach((l) => { if (G.canOpen(l)) c.push(['farm:' + l, G.FARM_COST[l]]); });
+      (G.TECH || []).forEach((t) => { if (!(S.tech || {})[t.id] && G.techOpen(t)) c.push(['tech:' + t.id, t.cost]); });   /* techniques: know-how upgrades kept for good */
       if (G.researchCost && !nv) c.push(['research', G.researchCost()]);
       c.sort((a, b) => a[1] - b[1]);
       if (!c.length || c[0][1] > S.points) break;
