@@ -162,7 +162,7 @@ window.BOT = (function () {
     if (g.ev === 'plant' && S.vars.catuai) { const home = S.loc; act('go:mogiana'); act('plant:1.catuai'); act('go:' + home); }
     if (g.ev === 'var' && !S.vars.catuai) act('var:catuai');
   }
-  function decide() { closeAll(); lessons(); G.checkIn(); G.checkTabs(); tap(); active(); mill(); estate(); roast(); knowhow(); coins(); prestige(); closeAll(); cycleEnd(); }
+  function decide() { closeAll(); lessons(); if (!G.GUIDE || G.S.guide >= G.GUIDE.length) G.checkIn(); G.checkTabs();   /* the game holds the first check-in until the lessons are done */ tap(); active(); mill(); estate(); roast(); knowhow(); coins(); prestige(); closeAll(); cycleEnd(); }
   function snap() {
     const S = G.S;
     B.snaps.push({ t: Math.round(B.t), lv: G.level(), xp: Math.round(S.xp), p: S.prestige, coins: Math.round(S.coins), kh: Math.round(S.points), cranes: S.cranes, farms: G.LOCS.filter(live).length, workers: G.totalWorkers(), lots: S.stats.lotsSold, contracts: S.stats.contracts || 0, cap: G.cap(), racks: G.racks(), stored: Math.round(G.stored()), day: S.day });

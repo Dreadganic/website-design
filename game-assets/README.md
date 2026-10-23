@@ -571,4 +571,11 @@ Every staff member trains with know-how from the day they're hired, instead of w
 - The foreman's lower price applies only to the lots he sells, and the agent's only to his deliveries, so active play still pays best early on. Know-how from those sales is unchanged. The agent no longer raises new contracts' pay.
 - An unlock walk points to Training once the first manager is hired and a level is affordable.
 - The bot buys training alongside techniques and research. Prestiges 1 and 2 land on the old timing (56 and 90 minutes; were 54 and 91), and prestige 3 comes about 10% sooner (116; was 128) as trained staff take over. The most know-how it held unspent before each prestige was 34k, 47k and 51k.
-- **Starting coins** are 300 (were 1,500). The old amount bought all four spare pickers before the first sale. Now you can afford one straight away, and the rest come as lots sell and Rosa's lessons pay out. The bot's first four hires spread over 3 minutes instead of 1.6. Its first prestige lands at about an hour (60 minutes; was 56), as the pacing pass intended.
+- **The first minute** (from playtest feedback). Starting coins, the day-1 check-in, Rosa's lesson rewards and the practice tasks used to hand over about 1,100 coins in the first minute, enough for all four spare pickers.
+  - You now start with 200 coins.
+  - The first daily check-in comes after Rosa's lessons, so a new farmer meets Rosa first.
+  - Lesson rewards are 40, 20, 60 coins and 40 know-how (were 100, 50, 150 and 50 coins).
+  - The practice tasks pay know-how instead of coins.
+
+  You can hire one picker straight away; the rest come from selling lots. The bot hires its second picker at 2.7 minutes (was 12 seconds) and reaches its first prestige at 52 minutes.
+- **The cupping notebook** stays quiet until the Unlock tab, where it lives, has opened. Stars still count, and Rosa's notebook card comes with the next new star after that.

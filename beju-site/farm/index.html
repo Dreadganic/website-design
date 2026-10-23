@@ -1761,6 +1761,7 @@ function nbAdd(v, m, n) {
   S.notebook = S.notebook || {}; const before = nbStars(v, m);
   S.notebook[v + '.' + m] = nbCount(v, m) + n;
   const after = nbStars(v, m); if (after <= before) return;
+  if (!S.tabs.unlock) { nbCheck(); return; }   /* stars still count; the notebook is introduced once its tab is open */
   if (!S.nbTip) { S.nbTip = true; showModal(coachCard('Cupping notebook', 'Your first ' + ART.varieties[v] + ' ' + METHODS[m].name.toLowerCase() + ' lot went in your cupping notebook. New coffee and process pairs earn stars that raise their cup score.', 'Open the notebook', 'nbgo')); }
   else toast('Notebook: ' + ART.varieties[v] + ' ' + METHODS[m].name.toLowerCase() + ' ' + '★'.repeat(after) + ' (+' + (0.5 * after).toFixed(1) + ' cup)');
   nbCheck();
@@ -2282,15 +2283,15 @@ function newFarm(loc) {
 /* the tutorial: Rosa walks a new farmer through the whole loop in five short chapters. Each step says why, points at what to tap, and pays a small reward */
 const COACH = { name: 'Rosa', look: { shirt: ['#E8603A', '#C0402C', '#8A2A20'], hat: ['#F4DE9C', '#D8B868', '#A88440'] } };
 const GUIDE = [
-  { ch: 'First harvest', text: 'Tap 5 ripe bushes', goal: 5, ev: 'pick', target: 'cv:farm:@ripe, .tab[data-tab="farm"]', reward: { coins: 100 }, react: 'Nice picking!',
+  { ch: 'First harvest', text: 'Tap 5 ripe bushes', goal: 5, ev: 'pick', target: 'cv:farm:@ripe, .tab[data-tab="farm"]', reward: { coins: 40 }, react: 'Nice picking!',
     say: 'Welcome to your farm! I\'m Rosa. Ripe bushes sparkle red. Tap them to pick.' },
-  { ch: 'First harvest', text: 'Open the Mill', ev: 'tab:mill', target: '.tab[data-tab="mill"]', reward: { coins: 50 }, react: 'This is the Mill.',
+  { ch: 'First harvest', text: 'Open the Mill', ev: 'tab:mill', target: '.tab[data-tab="mill"]', reward: { coins: 20 }, react: 'This is the Mill.',
     say: 'Your cherries are in the store. The Mill turns them into coffee.' },
   { ch: 'First harvest', text: 'Tap an empty rack to start a lot', ev: 'lot', target: 'cv:mill:@free, .tab[data-tab="mill"]', reward: { points: 50 }, react: 'Your first lot is drying.',
     say: 'Tap an empty rack in the yard. I\'ll start the best-paying lot from your cherries.' },
-  { ch: 'First harvest', text: 'Tap the drying rack to cup it', ev: 'cup', target: 'cv:mill:@cup, .tab[data-tab="mill"]', reward: { coins: 50 }, react: 'Hand-cupped lots pay 20% more.', done: () => S.lots.some((l) => l.cupped) || S.stats.lotsSold > 0,
+  { ch: 'First harvest', text: 'Tap the drying rack to cup it', ev: 'cup', target: 'cv:mill:@cup, .tab[data-tab="mill"]', reward: { points: 40 }, react: 'Hand-cupped lots pay 20% more.', done: () => S.lots.some((l) => l.cupped) || S.stats.lotsSold > 0,
     say: 'Tap the rack while it dries to cup it by hand. Hand-cupped lots pay more.' },
-  { ch: 'First harvest', text: 'Tap the rack when it\'s dry to sell it', ev: 'sell', target: 'cv:mill:@dry, .tab[data-tab="mill"]', reward: { coins: 150 }, react: 'Sold! Coins build, know-how unlocks.', done: () => S.stats.lotsSold > 0,
+  { ch: 'First harvest', text: 'Tap the rack when it\'s dry to sell it', ev: 'sell', target: 'cv:mill:@dry, .tab[data-tab="mill"]', reward: { coins: 60 }, react: 'Sold! Coins build, know-how unlocks.', done: () => S.stats.lotsSold > 0,
     say: 'When its bar fills, tap the rack to sell it.' },
   { ch: 'Grow', text: 'Hire a picker on the Farm tab', ev: 'hire', done: () => LOCS.some((l) => S.farms[l].unlocked && S.farms[l].workers.length >= maxPickers(S.farms[l])), target: '[data-act="hire"], [data-act="uptab:fields"], .tab[data-tab="farm"]', reward: { points: 50 }, react: 'Another pair of hands.', when: () => S.stats.lotsSold >= 3,
     say: 'You\'ve sold a few lots. More pickers bring in more cherries.' },
@@ -2306,7 +2307,7 @@ const GUIDE_V = 3;
 const GUIDE_BYE = 'That\'s the basics! Daily tasks are open now. I\'ll pop back whenever something new turns up.';
 function fresh() {
   const st = {
-    v: 1, loc: START, coins: 300, points: 300, xp: 0, cranes: 20, hearts: 30, heartT: 0,
+    v: 1, loc: START, coins: 200, points: 300, xp: 0, cranes: 20, hearts: 30, heartT: 0,
     lv: { storage: 1, carry: 1, speed: 1, pickers: 1, racks: 1, hearts: 1 },
     methods: { washed: true, natural: true }, vars: { caturra: true }, staff: { foreman: false, agent: false, rule: 'best' }, decor: {}, contracts: [], nextContract: 0, hat: 'straw', hats: { straw: true }, stamps: {},
     cherries: {}, lots: [], boosts: {}, minutes: 7 * 60 + 30, minutesTotal: 0, day: 1, taps: 0, year: 1, bonus: 0,
@@ -2455,7 +2456,7 @@ function slotPool(slot) {   /* the kinds a daily slot can draw today; the third 
 function newTasks() {
   const rw = [{ coins: 300 }, { points: 150 }, { cranes: 1 }];
   if (S.guide < GUIDE.length) {   /* Rosa's practice list: teaching only, no season stars or cranes, kept until the lessons end */
-    if (!(S.tasks || []).some((x) => x.practice)) S.tasks = [{ id: 'pick', text: 'Pick 10 bushes yourself', goal: 10, have: 0, reward: { coins: 100 }, practice: true }, { id: 'sell', text: 'Sell 3 lots', goal: 3, have: 0, reward: { points: 80 }, practice: true }, { id: 'cup', text: 'Cup a lot by hand', goal: 1, have: 0, reward: { coins: 150 }, practice: true }];
+    if (!(S.tasks || []).some((x) => x.practice)) S.tasks = [{ id: 'pick', text: 'Pick 10 bushes yourself', goal: 10, have: 0, reward: { points: 60 }, practice: true }, { id: 'sell', text: 'Sell 3 lots', goal: 3, have: 0, reward: { points: 80 }, practice: true }, { id: 'cup', text: 'Cup a lot by hand', goal: 1, have: 0, reward: { points: 60 }, practice: true }];
     return;
   }
   S.tasks = [];
@@ -3453,6 +3454,7 @@ function checkSamples(quiet) {   /* earn anything the player now qualifies for *
 const sampleState = (s) => s.status === 'earned' && s.expires <= Date.now() ? 'expired' : s.status;
 const CHECKIN = [{ coins: 200 }, { points: 100 }, { coins: 400 }, { cranes: 1 }, { coins: 800 }, { points: 300 }, { cranes: 3 }];   /* cranes mostly come from real orders, so play gives only a few */
 const dayKey = (d) => d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+function checkInSoon() { if ($('modal').hidden) { checkIn(); refreshAll(); } else { const w = setInterval(() => { if ($('modal').hidden) { clearInterval(w); checkIn(); refreshAll(); } }, 500); } }   /* as soon as no card is open */
 function checkIn() {   /* once per real day: keep the streak going, with a freeze to cover one missed day */
   const today = new Date(), key = dayKey(today), c = S.checkin;
   if (c.last === key) return;
@@ -3483,7 +3485,7 @@ function guideDone() {
   earn(g.reward); S.guide += 1; S.guideN = 0; SFX.play('pop');
   const r = g.reward, rl = r.coins ? '+' + r.coins + ' coins' : r.points ? '+' + r.points + ' know-how' : r.cranes ? '+' + r.cranes + ' cranes' : '';
   toast((g.react || 'Done!') + (rl ? ' ' + rl : ''));
-  if (S.guide >= GUIDE.length) { tutorialEnd(); setTimeout(() => showModal(coachCard('Lessons done', GUIDE_BYE, 'Off I go')), 400); }
+  if (S.guide >= GUIDE.length) { tutorialEnd(); setTimeout(() => showModal(coachCard('Lessons done', GUIDE_BYE, 'Off I go')), 400); setTimeout(checkInSoon, 900); }   /* the first daily check-in comes after the lessons */
   checkTabs();
 }
 const weekOn = () => S.guide >= GUIDE.length && (S.prestige >= 2 || (S.prestige >= 1 && level() >= 8));   /* weekly tasks from level 8 after the first prestige */
@@ -4749,7 +4751,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) { sav
 let soundReady = false;
 function audioStart() {   /* browsers only allow sound after a tap, so everything starts on the first one */
   if (soundReady) return; soundReady = true;
-  setTimeout(() => { if ($('modal').hidden) { checkIn(); refreshAll(); } else { const w = setInterval(() => { if ($('modal').hidden) { clearInterval(w); checkIn(); refreshAll(); } }, 500); } }, 400);
+  setTimeout(() => { if (S.guide >= GUIDE.length) checkInSoon(); }, 400);
   SFX.unlock(); Cozy.init(SFX.context()); syncMusic();
 }
 document.addEventListener('pointerdown', audioStart, true);
