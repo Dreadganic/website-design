@@ -4344,8 +4344,8 @@ function refreshHud() {
   const hshow = Math.min(mh, 10);   /* ten hearts drawn, the rest as a number */
   $('hearts').innerHTML = Array.from({ length: hshow }, (_, i) => '<svg width="14" height="12" viewBox="0 0 7 6" shape-rendering="crispEdges" aria-hidden="true" style="filter:drop-shadow(1px 1px 0 #3E2A1C)"><g fill="' + (i < Math.ceil(S.hearts / mh * hshow) ? '#F07A3A' : '#5A3A2C') + '"><rect x="1" y="0" width="2" height="1"/><rect x="4" y="0" width="2" height="1"/><rect x="0" y="1" width="7" height="2"/><rect x="1" y="3" width="5" height="1"/><rect x="2" y="4" width="3" height="1"/><rect x="3" y="5" width="1" height="1"/></g></svg>').join('') + '<b class="hn">' + S.hearts + '</b>';
   $('hearts').setAttribute('aria-label', S.hearts + ' of ' + mh + ' hearts');
-  { const [frac, lv] = levelSpan(), pct = Math.round(Math.max(0, Math.min(1, frac)) * 100), ready = lv >= prestigeNeed() && (S.prestige > 0 || S.tabs.ranks), hl = $('hudLevel');   /* the bar turns gold when a prestige is ready */
-    hl.innerHTML = '<span class="lvrow">' + icon('i_points') + (S.prestige ? 'P' + S.prestige + ' · ' : '') + 'Lv ' + lv + ' · ' + fmt(S.points) + '</span><span class="lvbar' + (ready ? ' ready' : '') + '"><i style="width:' + pct + '%"></i></span>';
+  { const [frac, lv] = levelSpan(), pct = Math.round(Math.max(0, Math.min(1, frac)) * 100), ready = lv >= prestigeNeed() && (S.prestige > 0 || S.tabs.ranks), hl = $('hudLevel');   /* the bar fills gold once a prestige is ready */
+    hl.innerHTML = '<span class="lvrow">' + icon('i_points') + (S.prestige ? 'P' + S.prestige + ' · ' : '') + 'Lv ' + lv + ' · ' + fmt(S.points) + '</span><span class="lvbar' + (ready ? ' ready' : '') + '"><i style="width:' + (ready ? 100 : pct) + '%"></i></span>';
     hl.setAttribute('aria-label', (S.prestige ? 'Prestige ' + S.prestige + ', ' : '') + 'level ' + lv + ', ' + pct + '% of the way to level ' + (lv + 1) + ', ' + fmt(S.points) + ' know-how' + (ready ? ', prestige ready' : '')); }
   $('hudCoins').innerHTML = icon('i_coin') + fmt(S.coins);
   $('hudCranes').innerHTML = icon('i_crane') + S.cranes;
