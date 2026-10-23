@@ -20,7 +20,7 @@ body { margin: 0; color: var(--ink); font-family: var(--pixel); padding-left: ma
 button { font-family: var(--pixel); }
 button:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 .card { background: var(--paper); border: 3px solid var(--edge); border-radius: 10px; box-shadow: inset 0 0 0 2px var(--paper-2), 0 3px 0 #1E140C; }
-.top { display: flex; align-items: center; gap: 6px; padding: 6px 8px; }
+.top { position: relative; display: flex; align-items: center; gap: 6px; padding: 6px 8px; }
 .top .name { flex: 1; min-width: 0; text-align: center; line-height: 1.15; }
 .top .name b { display: block; font-size: 18px; }
 .top .name span { font-size: 12px; color: var(--muted); }
@@ -133,7 +133,13 @@ button.dchip { cursor: pointer; }
 .rslot.crack { border-color: #E8602A; background: #FFF0E0; animation: crackpulse 0.5s infinite alternate; }
 @keyframes crackpulse { to { box-shadow: 0 0 0 3px #F2C04A; } }
 @media (prefers-reduced-motion: reduce) { .rslot.crack { animation: none; } }
-.toast { position: absolute; z-index: 15; left: 50%; bottom: calc(var(--dock) + var(--gh, 0px) + 4px); transform: translateX(-50%); max-width: 92%; padding: 8px 12px; background: var(--paper); border: 3px solid var(--edge); border-radius: 10px; font-size: 15px; text-align: center; box-shadow: 0 3px 0 #1E140C; pointer-events: none; }
+/* notices show inside the farm-name banner, between its arrows, so they never cover the map or a menu */
+.toast { position: absolute; z-index: 3; left: 50px; right: 50px; top: 4px; min-height: calc(100% - 8px); display: flex; align-items: center; justify-content: center; padding: 4px 8px; background: #FFF6D8; border: 2px solid #E8B830; border-radius: 8px; font-size: 13px; line-height: 1.25; text-align: center; color: var(--ink); pointer-events: none; }
+.toast[hidden] { display: none; }
+.toast.long { font-size: 11.5px; }
+.toast.pop { animation: toastin 0.22s ease-out; }
+@keyframes toastin { from { opacity: 0; transform: translateY(-4px); } }
+@media (prefers-reduced-motion: reduce) { .toast.pop { animation: none; } }
 .tabs { position: relative; z-index: 11; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
 /* every tab opens the same way: a sheet from the middle of the screen down to the tabs, its own page scrolling inside. Tap the tab again to put it away */
 .sheet { position: absolute; z-index: 10; left: 0; right: 0; top: calc(100% - var(--sh)); transition: top 0.22s ease-out; bottom: var(--dock); display: flex; flex-direction: column; overflow: hidden; box-shadow: inset 0 0 0 2px var(--paper-2), 0 -4px 14px rgba(20,12,6,0.45), 0 3px 0 #1E140C; animation: sheetup 0.18s ease-out; }
@@ -141,14 +147,12 @@ button.dchip { cursor: pointer; }
 /* scroll a sheet and it grows to fill everything below the farm bar; pull it down (or drag its handle) to go back to half */
 .app.full .sheet { top: var(--ft, 80px); }
 .sheet.drag { transition: none; }
-.app.full .toast { bottom: calc(var(--dock) + 8px); }
 @keyframes sheetup { from { transform: translateY(36px); opacity: 0; } }
 .sheet-h { position: relative; flex: none; display: flex; align-items: center; gap: 6px; padding: 10px 6px 4px 10px; border-bottom: 2px solid var(--paper-2); touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
 .sheet-h::before { content: ''; position: absolute; top: 4px; left: 50%; width: 40px; height: 4px; margin-left: -20px; border-radius: 2px; background: #C8B48C; }   /* the grab handle */
 .sheet-h img { width: 18px; height: 18px; image-rendering: pixelated; }
 .sheet-h b { flex: 1; min-width: 0; font-size: 15px; }
 .sheet-x { width: 32px; height: 28px; border: 2px solid var(--edge); border-radius: 8px; background: var(--paper-2); color: var(--ink); font: 700 14px var(--pixel); cursor: pointer; }
-.app.open .toast { bottom: calc(var(--sh) + 6px); }
 @media (prefers-reduced-motion: reduce) { .sheet { animation: none; transition: none; } }
 .tab { height: 46px; border: 3px solid var(--edge); border-radius: 8px; background: var(--paper-2); color: var(--ink); font-size: 10.5px; letter-spacing: -0.02em; padding: 0 1px; min-width: 0; overflow: hidden; font-weight: 700; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; position: relative; }
 .tab[aria-pressed="true"] { background: var(--gold); }
@@ -377,6 +381,7 @@ canvas.hint { transform: none !important; }
 
 <div class="app" id="app">
   <div class="card top">
+    <div class="toast" id="toast" hidden role="status" aria-live="polite"></div>
     <button class="arrow" id="prevLoc" type="button" aria-label="Previous farm">◀</button>
     <div class="name"><b id="locName">Mogiana, Brazil</b><span id="locBeds">Yellow Bourbon · Mundo Novo · Catuaí</span></div>
     <span class="chip" id="seasonChip" aria-label="Weather">Harvest</span>
@@ -406,7 +411,6 @@ canvas.hint { transform: none !important; }
     <button class="goldgo crackgo" id="crackGo" type="button" data-act="crackgo" hidden>First crack! Tap to catch it</button>
   </div>
   </div>
-  <div class="toast" id="toast" hidden></div>
   <div class="guide" id="guide" hidden></div>
   <div class="garrow" id="garrow" hidden aria-hidden="true"></div>
   <div class="pcer" id="pcer" hidden role="dialog" aria-modal="true" aria-label="Prestige"></div>
@@ -1026,7 +1030,7 @@ function nbCheck() {   /* titles for a finished coffee, a finished process and s
   Object.keys(METHODS).forEach((m) => { if (VAR_ORDER.every((v) => nbStars(v, m) >= 1)) give('nbm:' + m); });
   const tot = nbTotal(); NB_TOTALS.forEach(([n, id]) => { if (tot >= n) give('nbt:' + id); });
   if (tot >= 162 && !S.sitems.charm.qgrader) { S.sitems.charm.qgrader = true; got.push('the Master cupper charm'); }
-  if (got.length) { SFX.play('achieve'); showModal('<h2>Cupping notebook</h2><p class="note">New: <b>' + got.join('</b>, <b>') + '</b>. Wear titles and charms in Looks.</p><button class="btn green" data-act="close">Lovely</button>'); }
+  if (got.length) { SFX.play('achieve'); toast('Notebook: ' + got.join(', ') + '! Wear it in Looks'); }
 }
 /* buyer requests: a named regular asks for one hand-cupped lot of a pair, usually one you haven't tried. Staff never cup, so only you can fill them */
 const REGULARS = ['Kenji at Kissa Hoshi, Kyoto', 'Aya at Little Crane Café, Osaka', 'Mr Tanaka at Kumo Roasters, Kobe', 'Mika at the Hanami coffee stand, Nara', 'Sora at Blue Door Café, Tokyo'];
@@ -2916,7 +2920,7 @@ function onMap(pt) {   /* is this map spot on screen, not under the open sheet o
   return !sheetOpen || y < $('sheet').getBoundingClientRect().top - 6;
 }
 function inSheetView(el) { const r = el.getBoundingClientRect(), p = $('panel').getBoundingClientRect(); return r.top >= p.top && r.bottom <= p.bottom; }
-function renderGuide() {   /* the guide bar floats over the map; the toast and the sound buttons sit above it */
+function renderGuide() {   /* the guide bar floats over the map; the sound buttons sit above it */
   guideBar(); const g = $('guide'), gh = g.hidden || sheetOpen ? '0px' : g.offsetHeight + 6 + 'px';
   if ($('app').style.getPropertyValue('--gh') !== gh) $('app').style.setProperty('--gh', gh);
 }
@@ -3000,7 +3004,12 @@ function renderTabs() {
   setHTML($('tabs'), shown.map(([id, label, ic]) => { const locked = tabLocked(id);
     return '<button class="tab' + (S.newTab === id ? ' fresh' : '') + (locked ? ' locked' : '') + '" role="tab" type="button" data-tab="' + id + '" aria-pressed="' + (tab === id) + '" aria-expanded="' + (tab === id && sheetOpen) + '"' + (locked ? ' aria-label="' + label + ', locked: ' + TAB_HINT[id] + '"' : '') + '><img src="' + url(ic) + '" alt="">' + (locked ? TAB_SHORT[id] : label) + (locked ? '<i class="lock" aria-hidden="true">🔒</i>' : dot[id] ? '<i class="dot"></i>' : '') + '</button>'; }).join(''));
 }
-function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; toastT = 2.6; }
+const toastQ = [];
+function toast(msg) {   /* one notice at a time: one that arrives within a second of the last waits its turn (up to three) */
+  const t = $('toast');
+  if (!t.hidden && toastT > 1.6) { if (msg !== t.textContent && !toastQ.includes(msg) && toastQ.length < 3) toastQ.push(msg); return; }
+  t.textContent = msg; t.hidden = false; toastT = msg.length > 70 ? 3.4 : 2.6; t.classList.toggle('long', msg.length > 70); t.classList.remove('pop'); void t.offsetWidth; t.classList.add('pop');
+}
 const modalQueue = [];
 function dropPrestigeCard() {   /* the prestige walk picks the outfit in Looks, so its summary card goes, wherever it is in the queue; other windows stay */
   if (!$('modal').hidden && $('modalCard').querySelector('.psum')) { closeModal(); return; }
@@ -4136,7 +4145,7 @@ function loop(t) {
   const dt = Math.min(0.05, (t - last) / 1000); last = t;
   tick(dt); draw(t / 1000);
   uiT += dt; saveT += dt;
-  if (toastT > 0) { toastT -= dt; if (toastT <= 0) $('toast').hidden = true; }
+  if (toastT > 0) { toastT -= dt; if (toastT <= 0) { if (toastQ.length) toast(toastQ.shift()); else $('toast').hidden = true; } }
   if (uiT > 0.5) { uiT = 0; refreshHud(); syncMusic(); if (!panelBusy()) { if (!(document.activeElement && document.activeElement.id === 'nameIn')) renderPanel(); checkTabs(); renderTabs(); renderGuide(); } harvestSync(); coopSync(); coeTick(); }
   if (saveT > 5) { saveT = 0; save(); }
   requestAnimationFrame(loop);
