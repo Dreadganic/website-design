@@ -3754,7 +3754,10 @@ function renderPanel() {
       if (S.prestige >= ESTATE_P - 1) h += estateCard(S.loc);   /* teased a prestige early */
       if (S.loc !== 'osaka') {
         const lad = SAMPLE_LADDER.find((r) => r.origin === S.loc), got = lad && sampleOf(lad.id);
-        if (S.loc === 'mogiana') h += '<div><div style="display:flex;justify-content:space-between;align-items:baseline"><h3>Welcome harvest ' + fmt(f.harvested) + ' / 1,000 kg</h3><span class="note">' + (f.rewarded ? 'Sample earned' : 'Free 100 g') + '</span></div><div class="bar"><i style="width:' + Math.round(f.harvested / f.goal * 100) + '%"></i></div><p class="note">' + (f.rewarded ? 'Your free 100 g ' + L.reward + ' sample is in Shop, Real coffee.' : 'Bring in 1,000 kg for a free 100 g ' + L.reward + ' sample from Beju.') + '</p></div>';
+        const waiting = (id) => { const sm = sampleOf(id); return !sm || ['earned', 'pending', 'reserved'].includes(sampleState(sm)); };   /* a sample earned but not yet sent */
+        if (S.loc === 'mogiana' && f.rewarded) { if (waiting('welcome')) h += '<p class="note">✓ Welcome harvest done. Your free 100 g ' + L.reward + ' sample is waiting in Shop › Real coffee.</p>'; }
+        else if (lad && got && S.loc !== 'mogiana') { if (waiting(lad.id)) h += '<p class="note">✓ ' + L.name.split(',')[0] + ' sample earned. It\'s waiting in Shop › Real coffee.</p>'; }
+        else if (S.loc === 'mogiana') h += '<div><div style="display:flex;justify-content:space-between;align-items:baseline"><h3>Welcome harvest ' + fmt(f.harvested) + ' / 1,000 kg</h3><span class="note">' + (f.rewarded ? 'Sample earned' : 'Free 100 g') + '</span></div><div class="bar"><i style="width:' + Math.round(f.harvested / f.goal * 100) + '%"></i></div><p class="note">' + (f.rewarded ? 'Your free 100 g ' + L.reward + ' sample is in Shop, Real coffee.' : 'Bring in 1,000 kg for a free 100 g ' + L.reward + ' sample from Beju.') + '</p></div>';
         else if (lad) h += '<div><div style="display:flex;justify-content:space-between;align-items:baseline"><h3>' + L.name.split(',')[0] + ' sample</h3><span class="note">' + (got ? 'Earned' : 'Prestige ' + S.prestige + ' / ' + lad.prestige) + '</span></div><div class="bar"><i style="width:' + Math.min(100, Math.round(S.prestige / lad.prestige * 100)) + '%"></i></div><p class="note">' + (got ? 'Your free 100 g ' + L.reward + ' sample is in Shop, Real coffee.' : 'Reach prestige ' + lad.prestige + ' for a free 100 g ' + L.reward + ' sample from this origin.') + '</p></div>';
       } else h += '<p class="note">The Osaka roastery garden: rare varieties all year round, through four Japanese seasons.</p>';
       h += row(img('worker_down_0', 22), 'Pickers here: ' + f.workers.length + '/' + maxPickers(f), 'They pick for you, even while you\'re away.', btn('Hire', fmt(hireCost()) + ' coins', 'hire', S.coins >= hireCost() && f.workers.length < maxPickers(f)));
@@ -3921,23 +3924,30 @@ function renderPanel() {
     else {
     h += harvestCard();
     h += '<h2>Daily brew check-in</h2><p class="note">' + S.checkin.streak + '-day streak · ' + S.checkin.freezes + ' streak freeze' + (S.checkin.freezes === 1 ? '' : 's') + '. Open the game once a day to keep it going.</p>';
-    h += '<h2>Daily tasks</h2><p class="note">New tasks every day.</p>';
     const goBtn = (K, t, rl) => { const d = K[t.id] || {}; return d.est ? btn('Go', rl, 'estgo:' + d.est, true, 'blue') : btn('Go', rl, 'taskgo:' + (d.go || 'farm'), true, 'blue'); };
+    const hrs = Math.ceil((new Date().setHours(24, 0, 0, 0) - Date.now()) / 3600e3), wkDays = (start) => Math.max(1, 7 - (Math.floor(Date.now() / 864e5) - start)), daysTxt = (n) => n + ' day' + (n === 1 ? '' : 's');
+    const doneD = S.tasks.filter((t) => t.done);
+    h += '<h2>Daily tasks</h2>' + (S.tasks.length && doneD.length === S.tasks.length ? '<p class="note">✓ All done for today. Come back tomorrow for new tasks (in ' + (hrs <= 1 ? 'under an hour' : 'about ' + hrs + ' hours') + ').</p>' : '<p class="note">New tasks every day.</p>');
     S.tasks.forEach((t, i) => {
+      if (t.done) return;   /* claimed tasks fold into the line below */
       const rl = rewardText(t.reward);
       const swap = hasPerk('reroll') && !t.done && t.have < t.goal && S.rerollDay !== dayKey(new Date()) ? btn('Swap', 'once a day', 'reroll:' + i, true, 'blue') : '';
-      h += row(img((TASK_KINDS[t.id] || {}).img || 'green_sack', 28), t.text, '<span class="bar" style="display:block"><i style="width:' + Math.round(t.have / t.goal * 100) + '%"></i></span>' + fmt(t.have) + ' / ' + t.goal, (t.done ? btn('Done', '', 'none', false) : t.have >= t.goal ? btn('Claim', rl, 'task:' + i, true, 'green') : goBtn(TASK_KINDS, t, rl)) + swap);
+      h += row(img((TASK_KINDS[t.id] || {}).img || 'green_sack', 28), t.text, '<span class="bar" style="display:block"><i style="width:' + Math.round(t.have / t.goal * 100) + '%"></i></span>' + fmt(t.have) + ' / ' + t.goal, (t.have >= t.goal ? btn('Claim', rl, 'task:' + i, true, 'green') : goBtn(TASK_KINDS, t, rl)) + swap);
     });
-    if (hasPerk('reroll')) h += '<p class="note">Tasting notes: ' + (S.rerollDay === dayKey(new Date()) ? 'you have swapped a task today. Another swap tomorrow.' : 'tap Swap on a task to trade it for a different one, once a day.') + '</p>';
+    if (doneD.length && doneD.length < S.tasks.length) h += '<p class="note">✓ Done today: ' + doneD.map((t) => t.text).join(' · ') + '</p>';
+    if (hasPerk('reroll') && doneD.length < S.tasks.length) h += '<p class="note">Tasting notes: ' + (S.rerollDay === dayKey(new Date()) ? 'you have swapped a task today. Another swap tomorrow.' : 'tap Swap on a task to trade it for a different one, once a day.') + '</p>';
     if (S.wtasks && S.wtasks.list.length) {
-      h += '<h2 id="weekH">Weekly tasks</h2><p class="note">Bigger goals for the week, new every 7 days. Ends in ' + Math.max(1, 7 - (Math.floor(Date.now() / 864e5) - S.wtasks.start)) + ' day' + (7 - (Math.floor(Date.now() / 864e5) - S.wtasks.start) === 1 ? '' : 's') + '.</p>';
-      S.wtasks.list.forEach((t, i) => { const rl = rewardText(t.reward);
-        h += row(img((WEEK_KINDS[t.id] || {}).img || 'board', 28), t.text, '<span class="bar" style="display:block"><i style="width:' + Math.round(t.have / t.goal * 100) + '%"></i></span>' + fmt(t.have) + ' / ' + fmt(t.goal), t.done ? btn('Done', '', 'none', false) : t.have >= t.goal ? btn('Claim', rl, 'wtask:' + i, true, 'green') : goBtn(WEEK_KINDS, t, rl)); });
+      const doneW = S.wtasks.list.filter((t) => t.done), wd = wkDays(S.wtasks.start);
+      h += '<h2 id="weekH">Weekly tasks</h2>' + (doneW.length === S.wtasks.list.length ? '<p class="note">✓ All done this week. New weekly tasks in ' + daysTxt(wd) + '.</p>' : '<p class="note">Bigger goals for the week, new every 7 days. Ends in ' + daysTxt(wd) + '.</p>');
+      S.wtasks.list.forEach((t, i) => { if (t.done) return; const rl = rewardText(t.reward);
+        h += row(img((WEEK_KINDS[t.id] || {}).img || 'board', 28), t.text, '<span class="bar" style="display:block"><i style="width:' + Math.round(t.have / t.goal * 100) + '%"></i></span>' + fmt(t.have) + ' / ' + fmt(t.goal), t.have >= t.goal ? btn('Claim', rl, 'wtask:' + i, true, 'green') : goBtn(WEEK_KINDS, t, rl)); });
+      if (doneW.length && doneW.length < S.wtasks.list.length) h += '<p class="note">✓ Done this week: ' + doneW.map((t) => t.text).join(' · ') + '</p>';
     }
     if (NET.coop) { const o = NET.coop.order; h += row(img('board', 28), 'Weekly co-op order', fmt(o.total) + ' / ' + fmt(o.target) + ' kg of ' + (METHODS[o.process] || { name: o.process }).name.toLowerCase() + ' green coffee', btn('Open', NET.coop.name, 'dailysub:coop', true, 'blue')); }
     const wk = S.weekly, tot = Math.min(wk.target, wk.team + wk.mine);
-    if (!NET.coop) h += '<h2>Weekly roastery order</h2><p class="note">Ends in ' + Math.max(0, 7 - (Math.floor(Date.now() / 864e5) - wk.start)) + ' days.</p>' + help('weekly', 'Washed lots you sell count towards the team order.', 'Deliver ' + fmt(wk.target) + ' kg of washed green coffee as a team. Your washed lots count when you sell them.');
-    if (!NET.coop) h += '<div class="bar"><i style="width:' + Math.round(tot / wk.target * 100) + '%"></i></div><p class="note">' + fmt(tot) + ' / ' + fmt(wk.target) + ' kg · you: ' + fmt(wk.mine) + ' kg · Beju\'s other farms: ' + fmt(wk.team) + ' kg</p>' + btn(wk.claimed ? 'Claimed' : 'Claim ' + WEEKLY_CRANES + ' cranes', '', 'weekly', tot >= wk.target && !wk.claimed && wk.mine > 0, 'green');
+    if (!NET.coop && wk.claimed) h += '<h2>Weekly roastery order</h2><p class="note">✓ Delivered this week. A new order in ' + daysTxt(wkDays(wk.start)) + '.</p>';
+    else if (!NET.coop) h += '<h2>Weekly roastery order</h2><p class="note">Ends in ' + Math.max(0, 7 - (Math.floor(Date.now() / 864e5) - wk.start)) + ' days.</p>' + help('weekly', 'Washed lots you sell count towards the team order.', 'Deliver ' + fmt(wk.target) + ' kg of washed green coffee as a team. Your washed lots count when you sell them.');
+    if (!NET.coop && !wk.claimed) h += '<div class="bar"><i style="width:' + Math.round(tot / wk.target * 100) + '%"></i></div><p class="note">' + fmt(tot) + ' / ' + fmt(wk.target) + ' kg · you: ' + fmt(wk.mine) + ' kg · Beju\'s other farms: ' + fmt(wk.team) + ' kg</p>' + btn(wk.claimed ? 'Claimed' : 'Claim ' + WEEKLY_CRANES + ' cranes', '', 'weekly', tot >= wk.target && !wk.claimed && wk.mine > 0, 'green');
     }
   } else if (tab === 'ranks') {
     const mode = S.rankTab || 'season', list = board(mode === 'hall' ? 'all' : mode), pos = list.findIndex((x) => x.you) + 1, t = tierOf(S.prestige), need = prestigeNeed(), ready = level() >= need;
