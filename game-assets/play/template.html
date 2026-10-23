@@ -1254,15 +1254,15 @@ function toRoastery(i, quiet) {   /* a dry lot goes to the roastery's green stor
   if (!canBin(l.v + '.' + l.method)) { if (!quiet) { SFX.play('nope'); toast('All ' + ROAST_BINS + ' roastery bins are full. Roast or sell one first'); } return; }
   const green = l.kg * 0.2, r = saleFor(l.v, l.method, green, l), key = l.v + '.' + l.method, R = S.roastery;
   const b = R.beans[key] = R.beans[key] || { kg: 0, coins: 0, pts: 0, cup: 0 };
-  b.cup = (b.cup * b.kg + r.cup * green) / (b.kg + green); b.kg += green; b.coins += r.coins * (l.aged && estOn('turrialba', 3) ? 1.15 : 1); b.pts += r.points;
+  b.cup = (b.cup * b.kg + r.cup * green) / (b.kg + green); b.kg += green; b.coins += r.coins * (l.aged && estOn('turrialba', 3) ? 1.15 : 1); b.pts += r.points; if (l.carry) b.np = (b.np || 0) + r.points * l.carry;
   millSold(i, 'to roastery'); S.lots.splice(i, 1); nbAdd(l.v, l.method, 1); S.stats.lotsSold += 1; task('sell', 1);
   if (!quiet) { SFX.play('stamp'); toast(fmtKg(green) + ' kg of green ' + beanName(key) + ' sent to the roastery'); }
 }
 function startRoast(key, profile, quiet) {
   const R = S.roastery, b = R.beans[key]; if (!b || b.kg < 0.5 || R.roasters.length >= roasterCount() || !ROASTS[profile]) return;
   const kg = Math.min(roastCap(), b.kg), f = kg / b.kg;
-  R.roasters.push({ key, profile, kg, coins: b.coins * f, pts: b.pts * f, cup: b.cup, start: Date.now(), dur: roastTime(profile) * 1000, crack: 0, cw: crackSecs(key) / roastTime(profile) });
-  b.kg -= kg; b.coins -= b.coins * f; b.pts -= b.pts * f; if (b.kg < 0.5) delete R.beans[key];
+  R.roasters.push({ key, profile, kg, coins: b.coins * f, pts: b.pts * f, np: b.np ? b.np * f : undefined, cup: b.cup, start: Date.now(), dur: roastTime(profile) * 1000, crack: 0, cw: crackSecs(key) / roastTime(profile) });
+  b.kg -= kg; b.coins -= b.coins * f; b.pts -= b.pts * f; if (b.np) b.np -= b.np * f; if (b.kg < 0.5) delete R.beans[key];
   R.last = R.last || {}; R.last[key] = profile;
   SFX.play('ignite'); if (!quiet) toast(ROASTS[profile].name + ' roast started: tap Crack at first crack');
 }
@@ -1297,7 +1297,7 @@ function roasteryTick() {
     const [v, m] = r.key.split('.'), best = bestRoast(v, m) === r.profile;
     const q = Math.max(20, Math.min(100, Math.round(r.cup - 40 + (best ? 15 : -5) + (r.crack === 1 ? 15 : 0) + (repLevel() >= 6 ? 5 : 0))));
     const sr = seasonRoast(), seasonal = sr && sr.known && r.profile === sr.profile && (!sr.method || r.key.split('.')[1] === sr.method);
-    R.bags.push({ key: r.key, profile: r.profile, kg: r.kg, coins: r.coins, pts: r.pts, q, pc: r.crack === 1 || undefined, seasonal: seasonal ? sr.name : undefined, skey: seasonal ? S.season.key : undefined, sid: seasonal ? sr.id : undefined });
+    R.bags.push({ key: r.key, profile: r.profile, kg: r.kg, coins: r.coins, pts: r.pts, np: r.np || undefined, q, pc: r.crack === 1 || undefined, seasonal: seasonal ? sr.name : undefined, skey: seasonal ? S.season.key : undefined, sid: seasonal ? sr.id : undefined });
     IN.roast.cool[i] = { until: Date.now() + 5000, col: ROASTS[r.profile].col };   /* the beans tip into the cooling tray */
     R.roasters.splice(i, 1); if (!r.auto) { star('roast'); task('roast', 1); if (seasonal) task('sroast', 1); } SFX.play('drop');
     toast(ROASTS[r.profile].name + ' roast done: ' + beanName(r.key) + ', quality ' + q + (r.crack === 1 ? ' (perfect crack)' : ''));
@@ -2407,9 +2407,10 @@ function spend(cur, n) { if (S[cur] < n) return false; S[cur] -= n; return true;
 let earnedC = 0, earnedX = 0, rateC = S.rateC || 0, rateX = S.rateX || 0, golden = null, goldenT = 150 + Math.random() * 120;   /* rate*: what you earn per real minute, smoothed */
 function earn(r) {
   earnedC += r.coins || 0; earnedX += r.points || 0;
-  const lv = level();
-  if (r.coins) S.coins += r.coins; if (r.points) { S.points += r.points; S.xp += r.points; S.season.kh = (S.season.kh || 0) + r.points; } if (r.cranes) S.cranes += r.cranes;
-  if (level() > lv) { const xp = S.xp; S.xp -= r.points || 0; const was = navNow(); S.xp = xp; levelUp(lv, level(), was); guideStep('level'); }
+  const lv = level(), gain = (r.points || 0) - Math.min(r.points || 0, r.noXp || 0);   /* noXp: know-how from stock carried over a prestige, which pays but doesn't count towards levels */
+  if (r.coins) S.coins += r.coins; if (r.points) { S.points += r.points; S.xp += gain; S.season.kh = (S.season.kh || 0) + r.points; } if (r.cranes) S.cranes += r.cranes;
+  if (r.noXp >= 1 && !S.carryTip) { S.carryTip = true; toast('Stock from your last run: coins and know-how, but no levels'); }
+  if (level() > lv) { const xp = S.xp; S.xp -= gain; const was = navNow(); S.xp = xp; levelUp(lv, level(), was); guideStep('level'); }
 }
 /* level ups: a fanfare, fireworks over your farmer, and a window listing what the new level gives */
 const levelCoins = (l) => Math.round(50 * Math.pow(l, 1.5) / 10) * 10;
@@ -2482,8 +2483,10 @@ function startLot(v, method, quiet) {
   const tutorial = !quiet && S.guide < 4 && !S.stats.lotsSold;   /* the guide's first lot dries twice as fast */
   const m = METHODS[method], time = lotTime(method) * (tutorial ? 0.5 : 1);
   const micro = rnd() < microChance(method);   /* Huila's marquesinas: now and then a micro-lot */
+  const carried = Math.min(kg, (S.carriedKg || {})[v] || 0);   /* cherries carried over a prestige go into lots first */
+  if (carried > 0) { S.carriedKg[v] -= carried; if (S.carriedKg[v] < 1) delete S.carriedKg[v]; }
   S.cherries[v] = 0; S.millT = S.minutesTotal; S.mlots = S.mlots || {}; S.mlots[method] = (S.mlots[method] || 0) + 1;
-  S.lots.push(Object.assign({ v, kg, method, left: time, total: time }, micro ? { micro: true } : {}, method === 'natural' && rakeCup() ? { raked: rakeCup() } : {}));
+  S.lots.push(Object.assign({ v, kg, method, left: time, total: time }, micro ? { micro: true } : {}, method === 'natural' && rakeCup() ? { raked: rakeCup() } : {}, carried > 0 ? { carry: carried / kg } : {}));
   if (micro) { S.stats.micro = (S.stats.micro || 0) + 1; task('micro', 1); if (!quiet) SFX.play('achieve'); }
   task('store', 0);
   if (!quiet) guideStep('lot');
@@ -2525,7 +2528,7 @@ function sellLot(i, quiet, staff) {   /* staff: the share of your price a staff 
   if (staff) r.coins = Math.round(r.coins * staff);
   const pea = rnd() < 0.03 * sumBuild('sorter');   /* the sorting table finds a peaberry lot */
   if (pea) { r.coins *= 2; r.points *= 2; }
-  earn({ coins: r.coins, points: r.points });
+  earn({ coins: r.coins, points: r.points, noXp: r.points * (l.carry || 0) });
   if (l.method === 'washed') S.weekly.mine += green;
   millSold(i, '+' + fmt(r.coins) + ' coins'); S.lots.splice(i, 1); nbAdd(l.v, l.method, 1);
   S.stats.sold += green; S.stats.lotsSold += 1; task('sell', 1); hvAdd('lots', l.v, l.method); coopAdd(l.method, green);
@@ -2570,12 +2573,12 @@ function deliver(i, id, quiet, haggle, staff) {
   if (l.method === 'washed') S.weekly.mine += green;
   millSold(i, c.buyer.split(' ')[0]); S.lots.splice(i, 1); nbAdd(l.v, l.method, 1); S.stats.lotsSold += 1; task('sell', 1); hvAdd('lots', l.v, l.method); coopAdd(l.method, green); guideStep('deliver');
   let extra = { coins: 0, points: 0 };
-  if (spare > 0.05) { extra = saleFor(l.v, l.method, spare, l); earn(extra); }
+  if (spare > 0.05) { extra = saleFor(l.v, l.method, spare, l); earn(Object.assign({ noXp: extra.points * (l.carry || 0) }, extra)); }
   /* each delivery is paid its share straight away, so coffee in a contract that runs out of time is never lost */
   const done = c.have >= c.kg - 0.01, pay = done ? { coins: c.coins - (c.paidC || 0), points: c.points - (c.paidP || 0) } : { coins: Math.round(c.coins * use / c.kg), points: Math.round(c.points * use / c.kg) };
   c.paidC = (c.paidC || 0) + pay.coins; c.paidP = (c.paidP || 0) + pay.points;
   if (haggle) { const mk = saleFor(l.v, l.method, use, l).coins; pay.coins = Math.round(mk + Math.max(0, pay.coins - mk) * haggle); c.hm = true; }   /* the harbour master gets part of the boat's premium */
-  earn(staff ? { coins: Math.round(pay.coins * staff), points: pay.points } : pay); if (l.cupped) earn({ coins: Math.round(pay.coins * (CUP_PAY - 1)) }); if (l.micro) earn({ coins: pay.coins }); if (rule('hina')) earn({ coins: Math.round(pay.coins * 0.1) });   /* buyers pay extra for hand-cupped coffee */
+  const npay = pay.points * (l.carry || 0); earn(staff ? { coins: Math.round(pay.coins * staff), points: pay.points, noXp: npay } : Object.assign({ noXp: npay }, pay)); if (l.cupped) earn({ coins: Math.round(pay.coins * (CUP_PAY - 1)) }); if (l.micro) earn({ coins: pay.coins }); if (rule('hina')) earn({ coins: Math.round(pay.coins * 0.1) });   /* buyers pay extra for hand-cupped coffee */
   if (done) {
     S.contracts = S.contracts.filter((x) => x !== c); S.nextContract = Math.min(S.nextContract, S.minutesTotal + 10); S.stats.contracts = (S.stats.contracts || 0) + 1; SFX.play('contract');
     star('contract'); task('contract', 1); if (c.event) star('drop'); if (c.cranes && !c.hm) { earn({ cranes: c.cranes }); SFX.play('crane'); } if (c.boat && !haggle) task('boat', 1);
@@ -2619,6 +2622,7 @@ function staffTick() {
 function sellRaw() {
   const kg = stored(); if (!kg) return;
   const coins = Math.round(kg * 2);
+  if (S.carriedKg) Object.keys(S.cherries).forEach((v) => { S.carriedKg[v] = (S.carriedKg[v] || 0) - S.cherries[v]; if (!(S.carriedKg[v] >= 1)) delete S.carriedKg[v]; });
   S.cherries = {}; earn({ coins });
   toast('Sold ' + fmt(kg) + ' kg of fresh cherries for ' + fmt(coins) + ' coins');
 }
@@ -2678,12 +2682,19 @@ function prestige() {
   S.look.crest = t;   /* the new crest goes on straight away */
   if (SKINS.some((sk, i) => !S.skins[i])) S.skinPicks += 1;   /* and the player picks one new outfit */
   const kept = bankKnowhow();
-  S.xp = 0;
+  S.xp = 0; carryOver();
   LOCS.forEach((l) => { if (FARM_LEVEL[l] && S.farms[l].unlocked && !(hasPerk('awake') && AWAKE.includes(l))) S.dormant[l] = wakeLevel(l, S.prestige); });
   setTimeout(() => checkSamples(), 300);
   const asleep = Object.keys(S.dormant);
   showModal('<i class="psum" hidden></i>' + avatar(S.look, 64) + '<h2>Prestige ' + S.prestige + '</h2>' + plate(S.name, S.look.crest, starsFor(S.prestige)) + '<p class="note">' + (S.prestige < TIERS.length ? 'New crest: <b>' + TIERS[t] + '</b>. Its nameplate and border are yours and already on.' : 'You are past the top tier: every prestige adds a star to your name.') + '</p>' + (perkAt(S.prestige) ? '<p class="rule"><b>New perk: ' + perkAt(S.prestige).name + '.</b> ' + perkAt(S.prestige).text + (PERK_LV[perkAt(S.prestige).id] ? ' It switches on at level ' + PERK_LV[perkAt(S.prestige).id] + '.' : '') + '</p>' : '') + (BUILD_CAPS[S.prestige] ? '<p class="rule"><b>Bigger farms:</b> buildings now go up to level ' + BUILD_CAPS[S.prestige] + '.</p>' : '') + skinPicker() +
     (asleep.length ? '<p class="note">' + asleep.map((l) => ART.locations[l].name.split(',')[0] + ' wakes at level ' + S.dormant[l]).join(', ') + '. ' + (() => { const o = LOCS.filter((l) => S.farms[l].unlocked && !S.dormant[l]).map(fname); return listAnd(o) + (o.length === 1 ? ' stays' : ' stay') + ' open.'; })() + '</p>' : '') + (kept ? '<p class="note">Your spare know-how became <b>' + kept + ' level' + (kept > 1 ? 's' : '') + ' of cupping research</b>: +' + S.research + '% know-how from every sale, for good.</p>' : '') + '<button class="btn green" data-act="close">Back to the farm</button>');
+}
+function carryOver() {   /* stock from the run just finished still sells for coins and know-how but doesn't count towards levels, so a full barn can't skip the next run.
+     It's marked here, and the mark travels with it: cherries into lots (carriedKg, used first), lots into the roastery's bins, roasters and bags (np) */
+  S.carriedKg = {};
+  [S.cherries, S.sacks || {}].forEach((o) => Object.keys(o).forEach((v) => { if (o[v] >= 1) S.carriedKg[v] = (S.carriedKg[v] || 0) + o[v]; }));
+  S.lots.concat((S.estate && S.estate.cellar) || []).forEach((l) => { l.carry = 1; });   /* racks and the barrel cellar */
+  const R = S.roastery; if (R) [Object.values(R.beans || {}), R.roasters || [], R.bags || []].forEach((list) => list.forEach((x) => { x.np = x.pts; }));
 }
 function prestigeCeremony(rankBefore, rankAfter, players) {
   const t = tierOf(S.prestige), el = $('pcer'), top = S.prestige >= TIERS.length;
@@ -3614,7 +3625,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'cupall') cupAll();
   else if (a === 'reqfill') {
     const r = S.request, i = r ? S.lots.findIndex((l) => reqLot(l) && l.cupped && l.left <= 0) : -1;
-    if (i > -1) { const sent = S.lots.splice(i, 1)[0]; earn({ coins: r.coins, points: r.points }); S.stats.lotsSold += 1; task('sell', 1); hvAdd('lots', sent.v, sent.method); coopAdd(sent.method, sent.kg * 0.2); S.stats.requests = (S.stats.requests || 0) + 1; S.request = null; S.reqNext = Date.now() + 900000; SFX.play('contract'); showModal('<h2>Sent to ' + r.who.split(' at ')[0] + '</h2>' + img('bush_' + r.v + '_ripe', 48) + '<p class="note">"Perfect, exactly what I hoped for." +' + fmt(r.coins) + ' coins and +' + fmt(r.points) + ' know-how. ' + r.who.split(' at ')[0] + ' will be back with another request soon.</p><button class="btn green" data-act="close">Lovely</button>'); nbAdd(r.v, r.m, 2); }
+    if (i > -1) { const sent = S.lots.splice(i, 1)[0]; earn({ coins: r.coins, points: r.points, noXp: r.points * (sent.carry || 0) }); S.stats.lotsSold += 1; task('sell', 1); hvAdd('lots', sent.v, sent.method); coopAdd(sent.method, sent.kg * 0.2); S.stats.requests = (S.stats.requests || 0) + 1; S.request = null; S.reqNext = Date.now() + 900000; SFX.play('contract'); showModal('<h2>Sent to ' + r.who.split(' at ')[0] + '</h2>' + img('bush_' + r.v + '_ripe', 48) + '<p class="note">"Perfect, exactly what I hoped for." +' + fmt(r.coins) + ' coins and +' + fmt(r.points) + ' know-how. ' + r.who.split(' at ')[0] + ' will be back with another request soon.</p><button class="btn green" data-act="close">Lovely</button>'); nbAdd(r.v, r.m, 2); }
   }
   else if (a === 'millsub') S.millSub = v;
   else if (a === 'roastgo') { closeModal(); setTab('roast'); }
@@ -3623,13 +3634,13 @@ document.addEventListener('click', (e) => {
   else if (a === 'rreqask') roastReqModal();
   else if (a === 'rrep') { const R = S.roastery, [v2, m2] = v.split('.'); R.repeat = R.repeat || {}; if (R.repeat[v]) delete R.repeat[v]; else if (repLevel() >= 8) { R.repeat[v] = (R.last || {})[v] || bestRoast(v2, m2); toast('This bin now repeats a ' + ROASTS[R.repeat[v]].name.toLowerCase() + ' roast whenever a roaster is free'); } }
   else if (a === 'rreq') { const R = S.roastery, k = v; R.want = R.want || {}; if (R.want[k]) delete R.want[k]; else if (canBin(k)) { R.want[k] = true; closeModal(); requestTickRoast(); } else toast('All ' + ROAST_BINS + ' bins are taken'); }
-  else if (a === 'binsell') { const R = S.roastery, b = R.beans[v]; if (b) { delete R.beans[v]; earn({ coins: Math.round(b.coins), points: Math.round(b.pts) }); SFX.play('coins'); toast('Sold ' + fmtKg(b.kg) + ' kg of green ' + beanName(v) + ': +' + fmt(Math.round(b.coins)) + ' coins'); } }
-  else if (a === 'sellbags') { const R = S.roastery; let n = 0, c0 = S.coins; for (let i = R.bags.length - 1; i >= 0; i--) { const b = R.bags[i], k = bestBuyer(b), c = bagPrice(b, k), pts = Math.round(b.pts), rep = Math.round(b.q / 10 * (b.blend ? 2 : b.profile === RBUYERS[k].wants ? 1.5 : 1)); R.bags.splice(i, 1); earn({ coins: c, points: pts }); R.rep = (R.rep || 0) + rep; S.rcos.sold[k] = (S.rcos.sold[k] || 0) + 1; if (b.blend || !RBUYERS[k].wants || b.profile === RBUYERS[k].wants) task('bags', 1); n += 1; if (n <= 3) roastGuest(k, true); } SFX.play('coins'); toast('Sold ' + n + ' bags: +' + fmt(S.coins - c0) + ' coins'); }
+  else if (a === 'binsell') { const R = S.roastery, b = R.beans[v]; if (b) { delete R.beans[v]; earn({ coins: Math.round(b.coins), points: Math.round(b.pts), noXp: Math.round(b.np || 0) }); SFX.play('coins'); toast('Sold ' + fmtKg(b.kg) + ' kg of green ' + beanName(v) + ': +' + fmt(Math.round(b.coins)) + ' coins'); } }
+  else if (a === 'sellbags') { const R = S.roastery; let n = 0, c0 = S.coins; for (let i = R.bags.length - 1; i >= 0; i--) { const b = R.bags[i], k = bestBuyer(b), c = bagPrice(b, k), pts = Math.round(b.pts), rep = Math.round(b.q / 10 * (b.blend ? 2 : b.profile === RBUYERS[k].wants ? 1.5 : 1)); R.bags.splice(i, 1); earn({ coins: c, points: pts, noXp: Math.round(b.np || 0) }); R.rep = (R.rep || 0) + rep; S.rcos.sold[k] = (S.rcos.sold[k] || 0) + 1; if (b.blend || !RBUYERS[k].wants || b.profile === RBUYERS[k].wants) task('bags', 1); n += 1; if (n <= 3) roastGuest(k, true); } SFX.play('coins'); toast('Sold ' + n + ' bags: +' + fmt(S.coins - c0) + ' coins'); }
   else if (a === 'roast') { const [k, p] = v.split('|'); startRoast(k, p); }
   else if (a === 'crack') crackRoast(+v);
-  else if (a === 'sellbag') { const [i, k] = v.split('.'), R = S.roastery, b = R.bags[+i]; if (b && RBUYERS[k] && buyerKeys().includes(k)) { const c = bagPrice(b, k), pts = Math.round(b.pts), rep = Math.round(b.q / 10 * (b.blend ? 2 : b.profile === RBUYERS[k].wants ? 1.5 : 1)); R.bags.splice(+i, 1); earn({ coins: c, points: pts }); R.rep = (R.rep || 0) + rep; S.rcos.sold[k] = (S.rcos.sold[k] || 0) + 1; if (b.blend || !RBUYERS[k].wants || b.profile === RBUYERS[k].wants) task('bags', 1); SFX.play('coins'); roastGuest(k, true); toast('Sold to a ' + RBUYERS[k].name.toLowerCase() + ': +' + fmt(c) + ' coins, +' + fmt(pts) + ' know-how, +' + fmt(rep) + ' reputation'); } }
+  else if (a === 'sellbag') { const [i, k] = v.split('.'), R = S.roastery, b = R.bags[+i]; if (b && RBUYERS[k] && buyerKeys().includes(k)) { const c = bagPrice(b, k), pts = Math.round(b.pts), rep = Math.round(b.q / 10 * (b.blend ? 2 : b.profile === RBUYERS[k].wants ? 1.5 : 1)); R.bags.splice(+i, 1); earn({ coins: c, points: pts, noXp: Math.round(b.np || 0) }); R.rep = (R.rep || 0) + rep; S.rcos.sold[k] = (S.rcos.sold[k] || 0) + 1; if (b.blend || !RBUYERS[k].wants || b.profile === RBUYERS[k].wants) task('bags', 1); SFX.play('coins'); roastGuest(k, true); toast('Sold to a ' + RBUYERS[k].name.toLowerCase() + ': +' + fmt(c) + ' coins, +' + fmt(pts) + ' know-how, +' + fmt(rep) + ' reputation'); } }
   else if (a === 'blendask') { const R = S.roastery, b = R.bags[+v]; if (b) showModal('<h2>Blend ' + bagName(b) + '</h2><p class="note">Blend it with another bag to make <b>' + BLEND_NAMES[R.blendName || 0] + '</b>. A house blend gets +5 quality and every buyer wants it.</p>' + R.bags.map((x, j) => (j === +v || x.blend ? '' : row(img('bag_' + x.profile, 26), bagName(x) + ' · ' + fmtKg(x.kg) + ' kg', 'Quality ' + x.q, btn('Blend', '', 'blendwith:' + v + '.' + j, true, 'green')))).join('') + '<button class="btn" data-act="close">Cancel</button>'); }
-  else if (a === 'blendwith') { const [i, j] = v.split('.').map(Number), R = S.roastery, x = R.bags[i], y = R.bags[j]; if (x && y && i !== j && repLevel() >= 10) { const kg = x.kg + y.kg, nb = { key: x.key, profile: 'blend', blend: BLEND_NAMES[R.blendName || 0], kg, coins: x.coins + y.coins, pts: x.pts + y.pts, q: Math.min(100, Math.round((x.q * x.kg + y.q * y.kg) / kg + 5)) }; R.bags = R.bags.filter((_, k) => k !== i && k !== j); R.bags.push(nb); closeModal(); SFX.play('pour'); toast(nb.blend + ' blended: ' + fmtKg(kg) + ' kg, quality ' + nb.q); } }
+  else if (a === 'blendwith') { const [i, j] = v.split('.').map(Number), R = S.roastery, x = R.bags[i], y = R.bags[j]; if (x && y && i !== j && repLevel() >= 10) { const kg = x.kg + y.kg, nb = { key: x.key, profile: 'blend', blend: BLEND_NAMES[R.blendName || 0], kg, coins: x.coins + y.coins, pts: x.pts + y.pts, np: (x.np || 0) + (y.np || 0) || undefined, q: Math.min(100, Math.round((x.q * x.kg + y.q * y.kg) / kg + 5)) }; R.bags = R.bags.filter((_, k) => k !== i && k !== j); R.bags.push(nb); closeModal(); SFX.play('pour'); toast(nb.blend + ' blended: ' + fmtKg(kg) + ' kg, quality ' + nb.q); } }
   else if (a === 'reqstart') { const r = S.request; if (r && !S.lots.some(reqLot) && startLot(r.v, r.m)) toast('Lot started for ' + r.who.split(' at ')[0]); }
   else if (a === 'reqcupsend') { const i = S.lots.findIndex((l) => reqLot(l) && l.left <= 0); if (i > -1) { cupLot(i); act0('reqfill'); } }
   else if (a === 'helpok') { S.helpSeen = S.helpSeen || {}; S.helpSeen[v] = 1; }
@@ -3740,7 +3751,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'weekly') { S.weekly.claimed = true; S.cranes += WEEKLY_CRANES; star('weekly'); showModal('<h2>Order delivered!</h2><p class="note">Beju\'s farms delivered ' + fmt(S.weekly.target) + ' kg of washed coffee to the roastery together. +' + WEEKLY_CRANES + ' cranes and ' + STAR_PER.weekly + ' season stars.</p><button class="btn green" data-act="close">Hooray</button>'); }
   else if (a === 'prestigeAsk') {
     const asleep = LOCS.filter((l) => FARM_LEVEL[l] && S.farms[l].unlocked && !((hasPerk('awake') || perkAt(S.prestige + 1) === PERKS[4]) && AWAKE.includes(l)));
-    showModal('<h2>Prestige ' + (S.prestige + 1) + '?</h2><p class="note"><b>You keep</b> coins, cranes, every upgrade, building, manager, variety, process, decoration, hat, outfit and background.</p><p class="note"><b>You lose</b> your level' + (asleep.length ? ', and ' + asleep.map((l) => ART.locations[l].name.split(',')[0] + ' (until level ' + wakeLevel(l, S.prestige + 1) + ')').join(', ') + (asleep.length > 1 ? ' go' : ' goes') + ' dormant until you level back up' : '') + '.</p><p class="note">You gain ' + (S.prestige + 1 < TIERS.length ? 'the ' + TIERS[S.prestige + 1] + ' crest (nameplate and border)' : 'a star on your name') + (SKINS.some((sk, i) => !S.skins[i]) ? ', you pick one new outfit' : '') + (perkAt(S.prestige + 1) ? ', the <b>' + perkAt(S.prestige + 1).name + '</b> perk (' + perkAt(S.prestige + 1).text + (PERK_LV[perkAt(S.prestige + 1).id] ? ' From level ' + PERK_LV[perkAt(S.prestige + 1).id] + '.' : '') + ')' : '') + (BUILD_CAPS[S.prestige + 1] ? ', room to build every building up to level ' + BUILD_CAPS[S.prestige + 1] : '') + ', and you jump above everyone on prestige ' + S.prestige + '.</p>' + btn('Prestige now', '', 'prestige', true, 'green') + '<button class="btn" data-act="close">Not yet</button>');
+    showModal('<h2>Prestige ' + (S.prestige + 1) + '?</h2><p class="note"><b>You keep</b> coins, cranes, every upgrade, building, manager, variety, process, decoration, hat, outfit and background.</p><p class="note"><b>You lose</b> your level' + (asleep.length ? ', and ' + asleep.map((l) => ART.locations[l].name.split(',')[0] + ' (until level ' + wakeLevel(l, S.prestige + 1) + ')').join(', ') + (asleep.length > 1 ? ' go' : ' goes') + ' dormant until you level back up' : '') + '. Cherries, lots and coffee from this run still sell for coins and know-how, but don\'t count toward levels.</p><p class="note">You gain ' + (S.prestige + 1 < TIERS.length ? 'the ' + TIERS[S.prestige + 1] + ' crest (nameplate and border)' : 'a star on your name') + (SKINS.some((sk, i) => !S.skins[i]) ? ', you pick one new outfit' : '') + (perkAt(S.prestige + 1) ? ', the <b>' + perkAt(S.prestige + 1).name + '</b> perk (' + perkAt(S.prestige + 1).text + (PERK_LV[perkAt(S.prestige + 1).id] ? ' From level ' + PERK_LV[perkAt(S.prestige + 1).id] + '.' : '') + ')' : '') + (BUILD_CAPS[S.prestige + 1] ? ', room to build every building up to level ' + BUILD_CAPS[S.prestige + 1] : '') + ', and you jump above everyone on prestige ' + S.prestige + '.</p>' + btn('Prestige now', '', 'prestige', true, 'green') + '<button class="btn" data-act="close">Not yet</button>');
     return;
   }
   else if (a === 'prestige') { $('modal').hidden = true; const allB = board('all'), rb = allB.findIndex((x) => x.you) + 1; prestige(); const allA = board('all'), ra = allA.findIndex((x) => x.you) + 1; prestigeCeremony(rb, ra, allA.length); setTimeout(() => { NET.lastScore = ''; submitScore(); cloudSync(true); }, 500); }
