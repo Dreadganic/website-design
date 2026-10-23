@@ -1,5 +1,5 @@
 """Build the playable game page: inline the sprites and every farm scene (as data urls) into play/template.html.
-Usage: python3 game-assets/play/build.py <output.html> [--site] [--beta | --launch]\n   --site wraps it as a full web page for bejucoffee.com/farm/ (hidden from search); --beta swaps the Test tab for Settings (?tools brings it back); --launch drops the noindex and the Test tab for good."""
+Usage: python3 game-assets/play/build.py <output.html> [--site] [--beta | --launch]\n   --site wraps it as a full web page for bejucoffee.com/farm/ (hidden from search); --beta swaps the Test tab for Settings (?tools brings it back); --launch drops the noindex and the Test tab for good, and lets real orders and samples reach the farm."""
 import base64, json, os, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -16,6 +16,8 @@ cozy = open(os.path.join(ROOT, "audio", "cozy.js")).read()
 if "--launch" in sys.argv:   # the public game: no Test tab cheats
     assert "const TEST_TOOLS = true;" in t
     t = t.replace("const TEST_TOOLS = true;", "const TEST_TOOLS = false;")
+    assert "const ORDERS_LIVE = false;" in t   # and real orders reach the farm (launch/apply.py adds the shop's side)
+    t = t.replace("const ORDERS_LIVE = false;", "const ORDERS_LIVE = true;")
 elif "--beta" in sys.argv:   # beta testers get Settings; the Test tab only opens with ?tools in the address
     assert "const TEST_TOOLS = true;" in t
     t = t.replace("const TEST_TOOLS = true;", "const TEST_TOOLS = /[?&]tools\\b/.test(location.search);")

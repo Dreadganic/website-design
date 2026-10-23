@@ -696,6 +696,7 @@ A full review of the backend, the game code, the interface at fresh, prestige 1,
 
 **Builds**
 - `build.py --beta`: noindex, Settings instead of the Test tab, which `?tools` in the address brings back. The site copy at `/farm/` is built this way now.
+- **Real orders count from launch, and the game says so.** Until a `--launch` build (which `launch/apply.py` makes, along with the shop's side), Shop › Real coffee, the free-sample window, Boosts and the processes' "or order it" route say orders and samples count once Beju Farm launches, so no tester buys coffee expecting a sample or cranes. Before, the beta page promised both, and neither reached the farm (`ORDERS_LIVE` in the template).
 
 **Pacing check.** Three bot runs with the usual settings reach prestige 1–5 at 0.7–0.8, 1.3–1.4, 1.9–2.0, 3.0–3.1 and 6.1 hours of active play (6.2 before this pass), so nothing moved beyond run-to-run noise. Allowed to build to the real cap (7 at prestige 4), the bot reaches prestige 5 in 5.5–6.0 hours with one or two 5–7 minute gaps without a purchase. The prestige 4 run is the long one (about 2.6–2.8 hours, against 1.1–1.2 for the run before), worth watching with testers.
 
