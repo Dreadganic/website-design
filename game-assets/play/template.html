@@ -1058,7 +1058,8 @@ const ROASTS = { light: { name: 'Light', time: 75, col: '#B07A4A' }, medium: { n
 const bestRoast = (v, m) => (['geisha', 'heirloom'].includes(v) || (m === 'washed' && VAR[v].value >= 1.3) ? 'light' : m === 'rum' || m === 'whiskey' || (m === 'natural' && ['mundonovo', 'yellowbourbon', 'catimor', 'catuai'].includes(v)) ? 'dark' : 'medium');
 const RBUYERS = { cafe: { name: 'Specialty café', wants: 'light', mult: 1.5 }, kissa: { name: 'Kissaten', wants: 'dark', mult: 1.45 }, konbini: { name: 'Konbini blend', wants: 'medium', mult: 1.25 }, guest: { name: 'Lakeside guests', wants: null, mult: 1.35 } };
 const buyerKeys = () => Object.keys(RBUYERS).filter((k) => k !== 'guest' || estOn('toba', 3));   /* the Toba guesthouse adds a fourth buyer */
-const REP_AT = (l) => Math.round(100 * Math.pow(l - 1, 2));   /* reputation comes per bag, so levels follow how often you roast, not how big the drum is */
+const REP_T = [0, 0, 80, 200, 340, 500, 680, 880, 1100, 1600, 2300, 3200, 4300, 5600, 7200, 9000, 11500, 14500, 18000, 22500, 28000];   /* reputation needed for each level: a second roaster before prestige 2, Repeat roast near prestige 3, Master roaster well after prestige 5 */
+const REP_AT = (l) => REP_T[l];   /* reputation comes per bag, so levels follow how often you roast, not how big the drum is */
 const masterStars = () => Math.max(0, Math.min(10, Math.floor(((S.roastery.rep || 0) - REP_AT(20)) / 2000)));   /* past reputation 20: a star on the sign, and +1% bag price, every 2,000 reputation */
 const repLevel = () => { let l = 1; while (l < 20 && (S.roastery.rep || 0) >= REP_AT(l + 1)) l++; return l; };
 const REP_PERKS = { 2: 'Cooling tray: roasts take 20% less time', 3: 'Bigger drum: 80 kg a roast', 4: 'A second roaster', 6: 'Cupping lab: +5 roast quality', 7: 'Bigger drum: 160 kg a roast', 8: 'Repeat roast: a bin can start its next roast by itself', 10: 'House blends: blend two bags under a Beju name', 12: 'Bigger drum: 320 kg a roast', 15: 'A third roaster', 20: 'The Master roaster title' };
@@ -1291,7 +1292,7 @@ function roasteryPanel() {
   const R = S.roastery, lv = repLevel(), nextP = Array.from({ length: 20 - lv }, (_, i) => lv + 1 + i).find((l) => REP_PERKS[l] || RCOS.some((x) => x.src.rep === l));
   const nextTxt = nextP ? [REP_PERKS[nextP]].concat(RCOS.filter((x) => x.src.rep === nextP).map((x) => rName(x.id))).filter(Boolean).join(', ') : '';
   let h = '<div class="season"><b>Reputation ' + lv + (lv < 20 ? ' · ' + fmt(R.rep) + ' / ' + fmt(REP_AT(lv + 1)) : ' · Master roaster ' + ('★'.repeat(masterStars()) || '')) + '</b><span>' + (nextP ? 'At ' + nextP + ': ' + nextTxt : masterStars() < 10 ? 'Master roaster stars: ' + masterStars() + ' / 10, each +1% bag price. Next at ' + fmt(REP_AT(20) + 2000 * (masterStars() + 1)) + ' reputation (now ' + fmt(R.rep) + ').' : 'Ten master roaster stars: +10% on every bag.') + '</span></div>';
-  { const sr = seasonRoast(); if (sr) h += '<div class="season"><b>' + theme().name + ' seasonal roast: ' + sr.name + '</b><span>' + (sr.known ? 'A ' + sroastText(sr) + '. Bags that match get the ' + theme().name + ' label and sell for 20% more until the season ends.' : 'Reach tier 8 of the season track to learn this month\'s recipe.') + '</span></div>'; }
+  { const sr = seasonRoast(); if (sr && sr.known) h += '<div class="season"><b>' + theme().name + ' seasonal roast: ' + sr.name + '</b><span>' + (sr.known ? 'A ' + sroastText(sr) + '. Bags that match get the ' + theme().name + ' label and sell for 20% more until the season ends.' : 'Reach tier 8 of the season track to learn this month\'s recipe.') + '</span></div>'; }
   /* bags to sell come first: that's where the coins are */
   h += '<h3>Bags to sell ' + R.bags.length + '</h3>';
   if (R.bags.length > 1) h += '<div class="rackbar">' + btn('Sell all', 'each to the buyer who wants it', 'sellbags', true, 'green') + '</div>';
@@ -2714,7 +2715,9 @@ let tab = 'farm', toastT = 0;
 const TEST_TOOLS = true;   /* build.py --launch turns this off: the Test tab becomes Settings and the cheats stop working */
 const TABS = [['farm', 'Farm', 'i_worker'], ['mill', 'Mill', 'green_sack'], ['roast', 'Roast', 'roaster_0'], ['unlock', 'Unlock', 'i_points'], ['orders', 'Daily', 'i_cherry'], ['ranks', 'Ranks', 'i_trophy'], ['looks', 'Looks', 'i_worker'], ['shop', 'Shop', 'i_crane']];   /* Settings is the gear on the farm */
 function setTab(t, mapOnly) { if (t === 'upgrades') { S.farmSub = S.upTab === 'build' || S.upTab === 'staff' ? S.upTab : 'upgrades'; t = 'farm'; }   /* Build lives inside the Farm tab now */
-  if (t !== tab) { SFX.play('click'); $('panel').scrollTop = 0; fullSheet(false); } if (S.newTab === t) S.newTab = null; guideStep('tab:' + t); tab = t; if (MAP_TABS.includes(t)) mapTab = t; showSheet(!mapOnly); refreshHud(); }   /* mapOnly: just the scene, the sheet put away */
+  if (t !== tab) { SFX.play('click'); $('panel').scrollTop = 0; }
+  if (!mapOnly) fullSheet(true);   /* every menu opens full screen; drag its handle or pull down for half */
+  if (S.newTab === t) S.newTab = null; guideStep('tab:' + t); tab = t; if (MAP_TABS.includes(t)) mapTab = t; showSheet(!mapOnly); refreshHud(); }   /* mapOnly: just the scene, the sheet put away */
 let sheetOpen = false;
 function showSheet(on) {   /* the tab's sheet over the lower half of the map */
   sheetOpen = on; $('sheet').hidden = !on; $('app').classList.toggle('open', on); if (!on) fullSheet(false);
@@ -3407,7 +3410,7 @@ function renderPanel() {
     h += '<h3>Trophies</h3>' + help('trophies', 'Pin one to show it beside your name.', 'Cup of Excellence weeks, Co-op Derby podiums, Harvest Day goals, top 10 season finishes and Founding farmer, each checked by the server. Pin one to show it beside your name on every board. Your best three stand on the trophy shelf on your farm, where visitors see them.');
     h += tro.length ? '<div class="looks">' + tro.map((t) => { const i = trophyInfo(t); return '<button type="button" class="look" data-act="pin:' + t.id.replace(':', '~') + '" aria-pressed="' + (S.look.pin === t.id) + '"><img src="' + url(i.spr, i.opt) + '" alt="" style="width:28px;image-rendering:pixelated"><small>' + i.name + (i.when ? '<br>' + i.when : '') + '</small></button>'; }).join('') + '</div><p class="note">' + (S.look.pin ? 'Tap the pinned trophy again to unpin it.' : 'Tap a trophy to pin it beside your name.') + '</p>'
       : '<p class="note">Win a Cup of Excellence week, a Derby podium, a Harvest Day goal or a top 10 season finish to start your trophy shelf.</p>';
-        h += row(img('build_housing', 30), 'Building styles', 'Farm buildings in a different style, for any farm.', btn('Farm style', 'in the Shop', 'shoptab:bskin', true, 'blue'));
+        h += row(img('build_housing', 30), 'Building styles', 'Farm buildings in a different style, for any farm.', btn('Farm style', 'in the Shop', 'shopgo:bskin', true, 'blue'));
   } else if (tab === 'shop' && S.shopTab === 'beju') {
     h += shopTabs();
     h += '<h2>Real coffee, real rewards</h2><p class="note">Every order on bejucoffee.com feeds your farm: 1 crane for every ¥100, 30 more for your first order each month, and a passport stamp for each new origin. Subscribers get 10 more with every renewal, and Hanabi fireworks for their farm. Blends stamp their next origin by share. Free 100 g samples come from your Mogiana welcome harvest, each origin\'s prestige milestone and monthly check-ins.</p>';
@@ -3523,7 +3526,7 @@ document.addEventListener('change', (e) => {   /* Foreman's ledger: the process 
 });
 document.addEventListener('click', (e) => {
   const t = e.target.closest('[data-tab]'); if (t) { if (tabLocked(t.dataset.tab)) { SFX.play('nope'); toast(TABS.find((x) => x[0] === t.dataset.tab)[1] + ' opens when you ' + TAB_HINT[t.dataset.tab]); return; } const id = t.dataset.tab; if (id === tab && sheetOpen) { SFX.play('click'); showSheet(false); return; }   /* the open tab again puts its sheet away */
-    if (MAP_TABS.includes(id)) { if (id !== tab) setTab(id, true); else { SFX.play('click'); fullSheet(true); setTab(id); } return; }   /* Farm, Mill, Roast: the first tap shows the map, the next opens its menu full screen */
+    if (MAP_TABS.includes(id)) { if (id !== tab) setTab(id, true); else { SFX.play('click'); setTab(id); } return; }   /* Farm, Mill, Roast: the first tap shows the map, the next opens its menu full screen */
     setTab(id); return; }
   const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
   const [a, v] = b.dataset.act.split(':');
@@ -3601,7 +3604,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'tierall') { for (let n = 1; n <= tierAt(S.season.stars); n++) grantTier(S.season.key, n, true); SFX.play('achieve'); toast('Season track rewards claimed'); }
   else if (a === 'lookhat') { if (!v || S.hats[v]) S.look.hat = v; }
   else if (a === 'lookcharm') { if (!v || S.sitems.charm[v]) S.look.charm = v; }
-  else if (a === 'looktitle') { if (!v || S.sitems.title[v]) S.look.title = v; }
+  else if (a === 'looktitle') { const k = b.dataset.act.slice(10); if (!k || S.sitems.title[k]) S.look.title = k; }   /* the whole key: titles like nb:catuai hold a colon */
   else if (a === 'pin') { const id = v.replace('~', ':'); S.look.pin = S.look.pin === id ? '' : id; }
   else if (a === 'fx') { if (S.fx[v] !== undefined) { if (!S.fx[v] && fxOn().length >= FX_MAX) toast('Two effects show at once: hide one first'); else S.fx[v] = !S.fx[v]; } }
   else if (a === 'fxbuy') { if (FX[v] && !FX[v].subscriber && S.fx[v] === undefined && spend('cranes', FX[v].cost)) { S.fx[v] = fxOn().length < FX_MAX; toast(FX[v].name + ' is yours' + (S.fx[v] ? '' : ': hide another effect to show it')); } }
@@ -3627,6 +3630,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'pwalkend') { closeModal(); S.pwalk = 0; S.pwalkDone = true; }
   else if (a === 'prestigetab') { S.rankSub = 'prestige'; setTab('ranks'); }
   else if (a === 'shoptab') S.shopTab = v;
+  else if (a === 'shopgo') { S.shopTab = v; setTab('shop'); }   /* from another tab: open that Shop page */
   else if (a === 'rbuy') rBuy(v + (b.dataset.act.split(':')[2] !== undefined ? ':' + b.dataset.act.split(':')[2] : ''));
   else if (a === 'ruse') rUse(v + (b.dataset.act.split(':')[2] !== undefined ? ':' + b.dataset.act.split(':')[2] : ''));
   else if (a === 'build') { const n = f.build[v] || 0; if (n < buildMax() && spend('coins', buildCost(S.loc, v))) { f.build[v] = n + 1; toast(ART.buildings[v].name + (n ? ' upgraded to level ' + (n + 1) : ' built')); } }

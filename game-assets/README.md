@@ -225,7 +225,7 @@ Coins build, know-how unlocks, cranes buy looks, and the tabs follow that rule:
 - **Buyers:** specialty cafés pay x1.7 for light, kissaten x1.6 for dark, konbini blends x1.3 for medium; a roast a buyer doesn't want sells at the green price; price also scales with quality (x0.6 + quality/100). Roasted coffee earns about 1.5-2.5x green, plus 1.2x the know-how.
 - **Reputation** (personal, not on a leaderboard) comes from bags sold, more when the buyer wanted that roast. Levels 1-20: 2 cooling tray (-20% roast time), 3 60 kg drum, 4 second roaster, 6 cupping lab (+5 quality), 7 150 kg drum, 10 house blends (two bags into a Beju-named blend: Casablanca Blend, Osaka Morning, Kissaten Dark, Sakura Light, Crane House Blend, Kyoto Evening, Beju Breakfast, Momiji Roast; +5 quality and every buyer wants it), 12 400 kg drum, 15 third roaster, 20 the Master roaster title.
 - Each finished roast gives 1 season star (up to 3 a day). Staff never roast. Once you have a mill foreman he keeps the roastery stocked (on by default): he sends dry lots there until 2, 4 (default) or 8 roasts' worth of green coffee is waiting, then sells the rest; switch it off in Mill > Roastery.
-- Balance (after the P5 playthrough): reputation comes per bag sold (quality / 10, x1.5 when the buyer wanted that roast, x2 for blends) against 100 x (level - 1)^2 per level; drums 40 / 80 / 160 / 320 kg at reputation 1 / 3 / 7 / 12; buyers pay x1.5 / 1.45 / 1.25 for the roast they want, times 0.7 + quality / 200. Measured: reputation 10-11 by P5 and the roastery earning about 15% of coins.
+- Balance (after the P5 playthrough): reputation comes per bag sold (quality / 10, x1.5 when the buyer wanted that roast, x2 for blends) against the level table (`REP_T`, see Playtest fixes below; was 100 x (level - 1)^2); drums 40 / 80 / 160 / 320 kg at reputation 1 / 3 / 7 / 12; buyers pay x1.5 / 1.45 / 1.25 for the roast they want, times 0.7 + quality / 200. Measured: reputation 10-11 by P5 and the roastery earning about 15% of coins.
 
 
 ## Mill and roastery scenes
@@ -594,12 +594,12 @@ Every staff member trains with know-how from the day they're hired, instead of w
   - Tap it to switch between half and full.
   - Drag it up for full, or down for half; dragging down from half puts the sheet away.
   - Pulling down from the top of a full page, or scrolling up past the top with a mouse wheel once the page has stopped there, returns to half. The tail of a fast flick to the top doesn't count.
-  - A new tab always opens at half.
+  - Every menu opens full screen (from playtest feedback). Drag the handle or pull down for half.
 - **Map tabs** (from playtest feedback). Farm, Mill and Roast move the map (`mapTab`, `MAP_TABS`); the other tabs open over whichever map is showing, so opening Unlock from the Mill keeps the mill behind it.
   - Tapping a map tab you aren't on shows its map with the menu put away.
-  - Tapping it again opens its menu full screen; a third tap puts it away.
+  - Tapping it again opens its menu; a third tap puts it away.
   - Travelling between farms with ◀ ▶, or with a farm chip in Unlock › Farms, also puts the menu away.
-  - Rosa's "Show me" buttons and the lessons still open their page directly, at half height.
+  - Rosa's "Show me" buttons and the lessons still open their page directly.
 - **Finished things fold away** (`doneStrip()`). These collapse into one line of small ✓ chips at the bottom of their list, so each page starts with what's still to do:
   - maxed upgrades (storage, pickers, racks, stamina, the fourth field);
   - maxed buildings;
@@ -639,3 +639,17 @@ Fixed from it:
 - **Rosa's golden bush card** now says "Show me" and puts the sheet away, so the bush is on screen.
 
 The final run reached prestige 3 with no arrow, cover or order issues.
+
+## Playtest fixes (23 October 2026, evening)
+- **Titles now equip.** Notebook and roastery titles have a colon in their key (`nb:catuai`, `rr:crack`), and the tap handler only passed on the part before it. The title button now reads the whole key.
+- **Looks › Farm style** opens Shop › Farm style (`shopgo:bskin`). Before, it only switched the Shop's sub-page without leaving Looks.
+- **Every menu opens full screen.** Map tabs still show their map on the first tap.
+- **The season's roast card** waits in Roast until you've learned the recipe at season tier 8. Before, it took up the top of the page all month.
+- **Roastery reputation is quicker early on** (`REP_T`, was 100 × (level − 1)²):
+
+  | Level | 2 | 4 | 6 | 8 | 10 | 12 | 15 | 20 |
+  |---|---|---|---|---|---|---|---|---|
+  | Reputation needed | 80 | 340 | 680 | 1,100 | 2,300 | 4,300 | 9,000 | 28,000 |
+  | Before | 100 | 900 | 2,500 | 4,900 | 8,100 | 12,100 | 19,600 | 36,100 |
+
+  The bot (three runs of each) now reaches level 4–5 by prestige 2 (the second roaster; was 2–3), level 6–7 halfway to prestige 3 (was 3), level 8 at prestige 3 (Repeat roast; was 3), 10–11 at prestige 4 (blends and the head roaster; was 6) and 14–15 at prestige 5 (was 9). Prestige timing stays within run-to-run noise: prestige 5 at 5.6–6.3 hours (was 5.4–5.9).
