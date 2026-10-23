@@ -13,8 +13,10 @@
 }
 * { box-sizing: border-box; }
 html, body { background: var(--wood); }
-body { color: var(--ink); font-family: var(--pixel); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 12px 32px; }
-.app { max-width: 400px; margin: 0 auto; display: flex; flex-direction: column; gap: 8px; }
+body { margin: 0; color: var(--ink); font-family: var(--pixel); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+/* one screen, no page scroll: farm bar on top, the map in the middle, tabs along the bottom. A tab opens as a sheet over the lower half of the map */
+.app { --pb: max(10px, env(safe-area-inset-bottom, 0px)); --dock: calc(var(--pb) + 52px); --sh: max(50%, calc(var(--dock) + 320px)); --ar: 192 / 240; position: relative; max-width: 400px; margin: 0 auto; display: flex; flex-direction: column; gap: 8px; height: 100vh; height: 100dvh; min-height: 460px; padding-top: max(10px, env(safe-area-inset-top, 0px)); padding-bottom: var(--pb); }
+.mapwrap { flex: 1; min-height: 0; container-type: size; display: grid; place-items: center; }
 button { font-family: var(--pixel); }
 button:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 .card { background: var(--paper); border: 3px solid var(--edge); border-radius: 10px; box-shadow: inset 0 0 0 2px var(--paper-2), 0 3px 0 #1E140C; }
@@ -24,10 +26,10 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-
 .top .name span { font-size: 12px; color: var(--muted); }
 .arrow { width: 38px; height: 38px; border: 2px solid var(--edge); border-radius: 8px; background: var(--paper-2); color: var(--ink); font-size: 16px; font-weight: 700; cursor: pointer; }
 .chip { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 5px; color: #fff; white-space: nowrap; }
-.stage { position: relative; width: 100%; aspect-ratio: 4 / 5; border-radius: 8px; overflow: hidden; box-shadow: 0 0 0 3px #1E140C; background: #5E7A2C; }
+.stage { position: relative; width: min(100cqw, 100cqh * var(--ar)); aspect-ratio: var(--ar); border-radius: 8px; overflow: hidden; box-shadow: 0 0 0 3px #1E140C; background: #5E7A2C; }
 .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; cursor: pointer; touch-action: manipulation; }
 .hud-l { position: absolute; left: 6px; top: 6px; display: flex; flex-direction: column; gap: 5px; pointer-events: none; }
-.sound { position: absolute; left: 6px; bottom: 6px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 10px; background: rgba(62,42,28,0.8); color: #FFF4DE; cursor: pointer; }
+.sound { position: absolute; left: 6px; bottom: calc(6px + var(--gh, 0px)); width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 10px; background: rgba(62,42,28,0.8); color: #FFF4DE; cursor: pointer; }
 .sound[aria-pressed="false"] { color: #B89A7A; }
 .sound[aria-pressed="false"] #sfxWaves { display: none; }
 .sound.music { left: 46px; }
@@ -125,13 +127,23 @@ b .n, h2 .n, h3 .n, .row .grow b .n, .tile b .n { color: inherit; font-size: 1.1
 .rslot.crack { border-color: #E8602A; background: #FFF0E0; animation: crackpulse 0.5s infinite alternate; }
 @keyframes crackpulse { to { box-shadow: 0 0 0 3px #F2C04A; } }
 @media (prefers-reduced-motion: reduce) { .rslot.crack { animation: none; } }
-.toast { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); max-width: 92%; padding: 8px 12px; background: var(--paper); border: 3px solid var(--edge); border-radius: 10px; font-size: 15px; text-align: center; box-shadow: 0 3px 0 #1E140C; pointer-events: none; }
-.tabs { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
+.toast { position: absolute; z-index: 15; left: 50%; bottom: calc(var(--dock) + var(--gh, 0px) + 4px); transform: translateX(-50%); max-width: 92%; padding: 8px 12px; background: var(--paper); border: 3px solid var(--edge); border-radius: 10px; font-size: 15px; text-align: center; box-shadow: 0 3px 0 #1E140C; pointer-events: none; }
+.tabs { position: relative; z-index: 11; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
+/* every tab opens the same way: a sheet from the middle of the screen down to the tabs, its own page scrolling inside. Tap the tab again to put it away */
+.sheet { position: absolute; z-index: 10; left: 0; right: 0; top: calc(100% - var(--sh)); bottom: var(--dock); display: flex; flex-direction: column; overflow: hidden; box-shadow: inset 0 0 0 2px var(--paper-2), 0 -4px 14px rgba(20,12,6,0.45), 0 3px 0 #1E140C; animation: sheetup 0.18s ease-out; }
+.sheet[hidden] { display: none; }
+@keyframes sheetup { from { transform: translateY(36px); opacity: 0; } }
+.sheet-h { flex: none; display: flex; align-items: center; gap: 6px; padding: 4px 6px 4px 10px; border-bottom: 2px solid var(--paper-2); }
+.sheet-h img { width: 18px; height: 18px; image-rendering: pixelated; }
+.sheet-h b { flex: 1; min-width: 0; font-size: 15px; }
+.sheet-x { width: 32px; height: 28px; border: 2px solid var(--edge); border-radius: 8px; background: var(--paper-2); color: var(--ink); font: 700 14px var(--pixel); cursor: pointer; }
+.app.open .toast { bottom: calc(var(--sh) + 6px); }
+@media (prefers-reduced-motion: reduce) { .sheet { animation: none; } }
 .tab { height: 46px; border: 3px solid var(--edge); border-radius: 8px; background: var(--paper-2); color: var(--ink); font-size: 10.5px; letter-spacing: -0.02em; padding: 0 1px; min-width: 0; overflow: hidden; font-weight: 700; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; position: relative; }
 .tab[aria-pressed="true"] { background: var(--gold); }
 .tab img { width: 18px; height: 18px; image-rendering: pixelated; }
 .tab .dot { position: absolute; top: 3px; right: 4px; width: 8px; height: 8px; border-radius: 4px; background: var(--cherry); border: 1px solid var(--ink); }
-.panel { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.panel { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
 .panel h2 { margin: 0; font-size: 18px; font-weight: 700; }
 .panel h3 { margin: 0; font-size: 15px; font-weight: 700; }
 .note { font-family: var(--body); font-size: 13px; font-weight: 700; color: var(--muted); line-height: 1.45; margin: 0; }
@@ -200,8 +212,9 @@ button, a.btn, [data-act], [data-tab] { touch-action: manipulation; -webkit-tap-
 .badge small { font: 700 10px var(--body, sans-serif); color: #7A5A3A; }
 .badge.r1 { background: linear-gradient(#FFF4B0, #F2C04A); } .badge.r99 { border-color: #C86C8E; background: #FFE4EE; }
 .hn { font-size: 12px; color: #FFF4DE; margin-left: 3px; text-shadow: 1px 1px 0 #3E2A1C; }
-.guide { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: #2D6A46; color: #FBF1DC; border: 3px solid #1E4A30; border-radius: 10px; font-weight: 700; font-size: 13px; }
+.guide { position: absolute; z-index: 12; left: 0; right: 0; bottom: var(--dock); display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: #2D6A46; color: #FBF1DC; border: 3px solid #1E4A30; border-radius: 10px; font-weight: 700; font-size: 13px; }
 .guide[hidden] { display: none; }
+.sheet .guide { position: static; flex: none; margin: 6px 8px 0; }   /* with a sheet open the guide rides in it, keeping the map clear */
 .gstep { font: 700 12px 'Pixelify Sans', monospace; background: #F2C04A; color: #3E2A1C; border-radius: 6px; padding: 1px 6px; flex: none; }
 .gtext { flex: 1; min-width: 0; }
 .gskip { border: 0; background: transparent; color: #CDE8D6; font: inherit; font-size: 12px; text-decoration: underline; cursor: pointer; flex: none; }
@@ -330,7 +343,7 @@ canvas.hint { transform: none !important; }
 .lb-s { display: flex; flex-direction: column; align-items: flex-end; font-size: 11px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
 .lb-s b { font-size: 14px; color: var(--ink); }
 #nameIn { flex: 1; min-width: 0; min-height: 36px; border: 2px solid var(--edge); border-radius: 6px; padding: 0 8px; font: 600 15px inherit; background: #FFFDF6; color: var(--ink); }
-.subtabs { position: sticky; top: 0; z-index: 2; }
+.subtabs { position: sticky; top: -12px; z-index: 2; margin: -12px -12px 0; padding: 8px 12px 6px; background: var(--paper); box-shadow: 0 2px 0 var(--paper-2); }
 .seg.subtabs button { flex: 1 1 0; position: relative; padding: 0 2px; min-width: 0; font-size: 12px; line-height: 1.1; white-space: normal; letter-spacing: -0.01em; }
 .subtabs.five { flex-wrap: wrap; }
 @media (max-width: 400px) { .tab { font-size: 9.5px; letter-spacing: -0.04em; } .seg.subtabs button { font-size: 10.5px; letter-spacing: -0.03em; } }   /* eight tabs and four sub-tabs still fit a small phone */
@@ -351,7 +364,7 @@ canvas.hint { transform: none !important; }
 @media (prefers-reduced-motion: reduce) { .btn:active:not(:disabled) { transform: none; } }
 </style>
 
-<div class="app">
+<div class="app" id="app">
   <div class="card top">
     <button class="arrow" id="prevLoc" type="button" aria-label="Previous farm">◀</button>
     <div class="name"><b id="locName">Mogiana, Brazil</b><span id="locBeds">Yellow Bourbon · Mundo Novo · Catuaí</span></div>
@@ -359,6 +372,7 @@ canvas.hint { transform: none !important; }
     <button class="arrow" id="nextLoc" type="button" aria-label="Next farm">▶</button>
   </div>
 
+  <div class="mapwrap">
   <div class="stage" id="stage">
     <canvas id="cv" width="384" height="480" aria-label="Your farm seen from above. Tap shrubs with ripe cherries to pick them."></canvas>
     <div class="hud-l">
@@ -377,16 +391,20 @@ canvas.hint { transform: none !important; }
     <button class="sound music" id="musicBtn" type="button" aria-pressed="true" aria-label="Music"><svg width="16" height="16" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><path fill="currentColor" d="M3 0h5v2H4v4H3zM7 2h1v4H7zM1 5h3v3H1zM5 4h3v3H5z"/><path class="slash" fill="currentColor" d="M0 0h1v1H0zM1 1h1v1H1zM2 2h1v1H2zM5 5h1v1H5zM6 6h1v1H6zM7 7h1v1H7z"/></svg></button>
     <button class="sound" id="sfxBtn" type="button" aria-pressed="true" aria-label="Sound effects"><svg width="18" height="16" viewBox="0 0 9 8" shape-rendering="crispEdges" aria-hidden="true"><path fill="currentColor" d="M0 3h2v2H0zM2 2h1v4H2zM3 1h1v6H3zM4 0h1v8H4z"/><path id="sfxWaves" fill="currentColor" d="M6 2h1v1H6zM6 5h1v1H6zM7 3h1v2H7zM8 1h1v1H8zM8 6h1v1H8z"/></svg></button>
     <button class="sound gear" id="gearBtn" type="button" data-tab="test" aria-label="Settings"><svg width="16" height="16" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><path fill="currentColor" d="M3 0h2v1h1v1h1v1h1v2H7v1H6v1H5v1H3V7H2V6H1V5H0V3h1V2h1V1h1zM3 3v2h2V3z"/></svg></button>
-    <div class="toast" id="toast" hidden></div>
     <button class="goldgo" id="goldGo" type="button" data-act="goldgo" hidden></button>
     <button class="goldgo crackgo" id="crackGo" type="button" data-act="crackgo" hidden>First crack! Tap to catch it</button>
   </div>
+  </div>
+  <div class="toast" id="toast" hidden></div>
   <div class="guide" id="guide" hidden></div>
   <div class="garrow" id="garrow" hidden aria-hidden="true"></div>
   <div class="pcer" id="pcer" hidden role="dialog" aria-modal="true" aria-label="Prestige"></div>
 
   <div class="tabs" role="tablist" id="tabs"></div>
-  <div class="card panel" id="panel"></div>
+  <div class="card sheet" id="sheet" hidden role="region" aria-labelledby="sheetT">
+    <div class="sheet-h"><img id="sheetI" src="data:," alt=""><b id="sheetT"></b><button class="sheet-x" type="button" data-act="sheetmin" aria-label="Put away">▾</button></div>
+    <div class="panel" id="panel"></div>
+  </div>
 </div>
 <div class="modal" id="modal" hidden><div class="card" id="modalCard"></div></div>
 
@@ -1710,6 +1728,7 @@ function task(id, n) { if (DERBY_KINDS.includes(id) && S.dw) S.dw.c[id] = (S.dw.
 
 /* ---------- the world loop ---------- */
 const cv = $('cv'), ctx = cv.getContext('2d'), frame = document.createElement('canvas'); frame.width = W; frame.height = H;
+cv.width = W * 2; cv.height = H * 2; $('app').style.setProperty('--ar', W + ' / ' + H);   /* the stage keeps the scene's shape */
 const fx = frame.getContext('2d');
 const floats = [], bursts = [];
 const weather = Array.from({ length: 46 }, () => ({ x: rnd() * W, y: rnd() * H, v: 0.6 + rnd() * 0.8, ph: rnd() * 6 }));
@@ -2654,8 +2673,17 @@ function away(hours) {
 let tab = 'farm', toastT = 0;
 const TEST_TOOLS = true;   /* build.py --launch turns this off: the Test tab becomes Settings and the cheats stop working */
 const TABS = [['farm', 'Farm', 'i_worker'], ['mill', 'Mill', 'green_sack'], ['roast', 'Roast', 'roaster_0'], ['unlock', 'Unlock', 'i_points'], ['orders', 'Daily', 'i_cherry'], ['ranks', 'Ranks', 'i_trophy'], ['looks', 'Looks', 'i_worker'], ['shop', 'Shop', 'i_crane']];   /* Settings is the gear on the farm */
-function setTab(t) { if (t === 'upgrades') { S.farmSub = S.upTab === 'build' || S.upTab === 'staff' ? S.upTab : 'upgrades'; t = 'farm'; }   /* Build lives inside the Farm tab now */
-  if (t !== tab) SFX.play('click'); if (S.newTab === t) S.newTab = null; guideStep('tab:' + t); tab = t; renderTabs(); renderPanel(); refreshHud(); }
+function setTab(t, mapOnly) { if (t === 'upgrades') { S.farmSub = S.upTab === 'build' || S.upTab === 'staff' ? S.upTab : 'upgrades'; t = 'farm'; }   /* Build lives inside the Farm tab now */
+  if (t !== tab) { SFX.play('click'); $('panel').scrollTop = 0; } if (S.newTab === t) S.newTab = null; guideStep('tab:' + t); tab = t; showSheet(!mapOnly); refreshHud(); }   /* mapOnly: just the scene, the sheet put away */
+let sheetOpen = false;
+function showSheet(on) {   /* the tab's sheet over the lower half of the map */
+  sheetOpen = on; $('sheet').hidden = !on; $('app').classList.toggle('open', on);
+  if (on) $('sheet').insertBefore($('guide'), $('panel')); else $('app').insertBefore($('guide'), $('tabs'));
+  const tb = TABS.find((x) => x[0] === tab); $('sheetT').textContent = tb ? tb[1] : TEST_TOOLS ? 'Settings and test tools' : 'Settings';
+  $('sheetI').src = url(tb ? tb[2] : 'i_points'); document.querySelector('.sheet-x').setAttribute('aria-label', 'Put away ' + $('sheetT').textContent);
+  renderTabs(); renderPanel(); renderGuide();
+}
+addEventListener('keydown', (e) => { if (e.key === 'Escape' && sheetOpen && $('modal').hidden) showSheet(false); });
 
 /* free 100 g coffee samples: a welcome bag at Mogiana's first 1,000 kg, one per origin at prestige 2-5, and one a month for
    checking in on 20 days. Each is redeemed with a bejucoffee.com order of SAMPLE_MIN or more within SAMPLE_DAYS. Online, the server's list wins */
@@ -2792,7 +2820,7 @@ function navTarget(chain) {   /* the first step on the way that's on screen: a b
   const qs = chain.split(', ');
   for (let i = 0; i < qs.length; i++) {
     const q = qs[i];
-    if (q.startsWith('cv:')) { const [, sc, xy] = q.split(':'); if (scene() !== sc) continue; const pt = xy[0] === '@' ? rackPt(xy.slice(1)) : xy.split(',').map(Number); if (pt) return { i, el: cv, pt }; continue; }
+    if (q.startsWith('cv:')) { const [, sc, xy] = q.split(':'); if (scene() !== sc) continue; const pt = xy[0] === '@' ? rackPt(xy.slice(1)) : xy.split(',').map(Number); if (pt && onMap(pt)) return { i, el: cv, pt }; continue; }
     const el = document.querySelector(q); if (el && el.offsetParent !== null) return { i, el };
   }
   return null;
@@ -2807,7 +2835,16 @@ function pwalkTick() {   /* starts the walk the first time a prestige is ready *
     S.pwalk = 1; showModal(coachCard('Prestige', 'You\'ve reached level ' + prestigeNeed() + '. Time for your first prestige. Let me show you.', 'Show me', 'pwalkgo'));
   }
 }
-function renderGuide() {
+function onMap(pt) {   /* is this map spot on screen, not under the open sheet or off the stage? */
+  const r = cv.getBoundingClientRect(), y = r.top + pt[1] / H * r.height;
+  return !sheetOpen || y < $('sheet').getBoundingClientRect().top - 6;
+}
+function inSheetView(el) { const r = el.getBoundingClientRect(), p = $('panel').getBoundingClientRect(); return r.top >= p.top && r.bottom <= p.bottom; }
+function renderGuide() {   /* the guide bar floats over the map; the toast and the sound buttons sit above it */
+  guideBar(); const g = $('guide'), gh = g.hidden || sheetOpen ? '0px' : g.offsetHeight + 6 + 'px';
+  if ($('app').style.getPropertyValue('--gh') !== gh) $('app').style.setProperty('--gh', gh);
+}
+function guideBar() {
   const el = $('guide'), arrow = $('garrow'); document.querySelectorAll('.hint').forEach((x) => x.classList.remove('hint'));
   if (S.guide >= GUIDE.length && S.pwalk && PWALK[S.pwalk]) {   /* the prestige walk borrows the guide bar and arrow */
     const [txt, tg] = PWALK[S.pwalk]; el.hidden = false;
@@ -2818,7 +2855,7 @@ function renderGuide() {
   if (nv) {   /* a new unlock borrows the guide bar and arrow too */
     el.hidden = false; setHTML(el, '<span class="gstep">Unlocked</span><span class="gtext">' + nv.text + '</span><button type="button" class="gskip" data-act="navend">Got it</button>');
     const t = navTarget(nv.t); if (t && t.el !== cv) t.el.classList.add('hint');
-    if (t && t.el !== cv && navSeenAt !== nv.id + t.i && $('modal').hidden) { navSeenAt = nv.id + t.i; const r = t.el.getBoundingClientRect(); if (r.top < 60 || r.bottom > innerHeight - 20) t.el.scrollIntoView({ block: 'center', behavior: calm ? 'auto' : 'smooth' }); }   /* bring each step on screen once */
+    if (t && t.el !== cv && navSeenAt !== nv.id + t.i && $('modal').hidden) { navSeenAt = nv.id + t.i; const r = t.el.getBoundingClientRect(); if ($('panel').contains(t.el) ? !inSheetView(t.el) : r.top < 60 || r.bottom > innerHeight - 20) t.el.scrollIntoView({ block: 'center', behavior: calm ? 'auto' : 'smooth' }); }   /* bring each step on screen once */
     if (t && t.i === 0 && !nv.done) { if (!navArrive) navArrive = Date.now(); } else navArrive = 0;
     placeArrow(t && t.el, t && t.pt); return;
   }
@@ -2839,6 +2876,7 @@ function placeArrow(t, pt) {   /* a bouncing arrow over what to tap; on the farm
   if (t.id === 'cv' && pt) { x = r.left + pt[0] / W * r.width; y = r.top + (pt[1] - 2) / H * r.height; }
   else if (t.id === 'cv') { const sh = S.farms[S.loc].shrubs.find((s) => s.p >= 1); if (!sh) { arrow.hidden = true; return; } x = r.left + (sh.x + 9) / W * r.width; y = r.top + (sh.y - 2) / H * r.height; }
   if (y < 8 || y > innerHeight) { arrow.hidden = true; return; }
+  if (t.id !== 'cv' && $('panel').contains(t)) { const p = $('panel').getBoundingClientRect(); if (y < p.top - 4 || y > p.bottom - 6) { arrow.hidden = true; return; } }   /* scrolled out of the sheet */
   arrow.hidden = false; arrow.style.left = Math.round(x - 11) + 'px'; arrow.style.top = Math.round(y - 26) + 'px';
 }
 addEventListener('scroll', () => { if (!$('garrow').hidden) renderGuide(); }, { passive: true });
@@ -2847,7 +2885,7 @@ const TAB_OPEN = { looks: () => S.prestige >= 1 || ownsLook(), roast: () => roas
 /* every tab shows from the start; locked ones say what opens them */
 const TAB_LEVEL = { shop: 8, ranks: 9 };   /* one new tab every few levels, so features arrive one at a time */
 const TAB_HINT = { looks: 'prestige, or earn your first cosmetic', roast: 'prestige, or open the Osaka garden', upgrades: 'sell 3 lots', unlock: 'reach level 2', shop: 'reach level 8', orders: 'finish Rosa\'s lessons', ranks: 'reach level 9' };
-const TAB_SHORT = { looks: 'P1', roast: 'P3', upgrades: '3 sales', unlock: 'Lv 2', shop: 'Lv 8', orders: 'Lessons', ranks: 'Lv 9' };
+const TAB_SHORT = { looks: 'P1', roast: 'P1', upgrades: '3 sales', unlock: 'Lv 2', shop: 'Lv 8', orders: 'Lessons', ranks: 'Lv 9' };
 const TAB_WHAT = { shop: 'Shop: characters, building styles, boosts and decor', orders: 'Daily tab: daily and weekly tasks', ranks: 'Ranks: the leaderboard, the season and prestige' };
 const BUYERS_LV = 5, buyersOn = () => !!S.buyers;   /* buyer contracts start at level 5, after the guide, and stay on through prestige */
 const tabLocked = (id) => !!TAB_OPEN[id] && !S.tabs[id];
@@ -2873,7 +2911,7 @@ function renderTabs() {
   const shown = TABS.filter(([id]) => (id !== 'roast' || roasteryOpen() || level() >= 9) && (id !== 'looks' || S.tabs.looks || S.prestige >= 1 || S.tabs.ranks));   /* the Roastery tab appears from prestige 2, so the first sessions stay simple */
   $('tabs').style.gridTemplateColumns = 'repeat(' + shown.length + ', minmax(0, 1fr))';
   setHTML($('tabs'), shown.map(([id, label, ic]) => { const locked = tabLocked(id);
-    return '<button class="tab' + (S.newTab === id ? ' fresh' : '') + (locked ? ' locked' : '') + '" role="tab" type="button" data-tab="' + id + '" aria-pressed="' + (tab === id) + '"' + (locked ? ' aria-label="' + label + ', locked: ' + TAB_HINT[id] + '"' : '') + '><img src="' + url(ic) + '" alt="">' + (locked ? TAB_SHORT[id] : label) + (locked ? '<i class="lock" aria-hidden="true">🔒</i>' : dot[id] ? '<i class="dot"></i>' : '') + '</button>'; }).join(''));
+    return '<button class="tab' + (S.newTab === id ? ' fresh' : '') + (locked ? ' locked' : '') + '" role="tab" type="button" data-tab="' + id + '" aria-pressed="' + (tab === id) + '" aria-expanded="' + (tab === id && sheetOpen) + '"' + (locked ? ' aria-label="' + label + ', locked: ' + TAB_HINT[id] + '"' : '') + '><img src="' + url(ic) + '" alt="">' + (locked ? TAB_SHORT[id] : label) + (locked ? '<i class="lock" aria-hidden="true">🔒</i>' : dot[id] ? '<i class="dot"></i>' : '') + '</button>'; }).join(''));
 }
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; toastT = 2.6; }
 const modalQueue = [];
@@ -2956,6 +2994,7 @@ function farmSubtabs(cur, f) {   /* the Farm tab: your fields, plus the pages wh
 function renderPanel() {
   const P = $('panel'), f = S.farms[S.loc], L = ART.locations[S.loc];
   checkFarmMilestones(); achTick(); showoffTick();
+  if (!sheetOpen) return;
   let h = '';
   h += eventBanner();
   const fsub = S.tabs.upgrades && ['upgrades', 'build', 'staff'].includes(S.farmSub) ? S.farmSub : 'fields';
@@ -3369,7 +3408,7 @@ document.addEventListener('change', (e) => {   /* Foreman's ledger: the process 
   SFX.play('tick'); save();
 });
 document.addEventListener('click', (e) => {
-  const t = e.target.closest('[data-tab]'); if (t) { if (tabLocked(t.dataset.tab)) { SFX.play('nope'); toast(TABS.find((x) => x[0] === t.dataset.tab)[1] + ' opens when you ' + TAB_HINT[t.dataset.tab]); return; } setTab(t.dataset.tab); return; }
+  const t = e.target.closest('[data-tab]'); if (t) { if (tabLocked(t.dataset.tab)) { SFX.play('nope'); toast(TABS.find((x) => x[0] === t.dataset.tab)[1] + ' opens when you ' + TAB_HINT[t.dataset.tab]); return; } if (t.dataset.tab === tab && sheetOpen) { SFX.play('click'); showSheet(false); return; } setTab(t.dataset.tab); return; }   /* the open tab again puts its sheet away */
   const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
   const [a, v] = b.dataset.act.split(':');
   const f = S.farms[S.loc];
@@ -3385,6 +3424,7 @@ document.addEventListener('click', (e) => {
   }, 0);
   if (a === 'hire') { if (f.workers.length < maxPickers(f) && spend('coins', hireCost())) { addWorker(f); guideStep('hire'); toast('A new picker joins you'); } }
   else if (a === 'tab') setTab(v);
+  else if (a === 'sheetmin') { SFX.play('click'); showSheet(false); }
   else if (a === 'coachgo') { closeModal(); if (v === 'ranks') S.rankSub = 'board'; setTab(v); }
   else if (a === 'seasonhow') S.seasonHow = !S.seasonHow;
   else if (a === 'sellraw') sellRaw();
@@ -3491,7 +3531,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'deliver') { const [i, id] = v.split('.'); deliver(+i, +id); }
   else if (a === 'decor') { if (S.decor[v] !== undefined) S.decor[v] = !S.decor[v]; else if (spend('coins', DECOR[v].cost)) { S.decor[v] = true; toast(DECOR[v].name + ' added to your farms'); } }
   else if (a === 'go') { S.loc = v; setTab('farm'); }
-  else if (a === 'goldgo') { if (golden) { S.loc = golden.loc; setTab('farm'); } }
+  else if (a === 'goldgo') { if (golden) { S.loc = golden.loc; setTab('farm', true); } }   /* the golden bush is on the map, so the sheet makes way */
   else if (a === 'decorgo') { S.shopTab = 'roast'; setTab('shop'); }
   else if (a === 'millgo') { closeModal(); setTab('mill'); }
   else if (a === 'estbuy') { const n = estateNext(v); if (n && n.ok && spend('coins', n.c) && spend('points', n.k)) { S.estate.st[v] = n.n + 1; if (v === 'toba' && n.n === 0) S.estate.boatAt = 0; const st = ESTATE[v].stages[n.n]; SFX.play('achieve'); fireworks = 3; showModal('<h2>' + st[0] + '</h2><img src="' + estatePic(v, n.n + 1) + '" alt="" style="width:208px;image-rendering:pixelated;border-radius:6px"><p class="note">' + st[1] + '.</p><p class="rule"><b>' + st[2] + '.</b></p><button class="btn green" data-act="close">Wonderful</button>', true); } }
@@ -3595,7 +3635,7 @@ const panelBusy = () => touchDown || performance.now() - lastSwipe < 900 || perf
 document.addEventListener('pointerdown', () => { touchDown = true; }, true);
 window.addEventListener('pointerup', () => { touchDown = false; lastUp = performance.now(); }, true);
 window.addEventListener('pointercancel', () => { touchDown = false; lastUp = performance.now(); }, true);
-$('panel').addEventListener('scroll', () => { lastSwipe = performance.now(); }, true);   /* catches the strip's scrolling too */
+$('panel').addEventListener('scroll', () => { lastSwipe = performance.now(); if (!$('garrow').hidden) renderGuide(); }, true);   /* catches the strip's scrolling too */
 function refreshAll() { seasonTick(); refreshHud(); renderTabs(); renderPanel(); renderGuide(); }
 
 /* ---------- online: accounts, cloud save, live leaderboard, order links, drop events ----------
