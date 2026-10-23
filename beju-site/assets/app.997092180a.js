@@ -1084,7 +1084,7 @@
   }
   function renderFilters() {
     if (!$("#filters")) return;
-    var modes = [["coffee", ["By coffee", "コーヒー"]], ["taste", ["By taste", "味わい"]], ["season", ["By harvest", "収穫期"]]];
+    var modes = [["coffee", ["By coffee", "コーヒー"]], ["taste", ["By taste", "味わい"]]];
     var html = '<fieldset class="exmode"><legend class="sr">' + T("Explore origins", "産地の探し方") + '</legend><div class="seg">' + modes.map(function (m) {
       return '<label><input type="radio" name="exmode" value="' + m[0] + '"' + (exMode === m[0] ? " checked" : "") + "><span>" + L(m[1]) + "</span></label>";
     }).join("") + "</div></fieldset>";

@@ -758,3 +758,5 @@ footer { padding-block: clamp(3rem, 7vw, 5.5rem) 3rem; }
 .motion .rise { transform: translateY(22px); transition: transform 0.8s cubic-bezier(0.16, 0.84, 0.3, 1) var(--d, 0ms); }
 .motion .rise.in { transform: none; }
 .motion .product.in:hover, .motion .pcard.in:hover, .motion .jcardlink.in:hover, .motion .crosslink.in:hover, .motion .course.in:hover { transform: translateY(-3px); transition-duration: 0.25s; transition-delay: 0ms; }
+
+.exmode .seg { grid-template-columns: repeat(2, 1fr); }
