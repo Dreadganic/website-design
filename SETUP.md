@@ -115,11 +115,12 @@ The game's server parts run as Netlify Functions next to the payment functions, 
 | `game-score` | Live leaderboard (season and all time). Each score must be possible since the last one, so impossible jumps are refused. |
 | `game-claim` | Turns a paid order into game rewards, once: 1 crane per ¥100 and a passport stamp for each coffee, checked with Stripe on the server. |
 | `game-events` | Drop events, read from `netlify/lib/game-events.json`. Edit that file and push to schedule one. |
+| `game-link` | Moves a farm to another device: Settings makes an 8-letter code that works once for 15 minutes, and the new device gets a token of its own (up to five extra devices per farm). |
 
-- **The game page:** `bejucoffee.com/farm/` (built by `python3 game-assets/play/build.py beju-site/farm/index.html --site`). It is hidden from search engines and not linked from the shop. Online features switch on only there; the Claude preview stays offline.
+- **The game page:** `bejucoffee.com/farm/` (built by `python3 game-assets/play/build.py beju-site/farm/index.html --site --beta`). It is hidden from search engines and not linked from the shop. Online features switch on only there; the Claude preview stays offline. `--beta` gives testers Settings instead of the Test tab; add `?tools` to the address (`/farm/?tools`) to get the Test tab back.
 - **Linking an order:** send customers to `/farm/?claim=` followed by their Checkout session id (`cs_…`). The thank-you page already has that id; adding the button is one line when you're ready to launch.
 - **Tests:** `npm test` runs the backend tests with an in-memory store and a fake Stripe.
-- **Not built yet:** push notifications (needs an Apple Developer account and Firebase), Capacitor app wrapping, real co-ops, and a leaderboard that scales past a few thousand players (it currently reads every score; it should keep a running top list instead).
+- **Not built yet:** push notifications (needs an Apple Developer account and Firebase), Capacitor app wrapping, and a leaderboard that scales past a few thousand players. Each function instance now reads every score row at most once per 15 seconds and scores post every 2 minutes, which is plenty for a beta; a running top list is the next step.
 
 
 ### Beju Farm rewards (backend, dormant until launch)

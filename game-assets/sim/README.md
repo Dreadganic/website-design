@@ -22,3 +22,12 @@ python3 game-assets/sim/audit/mk_policy.py
 node game-assets/sim/audit/audit.js /tmp/audit.html /tmp/audit/log.json 20 40   # game speed ×20, at most 40 minutes
 node game-assets/sim/audit/summarize.js /tmp/audit/log.json
 ```
+
+## Interface sweep and online end-to-end test
+```
+python3 game-assets/play/build.py /tmp/beju-farm.html
+python3 game-assets/sim/mktest.py /tmp/beju-farm.html /tmp/test.html          # the game with its internals on window.__T
+node game-assets/sim/ui_sweep.js /tmp/test.html fresh /tmp/sweep fresh       # or a run.js output instead of "fresh"; then [width] [height] [prep js]
+node game-assets/sim/online_e2e.js /tmp/test.html /tmp/online                 # the real functions behind a local server, two browser devices
+```
+`ui_sweep.js` opens every tab and sub-page, saves a screenshot of each and lists sideways scrolling, clipped buttons, broken images and "undefined"/"NaN" text (it should report 0 issues and 0 errors). `online_e2e.js` prints PASS or FAIL for: going online, saving, moving a farm with a code and with the recovery code, a used code, the newer-save choice (nothing overwritten while it's open), name checks and a reset restarting the leaderboard row.

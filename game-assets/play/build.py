@@ -1,5 +1,5 @@
 """Build the playable game page: inline the sprites and every farm scene (as data urls) into play/template.html.
-Usage: python3 game-assets/play/build.py <output.html> [--site] [--launch]\n   --site wraps it as a full web page for bejucoffee.com/farm/ (hidden from search); --launch drops that noindex."""
+Usage: python3 game-assets/play/build.py <output.html> [--site] [--beta | --launch]\n   --site wraps it as a full web page for bejucoffee.com/farm/ (hidden from search); --beta swaps the Test tab for Settings (?tools brings it back); --launch drops the noindex and the Test tab for good."""
 import base64, json, os, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -16,10 +16,13 @@ cozy = open(os.path.join(ROOT, "audio", "cozy.js")).read()
 if "--launch" in sys.argv:   # the public game: no Test tab cheats
     assert "const TEST_TOOLS = true;" in t
     t = t.replace("const TEST_TOOLS = true;", "const TEST_TOOLS = false;")
+elif "--beta" in sys.argv:   # beta testers get Settings; the Test tab only opens with ?tools in the address
+    assert "const TEST_TOOLS = true;" in t
+    t = t.replace("const TEST_TOOLS = true;", "const TEST_TOOLS = /[?&]tools\\b/.test(location.search);")
 t = t.replace("__SFX__", sfx).replace("__MUSIC__", music).replace("__COZY__", cozy).replace("__ART__", json.dumps(art, separators=(",", ":"))).replace("__BGS__", json.dumps(bgs, separators=(",", ":")))
 if "--site" in sys.argv:   # a full page for bejucoffee.com/farm/, kept out of search results
     title = t[:t.index("</title>") + 8] if t.startswith("<title>") else ""
-    t = t[len(title):]
+    t = t[len(title):].replace('<meta charset="utf-8">\n', '', 1)   # the page's head below has its own
     t = ('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">'
          + ('' if "--launch" in sys.argv else '<meta name="robots" content="noindex, nofollow">') + title + '<meta name="theme-color" content="#3A2A1C"><link rel="icon" href="/favicon.svg">'
          '</head><body style="margin:0">' + t + '</body></html>')

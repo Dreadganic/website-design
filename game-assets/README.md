@@ -660,3 +660,43 @@ The final run reached prestige 3 with no arrow, cover or order issues.
   The bot (three runs of each) now reaches level 4–5 by prestige 2 (the second roaster; was 2–3), level 6–7 halfway to prestige 3 (was 3), level 8 at prestige 3 (Repeat roast; was 3), 10–11 at prestige 4 (blends and the head roaster; was 6) and 14–15 at prestige 5 (was 9). Prestige timing stays within run-to-run noise: prestige 5 at 5.6–6.3 hours (was 5.4–5.9).
 - **Notices sit in the farm-name banner.** The short notices (notebook stars, season stars, lots started, new tabs and so on) show inside the banner at the top, between its arrows, for about 2.6 seconds (3.4 for long ones), then the farm name comes back. They no longer cover the map or the middle of the screen. A notice that arrives within a second of another waits its turn; up to three wait, and repeats are dropped. New notebook titles are a notice too ("Notebook: Yellow Catuai specialist! Wear it in Looks"), not a window.
 - **Estate projects are only teased at prestige 3.** Fields shows a small card with the finished estate in shadow, its name, the kind of project ("Patio drying") and "opens at prestige 4" (`estateTeaser()`). The three stages, what they do, their costs and the build button wait for prestige 4.
+
+## Beta readiness pass (23 October 2026)
+A full review of the backend, the game code, the interface at fresh, prestige 1, 3 and 5 (phone, small phone and desktop) and pacing, then fixes in rounds, each checked by the backend tests, the online end-to-end test, the interface sweep, the bot to prestige 5 and the tutorial audit to prestige 3.
+
+**Online and saves**
+- **Farms move between devices.** Settings › *Play on another device* makes an 8-letter code (works once, 15 minutes); *Use a code* on the other device loads that farm after showing what it is. A *recovery code* (the account's own credential) does the same when the first device is lost. Backend: `game-link`; each device gets its own token, up to five extra per farm.
+- **No more lost progress between devices.** A device now asks whenever the farm was saved elsewhere since its own last save (it compares server save versions, not clocks), and saves nothing online, including scores and the farm snapshot, until the player chooses. Before, an older device left open in the background stamped its save "now" and could overwrite newer progress, and a new device saved its fresh farm over the cloud copy while the "Newer save found" window was still up.
+- **Going online retries** (15 s, 30 s, 1 min … up to 5 min, and when the browser comes back online). Before, one failed start left the whole session offline.
+- **Reset works online.** "Reset the game" now tells the leaderboard the farm started again (`reset: true`); before, the server refused the lower prestige and the player's row froze. The reset farm also gets every field (it used to miss five, which stopped the game loop), and income from the old farm doesn't carry into the new one's first rewards.
+- **Names are checked up front** against the leaderboard's rules (2 to 16 letters, no links or slurs). Before, a name the server refused silently stopped every score from posting.
+- Order claims and link codes use create-only writes, so two requests can't both succeed. Renewals read the subscription from `invoice.parent` on newer Stripe API versions. New farms are capped at 20 an hour per connection (counted by a hash of the address). Scores post every 2 minutes unless something visible changed (prestige, stars, looks, name), and each function instance reads score rows at most once per 15 seconds.
+- A save that won't read is kept aside (`beju-farm-save-v3-unreadable-…`) instead of being overwritten.
+
+**Interface**
+- **Numbers no longer break onto their own line** in buttons ("Prestige at level / 34", bag prices as "11 / k"), the agent's contract line and the co-op feed. Button labels are one span (`btn()`), and the two CSS rules that styled every span inside are direct-child rules now.
+- **The leaderboard gives names the whole row**, with stars, prestige and know-how on a line under the name. Before, names were cut to five or six letters on small phones.
+- **Drying times are real time** ("45 s", "1 min 20 s"). They showed the base time ÷ 2.5 as "min", which was neither real nor farm time.
+- **A farm with every picker place taken** shows *Full* and points at worker housing, instead of a greyed-out price.
+- **The map's numbers are shortcuts:** know-how opens Unlock (Ranks › Prestige once one is ready), coins open Farm › Upgrades, cranes the Shop, the cherry store the Mill. The roastery's shelf and green sacks open the Roast sheet.
+- **The mill shows where the next rack goes**, faintly, while one can still be added; tapping it opens Farm › Upgrades.
+- Windows are dialogs for screen readers, text boxes in them take focus (buttons too for keyboard players), and Escape closes any window with a Close or Cancel.
+- The template declares UTF-8 itself.
+
+**Mechanics and words that disagreed**
+- The weekly order no longer promises a "Co-op Roaster badge" it never gave; it says 10 cranes and 15 season stars.
+- The season-track card's "Claim it" opens Ranks › Season, where the Claim buttons are (it opened the Leaderboard).
+- A regular's request now counts as a sale for daily tasks, Harvest Day, the co-op order and the Derby.
+- The prestige summary names the farms that really stay open (it always said "Brazil and Osaka", even with Old friends keeping Huila and Gedeo awake).
+- Storage upgrades past the barn are a notice: the picture doesn't change after level 5.
+- Drop events say how many days they really run; a contract's spare coffee "sold at the market price" (it said "went to the roastery"); away under an hour reads in minutes; the weekly order never says "0 days"; one name for the Master cupper charm; Tab › Page everywhere; "Roast tab", not "Roastery tab".
+- Season stars: the How it works list names roasts (and cheering and co-op help online), and Stars today only lists what can be earned here.
+- Task buttons show rewards with a plus ("+33,430 coins"), so they don't read as prices.
+- **Check-in rewards keep pace with the farm** from the first prestige: never less than listed, and 2 to 8 minutes of income (they stayed a flat 200–800 coins all game). Before prestige 1 they're as listed, because income right after the lessons comes in bursts. Rewards (lessons, tasks, check-ins) no longer count towards the income rate rewards are measured by, and that rate is kept in the save, so the first rewards of a session match the farm.
+
+**Builds**
+- `build.py --beta`: noindex, Settings instead of the Test tab, which `?tools` in the address brings back. The site copy at `/farm/` is built this way now.
+
+**Pacing check.** Three bot runs with the usual settings reach prestige 1–5 at 0.7–0.8, 1.3–1.4, 1.9–2.0, 3.0–3.1 and 6.1 hours of active play (6.2 before this pass), so nothing moved beyond run-to-run noise. Allowed to build to the real cap (7 at prestige 4), the bot reaches prestige 5 in 5.5–6.0 hours with one or two 5–7 minute gaps without a purchase. The prestige 4 run is the long one (about 2.6–2.8 hours, against 1.1–1.2 for the run before), worth watching with testers.
+
+**Tools** (`sim/`): `ui_sweep.js` opens every tab and sub-page from a saved state and flags sideways scrolling, clipped buttons, broken images and "undefined"/"NaN" text; `online_e2e.js` runs the real functions behind a local server with two browser devices (moving a farm, codes, recovery, the newer-save choice, names, reset). The tutorial audit's taps now look their target up again after scrolling to it: the Ranks page re-renders every half second (its know-how count is live), and a tap aimed with the element found before that landed in the corner of the screen, which showed up as "could not find the Prestige button".
