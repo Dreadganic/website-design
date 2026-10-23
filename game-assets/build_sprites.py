@@ -14,7 +14,7 @@ import json, math, os, random
 from PIL import Image, ImageChops
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-W, H = 192, 240
+W, H = 192, 352   # taller than wide: the map fills a phone screen above the tabs
 
 
 def hx(h, a=255):
@@ -596,7 +596,7 @@ def ground(grass, dirt, seed=1, dirt_q=0.84, flowers=26, puddles=False, leaves=N
     vals = sorted(n2(x, y) for y in range(0, H, 4) for x in range(0, W, 4))
     T = vals[int(len(vals) * dirt_q)]
     patch = {(x, y) for y in range(H) for x in range(W) if n2(x, y) + 0.08 * math.sin(x * 0.7 + y * 0.3) > T}
-    for y in range(70, 206):
+    for y in range(70, 224):
         cxp = 150 - (y - 70) * 0.36 + math.sin(y * 0.09) * 4
         for x in range(int(cxp - 8), int(cxp + 9)):
             patch.add((x, y))
@@ -675,22 +675,329 @@ def beds(snow=False):
 
 def hedgerow_and_bank(ramps, dirt, snow=False):
     for k, x in enumerate(range(-6, W + 12, 15)):
-        lay = cluster(x, 214 + (k % 2) * 2, 10, 8, ramps[k % len(ramps)], 40 + k, blobs=6, br=(4.5, 6.5))
+        lay = cluster(x, H - 26 + (k % 2) * 2, 10, 8, ramps[k % len(ramps)], 40 + k, blobs=6, br=(4.5, 6.5))
         if snow:
             snowcap(lay)
-    for y in range(224, H):
+    for y in range(H - 16, H):
         for x in range(W):
-            if y < 226:
+            if y < H - 14:
                 put(x, y, dirt[4])
-            elif y < 236:
+            elif y < H - 4:
                 put(x, y, dirt[2] if (x * 7 + y) % 11 else dirt[3])
             else:
                 put(x, y, (SNOWY[1] if snow else dirt[1]) if (x + y) % 4 else (SNOWY[2] if snow else dirt[0]))
     for x in range(4, W, 11):
-        for y in range(225, 238):
-            put(x, y, WOOD[4]); put(x + 1, y, WOOD[1] if y < 227 else WOOD[2]); put(x + 2, y, WOOD[3]); put(x + 3, y, WOOD[4])
+        for y in range(H - 15, H - 2):
+            put(x, y, WOOD[4]); put(x + 1, y, WOOD[1] if y < H - 13 else WOOD[2]); put(x + 2, y, WOOD[3]); put(x + 3, y, WOOD[4])
         if snow:
-            put(x + 1, 224, SNOWY[0]); put(x + 2, 224, SNOWY[0])
+            put(x + 1, H - 16, SNOWY[0]); put(x + 2, H - 16, SNOWY[0])
+
+
+JUTE = ["#E8D0A0", "#D2B47E", "#B89660", "#967648", "#6E5434"]
+TIN = ["#C8D4DC", "#A8B8C4", "#8A9CAA", "#6C7E8C", "#4E5E6A"]
+
+
+def jute_sack(x0, y0, w=14, h=10, stencil="#2D6A46"):
+    shadow_ellipse(x0 + w / 2 + 1, y0 + h, w / 2, 1.6, 60)
+    for y in range(y0, y0 + h):
+        for x in range(x0, x0 + w):
+            edge = x in (x0, x0 + w - 1) or y in (y0, y0 + h - 1)
+            if edge and (x, y) not in ((x0, y0), (x0 + w - 1, y0), (x0, y0 + h - 1), (x0 + w - 1, y0 + h - 1)):
+                put(x, y, JUTE[4])
+            elif not edge:
+                put(x, y, JUTE[1] if y < y0 + 3 else JUTE[2] if (x + y) % 3 else JUTE[3])
+    for x in range(x0 + 4, x0 + w - 4):
+        put(x, y0 + h // 2, stencil)
+    put(x0 + w // 2, y0 + h // 2 - 1, stencil); put(x0 + w // 2 - 1, y0 + h // 2 + 1, stencil)
+
+# ---------------- the lower farm: a yard where the six buildings stand, then each farm's own scenery down to the hedgerow ----------------
+# The game draws each building, or an empty lot, at (SLOTS[i], LOT_Y) on the yard. The strip below is each farm's way out to the world.
+LOT_Y = 228
+SNOW_DIRT = ["#F4EEE2", "#E8DCC8", "#D8C8B0", "#C4B49C", "#A89880"]
+
+
+def farm_yard(dirt, seed, snow=False):
+    d = SNOW_DIRT if snow else dirt
+    rnd = random.Random(seed + 5)
+    x0, x1, y0, y1 = 4, W - 4, 222, 259
+    for y in range(y0 - 2, y1 + 2):   # packed earth with rounded ends and a ragged edge
+        for x in range(x0 - 2, x1 + 2):
+            u, v = (x - (x0 + x1) / 2) / ((x1 - x0) / 2), (y - (y0 + y1) / 2) / ((y1 - y0) / 2)
+            r = abs(u) ** 6 + abs(v) ** 6 + rnd.uniform(-0.08, 0.08)
+            if r > 1.06:
+                continue
+            edge = r > 0.9
+            put(x, y, d[3] if edge and (x + y) % 2 else d[2] if edge else rnd.choice([d[1]] * 12 + [d[0], d[2]]))
+    for x in range(10, W - 10):   # cart ruts along the yard
+        for ry in (256, 252):
+            if rnd.random() < 0.75:
+                put(x, ry, d[3] if (x // 5) % 2 else d[2])
+    for _ in range(14):   # pebbles and a few tufts the carts miss
+        x, y = rnd.randrange(12, W - 12), rnd.randrange(y0 + 3, y1 - 3)
+        if rnd.random() < 0.5:
+            put(x, y, STONE[1]); put(x + 1, y, STONE[2])
+        elif not snow:
+            put(x, y, LEAF[2]); put(x - 1, y - 1, LEAF[1]); put(x + 1, y - 1, LEAF[3])
+    for x in range(88, 104):   # the track carries on down out of the yard
+        for y in range(258, 268):
+            if abs(x - 96) < 7 - (y - 258) * 0.2 or rnd.random() < 0.15:
+                put(x, y, d[1] if (x + y) % 5 else d[2])
+
+
+def track(y0, h, dirt, seed, snow=False):   # a dirt road right across the farm, with wheel ruts
+    d = SNOW_DIRT if snow else dirt
+    rnd = random.Random(seed)
+    for y in range(y0 - 1, y0 + h + 1):
+        for x in range(W):
+            if y in (y0 - 1, y0 + h) and rnd.random() < 0.5:
+                continue
+            edge = y in (y0 - 1, y0, y0 + h - 1, y0 + h)
+            put(x, y, d[3] if edge and (x + y) % 2 else d[2] if edge or y in (y0 + 3, y0 + h - 4) else rnd.choice([d[1]] * 9 + [d[0], d[2]]))
+
+
+def stream(y_at, wide, seed, frozen=False, foam=True):   # water winding across the farm; y_at(x) is its middle
+    rnd = random.Random(seed)
+    for x in range(W):
+        yc = y_at(x)
+        for y in range(int(yc - wide / 2) - 2, int(yc + wide / 2) + 3):
+            dy = y - yc
+            if abs(dy) > wide / 2 + 1:
+                put(x, y, STONE[2] if rnd.random() < 0.55 else STONE[1])   # a stony bank
+            elif frozen:
+                put(x, y, SNOWY[2] if abs(dy) > wide / 2 - 1 else SNOWY[1] if (x + y) % 7 else "#FFFFFF")
+            else:
+                put(x, y, WATER[3] if abs(dy) > wide / 2 - 1 else WATER[2] if dy > 1 else WATER[1] if (x * 3 + y) % 11 else WATER[0])
+        if foam and not frozen and rnd.random() < 0.18:
+            put(x, yc + rnd.uniform(-wide / 3, wide / 3), "#FFFFFF")
+    for _ in range(int(W / 14)):   # rocks in the water
+        x = rnd.randrange(4, W - 4); yc = y_at(x) + rnd.uniform(-wide / 4, wide / 4)
+        ellipse(x, yc, 2.2, 1.5, STONE[3]); ellipse(x - 0.4, yc - 0.6, 1.6, 1, STONE[1])
+        if not frozen:
+            put(x + 2, yc + 1, "#FFFFFF"); put(x - 3, yc + 1, WATER[0])
+
+
+def footbridge(x0, y0, y1, rail=WOOD, rope=False):   # planks across water, seen from above
+    for y in range(y0, y1):
+        for x in range(x0, x0 + 14):
+            put(x, y, rail[4] if x in (x0, x0 + 13) else rail[1] if (y - y0) % 3 == 0 else rail[2] if (x + y) % 9 else rail[3])
+    for x in (x0 - 1, x0 + 14):
+        for y in range(y0 - 2, y1 + 2):
+            put(x, y, "#C8A060" if rope and y % 2 else rail[4])
+    for x in (x0 - 2, x0 + 14):
+        for y in (y0 - 3, y1 + 1):
+            R(x, y, 3, 3, rail[4]); put(x + 1, y, rail[1])
+
+
+def wagon_sacks(x, y, n, stencil="#2D6A46"):   # a load of coffee sacks
+    for k in range(n):
+        jute_sack(x + (k % 3) * 7, y + (k // 3) * 4 - (k // 3) * 1, 8, 5, stencil)
+
+
+def tractor(x, y, body="#3A6AC8"):   # a little tractor towing a trailer of sacks, facing left
+    shadow_ellipse(x + 22, y + 15, 24, 3, 70)
+    box(x + 18, y + 2, 26, 12, WOOD[2]); R(x + 19, y + 3, 24, 2, WOOD[1])   # trailer
+    wagon_sacks(x + 20, y - 3, 6)
+    R(x + 15, y + 8, 4, 1, OUT)
+    box(x, y + 2, 16, 11, body); R(x + 1, y + 3, 14, 2, "#6A9AE8"); box(x + 9, y - 3, 7, 7, "#2A2A2A"); R(x + 10, y - 2, 5, 3, "#9CC8D8")
+    for (wx, wy, r) in ((x + 3, y + 12, 2.4), (x + 12, y + 11, 3.4), (x + 22, y + 13, 2.4), (x + 38, y + 13, 2.4)):
+        ellipse(wx, wy, r, r * 0.8, "#2A2A2A"); put(wx, wy - 1, "#6E6E6E")
+    R(x + 2, y - 2, 2, 4, "#2A2A2A"); smoke(x + 2, y - 4, 3)
+
+
+def jeep(x, y, body="#4A7A4A"):   # the Willys that carries coffee down the mountain, loaded high, facing right
+    shadow_ellipse(x + 13, y + 15, 15, 3, 70)
+    box(x, y + 3, 26, 11, body); R(x + 1, y + 4, 24, 2, "#6A9A62")
+    box(x + 18, y + 1, 9, 6, "#2A2A2A"); R(x + 19, y + 2, 7, 3, "#9CC8D8")
+    wagon_sacks(x + 1, y - 2, 6, "#B23428")
+    for wx in (x + 4, x + 21):
+        ellipse(wx, y + 14, 2.6, 2, "#2A2A2A"); put(wx, y + 13, "#6E6E6E")
+    put(x + 26, y + 6, "#FFF4B0")
+
+
+def gate(x0, x1, y):   # the white farm gate, posts and rails, standing open on one side
+    for x in (x0, x1):
+        R(x, y - 8, 3, 11, OUT); R(x + 1, y - 7, 1, 9, "#F4F0E4")
+    for k in range(3):
+        for x in range(x0 + 3, x0 + 3 + int((x1 - x0 - 3) * 0.45)):
+            put(x, y - 6 + k * 3, "#F4F0E4"); put(x, y - 5 + k * 3, "#B8B0A0")
+
+
+def canoe(x, y):   # a solu, the Batak dugout, moored
+    for k in range(22):
+        hw = math.sin((k + 0.5) / 22 * math.pi) * 3
+        for s in range(-int(hw), int(hw) + 1):
+            put(x + k, y + s, WOOD[4] if abs(s) == int(hw) else WOOD[2] if s < 0 else WOOD[3])
+    put(x + 1, y, "#C8302C"); put(x + 20, y, "#C8302C")
+    R(x + 9, y - 1, 1, 3, WOOD[1]); R(x + 13, y - 1, 1, 3, WOOD[1])
+
+
+def jetty(x0, y0, y1):
+    for y in range(y0, y1):
+        for x in range(x0, x0 + 10):
+            put(x, y, WOOD[4] if x in (x0, x0 + 9) else WOOD[1] if (y - y0) % 3 == 0 else WOOD[2])
+    for y in range(y0 + 4, y1 + 1, 6):
+        for x in (x0 - 1, x0 + 10):
+            R(x, y, 2, 2, WOOD[4])
+
+
+def paddy(x0, y0, w, h, harvest, seed):   # a rice terrace: green rows, or water with new shoots
+    rnd = random.Random(seed)
+    for y in range(y0, y0 + h):
+        for x in range(x0, x0 + w):
+            edge = x in (x0, x0 + w - 1) or y in (y0, y0 + h - 1)
+            if edge:
+                put(x, y, "#7E6A3A" if y == y0 + h - 1 else "#A8B86A")
+            elif harvest:
+                put(x, y, rnd.choice(["#D8C060", "#C8A848", "#E0CC70"]) if (x + y // 2) % 3 else "#A8903A")
+            else:
+                put(x, y, (WATER[1] if (x + y) % 7 else WATER[0]) if (x * 2 + y) % 5 else LUSH[1])
+
+
+def torii(x, y, snow=False):   # a vermilion torii, seen from the front
+    red, dark = "#D8402C", "#8A2418"
+    R(x, y, 26, 3, OUT); R(x + 1, y + 1, 24, 1, dark if not snow else SNOWY[0])
+    R(x + 2, y + 3, 22, 2, red); R(x + 3, y + 7, 20, 2, red)
+    for px_ in (x + 5, x + 19):
+        R(px_, y + 3, 3, 18, red); R(px_ + 2, y + 3, 1, 18, dark)
+    shadow_ellipse(x + 13, y + 21, 12, 2, 50)
+
+
+def bamboo(x0, y0, w, h, seed, snow=False):   # a stand of bamboo, culms with their joints and a leafy top
+    rnd = random.Random(seed)
+    for k in range(w // 3):
+        x = x0 + k * 3 + rnd.randrange(2)
+        top = y0 + rnd.randrange(6)
+        for y in range(top, y0 + h):
+            put(x, y, "#5E8A3A" if (y - top) % 7 else "#3E6024"); put(x + 1, y, "#7EAA4C" if (y - top) % 7 else "#3E6024")
+    lay = cluster(x0 + w / 2, y0 + 2, w / 2 + 3, 6, LUSH, seed, blobs=8, br=(2.5, 4))
+    if snow:
+        snowcap(lay)
+
+
+def arched_bridge(x0, y0, y1, snow=False):   # a little red drum bridge over the stream
+    for y in range(y0, y1):
+        for x in range(x0, x0 + 14):
+            put(x, y, "#8A2418" if x in (x0, x0 + 13) else (SNOWY[1] if snow else "#C8A060") if (y - y0) % 3 else (SNOWY[2] if snow else "#A88040"))
+    for x in (x0 - 1, x0 + 14):
+        for y in range(y0 - 1, y1 + 1):
+            put(x, y, "#D8402C")
+        R(x - (1 if x < x0 else 0), y0 - 2, 2, 2, "#8A2418"); R(x - (1 if x < x0 else 0), y1, 2, 2, "#8A2418")
+
+
+def coffee_row(y, x0, x1, harvest, seed, step=9):   # a contour row of mature coffee trees, older than the ones in the fields
+    rnd = random.Random(seed)
+    for k, x in enumerate(range(x0, x1, step)):
+        lay = cluster(x + rnd.uniform(-1, 1), y + math.sin(x * 0.05) * 2, 6, 5, COFFEE, seed + k, blobs=6, br=(2.5, 3.5))
+        if harvest:
+            for (a, b) in list(lay)[:: max(1, len(lay) // 6)]:
+                put(a, b, "#D8302C")
+
+
+def lower_mogiana(harvest):
+    track(280, 12, DIRT["red"], 51)
+    gate(84, 108, 278)
+    tractor(132, 274)
+    tree(22, 266, 12, IPE if harvest else LUSH, 52)
+    for (sx, sy) in [(44, 268), (52, 270), (6, 284)]:
+        e_barrel(sx, sy)
+    for k, y in enumerate((302, 314)):   # old coffee on the slope below the road
+        coffee_row(y, 6 + k * 4, W - 2, harvest, 60 + k * 20)
+
+
+def lower_huila(harvest):
+    stream(lambda x: 288 + math.sin(x * 0.04) * 6 - x * 0.04, 10, 54)
+    footbridge(89, 276, 296)
+    jeep(128, 262)
+    paddle_plant(20, 270, 14, 55); paddle_plant(52, 300, 12, 56); paddle_plant(176, 300, 12, 57)
+    tree(150, 304, 10, LUSH if not harvest else LEAF, 58)
+    for k in range(5):   # mountain coffee under the plantains
+        cluster(12 + k * 14, 308 + (k % 2) * 3, 5, 4, COFFEE, 70 + k, blobs=5, br=(2, 3))
+
+
+def lower_gedeo(harvest):
+    rnd = random.Random(79)
+    for y in range(266, H - 18):   # the footpath on down through the garden
+        for x in range(int(96 + math.sin(y * 0.15) * 3) - 3, int(96 + math.sin(y * 0.15) * 3) + 4):
+            put(x, y, DIRT["rust"][1] if rnd.random() < 0.8 else DIRT["rust"][2])
+    for k, (x, y, r) in enumerate([(14, 276, 16), (44, 268, 14), (22, 306, 15), (58, 300, 14), (78, 278, 12)]):   # the enset garden
+        paddle_plant(x, y, r, 80 + k, LUSH, midrib="#B8402C")
+    for y in range(266, 316):   # a wattle fence round it
+        put(86, y, WOOD[3] if y % 3 else WOOD[4])
+    for k, (x, y, r) in enumerate([(128, 276, 14), (168, 270, 15), (150, 306, 12), (186, 304, 10)]):   # forest coffee under the big trees
+        tree(x, y, r, LUSH if not harvest else LEAF, 90 + k)
+    for (hx_, hy) in [(122, 282), (162, 276)]:   # bark beehives slung in the branches
+        R(hx_, hy, 10, 4, OUT); R(hx_ + 1, hy + 1, 8, 2, WOOD[2]); put(hx_ + 1, hy + 1, WOOD[0]); put(hx_ + 9, hy + 2, "#2A1A0C")
+    for (sx, sy) in [(100, 300), (108, 306)]:
+        e_sack(sx, sy)
+
+
+def lower_toba(harvest):
+    for y in range(292, H - 12):   # the lake comes round below the farm
+        for x in range(0, 128):
+            sh = 292 + math.sin(x * 0.09) * 2 + max(0, x - 100) * 0.4
+            if y >= sh:
+                put(x, y, "#F0E0B0" if y < sh + 2 else WATER[1] if (x * 2 + y) % 9 else WATER[0] if (x + y) % 5 else WATER[2])
+    jetty(90, 290, 316)
+    canoe(62, 306)
+    for k, (x, y) in enumerate([(130, 266), (160, 266), (130, 284), (160, 284), (130, 302), (160, 302)]):
+        paddy(x, y, 28, 16, harvest, 110 + k)
+    palm(16, 266, 12, 120); palm(54, 270, 10, 121)
+
+
+def carreta(x, y):   # the painted Costa Rican ox cart, its big wheels in red, yellow and blue stars
+    shadow_ellipse(x + 14, y + 14, 16, 3, 70)
+    R(x - 10, y + 6, 12, 1, WOOD[4])   # the tongue, out to where the oxen go
+    box(x + 2, y, 24, 10, "#E8B830"); R(x + 3, y + 1, 22, 2, "#F8D870"); R(x + 3, y + 5, 22, 1, "#C8302C")
+    wagon_sacks(x + 4, y - 4, 6)
+    for wx in (x + 6, x + 20):
+        ellipse(wx, y + 11, 5, 4, OUT); ellipse(wx, y + 11, 4, 3, "#C8302C")
+        for a in range(6):
+            put(wx + math.cos(a * 1.05) * 2.5, y + 11 + math.sin(a * 1.05) * 2, "#F2C04A" if a % 2 else "#3A6AC8")
+        put(wx, y + 11, OUT)
+
+
+def lower_turrialba(harvest):
+    stream(lambda x: 296 + math.sin(x * 0.05) * 3, 14, 130)
+    footbridge(89, 284, 308, rope=True)
+    carreta(134, 264)
+    tree(24, 268, 12, PORO if harvest else LUSH, 131); paddle_plant(62, 268, 12, 133)
+    for k in range(10):   # a patch of sugarcane by the river
+        x = 122 + k * 7
+        for y in range(306, H - 16):
+            put(x, y, LEAF[2] if y % 5 else LEAF[4]); put(x + 1, y, LEAF[1])
+        for (a, b) in ((-2, 305), (3, 305), (-1, 304), (2, 304), (0, 303)):
+            put(x + a, b, LEAF[1] if a < 0 else LEAF[3])
+    coffee_row(316, 6, 80, harvest, 135, step=10)
+
+
+def lower_osaka(season):
+    snow = season == "winter"
+    stream(lambda x: 290 + math.sin(x * 0.06) * 5, 9, 140, frozen=snow, foam=False)
+    arched_bridge(89, 279, 300, snow)
+    torii(148, 262, snow)
+    bamboo(6, 264, 30, 22, 141, snow)
+    stepping([(92, 306), (98, 311), (92, 316), (95, 266), (90, 272)])
+    stone_lantern(50, 300)
+    for k, (x, y) in enumerate([(66, 270), (124, 306), (140, 270), (24, 310)]):   # clipped azaleas
+        lay = cluster(x, y, 7, 5, SNOWY if snow else LUSH, 150 + k, blobs=7, br=(2.5, 3.5))
+        if season == "spring":
+            for (a, b) in list(lay)[::5]:
+                put(a, b, "#F07AA8")
+    if season == "spring":
+        tree(176, 304, 11, SAKURA, 142)
+    elif season == "autumn":
+        tree(176, 304, 11, MAPLE, 142)
+    elif snow:
+        pine(176, 298, 11, 142, snow=True)
+    else:
+        tree(176, 304, 11, LUSH, 142)
+
+
+def lower_farm(loc, season, dirt, seed):
+    snow = season == "winter"
+    farm_yard(dirt, seed, snow)
+    {"mogiana": lambda: lower_mogiana(season == "harvest"), "huila": lambda: lower_huila(season == "harvest"), "gedeo": lambda: lower_gedeo(season == "harvest"),
+     "toba": lambda: lower_toba(season == "harvest"), "turrialba": lambda: lower_turrialba(season == "harvest"), "osaka": lambda: lower_osaka(season)}[loc]()
 
 
 # ---------------- estate projects, painted into each farm's scene ----------------
@@ -1169,6 +1476,7 @@ def scene_osaka(season, est=0):
     else:
         bare_tree(18, 12, 18, 1); bare_tree(*((52, 30, 12) if est >= 2 else (48, 40, 15)), 2); pine(92, 22, 13, 4, snow=True)
         pine(176, 84, 14, 3, snow=True); bare_tree(4, 132, 11, 5); pine(190, 136, 12, 6, snow=True)
+    lower_farm("osaka", season, DIRT["ochre"], 1)
     hedge = [[SNOWY[1], SNOWY[2], LEAF[3], LEAF[4], LEAF[5]]] if False else ([LEAF, OCHRE, LEAF, COFFEE] if season != "autumn" else [AUTUMN, OCHRE, MAPLE, LEAF])
     hedgerow_and_bank(hedge, DIRT["ochre"], snow)
 
@@ -1186,6 +1494,7 @@ def scene_huila(season, est=0):
     house_finca(108, -4)
     paddle_plant(14, 18, 18, 1); paddle_plant(44, 10, 14, 2); paddle_plant(90, 18, 12, 3)
     tree(176, 92, 14, LUSH if not harvest else LEAF, 3); paddle_plant(6, 136, 13, 5); tree(190, 140, 12, LEAF, 6)
+    lower_farm("huila", season, DIRT["ochre"] if harvest else DIRT["wet"], 3)
     hedgerow_and_bank([LEAF, COFFEE, LUSH, OCHRE], DIRT["ochre"])
 
 
@@ -1202,6 +1511,7 @@ def scene_mogiana(season, est=0):
     house_fazenda(106, -6)
     tree(14, 12, 16, IPE if harvest else LUSH, 1); tree(84, 12, 12, IPE if harvest else LEAF, 2)
     palm(178, 86, 14, 3); tree(4, 136, 12, IPE if harvest else LEAF, 5); palm(188, 132, 12, 6)
+    lower_farm("mogiana", season, DIRT["red"], 5)
     hedgerow_and_bank([OCHRE, LEAF, OCHRE, COFFEE], DIRT["red"])
 
 
@@ -1218,6 +1528,7 @@ def scene_gedeo(season, est=0):
     tukul(150, 32, 30)
     paddle_plant(102, 18, 14, 1, midrib="#B8402C"); paddle_plant(186, 88, 13, 2, midrib="#B8402C")
     acacia(18, 10, 18, 3, LEAF if harvest else LUSH); acacia(4, 140, 12, 4, LEAF); paddle_plant(190, 140, 11, 5, midrib="#B8402C")
+    lower_farm("gedeo", season, DIRT["rust"], 7)
     hedgerow_and_bank([OCHRE, LEAF, COFFEE, OCHRE], DIRT["rust"])
 
 
@@ -1233,6 +1544,7 @@ def scene_toba(season, est=0):
         est_toba(est, "full" if harvest else "tarp", DIRT["volcanic"])
     house_batak(106, -4)
     palm(*((102, 22) if est >= 2 else (98, 30)), 14, 1); palm(178, 90, 14, 2); palm(6, 136, 12, 3); tree(190, 140, 12, LUSH, 4)
+    lower_farm("toba", season, DIRT["volcanic"], 9)
     hedgerow_and_bank([LUSH, COFFEE, LEAF, LUSH], DIRT["volcanic"])
 
 
@@ -1249,6 +1561,7 @@ def scene_turrialba(season, est=0):
     house_tico(110, -6)
     tree(16, 12, 16, PORO if harvest else LUSH, 1); paddle_plant(60, 14, 14, 2); tree(96, 22, 11, PORO if harvest else LEAF, 3)
     tree(178, 90, 14, PORO if harvest else LUSH, 4); paddle_plant(6, 136, 13, 5); tree(190, 140, 12, LUSH, 6)
+    lower_farm("turrialba", season, DIRT["volcanic"] if not harvest else DIRT["ochre"], 11)
     hedgerow_and_bank([LUSH, COFFEE, LEAF, LUSH], DIRT["ochre"])
 
 
@@ -1280,24 +1593,6 @@ for old in ("farm-bg.png",):
         os.remove(p)
 
 # ---------------- the mill yard and the roastery: scenes for the Mill tab; racks, roasters, bags and people are drawn live on top ----------------
-JUTE = ["#E8D0A0", "#D2B47E", "#B89660", "#967648", "#6E5434"]
-TIN = ["#C8D4DC", "#A8B8C4", "#8A9CAA", "#6C7E8C", "#4E5E6A"]
-
-
-def jute_sack(x0, y0, w=14, h=10, stencil="#2D6A46"):
-    shadow_ellipse(x0 + w / 2 + 1, y0 + h, w / 2, 1.6, 60)
-    for y in range(y0, y0 + h):
-        for x in range(x0, x0 + w):
-            edge = x in (x0, x0 + w - 1) or y in (y0, y0 + h - 1)
-            if edge and (x, y) not in ((x0, y0), (x0 + w - 1, y0), (x0, y0 + h - 1), (x0 + w - 1, y0 + h - 1)):
-                put(x, y, JUTE[4])
-            elif not edge:
-                put(x, y, JUTE[1] if y < y0 + 3 else JUTE[2] if (x + y) % 3 else JUTE[3])
-    for x in range(x0 + 4, x0 + w - 4):
-        put(x, y0 + h // 2, stencil)
-    put(x0 + w // 2, y0 + h // 2 - 1, stencil); put(x0 + w // 2 - 1, y0 + h // 2 + 1, stencil)
-
-
 def scene_mill():
     """The dry mill: a tin-roofed beneficio with an open door, a concrete patio with the truck and the cupping table, and a yard of raised racks."""
     grass = GRASS["green"]
@@ -1308,10 +1603,23 @@ def scene_mill():
             if rnd.random() < 0.08:
                 put(x, y, rnd.choice(grass[1:4]))
     dirt = DIRT["ochre"]
-    for y in range(92, 208):   # packed earth under the racks
+    yard_end = H - 32   # packed earth under eight rows of racks (RACK_SHOWN in the game)
+    for y in range(92, yard_end):
         for x in range(2, W - 2):
-            edge = y in (92, 207) or x in (2, W - 3)
+            edge = y in (92, yard_end - 1) or x in (2, W - 3)
             put(x, y, dirt[3] if edge else rnd.choice([dirt[1]] * 12 + [dirt[0], dirt[2]]))
+    for i in range(32):   # stone footings where each rack stands, so the empty spots show where the yard can grow
+        rx, ry = 7 + (i % 4) * 46, 98 + (i // 4) * 26
+        for fx_ in (rx + 1, rx + 35):
+            R(fx_, ry + 15, 4, 3, STONE[3]); R(fx_, ry + 15, 4, 2, STONE[2]); R(fx_ + 1, ry + 15, 2, 1, STONE[0])
+    for (sx, sy) in [(6, 306), (18, 306), (12, 301), (30, 307)]:   # sacks waiting to go up to the patio
+        jute_sack(sx, sy, 11, 7)
+    shadow_ellipse(176, 314, 10, 2, 60)   # a wheelbarrow and a rake by the hedge
+    R(166, 306, 14, 7, OUT); R(167, 307, 12, 5, TIN[1]); R(167, 307, 12, 1, TIN[0]); ellipse(181, 312, 2.4, 2.2, "#2A2A2A")
+    R(160, 309, 7, 1, WOOD[4]); R(160, 311, 7, 1, WOOD[4])
+    for k in range(18):
+        put(140 + k, 316 - k // 6, WOOD[3])
+    R(136, 314, 6, 2, WOOD[4])
     for y in range(48, 92):    # the concrete patio
         for x in range(W):
             seam = (x % 24 == 0) or (y - 48) % 22 == 0
@@ -1384,7 +1692,8 @@ def scene_roastery(room="brick"):
     R = ROOMS[room]
     pl, wood, front = R["plank"], R["wood"], R["front"]
     new_scene(pl[0])
-    for y in range(60, 206):   # floor
+    F = H - 240   # the shop front sits this much lower than it used to, with a café between the counter and the door
+    for y in range(60, 206 + F):   # floor
         for x in range(W):
             if room == "showa":   # a red and cream checkerboard
                 put(x, y, pl[1] if ((x // 8) + ((y - 60) // 8)) % 2 else pl[0])
@@ -1472,27 +1781,56 @@ def scene_roastery(room="brick"):
     fill(170, 132, 14, 9, OUT); fill(171, 133, 12, 7, "#3E3E3E"); fill(172, 134, 10, 3, "#9CC8A8"); fill(171, 140, 12, 1, "#2A2A2A")
     fill(124, 132, 8, 9, OUT); fill(125, 133, 6, 7, "#D4ECF4"); fill(125, 136, 6, 4, "#6A3C1C"); fill(125, 132, 6, 1, "#C8A040")
     fill(140, 135, 10, 5, OUT); fill(141, 136, 8, 3, "#F8F4EC")
+    # the café: guests who stay for a cup sit either side of the aisle from the door to the counter (CAFE_SEATS in the game)
+    for (tx, ty) in ((132, 216), (170, 216), (132, 258), (170, 258)):   # round tables for two
+        shadow_ellipse(tx + 1, ty + 6, 9, 2.5, 60)
+        for sx in (tx - 13, tx + 9):   # a chair either side, seen from above
+            fill(sx, ty - 3, 5, 7, OUT); fill(sx + 1, ty - 2, 3, 5, cush); fill(sx + (0 if sx < tx else 4), ty - 3, 1, 7, wood[3])
+        fill(tx - 1, ty + 3, 2, 4, wood[4])
+        ellipse(tx, ty, 7.5, 5, OUT); ellipse(tx, ty - 0.5, 6.5, 4, wood[1]); ellipse(tx - 2, ty - 2, 2.5, 1.2, wood[0])
+    shadow_ellipse(42, 248, 32, 3, 60)   # a long table for sharing, with benches
+    for by in (222, 245):
+        fill(12, by, 60, 5, OUT); fill(13, by + 1, 58, 3, wood[2]); fill(13, by + 1, 58, 1, wood[1])
+    fill(10, 228, 64, 16, OUT); fill(11, 229, 62, 13, wood[1]); fill(11, 240, 62, 1, wood[3])
+    for x in range(14, 72, 12):
+        fill(x, 229, 1, 11, wood[2])
+    for (cx, cy) in ((22, 234), (44, 233), (62, 235)):
+        ellipse(cx, cy, 2.4, 1.8, OUT); ellipse(cx, cy, 1.6, 1.1, "#F8F4EC"); put(cx, cy, "#6A3C1C")
+    for k, (sx, sy) in enumerate(((10, 270), (24, 270), (38, 270))):   # open sacks of green coffee, for guests to see and smell
+        fill(sx, sy, 12, 12, OUT); fill(sx + 1, sy + 1, 10, 10, JUTE[2]); fill(sx + 1, sy + 1, 10, 2, JUTE[1])
+        ellipse(sx + 6, sy + 6, 4, 3, ["#8AA86A", "#A8B87A", "#7A9858"][k])
+        for (a, b) in ((-2, -1), (1, 0), (-1, 1), (2, -1)):
+            put(sx + 6 + a, sy + 6 + b, "#5E7A44")
+    fill(36, 266, 2, 6, "#B8B8B8"); fill(35, 265, 4, 2, "#D8D8D8")   # a scoop
+    fill(60, 284, 12, 14, OUT); fill(61, 285, 10, 12, "#2E3A30")   # the chalk menu board by the door
+    for k in range(3):
+        for x in range(62, 70):
+            put(x, 287 + k * 3, "#E8E4D8" if (x + k) % 3 else "#2E3A30")
+    fill(59, 298, 2, 2, wood[4]); fill(71, 298, 2, 2, wood[4])
+    for (pxp, pyp) in ((150, 284), (176, 284)):   # tall plants along the window
+        fill(pxp + 2, pyp + 8, 9, 8, OUT); fill(pxp + 3, pyp + 9, 7, 6, TILE[2])
+        cluster(pxp + 6, pyp + 3, 8, 8, LUSH, pxp + 7, blobs=8, br=(2.5, 4))
     # the shop front: windows on to the street and potted plants; the noren over the door is drawn live
-    for y in range(206, H):
+    for y in range(206 + F, H):
         for x in range(W):
-            put(x, y, front[3] if y < 208 else "#3A2A1C" if y > 236 else front[2] if (x + y) % 17 else front[3])
+            put(x, y, front[3] if y < 208 + F else "#3A2A1C" if y > 236 + F else front[2] if (x + y) % 17 else front[3])
     for (wx, ww) in ((8, 70), (114, 70)):
-        fill(wx, 210, ww, 24, OUT)
-        for y in range(211, 233):
+        fill(wx, 210 + F, ww, 24, OUT)
+        for y in range(211 + F, 233 + F):
             for x in range(wx + 1, wx + ww - 1):
-                put(x, y, "#D4ECF4" if (x - y) % 23 < 3 else "#9CC8D8" if y < 222 else "#86B8CC")
+                put(x, y, "#D4ECF4" if (x - y) % 23 < 3 else "#9CC8D8" if y < 222 + F else "#86B8CC")
         for x in range(wx + 1, wx + ww - 1, 17):
-            fill(x, 211, 1, 22, front[4])
-    fill(84, 206, 24, 34, "#5A4632")
+            fill(x, 211 + F, 1, 22, front[4])
+    fill(84, 206 + F, 24, 34, "#5A4632")
     for x in range(84, 108):
-        put(x, 204, front[4]); put(x, 205, front[4])
-    for (pxp, pyp) in ((4, 192), (178, 192)):
+        put(x, 204 + F, front[4]); put(x, 205 + F, front[4])
+    for (pxp, pyp) in ((4, 192 + F), (178, 192 + F)):
         fill(pxp + 2, pyp + 6, 8, 7, OUT); fill(pxp + 3, pyp + 7, 6, 5, TILE[2])
         cluster(pxp + 6, pyp + 2, 7, 6, LUSH, pxp, blobs=6, br=(2.5, 4))
     mat = {"kissaten": ("#2E5A44", "#4A7A60"), "machiya": ("#5E6A3A", "#8A9450"), "showa": ("#2A2A2A", "#F2C04A")}.get(room, ("#8A2A26", "#B8402C"))
-    fill(80, 190, 32, 12, mat[0]); fill(82, 192, 28, 8, mat[1])   # a doormat
+    fill(80, 190 + F, 32, 12, mat[0]); fill(82, 192 + F, 28, 8, mat[1])   # a doormat
     for x in range(84, 108, 4):
-        put(x, 196, "#E8C890")
+        put(x, 196 + F, "#E8C890")
 
 
 scene_mill(); img.save(os.path.join(HERE, "bg", "mill.png")); rendered[("mill", "")] = img.copy()
@@ -2059,6 +2397,21 @@ BUILDINGS = {
 }
 for k, fn in [("housing", b_housing), ("wetmill", b_wetmill), ("drybeds", b_drybeds), ("compost", b_compost), ("shade", b_shade), ("sorter", b_sorter)]:
     add_layer("build_" + k, 28, 26, fn)
+
+
+def b_lot(p):   # an empty building lot on the farmyard: pegged out with string, waiting for its building
+    for y in range(11, 23):
+        for x in range(4, 24):
+            p(x, y, "#4A2E1838" if (x + y) % 3 else "#4A2E1850")
+    for x in range(5, 24, 2):
+        p(x, 11, "#F4E6C6"); p(x, 22, "#F4E6C6")
+    for y in range(12, 22, 2):
+        p(4, y, "#F4E6C6"); p(23, y, "#F4E6C6")
+    for (sx, sy) in ((3, 9), (23, 9), (3, 20), (23, 20)):
+        p(sx, sy, OUT); p(sx + 1, sy, OUT)
+        for k in range(1, 4):
+            p(sx, sy + k, WOOD[2]); p(sx + 1, sy + k, WOOD[4])
+add_layer("build_lot", 28, 26, b_lot)
 
 # building skins: the same six buildings redrawn in a themed palette, bought with cranes and chosen per farm
 BUILD_SKINS = {

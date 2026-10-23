@@ -4,7 +4,7 @@ Cozy modern pixel art for the Beju Farm game: warm olive greens, ochre earth, fl
 
 | File | What it is |
 | --- | --- |
-| `bg/<location>-<season>.png` | 14 painted farm scenes (192 x 240, shown at 2x). The fields sit in the same place in every scene. |
+| `bg/<location>-<season>.png` | 14 painted farm scenes (192 x 352, shown at 2x). The fields sit in the same place in every scene; below them are the farmyard and each farm's own scenery. |
 | `sprites.json` | Moving pieces as palette grids: 9 coffee varieties x 5 growth stages, workers (8 shirt colours), the shiba, props; plus shrub positions and the location, season and variety tables the game reads. |
 | `scenes.png` | Every scene side by side, with each location's own varieties growing. |
 | `varieties.png` | Every variety from sprout to ripe cherries. |
@@ -230,7 +230,7 @@ Coins build, know-how unlocks, cranes buy looks, and the tabs follow that rule:
 
 ## Mill and roastery scenes
 On the Mill tab the stage shows the mill instead of a farm, and the Roastery tab shows the Osaka roastery. The ◀ ▶ arrows lead back out to the farms. The backgrounds are `bg/mill.png` and `bg/roastery.png`, drawn by `scene_mill()` and `scene_roastery()` in `build_sprites.py`. Everything that changes is drawn live by the interiors section of `template.html`, with the sprites `mill_rack`, `roaster_0-2`, `roasterB_0-2`, `cool_tray`, `gsack` and `cup_lab`.
-- **Mill yard:** up to 16 raised racks, matching racks(), with a "+N more racks" sign beyond that. Each lot keeps its rack until it leaves (`rackSlots()`). Its coffee goes from wet cherries or parchment to dry over five stages, tinted by process. Each rack shows a drying bar, a cup icon once the lot is cupped, a gold tag for a regular's request, and a sparkle when the lot is dry. Mill hands (one per three drying lots, up to four) rake the drying lots. The foreman, with his clipboard, checks racks and the truck. Every sold lot is carried to the truck with a float showing the coins.
+- **Mill yard:** up to 32 raised racks in eight rows (`RACK_SHOWN`), matching racks(), with a "+N more racks" sign beyond that. Each lot keeps its rack until it leaves (`rackSlots()`). Its coffee goes from wet cherries or parchment to dry over five stages, tinted by process. Each rack shows a drying bar, a cup icon once the lot is cupped, a gold tag for a regular's request, and a sparkle when the lot is dry. Mill hands (one per three drying lots, up to four) rake the drying lots. The foreman, with his clipboard, checks racks and the truck. Every sold lot is carried to the truck with a float showing the coins.
 - **Roastery:** one bay per roaster, plus "REP 4" and "REP 15" on the bays not open yet. Drums turn black with a brass band at 160 kg and up. Cooling trays come with reputation 2 and the cupping lab with reputation 6. Bags fill the shelves (12 shown, then "+N"), and green coffee sacks pile up by the wall. Each roaster has a progress bar with the first-crack window in gold, and "CRACK!" flashes during the window. You stand at the roaster that needs you, and an assistant hauls sacks and minds the trays. Customers come in through the noren and leave with a bag when you sell one, and window-shoppers drop in now and then. The roastery plays its own track, "Kissaten Blue": slow swung jazz with vibraphone, Rhodes, walking upright bass, brushes and vinyl crackle (`roastery` in music.js and cozy.js).
 - **Taps:**
   - Mill: a rack cups its lot first, then sells it once dry (to a matching contract first); the cupping table runs Cup all (P2).
@@ -401,7 +401,7 @@ Two late staff who take over chores, never as well as you do them yourself (`ROA
   - **Hiring:** each is hired from their estate's card, and the card then shows what they did last. Farm › Staff lists all five with their training (300k × the estate's cost factor to start, doubling to level 10).
   - **In the scene:** each stands at their own estate in its colours.
   - **The rake:** Mogiana's new chore. From stage 1, tap Rake on the estate card every 2 hours, and natural lots started in the next 30 minutes cup +0.5 (`rakePatio`). It's a daily task option too.
-  - **The boat:** the foreman now sets boat-ready lots aside (`boatWants`), and the contracts agent no longer fills boat orders, so the boat is your chore or Tigor's.
+  - **The boat:** the foreman now sets boat-ready lots aside, only as many as the boat still needs, and the contracts agent no longer fills boat orders, so the boat is your chore or Tigor's.
   - **Old saves:** the earlier single estate manager is refunded.
 - **Coin sinks:** hiring the head roaster is 1.5M and all five estate managers 9.2M. Their training is now paid in know-how (below).
 
@@ -586,3 +586,18 @@ Every staff member trains with know-how from the day they're hired, instead of w
   - The solo weekly roastery order becomes one line once it's claimed.
 
   On Fields, the Welcome harvest and each origin's sample card shrink to a one-line pointer to Shop › Real coffee once the sample is earned, and disappear once it has been sent or has expired.
+
+## Map-first screen and taller scenes (23 October 2026; plan in `review/ui-plan.html`)
+- **One screen.** The page no longer scrolls. The farm bar sits at the top, the eight tabs along the bottom, and the map fills everything between them (`.mapwrap`; the stage keeps the scene's 192:352 shape). On a 390 x 844 phone the map is 358 x 656.
+- **Tabs open as sheets.** Tapping a tab switches the scene as before and opens its page as a sheet from the middle of the screen down to the tabs (`#sheet`, `showSheet()`). The page scrolls inside the sheet, with its sub-tabs pinned to the top. Tapping the same tab again, the ▾ on the sheet, or Esc puts it away. Every sheet has the same header: the tab's icon, its name and the ▾. Pages no longer repeat the tab's name as their first heading. The gear opens Settings the same way. On short phones the sheet starts a little higher so at least 320 px of it shows.
+- **What stays the same.** Tab styling, dots, locks and every page's content are unchanged; the page only builds while its sheet is open (the checks it runs keep going). The golden-bush button puts the sheet away so the bush is in view.
+- **Guide and arrows.** With the sheet put away, the guide bar floats over the bottom of the map, and the toast and sound buttons sit above it. With a sheet open, the guide bar moves into the sheet under its header, so the map above stays clear. A walk to a button further down a sheet scrolls the sheet to it. A map spot under the open sheet points at its tab first; tapping that tab puts the sheet away and the arrow moves to the spot.
+- **Farms (192 x 352).** The top 214 rows are as before. Below the fields:
+  - **The farmyard**, where the six buildings now stand (`SLOTS`, `LOT_Y` 228). A building not built yet shows as a pegged-out lot (`build_lot`). Tapping a building or lot opens Farm › Buildings, or says when Buildings open.
+  - **Each farm's own scenery** down to the hedgerow. Mogiana has a red road, a white gate, a tractor and old coffee rows. Huila has a stream, a footbridge and a loaded Willys jeep. Gedeo has an enset garden, forest coffee and bark beehives. Toba has the lake shore, a jetty, a solu and rice terraces. Turrialba has a river with a hanging bridge, a painted ox cart and sugarcane. Osaka has a stream, a red drum bridge, a torii, bamboo and azaleas, all following its four seasons.
+  - You and the shiba wander down to the yard now and then. Estate crops are unchanged.
+- **Mill.** The rack yard runs down to the hedge: eight rows, so 32 racks show before the "+N more racks" sign (was 16). Stone footings mark each rack spot, so the empty ones show where the mill can grow. Sacks and a wheelbarrow wait at the bottom.
+- **Roastery.** The shop front, door, doormat, noren, hanging plants and neon sign moved down 112 px (`SHOP_F`). In the new space is a café in each interior's own wood and cushion colours: four tables for two, a long shared table with benches, open sacks of green coffee and a chalk menu board. Guests come in at the new door; after buying, about half sit at a free seat with a cup for 8 to 16 seconds before leaving (`CAFE_SEATS`). Up to 6 guests at once (was 4).
+- **Visits** show the top 264 rows of the scene (`VIS_H`): the fields and farmyard, or the roasters, shelves, counter and the start of the café. That keeps the visit window on one screen.
+- **The foreman and requests (fix).** A regular's request takes one lot, but the foreman used to set aside every matching dry lot. When the request was for your main coffee, those lots filled every rack and the mill stopped until the request ran out a day later; the bot stalled like this in about 1 run in 6 after prestige 1. He now keeps one lot back for the request (a hand-cupped one if there is one), and for the boat only as many lots as it still needs; the rest sell as usual. 12 bot runs in a row with no stall; prestige timing is unchanged (prestiges at 0.6–0.8, 1.2–1.3 and 1.7–1.9 bot hours).
+- The locked Roast tab now says P1, matching when the roastery opens.
