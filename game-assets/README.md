@@ -606,3 +606,24 @@ Every staff member trains with know-how from the day they're hired, instead of w
 - **Visits** show the top 264 rows of the scene (`VIS_H`): the fields and farmyard, or the roasters, shelves, counter and the start of the café. That keeps the visit window on one screen.
 - **The foreman and requests (fix).** A regular's request takes one lot, but the foreman used to set aside every matching dry lot. When the request was for your main coffee, those lots filled every rack and the mill stopped until the request ran out a day later; the bot stalled like this in about 1 run in 6 after prestige 1. He now keeps one lot back for the request (a hand-cupped one if there is one), and for the boat only as many lots as it still needs; the rest sell as usual. 12 bot runs in a row with no stall; prestige timing is unchanged (prestiges at 0.6–0.8, 1.2–1.3 and 1.7–1.9 bot hours).
 - The locked Roast tab now says P1, matching when the roastery opens.
+
+## Tutorial and pop-up audit to prestige 3 (23 October 2026)
+A playthrough harness plays a fresh save to prestige 3 the way a new player would. It does Rosa's nine lessons, every unlock walk and the prestige walk by tapping whatever the arrow points at, and answers every window with its main button. The bot only spends coins and know-how and runs the mill when no lesson, walk or window is up. For each arrow it checks:
+- whether the arrow shows;
+- whether it sits on its target;
+- whether anything covers the target (the sheet, the guide bar, a toast or the HUD);
+- whether the target is on screen and inside the sheet's view;
+- whether each tap leads a step closer.
+
+It also logs every window in order, with where its button took the player.
+
+Fixed from it:
+- **Arrows to buttons further down a sheet.** Rosa's lessons (for example, "Unlock Yellow Catuai") and the prestige walk ("tap Prestige", "Pick your new outfit") pointed at buttons below the fold of the half sheet. The arrow was hidden and nothing scrolled. Lessons, unlock walks and the prestige walk now share `showTarget()`, which scrolls the sheet to the target for four seconds after each step starts (the sheet then grows to full). It scrolls instantly, because a refresh of the page could cut a smooth scroll short.
+- **Staff walks that had nothing left to show.** "A farm manager to hire" (and the foreman, agent, head roaster and estate manager walks) kept pointing at Farm › Staff once that person was already hired, for up to 90 seconds. They now end when the staff member is hired, and a walk that's already done when its turn comes is skipped. A walk parked on an already-open sub-tab, or ending on a button in the sheet, lets go after 6 seconds, as walks that end on their target always did.
+- **The prestige walk's last step** ("A farm is resting", pointing at ▶) now also ends when ▶ is tapped, not only from Rosa's card.
+- **After the first prestige,** the ceremony's "Choose your new outfit" closed whichever window was on top. That was often Rosa's one-off Season track card, which the player then never saw. It now removes only the prestige summary card (`dropPrestigeCard()`).
+- **Rosa's roastery card** waits until the prestige walk and its ceremony are done, so its "Show me" no longer pulls the player to the Roast tab halfway through the walk.
+- **Rosa's Buyers card and "Waiting for you in the Shop"** now show before their walks. Before, the walk started first and the card popped up over it.
+- **Rosa's golden bush card** now says "Show me" and puts the sheet away, so the bush is on screen.
+
+The final run reached prestige 3 with no arrow, cover or order issues.

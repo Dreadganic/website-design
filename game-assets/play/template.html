@@ -1258,7 +1258,8 @@ function headRoasterTick(away) {   /* starts the best roast on free roasters (le
 }
 function roasteryTick() {
   const R = S.roastery; if (!R) return;
-  if (roasteryOpen() && !R.tip) { R.tip = true; showModal(coachCard('The roastery', 'Beju roasts in Japan, and now you can too. Roast green coffee, tap <b>Crack</b> at first crack, then sell the bags for far more than green coffee.', 'Show me', 'roastgo')); }
+  if (roasteryOpen() && !R.tip && !S.pwalk && $('pcer').hidden) { R.tip = true;   /* after the prestige walk, so it doesn't pull you away mid-walk */
+    showModal(coachCard('The roastery', 'Beju roasts in Japan, and now you can too. Roast green coffee, tap <b>Crack</b> at first crack, then sell the bags for far more than green coffee.', 'Show me', 'roastgo')); }
   headRoasterTick(false);
   if (repLevel() >= 8 && R.repeat) Object.keys(R.repeat).forEach((k) => { if (R.beans[k] && R.roasters.length < roasterCount()) startRoast(k, R.repeat[k], true); });   /* Repeat roast: a bin starts its next batch when a roaster is free; the crack is still yours */
   for (let i = R.roasters.length - 1; i >= 0; i--) {
@@ -1842,7 +1843,7 @@ function tick(dt) {
     goldenT = (180 + Math.random() * 180) * (1 - techSum('gold')) * (rule('tanabata') ? 0.8 : 1) * (lastHarvest() ? 0.5 : 1) * (cerOn() ? 0.5 : 1);   /* the Gedeo ceremony brings them sooner too */   /* Tanabata and the season's last 3 days bring them sooner */
     const gs = rule('lights') ? 45 : 30, open = LOCS.filter((l) => S.farms[l].unlocked && !S.dormant[l] && S.farms[l].shrubs.length);
     const gl = hasPerk('lookout') && open.length ? open[Math.floor(Math.random() * open.length)] : S.loc;   /* Lookout: any open farm */
-    const fs = S.farms[gl]; if (fs.unlocked && !S.dormant[gl]) { golden = { loc: gl, i: Math.floor(Math.random() * fs.shrubs.length), t: gs }; SFX.play('achieve'); toast(gl === S.loc ? 'A golden bush appeared on the farm! Tap it within ' + gs + ' s' : 'A golden bush appeared at ' + ART.locations[gl].name.split(',')[0] + '! Tap Go within ' + gs + ' s'); if (!S.goldenTip && $('modal').hidden) { S.goldenTip = true; showModal(coachCard('Golden bush', 'See that glowing bush? Golden bushes turn up every few minutes while you play, and only last 30 seconds. Tap one for about two minutes of your income at once. Your staff can\'t pick them for you.', 'I\'ll find it')); } }
+    const fs = S.farms[gl]; if (fs.unlocked && !S.dormant[gl]) { golden = { loc: gl, i: Math.floor(Math.random() * fs.shrubs.length), t: gs }; SFX.play('achieve'); toast(gl === S.loc ? 'A golden bush appeared on the farm! Tap it within ' + gs + ' s' : 'A golden bush appeared at ' + ART.locations[gl].name.split(',')[0] + '! Tap Go within ' + gs + ' s'); if (!S.goldenTip && $('modal').hidden) { S.goldenTip = true; showModal(coachCard('Golden bush', 'See that glowing bush? Golden bushes turn up every few minutes while you play, and only last 30 seconds. Tap one for about two minutes of your income at once. Your staff can\'t pick them for you.', 'Show me', 'goldtip')); } }
   }
   if (fireworks > 0) {   /* level-up fireworks: coloured bursts popping over your farmer */
     fireworks -= dt; fwT -= dt;
@@ -2345,6 +2346,7 @@ cv.addEventListener('click', (e) => {
   if (Math.hypot(lx - f.dog.x, ly - f.dog.y + 5) < 9) SFX.play('woof'), floats.push({ x: f.dog.x, y: f.dog.y - 14, text: 'woof!', t: 0 });
 });
 function travel(dir) {
+  if (S.pwalk === 4) { S.pwalk = 0; S.pwalkDone = true; }   /* the prestige walk's last arrow points here */
   let i = LOCS.indexOf(S.loc);
   i = (i + dir + LOCS.length) % LOCS.length;
   S.loc = LOCS[i];
@@ -2628,7 +2630,7 @@ function prestige() {
   LOCS.forEach((l) => { if (FARM_LEVEL[l] && S.farms[l].unlocked && !(hasPerk('awake') && AWAKE.includes(l))) S.dormant[l] = wakeLevel(l, S.prestige); });
   setTimeout(() => checkSamples(), 300);
   const asleep = Object.keys(S.dormant);
-  showModal(avatar(S.look, 64) + '<h2>Prestige ' + S.prestige + '</h2>' + plate(S.name, S.look.crest, starsFor(S.prestige)) + '<p class="note">' + (S.prestige < TIERS.length ? 'New crest: <b>' + TIERS[t] + '</b>. Its nameplate and border are yours and already on.' : 'You are past the top tier: every prestige adds a star to your name.') + '</p>' + (perkAt(S.prestige) ? '<p class="rule"><b>New perk: ' + perkAt(S.prestige).name + '.</b> ' + perkAt(S.prestige).text + (PERK_LV[perkAt(S.prestige).id] ? ' It switches on at level ' + PERK_LV[perkAt(S.prestige).id] + '.' : '') + '</p>' : '') + (BUILD_CAPS[S.prestige] ? '<p class="rule"><b>Bigger farms:</b> buildings now go up to level ' + BUILD_CAPS[S.prestige] + '.</p>' : '') + skinPicker() +
+  showModal('<i class="psum" hidden></i>' + avatar(S.look, 64) + '<h2>Prestige ' + S.prestige + '</h2>' + plate(S.name, S.look.crest, starsFor(S.prestige)) + '<p class="note">' + (S.prestige < TIERS.length ? 'New crest: <b>' + TIERS[t] + '</b>. Its nameplate and border are yours and already on.' : 'You are past the top tier: every prestige adds a star to your name.') + '</p>' + (perkAt(S.prestige) ? '<p class="rule"><b>New perk: ' + perkAt(S.prestige).name + '.</b> ' + perkAt(S.prestige).text + (PERK_LV[perkAt(S.prestige).id] ? ' It switches on at level ' + PERK_LV[perkAt(S.prestige).id] + '.' : '') + '</p>' : '') + (BUILD_CAPS[S.prestige] ? '<p class="rule"><b>Bigger farms:</b> buildings now go up to level ' + BUILD_CAPS[S.prestige] + '.</p>' : '') + skinPicker() +
     (asleep.length ? '<p class="note">' + asleep.map((l) => ART.locations[l].name.split(',')[0] + ' wakes at level ' + S.dormant[l]).join(', ') + '. Brazil and Osaka stay open.</p>' : '') + (kept ? '<p class="note">Your spare know-how became <b>' + kept + ' level' + (kept > 1 ? 's' : '') + ' of cupping research</b>: +' + S.research + '% know-how from every sale, for good.</p>' : '') + '<button class="btn green" data-act="close">Back to the farm</button>');
 }
 function prestigeCeremony(rankBefore, rankAfter, players) {
@@ -2820,7 +2822,7 @@ const PWALK = {   /* step: [bar text, what to point at] */
 };
 /* new unlocks: whenever something opens, the guide bar names it and the arrow walks you to it, one at a time */
 const navTab = (k, text) => ({ id: 'tab:' + k, when: () => !!S.tabs[k], text, t: '.tab[data-tab="' + k + '"]', done: () => tab === k });
-const navStaff = (id, when, text, act) => ({ id, when, text, t: '[data-act="' + act + '"], [data-act="uptab:staff"], .tab[data-tab="farm"]' });
+const navStaff = (id, when, text, act, hired) => ({ id, when, text, t: '[data-act="' + act + '"], [data-act="uptab:staff"], .tab[data-tab="farm"]', done: hired });   /* hired already: nothing left to show */
 const NAV = [
   navTab('unlock', 'Unlock tab: new coffees and processes'),
   { id: 'tab:upgrades', when: () => !!S.tabs.upgrades, text: 'Farm › Upgrades, Buildings and Staff', t: '[data-act="uptab:farm"], .tab[data-tab="farm"]', done: () => tab === 'farm' && S.farmSub === 'upgrades' },
@@ -2829,7 +2831,7 @@ const NAV = [
   navTab('shop', 'Shop tab'),
   { id: 'weekly', when: () => weekOn(), text: 'Weekly tasks', t: '#weekH, .tab[data-tab="orders"]' },
   navTab('ranks', 'Ranks tab: the leaderboard and the season'),
-  navStaff('mgr', () => mgrOK(), 'A farm manager to hire', 'mgr'),
+  navStaff('mgr', () => mgrOK(), 'A farm manager to hire', 'mgr', () => LOCS.some((l) => S.farms[l].manager)),
   ...VAR_ORDER.map((v) => ({ id: 'var:' + v, when: () => !S.vars[v] && gateOK('var:' + v), text: 'Coffee to unlock: ' + ART.varieties[v], t: '[data-act="var:' + v + '"], [data-act="untab:coffees"], .tab[data-tab="unlock"]' })),
   ...Object.keys(METHODS).filter((k) => METHODS[k].cost).map((k) => ({ id: 'method:' + k, when: () => !S.methods[k] && gateOK('method:' + k), text: 'Process to unlock: ' + METHODS[k].name, t: '[data-act="method:' + k + '"], [data-act="untab:processes"], .tab[data-tab="unlock"]' })),
   ...LOCS.filter((l) => l !== 'osaka').map((l) => ({ id: 'farm:' + l, when: () => canOpen(l), text: 'Farm to open: ' + ART.locations[l].name.split(',')[0], t: '[data-act="farm:' + l + '"], [data-act="untab:farms"], .tab[data-tab="unlock"]' })),
@@ -2839,17 +2841,17 @@ const NAV = [
   { id: 'research', when: () => TECH.some((t) => techOpen(t)), text: 'Techniques: know-how upgrades that stay for good', t: '[data-act="untab:research"], .tab[data-tab="unlock"]', done: () => tab === 'unlock' && S.unTab === 'research' },
   navTab('looks', 'Looks tab: everything you wear'),
   { id: 'replantall', when: () => hasPerk('replantall'), text: 'Replant all: every farm in one tap', t: '[data-act="replantask"], [data-act="uptab:fields"], .tab[data-tab="farm"]' },
-  navStaff('foreman', () => foremanOK(), 'A mill foreman to hire', 'foreman'),
+  navStaff('foreman', () => foremanOK(), 'A mill foreman to hire', 'foreman', () => !!S.staff.foreman),
   { id: 'train', when: () => LOCS.some((l) => S.farms[l].manager) && S.points >= trainCost('mgr', 'mogiana'), text: 'Staff training: spend know-how to make your staff better', t: '[data-act^="train:"], [data-act="uptab:staff"], .tab[data-tab="farm"]' },
   { id: 'cupall', when: () => hasPerk('cupall'), text: 'Cup all: tap the cupping table', t: 'cv:mill:' + (CUP_TABLE.x + 18) + ',' + (CUP_TABLE.y + 2) + ', .tab[data-tab="mill"]' },
-  navStaff('agent', () => agentOK(), 'A contracts agent to hire', 'agent'),
+  navStaff('agent', () => agentOK(), 'A contracts agent to hire', 'agent', () => !!S.staff.agent),
   navTab('roast', 'The Roastery tab'),
   { id: 'estate', when: () => S.prestige >= ESTATE_P, text: 'Estate projects: tap the drying area', t: 'cv:farm:40,62, .tab[data-tab="farm"]' },
   { id: 'reroll', when: () => hasPerk('reroll'), text: 'Swap one daily task a day', t: '[data-act^="reroll:"], .tab[data-tab="orders"]' },
-  navStaff('roaster', () => roasterOK(), 'A head roaster to hire', 'hireroaster'),
+  navStaff('roaster', () => roasterOK(), 'A head roaster to hire', 'hireroaster', () => !!S.staff.roaster),
   { id: 'rrep', when: () => roasteryOpen() && repLevel() >= 8, text: 'Repeat roast: bins restart by themselves', t: '[data-act^="rrep:"], .tab[data-tab="roast"]' },
   { id: 'blend', when: () => roasteryOpen() && repLevel() >= 10, text: 'House blends: blend two bags', t: '[data-act^="blendask:"], .tab[data-tab="roast"]' },
-  ...EM_LOCS.map((l) => navStaff('em:' + l, () => emCan(l), EMGR[l].name + ', ' + EMGR[l].role.toLowerCase() + ', to hire', 'emhire:' + l)),
+  ...EM_LOCS.map((l) => navStaff('em:' + l, () => emCan(l), EMGR[l].name + ', ' + EMGR[l].role.toLowerCase() + ', to hire', 'emhire:' + l, () => emHired(l))),
   { id: 'coe', when: () => coeOK(), text: 'The Cup of Excellence: a weekly championship on equal terms', t: '[data-act="ranksub:cup"], .tab[data-tab="ranks"]' },
   { id: 'coop', teach: true, when: () => coopOK() && NET.status === 'online' && NET.coopSeen && !NET.coop, text: 'Cooperatives: fill a weekly order with up to 7 other farmers', t: '#coopH, [data-act="dailysub:coop"], .tab[data-tab="orders"]' },
   { id: 'harvest', teach: true, when: () => hvLive() && !!S.tabs.orders, text: 'Harvest Day: every farmer works towards one goal this weekend', t: '#harvestH, [data-act="dailysub:today"], .tab[data-tab="orders"]' },
@@ -2866,6 +2868,7 @@ function navTick() {
   if (cur) { if (!cur.when() || (cur.done && cur.done()) || (navArrive && Date.now() - navArrive > 6000) || Date.now() - navStart > 90e3) navFinish(); return; }
   S.nav = null;
   if (!$('modal').hidden) return;
+  NAV.forEach((x) => { if (!S.navSeen[x.id] && x.done && x.when() && x.done()) S.navSeen[x.id] = true; });   /* done before its turn came: no walk to show */
   const n = NAV.find((x) => !S.navSeen[x.id] && x.when()); if (n) { S.nav = n.id; navArrive = 0; navStart = Date.now(); SFX.play('achieve'); }
 }
 function rackPt(kind) {   /* a spot on the map: @ripe (a ripe bush on the farm), or a mill rack: @free, @cup (uncupped) or @dry (dry, else still drying) */
@@ -2905,19 +2908,30 @@ function renderGuide() {   /* the guide bar floats over the map; the toast and t
   guideBar(); const g = $('guide'), gh = g.hidden || sheetOpen ? '0px' : g.offsetHeight + 6 + 'px';
   if ($('app').style.getPropertyValue('--gh') !== gh) $('app').style.setProperty('--gh', gh);
 }
+let showUntil = 0;
+function showTarget(el, key) {   /* bring what the arrow points at on screen: for a few seconds after each step starts, scroll the sheet (or the page) to it
+                                    whenever it's out of view (a refresh of the page can cut a scroll short), then leave the player to scroll freely */
+  if (!el || el === cv || !$('modal').hidden) return;
+  if (navSeenAt !== key) { navSeenAt = key; showUntil = Date.now() + 4000; }
+  if (Date.now() > showUntil) return;
+  const r = el.getBoundingClientRect();
+  if ($('panel').contains(el) ? !inSheetView(el) : r.top < 60 || r.bottom > innerHeight - 20) el.scrollIntoView({ block: 'center' });
+}
 function guideBar() {
   const el = $('guide'), arrow = $('garrow'); document.querySelectorAll('.hint').forEach((x) => x.classList.remove('hint'));
   if (S.guide >= GUIDE.length && S.pwalk && PWALK[S.pwalk]) {   /* the prestige walk borrows the guide bar and arrow */
     const [txt, tg] = PWALK[S.pwalk]; el.hidden = false;
     setHTML(el, '<span class="gstep">Prestige</span><span class="gtext">' + txt + '</span><button type="button" class="gskip" data-act="pwalkend">Skip</button>');
-    const t = tg.split(', ').map((q) => document.querySelector(q)).find((x) => x && x.offsetParent !== null); if (t) t.classList.add('hint'); placeArrow(t); return;
+    const qs = tg.split(', '), i = qs.findIndex((q) => { const x = document.querySelector(q); return x && x.offsetParent !== null; }), t = i > -1 ? document.querySelector(qs[i]) : null;
+    if (t) { t.classList.add('hint'); showTarget(t, 'pwalk' + S.pwalk + '.' + i); } placeArrow(t); return;
   }
   const nv = navCur();
   if (nv) {   /* a new unlock borrows the guide bar and arrow too */
     el.hidden = false; setHTML(el, '<span class="gstep">Unlocked</span><span class="gtext">' + nv.text + '</span><button type="button" class="gskip" data-act="navend">Got it</button>');
     const t = navTarget(nv.t); if (t && t.el !== cv) t.el.classList.add('hint');
-    if (t && t.el !== cv && navSeenAt !== nv.id + t.i && $('modal').hidden) { navSeenAt = nv.id + t.i; const r = t.el.getBoundingClientRect(); if ($('panel').contains(t.el) ? !inSheetView(t.el) : r.top < 60 || r.bottom > innerHeight - 20) t.el.scrollIntoView({ block: 'center', behavior: calm ? 'auto' : 'smooth' }); }   /* bring each step on screen once */
-    if (t && t.i === 0 && !nv.done) { if (!navArrive) navArrive = Date.now(); } else navArrive = 0;
+    if (t) showTarget(t.el, nv.id + t.i);   /* bring each step on screen */
+    const there = t && (t.i === 0 || ($('panel').contains(t.el) && t.el.getAttribute('aria-pressed') === 'true'));   /* at the last stop, or on the right sub-tab with nothing further to show */
+    if (there && (!nv.done || $('panel').contains(t.el))) { if (!navArrive) navArrive = Date.now(); } else navArrive = 0;   /* a walk that ends on a tab waits for the tap; one that ends on a button in the sheet lets go after a few seconds */
     placeArrow(t && t.el, t && t.pt); return;
   }
   let n = 0; while (S.guide < GUIDE.length && !guideWaiting() && GUIDE[S.guide].done && GUIDE[S.guide].done() && n++ < 3) guideDone();   /* steps already done move on */
@@ -2926,7 +2940,7 @@ function guideBar() {
   setHTML(el, '<span class="gstep">' + g.ch + ' · ' + (S.guide + 1) + '/' + GUIDE.length + '</span><span class="gtext">' + g.text + (g.goal > 1 ? ' (' + (S.guideN || 0) + '/' + g.goal + ')' : '') + '</span><button type="button" class="gskip" data-act="guideNext" aria-label="Skip this step">›</button><button type="button" class="gskip" data-act="guideSkip">Skip all</button>');
   if (g.say && S.guideSaid !== S.guide && $('modal').hidden) { S.guideSaid = S.guide; showModal(coachCard(g.ch, g.say)); }
   const tt = navTarget(g.target), t = tt && tt.el;
-  if (t && t !== cv) t.classList.add('hint');
+  if (t && t !== cv) { t.classList.add('hint'); showTarget(t, 'guide' + S.guide + '.' + tt.i); }
   if (t === cv && S.guideSeenAt !== S.guide && $('modal').hidden) { S.guideSeenAt = S.guide; const r = cv.getBoundingClientRect(); if (r.top < 0 || r.bottom > innerHeight) cv.scrollIntoView({ block: 'start', behavior: calm ? 'auto' : 'smooth' }); }   /* lessons on the map bring the map back on screen */
   placeArrow(t, tt && tt.pt);
 }
@@ -2957,8 +2971,8 @@ function shopWaitCard() {   /* what you earned before the Shop opened */
   showModal('<h2>Waiting for you in the Shop</h2><p class="note">You earned these while the Shop was closed.' + (skin ? ' Building styles work on any farm, in Shop › Farm style.' : ' Your passport is in Shop › Real coffee.') + '</p>' + rows + '<button class="btn green" data-act="shopwait:' + (skin ? 'bskin' : 'beju') + '">Show me</button><button class="btn" data-act="close">Later</button>');
 }
 function checkTabs() {
-  if (!S.buyers && S.guide >= GUIDE.length && level() >= BUYERS_LV) { S.buyers = true; S.contracts = S.contracts.filter((c) => c.event); S.nextContract = 0; setTimeout(() => showModal(coachCard('Buyers', 'Buyers have started posting contracts in the Mill. Fill one with a matching lot for about twice the usual pay.', 'Show me', 'coachgo:mill')), 1200); }
-  Object.keys(TAB_OPEN).forEach((k) => { if (!S.tabs[k] && TAB_OPEN[k]()) { S.tabs[k] = true; if (k === 'shop' && (S.shopWait || []).length) setTimeout(shopWaitCard, 1300); S.newTab = k === 'upgrades' ? 'farm' : k; toast(k === 'upgrades' ? 'New in the Farm tab: Upgrades, Buildings and Staff' : 'New tab: ' + TABS.find((x) => x[0] === k)[1]); SFX.play('achieve'); const c = TAB_COACH[k]; if (c && !(k === 'looks' && S.pwalk)) setTimeout(() => showModal(coachCard(c[0], c[1] || seasonPitch(), c[2], c[3])), 1200); } });
+  if (!S.buyers && S.guide >= GUIDE.length && level() >= BUYERS_LV) { S.buyers = true; S.contracts = S.contracts.filter((c) => c.event); S.nextContract = 0; showModal(coachCard('Buyers', 'Buyers have started posting contracts in the Mill. Fill one with a matching lot for about twice the usual pay.', 'Show me', 'coachgo:mill')); }   /* Rosa first; the walk to the contracts waits for her card */
+  Object.keys(TAB_OPEN).forEach((k) => { if (!S.tabs[k] && TAB_OPEN[k]()) { S.tabs[k] = true; if (k === 'shop' && (S.shopWait || []).length) shopWaitCard();   /* before the walk to the Shop, which waits for it */ S.newTab = k === 'upgrades' ? 'farm' : k; toast(k === 'upgrades' ? 'New in the Farm tab: Upgrades, Buildings and Staff' : 'New tab: ' + TABS.find((x) => x[0] === k)[1]); SFX.play('achieve'); const c = TAB_COACH[k]; if (c && !(k === 'looks' && S.pwalk)) setTimeout(() => showModal(coachCard(c[0], c[1] || seasonPitch(), c[2], c[3])), 1200); } });
 }
 /* readable numbers: the pixel font stays for words, but every run of digits in the panels and windows is set in the clean body font */
 const numify = (html) => ('>' + html + '<').replace(/>([^<]+)</g, (m, t) => '>' + t.split(/(&#?\w+;)/).map((p) => (p[0] === '&' ? p : p.replace(/\d[\d,.:]*\d|\d/g, '<span class="n">$&</span>'))).join('') + '<').slice(1, -1);
@@ -2976,6 +2990,10 @@ function renderTabs() {
 }
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; toastT = 2.6; }
 const modalQueue = [];
+function dropPrestigeCard() {   /* the prestige walk picks the outfit in Looks, so its summary card goes, wherever it is in the queue; other windows stay */
+  if (!$('modal').hidden && $('modalCard').querySelector('.psum')) { closeModal(); return; }
+  const i = modalQueue.findIndex((h) => h.includes('class="psum"')); if (i > -1) modalQueue.splice(i, 1);
+}
 function closeModal() { if (modalQueue.length) $('modalCard').innerHTML = numify(modalQueue.shift()); else $('modal').hidden = true; }
 function showModal(html, replace) {   /* a second window waits its turn instead of hiding the first */
   if (!$('modal').hidden && !replace) { modalQueue.push(html); return; }
@@ -3473,7 +3491,7 @@ document.addEventListener('click', (e) => {
   const [a, v] = b.dataset.act.split(':');
   const f = S.farms[S.loc];
   if (a === 'close') { SFX.play('close'); closeModal(); return; }
-  if (a === 'pcer') { SFX.play('page'); $('pcer').hidden = true; if (S.pwalk === 3) { closeModal(); setTab('looks'); setTimeout(() => showModal(coachCard('Looks', 'Every prestige lets you pick one new outfit. Tap one to keep it.')), 300); } return; }
+  if (a === 'pcer') { SFX.play('page'); $('pcer').hidden = true; if (S.pwalk === 3) { dropPrestigeCard(); setTab('looks'); setTimeout(() => showModal(coachCard('Looks', 'Every prestige lets you pick one new outfit. Tap one to keep it.')), 300); } return; }
   if (!TEST_TOOLS && ['add', 'order', 'away', 'day', 'speed', 'season'].includes(a)) return;   /* no cheats in the public game */
   const wallet = S.coins + S.points + S.cranes, decorOwned = S.decor[v] !== undefined;
   setTimeout(() => {   /* sound for the action, once its effect is known */
@@ -3591,6 +3609,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'deliver') { const [i, id] = v.split('.'); deliver(+i, +id); }
   else if (a === 'decor') { if (S.decor[v] !== undefined) S.decor[v] = !S.decor[v]; else if (spend('coins', DECOR[v].cost)) { S.decor[v] = true; toast(DECOR[v].name + ' added to your farms'); } }
   else if (a === 'go') { S.loc = v; setTab('farm'); }
+  else if (a === 'goldtip') { closeModal(); if (golden) { S.loc = golden.loc; setTab('farm', true); } }   /* Rosa's card: the sheet goes so you can see the bush */
   else if (a === 'goldgo') { if (golden) { S.loc = golden.loc; setTab('farm', true); } }   /* the golden bush is on the map, so the sheet makes way */
   else if (a === 'decorgo') { S.shopTab = 'roast'; setTab('shop'); }
   else if (a === 'millgo') { closeModal(); setTab('mill'); }
