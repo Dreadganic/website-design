@@ -93,10 +93,16 @@ b .n, h2 .n, h3 .n, .row .grow b .n, .tile b .n { color: inherit; font-size: 1.1
 .tiers { display: flex; flex-wrap: wrap; gap: 6px; } .tiers .chip.got { opacity: 0.6; }
 .done { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 8px 0 2px; border-top: 2px dashed var(--paper-2); }
 .done > b { font-size: 12px; color: var(--leaf-ink); margin-right: 2px; }
+.done.own { border-top: 0; border-bottom: 2px dashed var(--paper-2); padding: 0 0 8px; margin-bottom: 8px; }
+.done.own + .row { border-top: 0; padding-top: 0; }
 .done > small { flex-basis: 100%; font-family: var(--body); font-size: 11px; color: var(--muted); }
 .dchip { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px 2px 4px; border-radius: 99px; background: #E6F0E4; border: 1px solid #B8D4B8; color: #2D5A3C; font: 600 11px var(--pixel); line-height: 16px; }
 button.dchip { cursor: pointer; }
-.dchip img { width: 16px; height: 16px; image-rendering: pixelated; object-fit: contain; }
+.dchip img { width: 16px !important; height: 16px !important; image-rendering: pixelated; object-fit: contain; }
+.dchip[aria-pressed="true"] { background: #2D6A46; border-color: #1F4E33; color: #FFF; }
+.dchip[aria-pressed="true"]::after { content: '✓'; margin-left: 1px; }
+.dchip.off { background: var(--paper); border-style: dashed; color: var(--muted); }
+.dchip.off img { opacity: 0.45; }
 .dtab { width: 100%; font-size: 13px; border-collapse: collapse; } .dtab td { padding: 3px 4px; border-bottom: 1px dashed var(--edge); } .dtab tr.you td { font-weight: 700; }
 .roastbar { position: relative; width: 100%; align-self: stretch; box-sizing: border-box; height: 26px; border: 3px solid var(--edge); border-radius: 8px; background: #3E2A1C; overflow: hidden; margin: 10px 0; }
 .roastbar .win { position: absolute; top: 0; bottom: 0; background: #F2C04A; opacity: 0.85; }
@@ -178,6 +184,7 @@ button.dchip { cursor: pointer; }
 .btn:disabled { background: var(--off); color: #8A7458; cursor: default; }
 .btn:active:not(:disabled) { transform: translateY(2px); }
 .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.grid2:empty { display: none; }   /* a Shop page where you own everything shows only the chips */
 .tile { border: 2px solid var(--edge); border-radius: 8px; background: #FBF1DC; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
 .tile[aria-pressed="true"] { background: #FFE9B0; box-shadow: 0 0 0 2px var(--cherry); }
 .tile b { font-size: 14px; } .tile span { font-family: var(--body); font-size: 12px; font-weight: 700; color: var(--muted); }
@@ -1187,11 +1194,10 @@ function roastShopPanel() {
   h += '<p class="note">' + icon('i_coin') + ' ' + fmt(S.coins) + ' coins · ' + icon('i_crane') + ' ' + S.cranes + ' cranes. Earn them free from reputation, buyers and perfect cracks, or buy them here.</p>';
   RKIND.forEach(([k, title]) => {
     const ids = (RDEF[k] ? [k + ':' + RDEF[k]] : []).concat(RCOS.filter((x) => x.id.startsWith(k + ':')).map((x) => x.id), Object.keys(S.rcos.own).filter((x) => x.startsWith(k + ':s_')));
-    h += '<h3>' + title + '</h3><div class="grid2">' + ids.map((id) => {
-      const [, v] = rSplit(id), it = rItem(id), mine = rOwn(id), toggle = k === 'prop' || k === 'trim', on = toggle ? mine && !S.rcos.hide[id] : S.rcos.on[k] === v;
-      const btnH = mine ? (toggle ? btn(on ? 'Shown' : 'Hidden', 'tap to switch', 'ruse:' + id, true, on ? 'blue' : '') : btn(on ? 'In use' : 'Use', '', 'ruse:' + id, !on, 'blue'))
-        : it && it.src.coins ? btn('Buy', fmt(it.src.coins) + ' coins', 'rbuy:' + id, S.coins >= it.src.coins) : it && it.src.cranes ? btn('Buy', it.src.cranes + ' cranes', 'rbuy:' + id, S.cranes >= it.src.cranes) : '';
-      return '<div class="tile" aria-pressed="' + on + '"><div style="display:flex;justify-content:center;min-height:44px;align-items:center">' + rPic(id, 44) + '</div><b>' + rName(id) + '</b><span>' + (mine ? (RDEF[k] === v ? 'The original' : 'Yours') : rHow(id)) + '</span>' + btnH + '</div>';
+    const toggle = k === 'prop' || k === 'trim';
+    h += '<h3>' + title + '</h3>' + ownStrip(ids.filter(rOwn).map((id) => [rPic(id, 16), rName(id), 'ruse:' + id, toggle ? (S.rcos.hide[id] ? 'off' : 'on') : S.rcos.on[k] === rSplit(id)[1] ? 'on' : 'no']), toggle ? 'Tap to show or hide.' : '') + '<div class="grid2">' + ids.filter((id) => !rOwn(id)).map((id) => {
+      const it = rItem(id), btnH = it && it.src.coins ? btn('Buy', fmt(it.src.coins) + ' coins', 'rbuy:' + id, S.coins >= it.src.coins) : it && it.src.cranes ? btn('Buy', it.src.cranes + ' cranes', 'rbuy:' + id, S.cranes >= it.src.cranes) : '';
+      return '<div class="tile"><div style="display:flex;justify-content:center;min-height:44px;align-items:center">' + rPic(id, 44) + '</div><b>' + rName(id) + '</b><span>' + rHow(id) + '</span>' + btnH + '</div>';
     }).join('') + '</div>';
   });
   h += '<p class="note">Buyer gifts so far: ' + Object.keys(RBUYERS).map((b) => BUYER_SHORT[b] + ' ' + fmt(S.rcos.sold[b] || 0) + ' bags').join(' · ') + '. Perfect cracks: ' + fmt(S.rcos.cracks || 0) + '.</p>';
@@ -3068,10 +3074,12 @@ function bestLot() {   /* the coffee and process whose lot pays most right now, 
 const wanted = (v) => (buyersOn() ? S.contracts.filter((c) => c.v === v && c.have < c.kg) : []);
 function row(art, title, sub, button) { return '<div class="row"><div class="art">' + art + '</div><div class="grow"><b>' + title + '</b><span>' + sub + '</span></div>' + button + '</div>'; }
 function btn(label, sub, act, enabled, cls) { return '<button class="btn ' + (cls || '') + '" type="button" data-act="' + act + '"' + (enabled ? '' : ' disabled') + '>' + label + (sub ? '<small>' + sub + '</small>' : '') + '</button>'; }
-function doneStrip(items, note) {   /* finished upgrades, owned unlocks and fully trained staff: one line of small chips after the things still to do */
+function doneStrip(items, note, head, cls) {   /* finished upgrades, owned unlocks, fully trained staff and Shop things you own: one line of small chips after the things still to do */
   if (!items.length) return '';
-  return '<div class="done"><b>✓ Done</b>' + items.map(([ic, label, act]) => (act ? '<button type="button" class="dchip" data-act="' + act + '">' : '<span class="dchip">') + (ic ? '<img src="' + url(ic) + '" alt="">' : '') + label + (act ? '</button>' : '</span>')).join('') + (note ? '<small>' + note + '</small>' : '') + '</div>';
+  return '<div class="done' + (cls ? ' ' + cls : '') + '"><b>' + (head || '✓ Done') + '</b>' + items.map(([ic, label, act, st]) => (act ? '<button type="button" class="dchip' + (st === 'off' ? ' off' : '') + '" data-act="' + act + '"' + (st ? ' aria-pressed="' + (st === 'on') + '"' : '') + '>' : '<span class="dchip">') + (ic ? (ic[0] === '<' ? ic : '<img src="' + url(ic) + '" alt="">') : '') + label + (act ? '</button>' : '</span>')).join('') + (note ? '<small>' + note + '</small>' : '') + '</div>';
 }
+const ownStrip = (items, note) => doneStrip(items, note, '✓ Owned', 'own');   /* Shop things you have, above the things to buy: tap a chip to use it, or to show or hide it */
+const chipImg = (src) => '<img src="' + src + '" alt="">';
 const img = (n, w) => '<img src="' + url(n) + '" alt="" style="width:' + (w || 40) + 'px">';
 
 /* help text: in full until you tap Got it (or always, with Show help text on in Settings); afterwards one line and an i button to read it again */
@@ -3444,62 +3452,58 @@ function renderPanel() {
   } else if (tab === 'shop' && S.shopTab === 'chars') {
     h += shopTabs();
     h += '<h2>Farmer</h2><p class="note">' + icon('i_crane') + ' ' + S.cranes + ' cranes. Farm as someone else. Your outfit, crest and background go on top, and other players see your character on the leaderboard.</p>';
-    h += '<div class="grid2">' + ['none'].concat(CHAR_IDS).map((id) => {
-      const c = ART.chars[id], own = id === 'none' || S.chars[id], on = S.look.char === id;
-      return '<div class="tile" aria-pressed="' + on + '">' + avatar({ crest: S.look.crest, skin: S.look.skin, bg: S.look.bg, char: id }, 56) + '<b>' + (c ? c.name : 'Farmer') + '</b><span>' + (c ? 'From ' + c.from : 'The farmer you started with') + '</span>' +
-        (own ? btn(on ? 'Playing' : 'Play as', '', 'char:' + id, !on, 'blue') : btn('Buy', c.cost + ' cranes', 'buychar:' + id, S.cranes >= c.cost)) + '</div>';
+    const cOwn = (id) => id === 'none' || S.chars[id], cAll = ['none'].concat(CHAR_IDS);
+    h += ownStrip(cAll.filter(cOwn).map((id) => [chipImg(url(bodyOf(normLook({ crest: S.look.crest, skin: S.look.skin, bg: S.look.bg, char: id })) + 'down_0', skinLook(S.look.skin))), ART.chars[id] ? ART.chars[id].name : 'Farmer', 'char:' + id, S.look.char === id ? 'on' : 'no']), 'Tap a farmer to play as them.') + '<div class="grid2">' + cAll.filter((id) => !cOwn(id)).map((id) => { const c = ART.chars[id];
+      return '<div class="tile">' + avatar({ crest: S.look.crest, skin: S.look.skin, bg: S.look.bg, char: id }, 56) + '<b>' + c.name + '</b><span>From ' + c.from + '</span>' + btn('Buy', c.cost + ' cranes', 'buychar:' + id, S.cranes >= c.cost) + '</div>';
     }).join('') + '</div>';
-    h += '<h3>Picker hats</h3><p class="note">Hats for your pickers, bought with cranes.</p><div class="grid2">' + Object.keys(ART.hats).filter((k) => !k.startsWith('s_') || S.hats[k]).map((k) => {
-      const owned = S.hats[k], cost = { straw: 0, beju: 15, sakura: 20, indigo: 15, harvest: 20 }[k];
-      return '<div class="tile" aria-pressed="' + (S.hat === k) + '"><div style="display:flex;align-items:center;gap:6px"><img src="' + url('worker_down_0', { hat: ART.hats[k] }) + '" alt="" style="width:32px;image-rendering:pixelated"><b>' + (({ straw: 'Straw', beju: 'Beju green', sakura: 'Sakura', indigo: 'Indigo', harvest: 'Harvest orange' })[k] || themeById(k).name + ' (season)') + '</b></div>' +
-        (owned ? btn(S.hat === k ? 'Wearing' : 'Wear', '', 'hat:' + k, S.hat !== k, 'blue') : btn('Buy', cost + ' cranes', 'buyhat:' + k, S.cranes >= cost)) + '</div>';
+    const hatKeys = Object.keys(ART.hats).filter((k) => !k.startsWith('s_') || S.hats[k]), hatName = (k) => ({ straw: 'Straw', beju: 'Beju green', sakura: 'Sakura', indigo: 'Indigo', harvest: 'Harvest orange' })[k] || themeById(k).name + ' (season)', hatPic = (k) => url('worker_down_0', { hat: ART.hats[k] });
+    h += '<h3>Picker hats</h3><p class="note">Hats for your pickers, bought with cranes.</p>' + ownStrip(hatKeys.filter((k) => S.hats[k]).map((k) => [chipImg(hatPic(k)), hatName(k), 'hat:' + k, S.hat === k ? 'on' : 'no']), 'Tap a hat for your pickers to wear it.') + '<div class="grid2">' + hatKeys.filter((k) => !S.hats[k]).map((k) => {
+      const cost = { straw: 0, beju: 15, sakura: 20, indigo: 15, harvest: 20 }[k];
+      return '<div class="tile"><div style="display:flex;align-items:center;gap:6px"><img src="' + hatPic(k) + '" alt="" style="width:32px;image-rendering:pixelated"><b>' + hatName(k) + '</b></div>' + btn('Buy', cost + ' cranes', 'buyhat:' + k, S.cranes >= cost) + '</div>';
     }).join('') + '</div>';
     const arch = archiveKeys();
     h += '<h3>Season archive</h3><p class="note">A year after each season ends, its decoration, background, hat, building style and charm come back here for cranes. Season titles and badges never come back.</p>';
     if (!arch.length) h += '<p class="note">The first season items arrive here in ' + new Date(Date.UTC(+SEASON_FIRST.slice(0, 4) + 1, +SEASON_FIRST.slice(5), 1)).toLocaleString('en', { month: 'long', year: 'numeric', timeZone: 'UTC' }) + '.</p>';
-    arch.forEach((k) => { const id = theme(k).id; h += '<p class="note"><b>' + theme(k).name + '</b></p><div class="grid2">' + Object.keys(ARCHIVE).map((kind) => {
-      const pic = kind === 'hat' ? url('worker_down_0', { hat: ART.hats['s_' + id] }) : kind === 'spiece' ? url('showpiece_tree', { swap: { '#3E8A4A': themeById(id).main, '#E8B830': themeById(id).accent } }) : url({ deco: 'deco_s_', bg: 'sbg_', bskin: 'build_housing_s_', charm: 'charm_' }[kind] + id), own = archOwned(kind, id);
-      return '<div class="tile"><img src="' + pic + '" alt="" style="width:40px;height:40px;object-fit:contain;image-rendering:pixelated"><b>' + ARCHIVE_WHAT[kind] + '</b>' + (own ? '<span>Owned</span>' : btn('Buy', ARCHIVE[kind] + ' cranes', 'arch:' + kind + '.' + id, S.cranes >= ARCHIVE[kind])) + '</div>';
-    }).join('') + '</div>'; });
+    arch.forEach((k) => { const id = theme(k).id, kinds = Object.keys(ARCHIVE), pic = (kind) => kind === 'hat' ? url('worker_down_0', { hat: ART.hats['s_' + id] }) : kind === 'spiece' ? url('showpiece_tree', { swap: { '#3E8A4A': themeById(id).main, '#E8B830': themeById(id).accent } }) : url({ deco: 'deco_s_', bg: 'sbg_', bskin: 'build_housing_s_', charm: 'charm_' }[kind] + id);
+      h += '<p class="note"><b>' + theme(k).name + '</b></p>' + ownStrip(kinds.filter((kind) => archOwned(kind, id)).map((kind) => [chipImg(pic(kind)), ARCHIVE_WHAT[kind]])) + '<div class="grid2">' + kinds.filter((kind) => !archOwned(kind, id)).map((kind) => '<div class="tile"><img src="' + pic(kind) + '" alt="" style="width:40px;height:40px;object-fit:contain;image-rendering:pixelated"><b>' + ARCHIVE_WHAT[kind] + '</b>' + btn('Buy', ARCHIVE[kind] + ' cranes', 'arch:' + kind + '.' + id, S.cranes >= ARCHIVE[kind]) + '</div>').join('') + '</div>'; });
   } else if (tab === 'shop' && S.shopTab === 'roast' && roasteryOpen()) {
     h += shopTabs() + roastShopPanel();
   } else if (tab === 'shop' && S.shopTab === 'bskin') {
     h += shopTabs();
     const f = S.farms[S.loc], here = ART.locations[S.loc].name.split(',')[0], cur = ART.bskins[f.skin] ? f.skin : 'classic';
     h += '<h2>Farm style</h2><h3>Building styles</h3><p class="note">' + icon('i_crane') + ' ' + S.cranes + ' cranes. Buy a style once and use it on any farm. Showing ' + here + '; switch farms with the arrows above to style another.</p>';
-    h += '<div class="grid2">' + ['classic'].concat(BSKIN_IDS.filter((id) => !ART.bskins[id].season || S.bskins[id])).map((id) => {
-      const s = ART.bskins[id], own = id === 'classic' || S.bskins[id], on = cur === id, sfx = id === 'classic' ? '' : '_' + id;
-      return '<div class="tile" aria-pressed="' + on + '"><div style="display:flex;justify-content:center;gap:2px">' + ['housing', 'wetmill', 'sorter'].map((k) => '<img src="' + url('build_' + k + sfx) + '" alt="" style="width:40px;image-rendering:pixelated">').join('') + '</div><b>' + (s ? s.name : 'Classic') + '</b><span>' + (s ? s.note : 'The original farm buildings') + '</span>' +
-        (own ? btn(on ? 'On ' + here : 'Use at ' + here, '', 'bskin:' + id, !on, 'blue') + (id !== 'classic' ? '<button type="button" class="btn" data-act="bskinall:' + id + '">Use on every farm</button>' : '') : btn('Buy', s.cost + ' cranes', 'buybskin:' + id, S.cranes >= s.cost)) + '</div>';
+    const bsAll = ['classic'].concat(BSKIN_IDS.filter((id) => !ART.bskins[id].season || S.bskins[id])), bsOwn = (id) => id === 'classic' || S.bskins[id], bsSfx = (id) => (id === 'classic' ? '' : '_' + id);
+    h += ownStrip(bsAll.filter(bsOwn).map((id) => ['build_housing' + bsSfx(id), ART.bskins[id] ? ART.bskins[id].name : 'Classic', 'bskin:' + id, cur === id ? 'on' : 'no']), 'Tap a style to use it at ' + here + '.');
+    if (cur !== 'classic' && S.bskins[cur] && LOCS.some((l) => S.farms[l].unlocked && S.farms[l].skin !== cur)) h += '<p><button type="button" class="btn" data-act="bskinall:' + cur + '">Use ' + ART.bskins[cur].name + ' on every farm</button></p>';
+    h += '<div class="grid2">' + bsAll.filter((id) => !bsOwn(id)).map((id) => { const s = ART.bskins[id];
+      return '<div class="tile"><div style="display:flex;justify-content:center;gap:2px">' + ['housing', 'wetmill', 'sorter'].map((k) => '<img src="' + url('build_' + k + bsSfx(id)) + '" alt="" style="width:40px;image-rendering:pixelated">').join('') + '</div><b>' + s.name + '</b><span>' + s.note + '</span>' + btn('Buy', s.cost + ' cranes', 'buybskin:' + id, S.cranes >= s.cost) + '</div>';
     }).join('') + '</div>';
-    h += '<h3>Decor</h3><p class="note">' + icon('i_coin') + ' ' + fmt(S.coins) + ' coins. Buy once and it shows on every farm. Tap again to hide or show it.</p>';
-    Object.keys(DECOR).forEach((k) => {
-      const d = DECOR[k], own = S.decor[k] !== undefined;
-      h += row(img('deco_' + k, k === 'bunting' || k === 'cart' ? 40 : 30), d.name, d.sub, own ? btn(S.decor[k] ? 'Shown' : 'Hidden', 'tap to switch', 'decor:' + k, true, S.decor[k] ? 'blue' : '') : btn('Buy', fmt(d.cost) + ' coins', 'decor:' + k, S.coins >= d.cost));
+    h += '<h3>Decor</h3><p class="note">' + icon('i_coin') + ' ' + fmt(S.coins) + ' coins. Buy once and it shows on every farm.</p>';
+    const dChip = (k, name, ic) => [ic || 'deco_' + k, name, 'decor:' + k, S.decor[k] ? 'on' : 'off'];   /* owned decor: green when it shows, faded when hidden */
+    const dOwn = Object.keys(DECOR).filter((k) => S.decor[k] !== undefined).map((k) => dChip(k, DECOR[k].name));
+    if (S.decor.harvest !== undefined) dOwn.push(dChip('harvest', 'Harvest basket'));
+    Object.keys(S.decor).filter((k) => k.startsWith('s_')).forEach((k) => dOwn.push(dChip(k, themeById(k).name)));
+    if (S.decor.shelf !== undefined) dOwn.push(dChip('shelf', 'Trophy shelf'));
+    if (S.decor.sacks !== undefined) dOwn.push(dChip('sacks', 'Origin sacks', 'osack'));
+    if (S.decor.gift !== undefined) dOwn.push(dChip('gift', 'Furoshiki gift'));
+    h += ownStrip(dOwn, 'Tap to show or hide.' + (Object.keys(S.decor).some((k) => k.startsWith('s_')) ? ' Up to three season decorations show at once.' : '') + (S.decor.shelf !== undefined ? ' Pin a trophy in Looks to put it first on the shelf.' : ''));
+    Object.keys(DECOR).filter((k) => S.decor[k] === undefined).forEach((k) => { const d = DECOR[k];
+      h += row(img('deco_' + k, k === 'bunting' || k === 'cart' ? 40 : 30), d.name, d.sub, btn('Buy', fmt(d.cost) + ' coins', 'decor:' + k, S.coins >= d.cost));
     });
-    if (S.decor.harvest !== undefined) h += row(img('deco_harvest', 28), 'Harvest basket', 'From Harvest Day' + (S.hvWins > 1 ? ' · ' + S.hvWins + ' goals reached' : '') + '.', btn(S.decor.harvest ? 'Shown' : 'Hidden', 'tap to switch', 'decor:harvest', true, S.decor.harvest ? 'blue' : ''));
-    Object.keys(S.decor).filter((k) => k.startsWith('s_')).forEach((k) => {
-      h += row(img('deco_' + k, 26), themeById(k).name + ' decoration', 'From the season track. Up to three season decorations show at once.', btn(S.decor[k] ? 'Shown' : 'Hidden', 'tap to switch', 'decor:' + k, true, S.decor[k] ? 'blue' : ''));
-    });
-    const tog = (k) => btn(S.decor[k] ? 'Shown' : 'Hidden', 'tap to switch', 'decor:' + k, true, S.decor[k] ? 'blue' : '');
-    if (S.decor.shelf !== undefined) h += row(img('deco_shelf', 34), 'Trophy shelf', 'Your best three trophies in front of the farmhouse. Pin one in Looks to put it first.', tog('shelf'));
-    if (S.decor.sacks !== undefined) h += row(img('osack', 24), 'Origin sacks', 'A sack for each origin stamp in your passport, so visitors see which coffees you drink.', tog('sacks'));
-    if (S.decor.gift !== undefined) h += row(img('deco_gift', 26), 'Furoshiki gift', 'Opened from ' + (S.giftFrom || 'a friend') + '\'s gift.', tog('gift'));
     const cw = Object.keys(MKT_KINDS).filter((k) => MKT.some((m) => m.kind === k && S.mkt[m.id]));
     if (cw.length) {
       h += '<h3>Colours</h3><p class="note">Colourways from the market stall. Tap one to use it on every farm.</p>';
       cw.forEach((k) => { h += '<p class="note"><b>' + kindName(k) + '</b></p><div class="looks">' + [''].concat(MKT.filter((m) => m.kind === k && S.mkt[m.id]).map((m) => m.id)).map((id) => '<button type="button" class="look" data-act="dv:' + k + '.' + id + '" aria-pressed="' + ((S.dv[k] || '') === id) + '"><img src="' + url('deco_' + k, id ? dvOpt(k, { [k]: id }) : undefined) + '" alt="" style="height:26px;image-rendering:pixelated"><small>' + (id ? MKT.find((m) => m.id === id).name : 'Original') + '</small></button>').join('') + '</div>'; });
     }
     const mo = new Date(Date.now() + 9 * 3600e3).toLocaleString('en', { month: 'long', timeZone: 'UTC' });
-    h += '<h3>Market stall · ' + mo + '</h3><p class="note">' + icon('i_crane') + ' ' + S.cranes + ' cranes. Three colourways a month for decorations you have. Each one comes back in ' + mo + ' next year.</p><div class="grid2">' + mktNow().map((m) => {
-      const own = !!S.mkt[m.id], on = S.dv[m.kind] === m.id;
-      return '<div class="tile" aria-pressed="' + on + '"><div style="display:flex;justify-content:center;min-height:40px;align-items:center"><img src="' + url('deco_' + m.kind, dvOpt(m.kind, { [m.kind]: m.id })) + '" alt="" style="max-width:48px;height:32px;object-fit:contain;image-rendering:pixelated"></div><b>' + m.name + '</b>' +
-        (own ? btn(on ? 'In use' : 'Use', '', 'dv:' + m.kind + '.' + m.id, !on, 'blue') : kindOwned(m.kind) ? btn('Buy', m.cost + ' cranes', 'mktbuy:' + m.id, S.cranes >= m.cost) : '<span>Needs the ' + kindName(m.kind).toLowerCase() + '</span>') + '</div>';
+    const mPic = (m) => url('deco_' + m.kind, dvOpt(m.kind, { [m.kind]: m.id }));
+    h += '<h3>Market stall · ' + mo + '</h3><p class="note">' + icon('i_crane') + ' ' + S.cranes + ' cranes. Three colourways a month for decorations you have. Each one comes back in ' + mo + ' next year.</p>' + ownStrip(mktNow().filter((m) => S.mkt[m.id]).map((m) => [chipImg(mPic(m)), m.name, 'dv:' + m.kind + '.' + m.id, S.dv[m.kind] === m.id ? 'on' : 'no']), 'Tap one to use it. Switch back under Colours.') + '<div class="grid2">' + mktNow().filter((m) => !S.mkt[m.id]).map((m) => {
+      return '<div class="tile"><div style="display:flex;justify-content:center;min-height:40px;align-items:center"><img src="' + mPic(m) + '" alt="" style="max-width:48px;height:32px;object-fit:contain;image-rendering:pixelated"></div><b>' + m.name + '</b>' +
+        (kindOwned(m.kind) ? btn('Buy', m.cost + ' cranes', 'mktbuy:' + m.id, S.cranes >= m.cost) : '<span>Needs the ' + kindName(m.kind).toLowerCase() + '</span>') + '</div>';
     }).join('') + '</div>';
-    h += '<h3>Farm effects</h3><p class="note">' + icon('i_crane') + ' ' + S.cranes + ' cranes. Little animations on every farm, and visitors see them too. Up to ' + FX_MAX + ' at once.</p><div class="grid2">' + Object.keys(FX).map((k) => {
-      const e = FX[k], own = S.fx[k] !== undefined;
-      return '<div class="tile" aria-pressed="' + !!S.fx[k] + '"><img src="' + url('fx_' + k) + '" alt="" style="width:40px;image-rendering:pixelated"><b>' + e.name + '</b><span>' + e.text + '</span>' +
-        (own ? btn(S.fx[k] ? 'Shown' : 'Hidden', 'tap to switch', 'fx:' + k, true, S.fx[k] ? 'blue' : '') : e.subscriber ? '<span>For Beju coffee subscribers</span>' : btn('Buy', e.cost + ' cranes', 'fxbuy:' + k, S.cranes >= e.cost)) + '</div>';
+    h += '<h3>Farm effects</h3><p class="note">' + icon('i_crane') + ' ' + S.cranes + ' cranes. Little animations on every farm, and visitors see them too. Up to ' + FX_MAX + ' at once.</p>' + ownStrip(Object.keys(FX).filter((k) => S.fx[k] !== undefined).map((k) => ['fx_' + k, FX[k].name, 'fx:' + k, S.fx[k] ? 'on' : 'off']), 'Tap to show or hide.') + '<div class="grid2">' + Object.keys(FX).filter((k) => S.fx[k] === undefined).map((k) => { const e = FX[k];
+      return '<div class="tile"><img src="' + url('fx_' + k) + '" alt="" style="width:40px;image-rendering:pixelated"><b>' + e.name + '</b><span>' + e.text + '</span>' +
+        (e.subscriber ? '<span>For Beju coffee subscribers</span>' : btn('Buy', e.cost + ' cranes', 'fxbuy:' + k, S.cranes >= e.cost)) + '</div>';
     }).join('') + '</div>';
   } else if (tab === 'shop') {
     h += shopTabs();

@@ -606,6 +606,11 @@ Every staff member trains with know-how from the day they're hired, instead of w
   - fully trained staff;
   - owned coffees and processes, and learned techniques;
   - open farms, whose chips still take you there.
+- **Shop things you own fold into chips too** (`ownStrip()`). On every Shop page, what you already have sits in one "✓ Owned" line under each section's heading, and only the things still to buy keep full cards. Tapping a chip does what its old button did:
+  - Farmer: play as a character, or put a hat on your pickers (the one in use is solid green with a ✓); season archive items you own are plain chips;
+  - Farm style: use a building style at this farm, with "Use … on every farm" under the chips when another open farm has a different style; show or hide decor and farm effects (hidden ones are faded with a dashed edge); use a market-stall colourway;
+  - Roastery: use a roaster finish, interior, noren, bag label or apron, or show or hide props and trims.
+  Colours (market colourways you own) were already small buttons and are unchanged, and so are Boosts and Real coffee.
 - **One row per staff member.** Farm › Staff shows Hire until someone is hired, then their training level and Train button in the same row. The separate Training section is gone. Every sheet has the same header: the tab's icon, its name and the ▾. Pages no longer repeat the tab's name as their first heading. The gear opens Settings the same way. On short phones the sheet starts a little higher so at least 320 px of it shows.
 - **What stays the same.** Tab styling, dots, locks and every page's content are unchanged; the page only builds while its sheet is open (the checks it runs keep going). The golden-bush button puts the sheet away so the bush is in view.
 - **Guide and arrows.** With the sheet put away, the guide bar floats over the bottom of the map, and the toast and sound buttons sit above it. With a sheet open, the guide bar moves into the sheet under its header, so the map above stays clear. A walk to a button further down a sheet scrolls the sheet to it. A map spot under the open sheet points at its tab first; tapping that tab puts the sheet away and the arrow moves to the spot.
