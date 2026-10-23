@@ -579,3 +579,4 @@ Every staff member trains with know-how from the day they're hired, instead of w
 
   You can hire one picker straight away; the rest come from selling lots. The bot hires its second picker at 2.7 minutes (was 12 seconds) and reaches its first prestige at 52 minutes.
 - **The cupping notebook** stays quiet until the Unlock tab, where it lives, has opened. Stars still count, and Rosa's notebook card comes with the next new star after that.
+- **Level bar on the farm.** The bar towards the next level now sits inside the level pill at the top left of the farm (`#hudLevel`), under "Lv 5 · 5,300". It shows "P1 · " once you've prestiged and fills gold when a prestige is ready. It's gone from Farm › Fields.

@@ -38,6 +38,11 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-
 .hud-r { position: absolute; right: 6px; top: 6px; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; pointer-events: none; }
 .hearts { display: flex; gap: 1px; flex-wrap: wrap; max-width: 150px; }
 .pill { display: flex; align-items: center; gap: 5px; padding: 2px 8px 2px 4px; border-radius: 10px; background: rgba(62,42,28,0.8); color: #FFF4DE; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+#hudLevel { flex-direction: column; align-items: stretch; gap: 2px; padding-bottom: 4px; }   /* level, know-how and the bar to the next level, in one pill */
+#hudLevel .lvrow { display: flex; align-items: center; gap: 5px; }
+#hudLevel .lvbar { height: 4px; margin-left: 3px; border-radius: 2px; background: rgba(255,244,222,0.22); overflow: hidden; }
+#hudLevel .lvbar i { display: block; height: 100%; border-radius: 2px; background: #A8D068; transition: width 0.4s; }
+#hudLevel .lvbar.ready i { background: #F2C04A; }
 .pill img, .ic { width: 16px; height: 16px; image-rendering: pixelated; vertical-align: -3px; }
 .clock { display: flex; align-items: center; gap: 5px; }
 .clockbox { background: var(--paper); border: 3px solid var(--edge); border-radius: 8px; overflow: hidden; text-align: center; box-shadow: 0 2px 0 var(--ink); }
@@ -343,9 +348,6 @@ canvas.hint { transform: none !important; }
 .seg { display: flex; gap: 4px; flex-wrap: wrap; }
 .seg button { min-height: 36px; padding: 0 10px; border: 2px solid var(--edge); border-radius: 6px; background: var(--paper-2); font-size: 13px; font-weight: 700; cursor: pointer; color: var(--ink); }
 .seg button[aria-pressed="true"] { background: var(--gold); }
-.level { display: flex; align-items: center; gap: 8px; }
-.level b { font-size: 15px; white-space: nowrap; }
-.level .bar { flex: 1; }
 @media (prefers-reduced-motion: reduce) { .btn:active:not(:disabled) { transform: none; } }
 </style>
 
@@ -2959,9 +2961,7 @@ function renderPanel() {
   const fsub = S.tabs.upgrades && ['upgrades', 'build', 'staff'].includes(S.farmSub) ? S.farmSub : 'fields';
   if (tab === 'farm') h += farmSubtabs(fsub, f);
   if (tab === 'farm' && fsub === 'fields') {
-    const [frac, lvl] = levelSpan();
     h += practiceCard();
-    h += '<div class="level"><b>Level ' + lvl + '</b><div class="bar"><i style="width:' + Math.round(frac * 100) + '%"></i></div>' + (S.prestige || S.tabs.ranks ? '<span class="note">Prestige ' + S.prestige + '</span>' : '') + '</div>';
     if (S.farms[S.loc].unlocked && S.tabs.upgrades) {   /* this farm's own level and its next milestone, once there are buildings to raise it */
       const fl = farmLevel(S.farms[S.loc]), next = FARM_MILESTONES.find((m) => fl < m.lv), prev = [...FARM_MILESTONES].reverse().find((m) => fl >= m.lv), nm = L.name.split(',')[0];
       h += '<div class="farmlv"><div><b>' + nm + ' farm level ' + fl + '</b><span class="note">' + (next ? 'Next at ' + next.lv + ': ' + next.label(S.loc) : 'Every milestone reached. Keep building for the farm\'s output.') + '</span></div><div class="bar"><i style="width:' + Math.round(next ? (fl - (prev ? prev.lv : 0)) / (next.lv - (prev ? prev.lv : 0)) * 100 : 100) + '%"></i></div>' + help('farmlv', 'Buildings raise it.', 'Farm levels come from this farm\'s buildings, manager, fourth field and mastery.') + '</div>';
@@ -3567,7 +3567,9 @@ function refreshHud() {
   const hshow = Math.min(mh, 10);   /* ten hearts drawn, the rest as a number */
   $('hearts').innerHTML = Array.from({ length: hshow }, (_, i) => '<svg width="14" height="12" viewBox="0 0 7 6" shape-rendering="crispEdges" aria-hidden="true" style="filter:drop-shadow(1px 1px 0 #3E2A1C)"><g fill="' + (i < Math.ceil(S.hearts / mh * hshow) ? '#F07A3A' : '#5A3A2C') + '"><rect x="1" y="0" width="2" height="1"/><rect x="4" y="0" width="2" height="1"/><rect x="0" y="1" width="7" height="2"/><rect x="1" y="3" width="5" height="1"/><rect x="2" y="4" width="3" height="1"/><rect x="3" y="5" width="1" height="1"/></g></svg>').join('') + '<b class="hn">' + S.hearts + '</b>';
   $('hearts').setAttribute('aria-label', S.hearts + ' of ' + mh + ' hearts');
-  $('hudLevel').innerHTML = icon('i_points') + 'Lv ' + level() + ' · ' + fmt(S.points);
+  { const [frac, lv] = levelSpan(), pct = Math.round(Math.max(0, Math.min(1, frac)) * 100), ready = lv >= prestigeNeed() && (S.prestige > 0 || S.tabs.ranks), hl = $('hudLevel');   /* the bar turns gold when a prestige is ready */
+    hl.innerHTML = '<span class="lvrow">' + icon('i_points') + (S.prestige ? 'P' + S.prestige + ' · ' : '') + 'Lv ' + lv + ' · ' + fmt(S.points) + '</span><span class="lvbar' + (ready ? ' ready' : '') + '"><i style="width:' + pct + '%"></i></span>';
+    hl.setAttribute('aria-label', (S.prestige ? 'Prestige ' + S.prestige + ', ' : '') + 'level ' + lv + ', ' + pct + '% of the way to level ' + (lv + 1) + ', ' + fmt(S.points) + ' know-how' + (ready ? ', prestige ready' : '')); }
   $('hudCoins').innerHTML = icon('i_coin') + fmt(S.coins);
   $('hudCranes').innerHTML = icon('i_crane') + S.cranes;
   const full = stored() >= cap();
