@@ -89,7 +89,7 @@ b .n, h2 .n, h3 .n, .row .grow b .n, .tile b .n { color: inherit; font-size: 1.1
 .stickers { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
 .stickers .btn { padding: 4px 2px; font-size: 11px; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
 .stickers .btn img { width: 22px; height: 22px; image-rendering: pixelated; object-fit: contain; }
-.feed { display: flex; flex-direction: column; gap: 4px; font-size: 13px; } .feed span { display: flex; align-items: center; gap: 6px; } .feed img { width: 18px; height: 18px; image-rendering: pixelated; object-fit: contain; }
+.feed { display: flex; flex-direction: column; gap: 4px; font-size: 13px; } .feed > span { display: flex; align-items: center; gap: 6px; } .feed img { width: 18px; height: 18px; image-rendering: pixelated; object-fit: contain; }
 .tiers { display: flex; flex-wrap: wrap; gap: 6px; } .tiers .chip.got { opacity: 0.6; }
 .done { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 8px 0 2px; border-top: 2px dashed var(--paper-2); }
 .done > b { font-size: 12px; color: var(--leaf-ink); margin-right: 2px; }
@@ -110,10 +110,13 @@ button.dchip { cursor: pointer; }
 .coe-pick { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; } .coe-pick .btn { min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; } .coe-pick img { width: 30px; height: 30px; image-rendering: pixelated; object-fit: contain; }
 .visit-btn { grid-column: 1 / -1; justify-self: end; margin-top: 2px; font: inherit; font-size: 11px; padding: 2px 10px; border-radius: 99px; border: 2px solid var(--edge); background: #FBF4E2; cursor: pointer; }
 .code { letter-spacing: 0.12em; }
+.lcode { margin: 0; padding: 6px 14px; border: 2px dashed #E8B830; border-radius: 8px; background: #FFF6D8; font: 700 26px var(--pixel); letter-spacing: 0.12em; user-select: all; -webkit-user-select: all; }
+.lcode.small { font: 700 12px var(--body); letter-spacing: 0; word-break: break-all; }
+.codein { width: 100%; font: 700 18px var(--pixel); padding: 8px; border: 2px solid var(--edge); border-radius: 8px; text-align: center; letter-spacing: 0.08em; background: #FFFDF6; color: var(--ink); }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0; }
 .chip { font-size: 11px; padding: 3px 8px; border-radius: 99px; background: #E6F0E4; color: #2D5A3C; border: 1px solid #B8D4B8; }
 .buyline { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 8px 10px; margin: 6px 0; border: 2px solid var(--paper-2); border-radius: 8px; background: #FBF4E2; cursor: pointer; font: inherit; color: inherit; }
-.buyline span { display: flex; flex-direction: column; } .buyline small { color: var(--muted); }
+.buyline > span { display: flex; flex-direction: column; } .buyline small { color: var(--muted); }
 .ccard.boat { border-color: #2E7FA8; background: #E8F4FA; }
 .stamps img.gold { outline: 3px solid #E8B830; outline-offset: 1px; border-radius: 50%; box-shadow: 0 0 8px #F2C04A; }
 .req { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; margin: 8px 0; border: 2px solid #A87818; border-radius: 8px; background: #FFF6D8; }
@@ -180,6 +183,7 @@ button.dchip { cursor: pointer; }
 .art img { image-rendering: pixelated; max-width: 44px; max-height: 44px; }
 .btn { min-width: 76px; min-height: 44px; padding: 4px 10px; border: 3px solid var(--edge); border-radius: 8px; background: var(--gold); color: var(--ink); font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: inset 0 -3px 0 rgba(0,0,0,0.18); display: inline-flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.15; }
 .btn small { font-size: 11px; font-weight: 600; }
+.btn > .bl { font: inherit; color: inherit; }
 .btn.green { background: #9CC860; } .btn.blue { background: #9CCCF0; }
 .btn:disabled { background: var(--off); color: #8A7458; cursor: default; }
 .btn:active:not(:disabled) { transform: translateY(2px); }
@@ -363,8 +367,9 @@ canvas.hint { transform: none !important; }
 .lb-row.you { background: #FFF1C4; border-color: #A87818; }
 .lb-row .rk { text-align: center; font-size: 15px; }
 .lb-n { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.lb-s { display: flex; flex-direction: column; align-items: flex-end; font-size: 11px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
-.lb-s b { font-size: 14px; color: var(--ink); }
+.lb-s { font: 700 11px var(--body); color: var(--muted); font-variant-numeric: tabular-nums; line-height: 1.3; }
+.lb-s b { font-size: 13px; color: var(--ink); }
+.lb-row .visit-btn { grid-column: auto; margin: 0; }
 #nameIn { flex: 1; min-width: 0; min-height: 36px; border: 2px solid var(--edge); border-radius: 6px; padding: 0 8px; font: 600 15px inherit; background: #FFFDF6; color: var(--ink); }
 .subtabs { position: sticky; top: -12px; z-index: 2; margin: -12px -12px 0; padding: 8px 12px 6px; background: var(--paper); box-shadow: 0 2px 0 var(--paper-2); }
 .seg.subtabs button { flex: 1 1 0; position: relative; padding: 0 2px; min-width: 0; font-size: 12px; line-height: 1.1; white-space: normal; letter-spacing: -0.01em; }
@@ -1313,7 +1318,7 @@ function roasteryPanel() {
   if (R.bags.length > 1) h += '<div class="rackbar">' + btn('Sell all', 'each to the buyer who wants it', 'sellbags', true, 'green') + '</div>';
   h += R.bags.length ? '<div class="racks">' + R.bags.map((b, i) => { const best = bestBuyer(b);
     return '<div class="rack dry"><div class="rk-top">' + '<img src="' + bagUrl(b.blend ? 'medium' : b.profile, bagLabelOf(b)) + '" alt="" style="width:20px;image-rendering:pixelated"><span><b>' + (b.blend || ART.varieties[b.key.split('.')[0]]) + '</b><small>' + (b.blend ? 'house blend' : ROASTS[b.profile].name.toLowerCase() + ' · ' + METHODS[b.key.split('.')[1]].name.split(' ')[0].toLowerCase()) + ' · ' + fmtKg(b.kg) + ' kg</small></span></div><small>Quality ' + b.q + '</small>' + (b.seasonal ? '<span class="fit">★ ' + b.seasonal + (b.skey === S.season.key ? ' +20%' : '') + '</span>' : '') +
-      '<div class="rk-act">' + buyerKeys().map((k) => '<button type="button" class="btn' + (k === best ? ' green' : '') + '" data-act="sellbag:' + i + '.' + k + '">' + BUYER_SHORT[k].replace(/^./, (c) => c.toUpperCase()) + (k === best ? ' ★ ' : ' ') + fmtShort(bagPrice(b, k)) + '</button>').join('') +
+      '<div class="rk-act">' + buyerKeys().map((k) => '<button type="button" class="btn' + (k === best ? ' green' : '') + '" data-act="sellbag:' + i + '.' + k + '"><span class="bl">' + BUYER_SHORT[k].replace(/^./, (c) => c.toUpperCase()) + (k === best ? ' ★ ' : ' ') + fmtShort(bagPrice(b, k)) + '</span></button>').join('') +
       (lv >= 10 && !b.blend && R.bags.filter((x) => !x.blend).length > 1 ? '<button type="button" class="btn blue" data-act="blendask:' + i + '">Blend</button>' : '') + '</div></div>'; }).join('') + '</div>' : '<p class="note">Finished roasts appear here. Cafés want light, kissaten dark, konbini medium (★ marks who pays most).</p>';
   if (lv >= 10) h += '<p class="note">House blend name: <select data-blendname="1" aria-label="Blend name">' + BLEND_NAMES.map((n, i) => '<option value="' + i + '"' + ((R.blendName || 0) === i ? ' selected' : '') + '>' + n + '</option>').join('') + '</select></p>';
   h += '<h3>Roasters ' + R.roasters.length + ' / ' + roasterCount() + ' · up to ' + roastCap() + ' kg a roast</h3><div class="roasters">';
@@ -2449,11 +2454,15 @@ function buyUpgrade(key) {
   toast(u.name + ' upgraded');
   if (key === 'storage') showModal('<h2>' + STORE[S.lv.storage - 1].name + '!</h2><img src="' + url(storeSprite(S.lv.storage)) + '" alt="" style="width:160px;image-rendering:pixelated"><p class="note">Storage now holds ' + fmt(cap()) + ' kg, so your pickers keep working longer while you’re away.</p><button class="btn green" data-act="close">Great</button>');
 }
+/* how long a new lot of a process takes to dry, in drying units (seconds at the base rate; the foreman's training and test speed shorten real time) */
+const lotTime = (method) => METHODS[method].time * (method === 'washed' ? 1 - wetCut() : 1) * estDry(method) / (1 + techSum('dry') + (method === 'washed' || method === 'honey' ? techSum('wetdry') : 0));
+const durText = (sec) => { const x = Math.max(1, Math.ceil(sec)); return x < 60 ? x + ' s' : Math.floor(x / 60) + ' min' + (x % 60 ? ' ' + (x % 60) + ' s' : ''); };
+const dryText = (units) => durText(units / dryMult() / (S.speed || 1));   /* real time left */
 function startLot(v, method, quiet) {
   const busy = S.lots.length, kg = S.cherries[v] || 0;
   if (busy >= racks() || kg <= 0 || !S.methods[method]) return false;
   const tutorial = !quiet && S.guide < 4 && !S.stats.lotsSold;   /* the guide's first lot dries twice as fast */
-  const m = METHODS[method], time = m.time * (method === 'washed' ? 1 - wetCut() : 1) * estDry(method) * (tutorial ? 0.5 : 1) / (1 + techSum('dry') + (method === 'washed' || method === 'honey' ? techSum('wetdry') : 0));
+  const m = METHODS[method], time = lotTime(method) * (tutorial ? 0.5 : 1);
   const micro = rnd() < microChance(method);   /* Huila's marquesinas: now and then a micro-lot */
   S.cherries[v] = 0; S.millT = S.minutesTotal; S.mlots = S.mlots || {}; S.mlots[method] = (S.mlots[method] || 0) + 1;
   S.lots.push(Object.assign({ v, kg, method, left: time, total: time }, micro ? { micro: true } : {}, method === 'natural' && rakeCup() ? { raked: rakeCup() } : {}));
@@ -3073,7 +3082,7 @@ function bestLot() {   /* the coffee and process whose lot pays most right now, 
 }
 const wanted = (v) => (buyersOn() ? S.contracts.filter((c) => c.v === v && c.have < c.kg) : []);
 function row(art, title, sub, button) { return '<div class="row"><div class="art">' + art + '</div><div class="grow"><b>' + title + '</b><span>' + sub + '</span></div>' + button + '</div>'; }
-function btn(label, sub, act, enabled, cls) { return '<button class="btn ' + (cls || '') + '" type="button" data-act="' + act + '"' + (enabled ? '' : ' disabled') + '>' + label + (sub ? '<small>' + sub + '</small>' : '') + '</button>'; }
+function btn(label, sub, act, enabled, cls) { return '<button class="btn ' + (cls || '') + '" type="button" data-act="' + act + '"' + (enabled ? '' : ' disabled') + '><span class="bl">' + label + '</span>' + (sub ? '<small>' + sub + '</small>' : '') + '</button>'; }   /* the label in one span, so a number in it stays on its line */
 function doneStrip(items, note, head, cls) {   /* finished upgrades, owned unlocks, fully trained staff and Shop things you own: one line of small chips after the things still to do */
   if (!items.length) return '';
   return '<div class="done' + (cls ? ' ' + cls : '') + '"><b>' + (head || '✓ Done') + '</b>' + items.map(([ic, label, act, st]) => (act ? '<button type="button" class="dchip' + (st === 'off' ? ' off' : '') + '" data-act="' + act + '"' + (st ? ' aria-pressed="' + (st === 'on') + '"' : '') + '>' : '<span class="dchip">') + (ic ? (ic[0] === '<' ? ic : '<img src="' + url(ic) + '" alt="">') : '') + label + (act ? '</button>' : '</span>')).join('') + (note ? '<small>' + note + '</small>' : '') + '</div>';
@@ -3139,7 +3148,8 @@ function renderPanel() {
         else if (S.loc === 'mogiana') h += '<div><div style="display:flex;justify-content:space-between;align-items:baseline"><h3>Welcome harvest ' + fmt(f.harvested) + ' / 1,000 kg</h3><span class="note">' + (f.rewarded ? 'Sample earned' : 'Free 100 g') + '</span></div><div class="bar"><i style="width:' + Math.round(f.harvested / f.goal * 100) + '%"></i></div><p class="note">' + (f.rewarded ? 'Your free 100 g ' + L.reward + ' sample is in Shop, Real coffee.' : 'Bring in 1,000 kg for a free 100 g ' + L.reward + ' sample from Beju.') + '</p></div>';
         else if (lad) h += '<div><div style="display:flex;justify-content:space-between;align-items:baseline"><h3>' + L.name.split(',')[0] + ' sample</h3><span class="note">' + (got ? 'Earned' : 'Prestige ' + S.prestige + ' / ' + lad.prestige) + '</span></div><div class="bar"><i style="width:' + Math.min(100, Math.round(S.prestige / lad.prestige * 100)) + '%"></i></div><p class="note">' + (got ? 'Your free 100 g ' + L.reward + ' sample is in Shop, Real coffee.' : 'Reach prestige ' + lad.prestige + ' for a free 100 g ' + L.reward + ' sample from this origin.') + '</p></div>';
       } else h += '<p class="note">The Osaka roastery garden: rare varieties all year round, through four Japanese seasons.</p>';
-      h += row(img('worker_down_0', 22), 'Pickers here: ' + f.workers.length + '/' + maxPickers(f), 'They pick for you, even while you\'re away.', btn('Hire', fmt(hireCost()) + ' coins', 'hire', S.coins >= hireCost() && f.workers.length < maxPickers(f)));
+      const pFull = f.workers.length >= maxPickers(f), roomy = (f.build.housing || 0) < buildMax() && S.tabs.upgrades;   /* full: housing makes room */
+      h += row(img('worker_down_0', 22), 'Pickers here: ' + f.workers.length + '/' + maxPickers(f), pFull ? 'Every picker place is taken.' + (roomy ? ' Worker housing adds 2 places a level.' : '') : 'They pick for you, even while you\'re away.', pFull ? btn('Full', roomy ? 'build housing' : 'all places taken', roomy ? 'uptab:build' : 'noop', roomy, 'blue') : btn('Hire', fmt(hireCost()) + ' coins', 'hire', S.coins >= hireCost()));
       h += row(img(storeSprite(S.lv.storage), 44), STORE[S.lv.storage - 1].name + ': ' + fmt(stored()) + ' / ' + fmt(cap()) + ' kg', (stored() >= cap() ? 'Full! Pickers have stopped. Process or sell cherries.' : 'Cherries from every farm come here.') + (sackKg() >= 1 ? ' ' + fmt(sackKg()) + ' kg more wait in pickers\' sacks.' : ''), btn('Mill', 'process', 'tab:mill', true, 'blue'));
       h += '<h3>Fields</h3>' + (!ART.locations[f.loc].beds.some((v) => S.vars[v]) ? '' : terroir(f) > 1 ? '<span class="chip">Terroir on: +15% cherries here</span>' + help('terroir', 'A native field keeps it on.', 'A native field gives every pick on this farm +15% cherries. Natives also grow 20% faster at home.') : '<p class="rule"><b>Terroir off:</b> plant a native coffee (' + nativeNames(f.loc) + ') in any field and every pick on this farm brings in 15% more cherries.</p>');
       if (hasPerk('replantall')) h += btn('Replant all', 'every farm, natives kept', 'replantask', true, 'blue');
@@ -3167,7 +3177,7 @@ function renderPanel() {
       h += '<div class="racks">' + S.lots.map((l, i) => {
         const m = METHODS[l.method], done = l.left <= 0, fit = buyersOn() && S.contracts.find((c) => fits(c, l));
         return '<div class="rack' + (done ? ' dry' : '') + (l.cupped ? ' cup' : '') + '"><div class="rk-top">' + img(m.art, 24) + '<span><b>' + ART.varieties[l.v] + '</b><small>' + fmt(l.kg) + ' kg · ' + m.name.split(' ')[0].toLowerCase() + '</small></span></div>' +
-          (done ? '<span class="rk-dry">Dry</span>' : '<span class="bar"><i style="width:' + Math.round((1 - l.left / l.total) * 100) + '%"></i></span><small>' + Math.ceil(l.left / 2.5) + ' min</small>') +
+          (done ? '<span class="rk-dry">Dry</span>' : '<span class="bar"><i style="width:' + Math.round((1 - l.left / l.total) * 100) + '%"></i></span><small>' + dryText(l.left) + '</small>') +
           (reqLot(l) ? '<span class="fit">for ' + S.request.who.split(' at ')[0] + '</span>' : fit ? '<span class="fit">for ' + fit.buyer.split(',')[0] + '</span>' : '') + (l.micro ? '<span class="fit gold">★ micro-lot ×2</span>' : '') + (l.aged ? '<span class="fit">aged +' + l.aged + ' cup</span>' : '') +
           '<div class="rk-act">' + (l.cupped ? '<span class="rk-cupped" title="Hand-cupped">★ cupped</span>' : '<button type="button" class="btn gold" data-act="cup:' + i + '">Cup</button>') +
           (done ? (fit ? '<button type="button" class="btn blue" data-act="deliver:' + i + '.' + fit.id + '">Deliver</button>' : '<button type="button" class="btn green" data-act="sell:' + i + '">Sell</button>') : '') + (done && roasteryOpen() && !reqLot(l) ? '<button type="button" class="btn" data-act="toroast:' + i + '">Roast</button>' : '') + '</div></div>';
@@ -3175,7 +3185,7 @@ function renderPanel() {
       if (S.lots.length) h += help('cup', 'Cup by hand: +' + Math.round((CUP_PAY - 1) * 100) + '% pay.', 'Cup adds +' + CUP_BONUS + ' cup score and +' + Math.round((CUP_PAY - 1) * 100) + '% pay. Lots tagged for a buyer deliver to that contract.');
     } else S.lots.forEach((l, i) => {
       const m = METHODS[l.method], done = l.left <= 0, fit = buyersOn() && S.contracts.find((c) => fits(c, l));
-      h += row(img(m.art, 36), fmt(l.kg) + ' kg ' + ART.varieties[l.v] + ', ' + m.name.toLowerCase() + (fit ? ' <span class="fit">for ' + fit.buyer.split(',')[0] + '</span>' : '') + (l.micro ? ' <span class="fit gold">★ micro-lot ×2</span>' : '') + (l.aged ? ' <span class="fit">aged +' + l.aged + '</span>' : ''), done ? 'Dry and ready to sell' : '<span class="bar" style="display:block"><i style="width:' + Math.round((1 - l.left / l.total) * 100) + '%"></i></span> ' + Math.ceil(l.left / 2.5) + ' min left', btn('Sell', done ? 'ready' : 'drying', 'sell:' + i, done, 'green'));
+      h += row(img(m.art, 36), fmt(l.kg) + ' kg ' + ART.varieties[l.v] + ', ' + m.name.toLowerCase() + (fit ? ' <span class="fit">for ' + fit.buyer.split(',')[0] + '</span>' : '') + (l.micro ? ' <span class="fit gold">★ micro-lot ×2</span>' : '') + (l.aged ? ' <span class="fit">aged +' + l.aged + '</span>' : ''), done ? 'Dry and ready to sell' : '<span class="bar" style="display:block"><i style="width:' + Math.round((1 - l.left / l.total) * 100) + '%"></i></span> ' + dryText(l.left) + ' left', btn('Sell', done ? 'ready' : 'drying', 'sell:' + i, done, 'green'));
       h += '<div class="seg" style="margin:-4px 0 6px 52px">' + (l.cupped ? '<span class="cupped">Hand-cupped · +' + CUP_BONUS + ' cup · +' + Math.round((CUP_PAY - 1) * 100) + '% pay</span>' : btn('Cup by hand', '+' + CUP_BONUS + ' cup · +' + Math.round((CUP_PAY - 1) * 100) + '% pay', 'cup:' + i, true, 'gold')) + (done && roasteryOpen() && !reqLot(l) ? btn('Roast', 'send to the roastery', 'toroast:' + i, true, 'blue') : '') + '</div>';
       if (done && buyersOn()) S.contracts.filter((c) => fits(c, l)).forEach((c) => { h += '<div class="seg" style="margin:-4px 0 6px 52px">' + btn('Deliver to ' + c.buyer.split(',')[0], fmt(Math.min(l.kg * 0.2, c.kg - c.have)) + ' kg · contract', 'deliver:' + i + '.' + c.id, true, 'blue') + '</div>'; });
     });
@@ -3193,7 +3203,7 @@ function renderPanel() {
       const bestK = Object.keys(vals).sort((a, b) => vals[b].coins - vals[a].coins)[0];
       h += '<div class="grid2">' + Object.keys(METHODS).filter((k) => S.methods[k]).map((k) => {
         const m = METHODS[k], ok = S.methods[k], val = vals[k];
-        return '<div class="tile' + (k === bestK ? ' best' : '') + '">' + (ok ? '<span class="tags">' + (k === bestK ? '<span class="bestpay">Best pay</span>' : '') + (val.c ? '<span class="fit">for ' + val.c.buyer.split(',')[0] + '</span>' : '') + '<span class="est">≈ ' + fmt(val.coins) + ' coins</span></span>' : '') + '<div style="display:flex;gap:6px;align-items:center">' + img(m.art, 32) + '<div><b>' + m.name + '</b><br><span>×' + (m.mult * (k === marketPick() ? MARKET : 1)).toFixed(1) + (k === marketPick() ? ' today' : '') + ' · ' + Math.round(m.time / 2.5) + ' min</span></div></div>' +
+        return '<div class="tile' + (k === bestK ? ' best' : '') + '">' + (ok ? '<span class="tags">' + (k === bestK ? '<span class="bestpay">Best pay</span>' : '') + (val.c ? '<span class="fit">for ' + val.c.buyer.split(',')[0] + '</span>' : '') + '<span class="est">≈ ' + fmt(val.coins) + ' coins</span></span>' : '') + '<div style="display:flex;gap:6px;align-items:center">' + img(m.art, 32) + '<div><b>' + m.name + '</b><br><span>×' + (m.mult * (k === marketPick() ? MARKET : 1)).toFixed(1) + (k === marketPick() ? ' today' : '') + ' · dries in ' + dryText(lotTime(k)) + '</span></div></div>' +
           (ok ? btn('Process', '', 'lot:' + k, S.lots.length < racks(), 'green') : '<span>' + m.unlock + '</span>' + (m.cost ? btn('Unlock', fmt(m.cost) + ' know-how', 'method:' + k, S.points >= m.cost) : '')) + '</div>';
       }).join('') + '</div>';
       const locked = Object.keys(METHODS).filter((k) => !S.methods[k]).length;
@@ -3300,7 +3310,7 @@ function renderPanel() {
     } else if (nt === 'processes') {
     h += help('processes', 'A process sets drying time, pay and cup score.', 'A process sets drying time, pay and cup score, on every farm. The next one waits until you\'ve run 3 lots with your newest.') + Object.keys(METHODS).filter((k) => !S.methods[k]).map((k) => {
       const m = METHODS[k], ok = S.methods[k];
-      return row(img(m.art, 34), m.name + ' · ×' + m.mult + ' pay', 'Cup score ' + m.cup + ' · dries in ' + Math.round(m.time / 2.5) + ' min' + (ok || !m.cost || gateOK('method:' + k) ? '' : '. ' + gateNote('method:' + k) + ', then ' + fmt(m.cost) + ' know-how') + (ok || !m.coffee ? '' : '. Or order ' + COFFEES[m.coffee].name + ' on bejucoffee.com to unlock it now'), ok ? btn('Owned', '', 'noop', false, 'blue') : m.cost && !gateOK('method:' + k) ? btn('Locked', unlockReq('method:' + k).short, 'noop', false) : m.cost ? btn('Unlock', fmt(m.cost) + ' know-how', 'method:' + k, S.points >= m.cost, 'green') : btn('Locked', '', 'noop', false));
+      return row(img(m.art, 34), m.name + ' · ×' + m.mult + ' pay', 'Cup score ' + m.cup + ' · dries in ' + dryText(lotTime(k)) + (ok || !m.cost || gateOK('method:' + k) ? '' : '. ' + gateNote('method:' + k) + ', then ' + fmt(m.cost) + ' know-how') + (ok || !m.coffee ? '' : '. Or order ' + COFFEES[m.coffee].name + ' on bejucoffee.com to unlock it now'), ok ? btn('Owned', '', 'noop', false, 'blue') : m.cost && !gateOK('method:' + k) ? btn('Locked', unlockReq('method:' + k).short, 'noop', false) : m.cost ? btn('Unlock', fmt(m.cost) + ' know-how', 'method:' + k, S.points >= m.cost, 'green') : btn('Locked', '', 'noop', false));
     }).join('') + doneStrip(Object.keys(METHODS).filter((k) => S.methods[k]).map((k) => [METHODS[k].art, METHODS[k].name]));
     } else if (nt === 'farms') {
     h += help('farms', 'Farms open in order. Osaka is cranes only.', 'Farms open in order: each needs the farm before it built up to a farm level, then know-how. The Osaka garden is cranes only.') + LOCS.filter((l) => !S.farms[l].unlocked).map((l) => {
@@ -3387,7 +3397,8 @@ function renderPanel() {
     if (S.badges.length) h += '<div class="badges">' + S.badges.slice(-6).map((bd) => '<span class="badge r' + Math.min(bd.rank, 11) + (bd.gold ? ' gold' : '') + '">' + (bd.label || 'Event') + '<small>' + (bd.key ? seasonName(bd.key) : bd.event) + '</small></span>').join('') + '</div>';
     h += '<h3>Leaderboard</h3><div class="seg">' + [['season', 'This season'], ['rookie', 'Rookies'], ['all', 'Legacy'], ['hall', 'Hall of Excellence']].map(([k, tl]) => '<button type="button" data-act="ranktab:' + k + '" aria-pressed="' + (mode === k) + '">' + tl + '</button>').join('') + '</div>' + (mode === 'rookie' ? '<p class="note">Farmers in their first season. ' + (isRookie() ? 'That\'s you this month: finish in the top 10 for a Rookie badge.' : 'You\'ve graduated, but you can still watch the newcomers.') + '</p>' : '') + (mode === 'hall' ? hallRows() : '<div class="lb">' + list.slice(0, 15).concat(pos > 15 ? [list[pos - 1]] : []).map((x) => {
       const r = list.indexOf(x) + 1;
-      return '<div class="lb-row' + (x.you ? ' you' : '') + '"><b class="rk">' + r + '</b>' + avatar(x.look, 40) + '<div class="lb-n">' + plate(x.name, normLook(x.look).crest, starsFor(x.prestige), normLook(x.look).charm, x.pin) + rBadge(normLook(x.look)) + '<span class="note">' + (normLook(x.look).title ? titleText(normLook(x.look).title) : TIERS[tierOf(x.prestige)]) + (x.rookie && mode === 'season' ? ' · Rookie' : '') + '</span></div><div class="lb-s"><b>' + (mode === 'all' ? 'P' + x.prestige : '★ ' + (x.seasonStars || 0)) + '</b><span>' + (mode === 'all' ? 'Lv ' + x.level : fmt(x.seasonKh || 0) + ' kh this season') + '</span><span>' + (mode === 'all' ? fmt(x.points) + ' kh' : 'P' + x.prestige + (x.seasonP ? ' (+' + x.seasonP + ' this season)' : '')) + '</span>' + (x.code && !x.you ? '<button type="button" class="visit-btn" data-act="visit:' + x.code + '">Visit</button>' : '') + '</div></div>';
+      const stat = mode === 'all' ? '<b>P' + x.prestige + '</b> · Lv ' + x.level + ' · ' + fmt(x.points) + ' kh' : '<b>★ ' + (x.seasonStars || 0) + '</b> · P' + x.prestige + (x.seasonP ? ' (+' + x.seasonP + ' this season)' : '') + ' · ' + fmt(x.seasonKh || 0) + ' kh';
+      return '<div class="lb-row' + (x.you ? ' you' : '') + '"><b class="rk">' + r + '</b>' + avatar(x.look, 40) + '<div class="lb-n">' + plate(x.name, normLook(x.look).crest, starsFor(x.prestige), normLook(x.look).charm, x.pin) + rBadge(normLook(x.look)) + '<span class="lb-s">' + stat + '</span><span class="note">' + (normLook(x.look).title ? titleText(normLook(x.look).title) : TIERS[tierOf(x.prestige)]) + (x.rookie && mode === 'season' ? ' · Rookie' : '') + '</span></div>' + (x.code && !x.you ? '<button type="button" class="visit-btn" data-act="visit:' + x.code + '">Visit</button>' : '') + '</div>';
     }).join('') + '</div>');
     if (mode !== 'hall') h += '<p class="note">' + (NET.status === 'online' && NET.board[mode] ? 'Live leaderboard · ' + NET.board[mode].players + ' farmer' + (NET.board[mode].players === 1 ? '' : 's') : 'Practice board: the live leaderboard appears when the game is played on bejucoffee.com.') + '</p>';
     h += '<h3>Farm visits</h3>' + help('visits', 'Tap Visit on a farmer, or enter a farm code.', 'Tap Visit on a farmer or type their farm code to see their farm. One Cheers a day per farm; your first earns a season star.') +
@@ -3516,7 +3527,7 @@ function renderPanel() {
     if (coopOK()) h += '<h3>Co-op stickers</h3><div class="seg">' + [['0', 'Shown'], ['1', 'Hidden']].map(([v, tl]) => '<button type="button" data-act="hidestickers:' + v + '" aria-pressed="' + ((S.hideStickers ? '1' : '0') === v) + '">' + tl + '</button>').join('') + '</div>';
     h += '<h3>Help text</h3><div class="seg">' + [[false, 'Short, with i buttons'], [true, 'Always in full']].map(([v, tl]) => '<button type="button" data-act="showhelp:' + (v ? 1 : 0) + '" aria-pressed="' + (!!S.showHelp === v) + '">' + tl + '</button>').join('') + '</div>';
     h += '<h3>Music volume</h3><div class="seg">' + [['0.25', 'Quiet'], ['0.45', 'Normal'], ['0.7', 'Loud']].map(([v, tl]) => '<button type="button" data-act="mvol:' + v + '" aria-pressed="' + (String(S.musicVol) === v) + '">' + tl + '</button>').join('') + '</div><p class="note">Sound effects and music switch on and off with the buttons on the farm.</p>';
-    h += '<h3>Your farm online</h3><p class="note">' + (NET.status === 'online' ? 'Saved online, so you can carry on from another device. Player ' + NET.acct.player + '.' : 'Offline: progress saves in this browser.') + '</p>';
+    h += onlineCard();
     h += '<h3>Start again</h3><div class="seg"><button type="button" data-act="reset">Reset the game</button></div><p class="note">Clears this farm from this browser. Free samples you have earned stay with your online account.</p>';
   } else {
     h += '<h2>Test tools</h2><p class="note">For playtesting: everything here stands in for something that will come from real orders or real time.</p>';
@@ -3529,7 +3540,7 @@ function renderPanel() {
     h += '<h3>Game speed</h3><div class="seg">' + [1, 3, 10].map((x) => '<button type="button" data-act="speed:' + x + '" aria-pressed="' + (S.speed === x) + '">×' + x + '</button>').join('') + '</div>';
     h += '<h3>Weather</h3><div class="seg">' + ['auto', 'harvest', 'rainy', 'spring', 'summer', 'autumn', 'winter'].map((x) => '<button type="button" data-act="season:' + x + '" aria-pressed="' + (S.seasonPick === x) + '">' + x + '</button>').join('') + '</div><p class="note">Harvest and rainy apply to the coffee farms; spring to winter apply to Osaka.</p>';
     h += '<h3>Music volume</h3><div class="seg">' + [['0.25', 'Quiet'], ['0.45', 'Normal'], ['0.7', 'Loud']].map(([v, t]) => '<button type="button" data-act="mvol:' + v + '" aria-pressed="' + (S.musicVol === +v) + '">' + t + '</button>').join('') + '</div><p class="note">Each farm has its own theme. Night versions play from 7 pm to 6 am on the farm clock. Use the buttons at the bottom left of the farm to turn music or sounds off.</p>';
-    h += '<h3>Online</h3><p class="note">' + (API ? (NET.status === 'online' ? 'Connected as ' + NET.acct.player + ' · cloud save v' + NET.ver + (NET.rank ? ' · rank #' + NET.rank : '') + (NET.scoreError ? ' · last score refused: ' + NET.scoreError : '') : 'Connecting to bejucoffee.com…') : 'Offline prototype. Accounts, cloud saves, the live leaderboard and order links switch on when the game runs on bejucoffee.com.') + '</p>';
+    h += onlineCard() + '<h3>Online</h3><p class="note">' + (API ? (NET.status === 'online' ? 'Connected as ' + NET.acct.player + ' · cloud save v' + NET.ver + (NET.rank ? ' · rank #' + NET.rank : '') + (NET.scoreError ? ' · last score refused: ' + NET.scoreError : '') : 'Connecting to bejucoffee.com…') : 'Offline prototype. Accounts, cloud saves, the live leaderboard and order links switch on when the game runs on bejucoffee.com.') + '</p>';
     h += '<h3>Save</h3><div class="seg"><button type="button" data-act="reset">Reset the game</button></div><p class="note">Progress saves in this browser every few seconds.</p>';
   }
   const strips = [...P.querySelectorAll('.ccards')].map((x) => x.scrollLeft);
@@ -3703,6 +3714,13 @@ document.addEventListener('click', (e) => {
   }
   else if (a === 'prestige') { $('modal').hidden = true; const allB = board('all'), rb = allB.findIndex((x) => x.you) + 1; prestige(); const allA = board('all'), ra = allA.findIndex((x) => x.you) + 1; prestigeCeremony(rb, ra, allA.length); setTimeout(() => { NET.lastScore = ''; submitScore(); cloudSync(true); }, 500); }
   else if (a === 'cloudLoad') { if (NET.pending) { S = NET.pending; NET.pending = null; save(); location.reload(); } }
+  else if (a === 'cloudKeep') { NET.pending = null; NET.hold = false; closeModal(); cloudSync(true); toast('This farm is saved online now'); }   /* keep this device's farm and save it over the other one */
+  else if (a === 'linkmake') linkMake();
+  else if (a === 'linkask') linkAsk();
+  else if (a === 'linkuse') linkUse(($('linkIn') || {}).value);
+  else if (a === 'linkload') linkLoad();
+  else if (a === 'recovery') recoveryCard();
+  else if (a === 'reccopy') { const c = NET.acct ? NET.acct.player + '.' + NET.acct.token : ''; (navigator.clipboard ? navigator.clipboard.writeText(c) : Promise.reject()).then(() => toast('Recovery code copied')).catch(() => toast('Hold the code to select and copy it')); }
   else if (a === 'crest') { if (+v <= tierOf(S.prestige)) S.look.crest = +v; }
   else if (a === 'skin') { if (S.skins[+v]) S.look.skin = +v; }
   else if (a === 'pickskin') { const i = +v; if (!S.skins[i] && S.skinPicks > 0) { S.skinPicks -= 1; S.skins[i] = true; S.look.skin = i; toast(SKINS[i].name + ' outfit is yours'); SFX.play('achieve'); if (S.pwalk === 3) { const sl = Object.keys(S.dormant)[0], wl = sl && S.dormant[sl]; S.pwalk = sl ? 4 : 0; S.pwalkDone = !sl; setTab('farm'); if (sl) setTimeout(() => showModal(coachCard('Resting farm', ART.locations[sl].name.split(',')[0] + ' rests after a prestige. It wakes again at level ' + wl + ', just as you left it.', 'Got it', 'pwalkend')), 400); } if (!$('modal').hidden && $('modalCard').querySelector('[data-act^="pickskin"]')) closeModal(); } }
@@ -3713,7 +3731,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'buybskin') { const s = ART.bskins[v]; if (s && !s.season && !S.bskins[v] && spend('cranes', s.cost)) { S.bskins[v] = true; f.skin = v; toast(s.name + ' style on ' + ART.locations[S.loc].name.split(',')[0]); } }
   else if (a === 'bskin') { if (v === 'classic' || S.bskins[v]) f.skin = v; }
   else if (a === 'bskinall') { if (S.bskins[v]) { LOCS.forEach((l) => { S.farms[l].skin = v; }); toast(ART.bskins[v].name + ' style on every farm'); } }
-  else if (a === 'rename') { const nv = ($('nameIn').value || '').trim().slice(0, 16); if (nv) { S.name = nv; toast('Name saved'); } }
+  else if (a === 'rename') { const [nv, why] = nameCheck($('nameIn').value); if (!nv) { SFX.play('nope'); toast(why); return; } S.name = nv; NET.scoreError = ''; toast('Name saved'); }
   else if (a === 'boost') {
     const cost = { grow: 5, pick: 5, hearts: 2, points: 10, dry: 6 }[v];
     if (!spend('cranes', cost)) return;
@@ -3736,7 +3754,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'speed') S.speed = +v;
   else if (a === 'mvol') { S.musicVol = +v; syncMusic(); }
   else if (a === 'season') S.seasonPick = v;
-  else if (a === 'reset') { if (b.dataset.sure) { try { localStorage.removeItem(SAVE_KEY); } catch (er) { /* nothing saved */ } S = fresh(); LOCS.forEach((l) => plant(S.farms[l])); addWorker(S.farms[START]); addWorker(S.farms[START]); newTasks(); toast('New game started'); } else { b.dataset.sure = '1'; b.textContent = 'Tap again to reset'; return; } }
+  else if (a === 'reset') { if (b.dataset.sure) { try { localStorage.removeItem(SAVE_KEY); } catch (er) { /* nothing saved */ } const fs = S.firstSeason; S = fresh(); S.firstSeason = fs; S.resetPending = !!NET.acct; NET.lastScore = ''; LOCS.forEach((l) => plant(S.farms[l])); addWorker(S.farms[START]); addWorker(S.farms[START]); newTasks(); toast('New game started'); } else { b.dataset.sure = '1'; b.textContent = 'Tap again to reset'; return; } }
   refreshAll();
 });
 
@@ -3782,48 +3800,58 @@ function refreshAll() { seasonTick(); refreshHud(); renderTabs(); renderPanel();
 const API = /(^|\.)bejucoffee\.com$|\.netlify\.app$|^localhost$/.test(location.hostname) ? '/.netlify/functions/' : '';
 const NET = { acct: null, ver: 0, board: {}, boardAt: {}, status: API ? 'connecting' : 'offline', lastSync: 0, lastScore: '' };
 try { NET.acct = JSON.parse(localStorage.getItem('beju-farm-account') || 'null'); } catch (e) { /* storage blocked */ }
-async function api(path, method, body) {
-  const r = await fetch(API + path, { method: method || 'GET', headers: Object.assign({ 'Content-Type': 'application/json' }, NET.acct ? { Authorization: 'Bearer ' + NET.acct.player + '.' + NET.acct.token } : {}), body: body ? JSON.stringify(body) : undefined });
+async function api(path, method, body, acct) {   /* acct: another farm's account, for moving a farm in from another device */
+  const a = acct || NET.acct;
+  const r = await fetch(API + path, { method: method || 'GET', headers: Object.assign({ 'Content-Type': 'application/json' }, a ? { Authorization: 'Bearer ' + a.player + '.' + a.token } : {}), body: body ? JSON.stringify(body) : undefined });
   let data = {}; try { data = await r.json(); } catch (e) { /* empty body */ }
   return { status: r.status, data };
 }
 const keepAcct = () => { try { localStorage.setItem('beju-farm-account', JSON.stringify(NET.acct)); } catch (e) { /* storage blocked */ } };
+let onlineTries = 0;
+const newerSave = (data, at) => { NET.pending = data; NET.hold = true; showModal('<h2>Newer save found</h2><p class="note">Your farm has newer progress from another device' + (at ? ' (' + new Date(at).toLocaleString() + ')' : '') + '. Load it, or keep the farm on this device and save it over the other one.</p><button class="btn green" data-act="cloudLoad">Load it</button><button class="btn" data-act="cloudKeep">Keep this one</button>'); };   /* nothing saves online until you choose */
 async function online() {
-  if (!API) return;
+  if (!API || NET.status === 'online' || NET.trying) return;
+  NET.trying = true;
   try {
     if (!NET.acct) { const r = await api('game-account', 'POST', { name: S.name }); if (r.status !== 201) throw new Error('account'); NET.acct = { player: r.data.player, token: r.data.token, ver: 0 }; keepAcct(); }
     NET.ver = NET.acct.ver || 0;
     const sv = await api('game-save');
+    if (sv.status === 401) { NET.status = 'signedout'; return; }   /* this device was signed out (five newer devices took its place): Settings offers a code to sign in again */
     if (sv.status === 200 && !sv.data.none) {
       NET.ver = sv.data.version;
-      if ((sv.data.data.last || 0) > (S.last || 0) + 60000) showModal('<h2>Newer save found</h2><p class="note">Your farm has newer progress from another device (' + new Date(sv.data.at).toLocaleString() + ').</p><button class="btn green" data-act="cloudLoad">Load it</button><button class="btn" data-act="close">Keep this one</button>'), NET.pending = sv.data.data;
+      if ((sv.data.data.last || 0) > (S.last || 0) + 60000) newerSave(sv.data.data, sv.data.at);
     }
     const claim = new URLSearchParams(location.search).get('claim');
     if (claim) { const r = await api('game-claim', 'POST', { session_id: claim }); if (r.status === 200 && !r.data.again) applyGrant(r.data); else if (r.status !== 200) toast(r.data.error === 'claimed_by_another_player' ? 'That order is linked to another farm' : 'Could not link that order yet'); history.replaceState(null, '', location.pathname); }
     const ev = await api('game-events');
     const live = ev.status === 200 && ev.data.events.find((x) => x.live);
     if (live && (!S.event || S.event.id !== live.id)) startDrop(live.id, live);
-    NET.status = 'online'; cloudSync(); await visitSync(true); await submitScore(); syncSamples(); harvestSync(true); coopSync(true);
+    NET.status = 'online'; onlineTries = 0; cloudSync(); await visitSync(true); await submitScore(); syncSamples(); harvestSync(true); coopSync(true);
     const gr = await api('game-grants', 'POST', {}).catch(() => null);
     if (gr && gr.status === 200) gr.data.grants.forEach((g) => { if (g.reason === 'gift') { S.cranes += g.cranes; NET.giftsAt = 0; SFX.play('crane'); toast('A friend opened your gift: +' + g.cranes + ' cranes'); } else applyGrant({ cranes: g.cranes, bonus: g.bonus, reason: g.reason, coffees: [], order: g.order + (g.reason === 'subscription' ? ' (subscription renewal)' : '') }); });
-  } catch (e) { NET.status = 'offline'; }
+  } catch (e) { NET.status = 'offline'; onlineTries += 1; setTimeout(online, Math.min(300, 15 * Math.pow(2, onlineTries - 1)) * 1000); }   /* no network: try again in 15 s, 30 s, 1 min ... up to 5 min */
+  finally { NET.trying = false; }
 }
+addEventListener('online', () => { if (API && NET.status !== 'online') { onlineTries = 0; online(); } });
 async function cloudSync(force) {
-  if (!API || !NET.acct || NET.status !== 'online') return;
+  if (!API || !NET.acct || NET.status !== 'online' || NET.hold) return;
   if (!force && Date.now() - NET.lastSync < 60000) return;
   NET.lastSync = Date.now(); save();
   const data = JSON.parse(JSON.stringify(S, (k, v) => (k === 'target' || k === 'claim' || k === 'path') ? undefined : v));
   const r = await api('game-save', 'PUT', { base: NET.ver, data }).catch(() => null);
   if (r && r.status === 200) { NET.ver = r.data.version; NET.acct.ver = NET.ver; keepAcct(); }
-  else if (r && r.status === 409) { NET.ver = r.data.version; if ((r.data.data.last || 0) > (S.last || 0)) { NET.pending = r.data.data; showModal('<h2>Newer save found</h2><p class="note">Another device saved more recent progress.</p><button class="btn green" data-act="cloudLoad">Load it</button><button class="btn" data-act="close">Keep this one</button>'); } else cloudSync(true); }
+  else if (r && r.status === 409) { NET.ver = r.data.version; if ((r.data.data.last || 0) > (S.last || 0)) newerSave(r.data.data, r.data.at); else cloudSync(true); }
 }
 async function submitScore() {
   if (!API || !NET.acct || NET.status !== 'online') return;
   seasonTick();   /* never send last season's stars into a new season */
   const body = { name: S.name, prestige: S.prestige, seasonP: S.season.prestige, seasonKh: Math.floor(S.season.kh || 0), seasonStars: S.season.stars, level: level(), points: Math.floor(S.xp), look: S.look }, sig = JSON.stringify(body) + (S.farmCode || '');   /* a new farm code resends the row, so the board links to the farm */
-  if (sig === NET.lastScore) return;
+  const key = JSON.stringify([S.name, S.prestige, S.season.prestige, S.season.stars, S.look, S.farmCode || '', !!S.resetPending]);
+  if (sig === NET.lastScore || (key === NET.lastKey && Date.now() - (NET.scoreAt || 0) < 120e3)) return;   /* know-how alone moves your row every 2 minutes; prestige, stars, looks and names go straight away */
+  if (S.resetPending) body.reset = true;   /* the farm started again: the server lets the row start again too */
+  NET.scoreAt = Date.now();
   const r = await api('game-score', 'POST', body).catch(() => null);
-  if (r && r.status === 200) { NET.lastScore = sig; NET.rank = r.data.rank; } else if (r && r.status === 422) NET.scoreError = r.data.error;
+  if (r && r.status === 200) { NET.lastScore = sig; NET.lastKey = key; NET.rank = r.data.rank; NET.scoreError = ''; if (body.reset) S.resetPending = false; } else if (r && r.status === 422) NET.scoreError = r.data.error;
 }
 async function syncSamples() {   /* the server's sample list is the real one; local ones it hasn't confirmed show as pending */
   if (!API || !NET.acct || NET.status !== 'online') return;
@@ -3837,6 +3865,56 @@ async function giftsSync() {   /* your gift codes and whether friends have opene
   NET.giftsAt = Date.now();
   const r = await api('game-gift').catch(() => null);
   if (r && r.status === 200) { NET.gifts = r.data; if (r.data.from && !S.giftFrom) { S.giftFrom = r.data.from; if (S.decor.gift === undefined) S.decor.gift = true; } if (tab === 'shop') renderPanel(); }
+}
+function nameCheck(s) {   /* the leaderboard's rules for names (cleanName in netlify/lib/game.js): [name, or null and why not] */
+  const t = String(s || '').normalize('NFKC').replace(/[\u0000-\u001f<>"'`\\]/g, '').trim().slice(0, 16);
+  if (t.length < 2) return [null, 'A name needs at least 2 letters'];
+  if (/(https?:|www\.|\.com|fuck|shit|cunt|nigg|fag|hitler|nazi)/i.test(t)) return [null, 'That name can\'t go on the leaderboard'];
+  return [t, ''];
+}
+function onlineCard() {   /* Settings: your account, and moving the farm to or from another device */
+  if (!API) return '<h3>Your farm online</h3><p class="note">Progress saves in this browser. Played on bejucoffee.com, your farm also saves online and can move to another device.</p>';
+  const use = btn('Use a code', 'from another device', 'linkask', true, 'blue');
+  if (NET.status === 'signedout') return '<h3>Your farm online</h3><p class="note"><b>This device was signed out of your online farm</b>, because five newer devices were added. Your progress here still saves in this browser. To sign in again, make a code on another device and enter it here.</p><div class="seg">' + use + '</div>';
+  if (NET.status !== 'online') return '<h3>Your farm online</h3><p class="note">Connecting to bejucoffee.com… Your progress saves in this browser meanwhile.</p>';
+  return '<h3>Your farm online</h3><p class="note">Saved online. To play this farm on another device, make a code here and enter it there within 15 minutes.</p>' + (NET.scoreError === 'bad_name' ? '<p class="rule">Your name can\'t be shown on the leaderboard. Change it in Ranks › Leaderboard.</p>' : '') +
+    '<div class="seg">' + btn('Play on another device', 'make a code', 'linkmake', true, 'green') + use + '</div><p class="note"><button type="button" class="linkbtn" data-act="recovery">Show my recovery code</button> for when this device is lost. Keep it private.</p>';
+}
+async function linkMake() {
+  const r = await api('game-link', 'POST', { act: 'make' }).catch(() => null);
+  if (!r || r.status !== 200) { SFX.play('nope'); toast(r && r.status === 429 ? 'One code every 10 seconds' : 'Could not make a code right now'); return; }
+  const c = r.data.code; SFX.play('page');
+  showModal('<h2>Play on another device</h2><p class="note">On the other device, open Beju Farm on bejucoffee.com, tap the gear for Settings, then <b>Use a code</b> and type:</p><p class="lcode">' + c.slice(0, 4) + '-' + c.slice(4) + '</p><p class="note">It works once, for the next 15 minutes. This device keeps playing the same farm.</p><button class="btn green" data-act="close">Done</button>');
+}
+function linkAsk() {
+  showModal('<h2>Use a code</h2><p class="note">Enter the 8-letter code from Settings on your other device, or your recovery code. That farm then replaces the one on this device.</p><input id="linkIn" maxlength="90" placeholder="ABCD-EFGH" autocapitalize="characters" autocomplete="off" spellcheck="false" aria-label="Code from another device" class="codein"><button class="btn green" data-act="linkuse">Continue</button><button class="btn" data-act="close">Cancel</button>');
+}
+async function linkUse(raw) {   /* a code from another device, or a recovery code: find that farm's online save, then ask before replacing this one */
+  const t = String(raw || '').replace(/\s+/g, ''), rec = /^(p_[A-Za-z0-9_-]{8,20})\.([A-Za-z0-9_-]{20,64})$/.exec(t);
+  let acct = null;
+  if (rec) acct = { player: rec[1], token: rec[2] };
+  else {
+    const code = t.toUpperCase().replace(/[^A-Z2-9]/g, '');
+    if (code.length !== 8) { SFX.play('nope'); toast('A code has 8 letters and numbers'); return; }
+    const r = await api('game-link', 'POST', { act: 'use', code }).catch(() => null);
+    if (!r || r.status !== 200) { SFX.play('nope'); toast({ no_code: 'That code is wrong or has run out', used: 'That code was used already: make a new one' }[r && r.data && r.data.error] || 'Could not check that code right now'); return; }
+    acct = { player: r.data.player, token: r.data.token };
+  }
+  const sv = await api('game-save', 'GET', null, acct).catch(() => null);
+  if (!sv || sv.status === 401) { SFX.play('nope'); toast(sv ? 'That recovery code doesn\'t match a farm' : 'Could not reach bejucoffee.com'); return; }
+  if (sv.status !== 200 || sv.data.none) { SFX.play('nope'); toast('That farm has no online save yet: open it on the other device first'); return; }
+  const d = sv.data.data, lv = (() => { let l = 1; while ((d.xp || 0) >= XP_AT(l + 1)) l++; return l; })(), same = NET.acct && NET.acct.player === acct.player;
+  NET.linkIn = { acct: Object.assign(acct, { ver: sv.data.version }), data: d };
+  showModal('<h2>Load this farm?</h2><p class="note"><b>' + String(d.name || 'Farmer').replace(/[<>&"'`]/g, '') + '</b> · prestige ' + (d.prestige || 0) + ' · level ' + lv + ', saved ' + new Date(sv.data.at).toLocaleString() + '.</p><p class="note">' + (same ? 'It\'s this farm\'s online save.' : 'It replaces the farm on this device (prestige ' + S.prestige + ', level ' + level() + '). To keep that one, make a code for it first.') + '</p><button class="btn green" data-act="linkload">Load it</button><button class="btn" data-act="close">Cancel</button>', true);
+}
+function linkLoad() {   /* the other farm and its account, then a fresh start of the page */
+  const L = NET.linkIn; if (!L) return;
+  NET.hold = true; NET.acct = L.acct; keepAcct();
+  S = L.data; save(); location.reload();
+}
+function recoveryCard() {
+  if (!NET.acct) return;
+  showModal('<h2>Recovery code</h2><p class="note">If this device is lost, enter this code in Settings › Use a code on any device to get your farm back. <b>Anyone with it can play your farm</b>, so keep it somewhere private.</p><p class="lcode small">' + NET.acct.player + '.' + NET.acct.token + '</p><button class="btn green" data-act="reccopy">Copy</button><button class="btn" data-act="close">Close</button>');
 }
 async function giftOpen(code) {
   code = String(code || '').toUpperCase().replace(/[^A-Z2-9]/g, '');

@@ -102,7 +102,7 @@ exports.handler = async (event) => {
       const name = C.cleanCoopName(b.name); if (!name) return G.json(422, { error: "bad_name" });
       target = await makeCoop(store, name);
     } else if (act === "join") {
-      const id = await store.get("coopcodes/" + String(b.code || "").toUpperCase()); target = id && await store.get("coops/" + id);
+      const code = String(b.code || "").toUpperCase().replace(/[^A-Z2-9]/g, ""), id = /^[A-Z2-9]{6}$/.test(code) && await store.get("coopcodes/" + code); target = id && await store.get("coops/" + id);
       if (!target || !target.members.length) return G.json(404, { error: "no_coop" });
     } else {
       const mine = (await scoreRow(store, me.id)).prestige || 0, idx = await index(store), live = (x) => now - (x.act || 0) < C.COOP_AWAY_DAYS * C.DAY;

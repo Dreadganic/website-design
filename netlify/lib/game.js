@@ -5,7 +5,8 @@ const crypto = require("crypto");
 const json = (status, body, extra) => ({ statusCode: status, headers: Object.assign({ "Content-Type": "application/json", "Cache-Control": "no-store" }, extra || {}), body: JSON.stringify(body) });
 const parse = (event) => { try { return JSON.parse(event.isBase64Encoded ? Buffer.from(event.body || "", "base64").toString("utf8") : event.body || "{}"); } catch (e) { return null; } };
 
-/* One store per kind of record. On Netlify this is a Blobs store; in tests, a Map with the same three methods. */
+/* One store per kind of record. On Netlify this is a Blobs store; in tests, a Map with the same methods.
+   create() writes only if the key is new and says whether it did, so two requests can't both claim the same order or code. */
 function stores(event, deps) {
   if (deps && deps.store) return deps.store;
   const blobs = require("@netlify/blobs");
@@ -14,15 +15,17 @@ function stores(event, deps) {
   return {
     get: (k) => s.get(k, { type: "json" }),
     set: (k, v) => s.setJSON(k, v),
+    create: async (k, v) => !!(await s.setJSON(k, v, { onlyIfNew: true })).modified,
     list: async (prefix) => (await s.list({ prefix })).blobs.map((b) => b.key)
   };
 }
 function memoryStore() {   /* for tests and local runs */
   const m = new Map();
-  return { get: async (k) => (m.has(k) ? JSON.parse(m.get(k)) : null), set: async (k, v) => { m.set(k, JSON.stringify(v)); }, list: async (p) => [...m.keys()].filter((k) => k.startsWith(p)), _m: m };
+  return { get: async (k) => (m.has(k) ? JSON.parse(m.get(k)) : null), set: async (k, v) => { m.set(k, JSON.stringify(v)); }, create: async (k, v) => { if (m.has(k)) return false; m.set(k, JSON.stringify(v)); return true; }, list: async (p) => [...m.keys()].filter((k) => k.startsWith(p)), _m: m };
 }
 
-/* Players are anonymous until they link an order: an id plus a secret token, of which the server keeps only a hash. */
+/* Players are anonymous until they link an order: an id plus a secret token, of which the server keeps only a hash.
+   A farm moved to another device (game-link) gets a token of its own there; tokens holds those extra hashes, newest last. */
 const hash = (t) => crypto.createHash("sha256").update(t).digest("hex");
 const newId = () => "p_" + crypto.randomBytes(9).toString("base64url");
 const newToken = () => crypto.randomBytes(24).toString("base64url");
@@ -31,7 +34,8 @@ async function authed(event, store) {
   const m = /^Bearer (p_[A-Za-z0-9_-]{8,20})\.([A-Za-z0-9_-]{20,64})$/.exec(h);
   if (!m) return null;
   const p = await store.get("players/" + m[1]);
-  if (!p || !crypto.timingSafeEqual(Buffer.from(p.tokenHash, "hex"), Buffer.from(hash(m[2]), "hex"))) return null;
+  const h2 = Buffer.from(hash(m[2]), "hex"), same = (x) => typeof x === "string" && x.length === 64 && crypto.timingSafeEqual(Buffer.from(x, "hex"), h2);
+  if (!p || !(same(p.tokenHash) || (p.tokens || []).some(same))) return null;
   return Object.assign(p, { id: m[1] });
 }
 
@@ -93,7 +97,7 @@ function checkScore(prev, next, now) {
 }
 
 /* Names: short, printable, no links, nothing hateful */
-const BLOCK = /(https?:|www\.|\.com|fuck|shit|cunt|nigg|fag|hitler|nazi)/i;
+const BLOCK = /(https?:|www\.|\.com|fuck|shit|cunt|nigg|fag|hitler|nazi)/i;   /* keep in step with nameProblem() in the game */
 function cleanName(s) {
   s = String(s || "").normalize("NFKC").replace(/[\u0000-\u001f<>"'`\\]/g, "").trim().slice(0, 16);
   if (s.length < 2 || BLOCK.test(s)) return null;

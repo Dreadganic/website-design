@@ -93,3 +93,19 @@ test("subscriptions: renewals of a claimed subscription pay cranes once each", a
   await call(webhook, "POST", undefined, null, signed({ type: "invoice.paid", data: { object: { id: "in_002", billing_reason: "subscription_create", subscription: "sub_123", amount_paid: 3300 } } }));
   assert.deepEqual((await call(grants, "POST", {}, a)).body.grants, [], "the first payment is the claimed order, not a renewal");
 });
+
+test("subscriptions: renewals still pay when Stripe puts the subscription under invoice.parent (newer API versions)", async () => {
+  const a = await newPlayer();
+  assert.equal((await call(claim, "POST", { session_id: "cs_test_subscribe0001" }, a)).status, 200);
+  const inv = { id: "in_101", billing_reason: "subscription_cycle", parent: { type: "subscription_details", subscription_details: { subscription: "sub_123" } }, amount_paid: 3300 };
+  await call(webhook, "POST", undefined, null, signed({ type: "invoice.paid", data: { object: inv } }));
+  assert.deepEqual((await call(grants, "POST", {}, a)).body.grants.map((x) => x.cranes), [43]);
+});
+
+test("claims: two requests for one order at once pay it once", async () => {
+  const a = await newPlayer();
+  const [r1, r2] = await Promise.all([call(claim, "POST", { session_id: "cs_test_subscribe0001" }, a), call(claim, "POST", { session_id: "cs_test_subscribe0001" }, a)]);
+  assert.equal([r1, r2].filter((r) => r.status === 200 && !r.body.again).length, 1, "only one of them is the real claim");
+  const p = await store.get("players/" + a.split(".")[0]);
+  assert.equal(p.grants.length, 1, "the order is on the player once"); assert.equal(p.gifts.length, 1, "and brings one gift");
+});

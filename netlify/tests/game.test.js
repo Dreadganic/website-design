@@ -173,6 +173,7 @@ test("seasons: the rookie board lists only players in their first season, and fi
   const a = await newPlayer();
   await call(score, "POST", { name: "Rookie", prestige: 0, seasonP: 0, seasonKh: 100, seasonStars: 5, level: G.levelFor(100), points: 100 }, a);
   await store.set("scores/veteran", { id: "veteran", name: "Old hand", prestige: 6, seasonP: 0, seasonKh: 9e6, seasonStars: 50, level: 40, points: 1e7, look: {}, season: G.seasonKey(clock), at: clock });
+  clock += 16e3;   /* a row written by another function instance shows once this one's row cache is 15 s old */
   const rook = await call(score, "GET", undefined, a, { mode: "rookie" }), all = await call(score, "GET", undefined, a, { mode: "season" });
   assert.deepEqual(rook.body.top.map((r) => r.name), ["Rookie"]); assert.equal(rook.body.top[0].rookie, true);
   assert.deepEqual(all.body.top.map((r) => r.name), ["Old hand", "Rookie"]);
@@ -201,4 +202,31 @@ test("visits: a farm snapshot gets a code, anyone can look, and Cheers come once
   assert.equal((await call(visit, "POST", undefined, b, { code })).body.cheers, 2, "again the next day");
   assert.equal((await call(visit, "PUT", { farm }, a)).body.code, code, "the code stays the same");
   assert.equal((await call(visit, "GET", undefined, undefined, { code: "ZZZZZZ" })).status, 404);
+});
+
+test("scores: a farm started again may start its row again, and nobody else can lower it", async () => {
+  const a = await newPlayer();
+  const s = (p, pts, extra) => Object.assign({ name: "Farmer", prestige: p, seasonP: 0, seasonKh: pts, level: G.levelFor(pts), points: pts }, extra || {});
+  assert.equal((await call(score, "POST", s(0, 5000), a)).status, 200);
+  await store.set("scores/" + a.split(".")[0], Object.assign(await store.get("scores/" + a.split(".")[0]), { prestige: 3, prestigeAt: clock - 864e5 }));   /* a farm at prestige 3 */
+  clock += 60e3;
+  assert.equal((await call(score, "POST", s(0, 100), a)).body.error, "prestige_went_down", "an old device can't lower the row by accident");
+  clock += 60e3;
+  const r = await call(score, "POST", s(0, 100, { reset: true }), a);
+  assert.equal(r.status, 200, "a reset farm starts its row again");
+  assert.equal((await store.get("scores/" + a.split(".")[0])).prestige, 0);
+  clock += 60e3;
+  assert.equal((await call(score, "POST", s(0, 9e6, { reset: true }), a)).body.error, "too_far_for_a_new_player", "a reset is checked like a new farm");
+});
+
+test("scores: the board reads every row once per 15 s, and your own post shows straight away", async () => {
+  const a = await newPlayer(), b = await newPlayer();
+  const s = (pts) => ({ name: "Farmer", prestige: 0, seasonP: 0, seasonKh: pts, seasonStars: 1, level: G.levelFor(pts), points: pts });
+  assert.equal((await call(score, "POST", s(100), a)).status, 200);
+  let reads = 0; const get = store.get; store.get = async (k) => { if (k.startsWith("scores/")) reads++; return get(k); };
+  await call(score, "GET", undefined, a, { mode: "season" }); await call(score, "GET", undefined, a, { mode: "season" });
+  assert.ok(reads <= 1, "rows come from the cache: " + reads + " row reads");
+  assert.equal((await call(score, "POST", s(200), b)).status, 200);
+  assert.equal((await call(score, "GET", undefined, b, { mode: "season" })).body.players, 2, "b's own new row is on the board at once");
+  store.get = get;
 });

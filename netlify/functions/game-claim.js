@@ -31,9 +31,12 @@ exports.handler = async (event) => {
   (items.data || []).forEach((li) => { const pid = li.price && li.price.product && li.price.product.metadata && li.price.product.metadata.pid; if (G.STAMPS[pid]) for (let k = 0; k < Math.min(li.quantity || 1, 5); k++) coffees.push(pid); });
   const bonus = G.firstThisMonth(me, now) ? G.MONTH_BONUS : 0, sub = s.mode === "subscription";
   let gift; do { gift = newCode(); } while (await store.get("gifts/" + gift));
-  await store.set("gifts/" + gift, { from: me.id, order: id.slice(-8), at: now });
   const grant = { cranes: Math.floor((s.amount_total || 0) / 100) + bonus, bonus, coffees, order: id.slice(-8), gift, sub };
-  await store.set(claimKey, { player: me.id, at: now, grant });
+  if (!(await store.create(claimKey, { player: me.id, at: now, grant }))) {   /* another request for this order got there first: pay it once */
+    const won = await store.get(claimKey);
+    return won && won.player === me.id ? G.json(200, Object.assign({ again: true }, won.grant)) : G.json(409, { error: "claimed_by_another_player" });
+  }
+  await store.set("gifts/" + gift, { from: me.id, order: id.slice(-8), at: now });
   if (sub && s.subscription) await store.set("subs/" + s.subscription, { player: me.id, at: now });   /* renewals of this subscription earn cranes too */
   if (sub) me.sub = true;
   G.addStamps(me, coffees);   /* the origin sacks farm visitors see come from the server's own record */

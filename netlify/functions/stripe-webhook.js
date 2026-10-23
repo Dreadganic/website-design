@@ -39,10 +39,11 @@ exports.handler = async (event) => {
   }
   if (evt.type === "invoice.paid") {   /* a paid subscription renewal earns Beju Farm cranes like any order, plus a subscriber's bonus */
     const inv = evt.data.object;
-    if (inv.billing_reason === "subscription_cycle" && inv.subscription) {
+    const subId = inv.subscription || (inv.parent && inv.parent.subscription_details && inv.parent.subscription_details.subscription);   /* newer Stripe API versions moved it under parent */
+    if (inv.billing_reason === "subscription_cycle" && subId) {
       try {
         const G = require("../lib/game"), store = G.stores(event, deps);
-        const link = await store.get("subs/" + inv.subscription);
+        const link = await store.get("subs/" + (typeof subId === "string" ? subId : subId.id));
         const p = link && await store.get("players/" + link.player);
         if (p && !(p.pending || []).some((g) => g.invoice === inv.id) && !(p.grants || []).some((g) => g.invoice === inv.id)) {
           const now = (deps && deps.now) || Date.now(), bonus = G.SUB_BONUS + (G.firstThisMonth(p, now) ? G.MONTH_BONUS : 0);
