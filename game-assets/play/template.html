@@ -68,6 +68,7 @@ b .n, h2 .n, h3 .n, .row .grow b .n, .tile b .n { color: inherit; font-size: 1.1
 .es-top { display: flex; gap: 10px; align-items: center; }
 .es-top > div { display: flex; flex-direction: column; gap: 2px; }
 .es-pic { width: 84px; height: 84px; image-rendering: pixelated; border-radius: 6px; border: 2px solid #C8A060; flex: none; }
+.es-tease .es-pic { width: 52px; height: 52px; filter: grayscale(1) brightness(0.75); opacity: 0.7; }   /* the finished estate, still in shadow */
 .es-st { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
 .es-st li { color: var(--muted); } .es-st li .es-d { margin-top: 1px; } .es-st li.done { color: var(--ink); } .es-st li.done b::after { content: ' ✓'; color: #2D6A46; } .es-st li.next { color: var(--ink); }
 .fit.gold { background: #F2C04A; color: #3A2418; }
@@ -625,6 +626,10 @@ function emRow(loc) {   /* the estate's manager: what opens them, hire, or what 
   if (emHired(loc)) return row(face, M.name + ' · ' + M.role, 'Works at ' + Math.round(emEff(loc) * 100) + '% of you' + (lv ? ' (training ' + lv + ')' : '') + '. ' + ((S.estate.log || {})[loc] ? 'Last: ' + S.estate.log[loc] + '.' : 'Steps in once you\'ve had your chance.'), btn('Train', 'Farm › Staff', 'uptab:staff', true, 'blue'));
   if (emCan(loc)) return row(face, M.name + ' · ' + M.role, 'Takes over this chore once you\'ve had your chance, at ' + Math.round(emEff(loc) * 100) + '% of your result.', btn('Hire', fmtShort(emHire(loc)) + ' coins', 'emhire:' + loc, S.coins >= emHire(loc), 'green'));
   return '<p class="note">' + M.role + ': do this chore yourself ' + M.need + ' times to meet ' + M.name + ' (' + Math.min(choreN(M.chore), M.need) + '/' + M.need + ').</p>';
+}
+function estateTeaser(loc) {   /* the prestige before the estates open: a glimpse of the finished estate, its name and kind; the stages wait for prestige ESTATE_P */
+  const E = ESTATE[loc];
+  return '<div class="estate es-tease"><div class="es-top"><img src="' + estatePic(loc, 3) + '" alt="" class="es-pic"><div><b>Estate project: ' + E.name + '</b><span class="note">' + E.mech + ' · opens at prestige ' + ESTATE_P + '</span></div></div></div>';
 }
 function estateCard(loc) {
   const E = ESTATE[loc], n = est(loc), nx = estateNext(loc);
@@ -3117,7 +3122,7 @@ function renderPanel() {
       else h += '<h2>' + L.name + '</h2><p class="note">Your next farm. Earn know-how by processing and selling lots in the Mill.</p>' + btn('Open farm', fmt(FARM_COST[S.loc]) + ' know-how', 'farm:' + S.loc, S.points >= FARM_COST[S.loc], 'green');
     } else {
       const bn = bottleneck(); if (bn) h += '<div class="bneck">' + bn + '</div>';
-      if (S.prestige >= ESTATE_P - 1) h += estateCard(S.loc);   /* teased a prestige early */
+      if (S.prestige >= ESTATE_P || est(S.loc)) h += estateCard(S.loc); else if (S.prestige === ESTATE_P - 1) h += estateTeaser(S.loc);   /* teased a prestige early: name and kind only */
       if (S.loc !== 'osaka') {
         const lad = SAMPLE_LADDER.find((r) => r.origin === S.loc), got = lad && sampleOf(lad.id);
         const waiting = (id) => { const sm = sampleOf(id); return !sm || ['earned', 'pending', 'reserved'].includes(sampleState(sm)); };   /* a sample earned but not yet sent */
