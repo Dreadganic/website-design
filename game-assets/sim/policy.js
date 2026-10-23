@@ -56,6 +56,7 @@ window.BOT = (function () {
       const nv = G.VAR_ORDER.find((v) => !S.vars[v] && ok('var:' + v));
       Object.keys(G.METHODS).forEach((m) => { if (!S.methods[m] && G.METHODS[m].cost && ok('method:' + m)) c.push(['method:' + m, G.METHODS[m].cost]); });
       G.LOCS.forEach((l) => { if (G.canOpen(l)) c.push(['farm:' + l, G.FARM_COST[l]]); });
+      if (G.trainCost) { ['foreman', 'agent', 'roaster'].forEach((w) => { if (S.staff[w] && G.trainLv(w) < 20) c.push(['train:' + w, G.trainCost(w)]); }); if (S.farms[S.loc].manager && G.trainLv('mgr', S.loc) < 20) c.push(['train:mgr', G.trainCost('mgr', S.loc)]); }   /* staff training, in know-how */
       (G.TECH || []).forEach((t) => { if (!(S.tech || {})[t.id] && G.techOpen(t)) c.push(['tech:' + t.id, t.cost]); });   /* techniques: know-how upgrades kept for good */
       if (G.researchCost && !nv) c.push(['research', G.researchCost()]);
       c.sort((a, b) => a[1] - b[1]);

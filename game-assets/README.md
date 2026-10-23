@@ -318,10 +318,7 @@ First crack always opens at 70% of the roast. How long its window lasts depends 
   | Bulk warehouse | 50,000 kg | P6 | 15M |
   | Beju depot | 100,000 kg | P7 | 60M |
 
-- **Staff training:** from P5, in Farm › Staff › Training. Each staff member has 10 levels, each costing 2× the last, and training is kept through prestige.
-  - Farm manager: +5% picking speed on that farm per level (from 300k × the farm's cost multiplier).
-  - Mill foreman: lots dry 5% faster per level (from 500k).
-  - Contracts agent: new contracts pay 5% more per level (from 750k).
+- **Staff training:** in Farm › Staff › Training, paid in know-how from the day each person is hired (see "Staff training in know-how" below). Training is kept through prestige.
 - **Farm reopening after prestige** scales with the run (`wakeLevel`). Each dormant farm reopens once you reach a share of the XP the new run needs for its next prestige: Huila 2%, Gedeo 5%, Toba 10%, Turrialba 18%. The old levels 3, 5, 7 and 9 are the minimum.
 
   | Going into | Huila | Gedeo | Toba | Turrialba |
@@ -380,7 +377,7 @@ From prestige 4, each farm's drying area (left of the farmhouse) becomes an esta
 Two late staff who take over chores, never as well as you do them yourself (`ROASTER_REP`, `ESTATE_MGR_STAGES`). Their roasts and chores earn no season stars and count for no tasks.
 - **Head roaster:** from roastery reputation 10 (about mid-P5), 1.5M coins.
   - **Work:** starts the best roast on free roasters (`headRoasterTick`), always leaving you one while you play.
-  - **Crack:** catches 35% of first cracks (+5% per training level, 85% at most). His catch adds the +15 quality but not the instant finish.
+  - **Crack:** catches 30% of first cracks (+3% per training level, 90% at most). His catch adds the +15 quality but not the instant finish.
   - **Away:** roasts at half your pace while you're away, and the welcome-back card counts his batches.
   - **Switch:** "Give him a break" in the Roastery turns him off.
   - **In the scene:** a white-jacketed roaster minds his drum in the roastery.
@@ -394,7 +391,7 @@ Two late staff who take over chores, never as well as you do them yourself (`ROA
   | Mario, Cellar master | Turrialba | The barrel cellar | aged 2 lots fully | 2.2M |
   | Yuki, Koi keeper | Osaka | Feeding the koi | fed them 5 times | 2.5M |
 
-  - **How well:** each works at 40% of your result (+5% per training level, 90% at most, `emEff`) and steps in only once you've had your chance (`emTick`).
+  - **How well:** each works at 40% of your result (+3% per training level, 100% at most, `emEff`) and steps in only once you've had your chance (`emTick`).
     - **Zé:** rakes 20 minutes after it's ready, for +0.2 cup instead of +0.5.
     - **Almaz:** holds the ceremony after 30 minutes of play, for a share of its length.
     - **Yuki:** feeds the koi 20 minutes after they're ready, for a smaller crack bonus and no golden koi.
@@ -406,7 +403,7 @@ Two late staff who take over chores, never as well as you do them yourself (`ROA
   - **The rake:** Mogiana's new chore. From stage 1, tap Rake on the estate card every 2 hours, and natural lots started in the next 30 minutes cup +0.5 (`rakePatio`). It's a daily task option too.
   - **The boat:** the foreman now sets boat-ready lots aside (`boatWants`), and the contracts agent no longer fills boat orders, so the boat is your chore or Tigor's.
   - **Old saves:** the earlier single estate manager is refunded.
-- **Coin sinks:** hiring the head roaster is 1.5M and all five estate managers 9.2M. Training doubles each level up to 10, alongside the existing staff training from P5.
+- **Coin sinks:** hiring the head roaster is 1.5M and all five estate managers 9.2M. Their training is now paid in know-how (below).
 
 ## Farm visits
 - **What uploads:** every online farm sends a small snapshot of how its farms look to `netlify/functions/game-visit.js` (`farmSnapshot`, `visitSync`). That's each open farm's buildings and style, field, estate stage, farmhouse tier and planted coffees, plus storage, decorations, the seasonal showpiece and the gold sign. It goes at most every 5 minutes, and only when something changed.
@@ -559,3 +556,18 @@ Feedback: levels 3.5–7 felt empty, and know-how piled up before each prestige 
 - **The roastery opens at prestige 1** (was 3). Its tab shows, locked, from level 9 of the first run.
 - **The foreman sizes lots by the mill.** He used to wait for a quarter of the store (or a whole contract's worth) before starting a lot. With a late-game store of 100,000 kg, that left 59 racks empty while 25,000 kg piled up. Now a lot is the store shared out over the racks (`cap / max(4, racks)`), so nothing changes on a small mill and a big mill keeps cherries flowing. In a late-game foreman-only test the store now never holds more than one lot's worth.
 - **Checked with the bot:** prestiges 1, 2 and 3 at 54, 93 and 126 minutes (were 54, 91 and 128). Peak unspent know-how is 85k, 121k and 152k, mostly saved towards the next technique.
+
+## Staff training in know-how (23 October 2026)
+Every staff member trains with know-how from the day they're hired, instead of with coins from prestige 5. There are 20 levels, each 40% dearer than the last, and training is kept through every prestige. Staff start a little weaker than before and end well ahead.
+
+| Staff | At hire | Each level | Fully trained (20) | First level costs |
+|---|---|---|---|---|
+| Farm manager (per farm) | pickers +5% (was +25%) | +4% | +85% | 2,000 × the farm's place (Mogiana 2,000, Huila 4,000…) |
+| Mill foreman | sells at 85% of your price | +1.5% price, +3% drying | 115%, lots dry 60% faster | 6,000 |
+| Contracts agent | his deliveries pay 85% of yours | +1.5% | 115% | 15,000 |
+| Head roaster | catches 30% of first cracks | +3% | 90% | 20,000 |
+| Estate managers | work at 40% of you | +3% | 100% | 25,000 × the estate's factor |
+
+- The foreman's lower price applies only to the lots he sells, and the agent's only to his deliveries, so active play still pays best early on. Know-how from those sales is unchanged. The agent no longer raises new contracts' pay.
+- An unlock walk points to Training once the first manager is hired and a level is affordable.
+- The bot buys training alongside techniques and research. Prestiges 1 and 2 land on the old timing (56 and 90 minutes; were 54 and 91), and prestige 3 comes about 10% sooner (116; was 128) as trained staff take over. The most know-how it held unspent before each prestige was 34k, 47k and 51k.

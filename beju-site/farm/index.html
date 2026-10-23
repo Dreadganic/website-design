@@ -1418,14 +1418,19 @@ const FOREMAN_COST = 6000, AGENT_COST = 15000;
 const MGR_LV = 4, FOREMAN_P = 1, AGENT_P = 2, AGENT_LV = 12;   /* run the farm and the mill by hand for a while before handing them over */
 const mgrOK = () => S.prestige >= 1 || level() >= MGR_LV, foremanOK = () => S.prestige >= FOREMAN_P, agentOK = () => S.prestige > AGENT_P || (S.prestige === AGENT_P && level() >= AGENT_LV);
 /* staff training (from prestige 5): each level makes a farm's manager +5% picking speed there, the foreman dries lots 5% faster, the agent's contracts pay 5% more */
-const TRAIN_P = 5, TRAIN_MAX = 10;
+/* staff training: bought with know-how from the day each person is hired, kept through every prestige.
+   Staff start a little below a good player and end well above: 20 levels, each a small step, each 40% dearer than the last */
+const TRAIN_MAX = 20, TRAIN_GROW = 1.4, TRAIN_BASE = { mgr: 2000, foreman: 6000, agent: 15000, roaster: 20000, em: 25000 };
 const trainLv = (who, loc) => (S.train && (who === 'mgr' ? (S.train.mgr || {})[loc] : S.train[who])) || 0;
-const trainCost = (who, loc) => { const l = trainLv(who, loc); return Math.round((who === 'mgr' ? 300e3 * farmMult(loc) : who === 'foreman' ? 500e3 : who === 'roaster' ? 600e3 : who.startsWith('em_') ? 300e3 * (1 + 0.3 * LOCS.indexOf(who.slice(3))) : 750e3) * Math.pow(2, l) / 1000) * 1000; };
+const trainCost = (who, loc) => { const l = trainLv(who, loc), base = who === 'mgr' ? TRAIN_BASE.mgr * (1 + LOCS.indexOf(loc)) : who.startsWith('em_') ? TRAIN_BASE.em * (1 + 0.3 * LOCS.indexOf(who.slice(3))) : TRAIN_BASE[who]; return Math.round(base * Math.pow(TRAIN_GROW, l) / 100) * 100; };   /* in know-how */
+const mgrBoost = (loc) => 1.05 + 0.04 * trainLv('mgr', loc);   /* a farm manager: pickers 5% faster, +4% a level (+85% fully trained) */
+const foremanPay = () => 0.85 + 0.015 * trainLv('foreman');   /* the foreman sells at 85% of your price, up to 115% */
+const agentPay = () => 0.85 + 0.015 * trainLv('agent');   /* the agent's deliveries pay 85% of yours, up to 115% */
 /* the head roaster and the estate manager: late staff who take over the roastery and estate chores, never as well as you do them yourself.
    Their roasts and chores earn no season stars and count for no tasks, so a player's own play always matters */
 const ROASTER_REP = 10, ROASTER_COST = 1.5e6;
 const roasterOK = () => roasteryOpen() && repLevel() >= ROASTER_REP;
-const roasterCatch = () => 0.35 + 0.05 * trainLv('roaster');   /* 35% of first cracks, up to 85% trained; you can catch all of them */
+const roasterCatch = () => 0.3 + 0.03 * trainLv('roaster');   /* 30% of first cracks, up to 90% trained; you can catch all of them */
 /* estate managers: one for each estate chore (Huila's micro-lots come by chance, so it has none). Each can be hired once you've done the chore
    yourself a few times, works at 40% of your result (+5% per training level, 90% at most), steps in only after you've had your chance,
    and earns no season stars, tasks or cranes */
@@ -1438,14 +1443,14 @@ const EMGR = {
 };
 const EM_LOCS = Object.keys(EMGR);
 const emHire = (loc) => Math.round(1e6 * (1 + 0.3 * LOCS.indexOf(loc)) / 1e4) * 1e4;
-const emEff = (loc) => 0.4 + 0.05 * trainLv('em_' + loc);
+const emEff = (loc) => 0.4 + 0.03 * trainLv('em_' + loc);   /* 40% of you, up to 100% fully trained */
 const emHired = (loc) => !!(S.emgr || {})[loc];
 const emOn = (loc) => emHired(loc) && estOn(loc, EMGR[loc].stage);
 const choreN = (k) => (S.chores || {})[k] || 0;
 const chore = (k) => { S.chores = S.chores || {}; S.chores[k] = (S.chores[k] || 0) + 1; };
 const emCan = (loc) => !emHired(loc) && est(loc) >= EMGR[loc].stage && choreN(EMGR[loc].chore) >= EMGR[loc].need;
 const emLog = (loc, txt) => { S.estate.log = S.estate.log || {}; S.estate.log[loc] = new Date().toTimeString().slice(0, 5) + ' · ' + txt; };
-const dryMult = () => (S.staff.foreman ? 1 + 0.05 * trainLv('foreman') : 1);
+const dryMult = () => (S.staff.foreman ? 1 + 0.03 * trainLv('foreman') : 1);   /* the foreman's training: lots dry 3% faster a level */
 /* upgrades that never run out, kept small so they only pay once everything else is bought: farm mastery (coins, +1% picking on that farm each level) and cupping research (know-how, +1% know-how from every sale each level) */
 const masteryMult = (f) => 1 + 0.01 * (f.mastery || 0);
 const researchMult = () => 1 + 0.01 * (S.research || 0);
@@ -2502,7 +2507,7 @@ function store(f, v, kg) {
 function tickFarm(f, d, visible) {
   const g = d * (S.boosts.grow > S.minutesTotal ? 2 : 1);
   f.shrubs.forEach((s) => { if (s.p < 1) s.p = Math.min(1, s.p + g * varGrowth(f, s.v) / s.g); });
-  const full = stored() >= cap(), pm = (1 + techSum('pick')) * pickerMult() * (f.manager ? 1.25 * (1 + 0.05 * trainLv('mgr', f.loc)) : 1) * masteryMult(f) * (cerOn() ? 1.2 : 1), carry = carryKg();
+  const full = stored() >= cap(), pm = (1 + techSum('pick')) * pickerMult() * (f.manager ? mgrBoost(f.loc) : 1) * masteryMult(f) * (cerOn() ? 1.2 : 1), carry = carryKg();
   f.workers.forEach((w) => {
     if (w.state === 'seek') {
       let best = null, bd = 1e9;
@@ -3191,9 +3196,10 @@ function crackRoast(i) {
   toast(r.crack === 1 ? 'Perfect crack! +15 quality, and the roast is done' + ((r.cw || 0.16) * r.dur / 1000 < 4 ? '. A very tight window, well caught' : '') : roastP(r) < 0.7 ? 'Too early: listen for the crack at about 70%' : 'Too late: the crack has passed');
   if (scene() === 'roast' && i < BAYS.length) floats.push({ x: BAYS[i] + 13, y: BAY_Y - 2, text: r.crack === 1 ? 'perfect!' : roastP(r) < 0.7 ? 'too early' : 'too late', t: 0 });
 }
-function sellLot(i, quiet) {
+function sellLot(i, quiet, staff) {   /* staff: the share of your price a staff member gets */
   const l = S.lots[i]; if (!l || l.left > 0) return;
   const m = METHODS[l.method], green = l.kg * 0.2, r = saleFor(l.v, l.method, green, l);
+  if (staff) r.coins = Math.round(r.coins * staff);
   const pea = rnd() < 0.03 * sumBuild('sorter');   /* the sorting table finds a peaberry lot */
   if (pea) { r.coins *= 2; r.points *= 2; }
   earn({ coins: r.coins, points: r.points });
@@ -3220,7 +3226,7 @@ function newContract() {
   const base = saleFor(cupV, cupM, kg), mult = 1.8 + rnd() * 0.6 + (v ? 0.2 : 0) + (method ? 0.2 : 0);
   const home = v && LOCS.find((l) => l !== 'osaka' && ART.locations[l].beds.includes(v));
   const note = buyer === 'Beju Roastery' && home ? 'For the ' + ART.locations[home].reward : '';
-  return { id: Math.floor(rnd() * 1e9), buyer, note, v, method, minCup, kg, have: 0, coins: Math.round(base.coins * mult * (1 + 0.05 * trainLv('agent')) * (1 + techSum('contract'))), points: Math.round(base.points * mult), due: S.minutesTotal + 1440 * (1.5 + rnd() * 1.5) };
+  return { id: Math.floor(rnd() * 1e9), buyer, note, v, method, minCup, kg, have: 0, coins: Math.round(base.coins * mult * (1 + techSum('contract'))), points: Math.round(base.points * mult), due: S.minutesTotal + 1440 * (1.5 + rnd() * 1.5) };
 }
 const fits = (c, l) => (!c.v || c.v === l.v) && (!c.method || c.method === l.method) && lotCup(l) >= c.minCup && c.have < c.kg;
 function contractsTick() {
@@ -3233,7 +3239,7 @@ function contractsTick() {
   boatTick();
   if (S.contracts.filter((c) => !c.event && !c.boat).length < contractSlots() && S.minutesTotal >= S.nextContract) { S.contracts.push(newContract()); S.nextContract = S.minutesTotal + 20; }
 }
-function deliver(i, id, quiet, haggle) {
+function deliver(i, id, quiet, haggle, staff) {
   const l = S.lots[i], c = S.contracts.find((x) => x.id === id);
   if (!l || l.left > 0 || !c || !fits(c, l)) return;
   const green = l.kg * 0.2, use = Math.min(green, c.kg - c.have), spare = green - use;
@@ -3246,7 +3252,7 @@ function deliver(i, id, quiet, haggle) {
   const done = c.have >= c.kg - 0.01, pay = done ? { coins: c.coins - (c.paidC || 0), points: c.points - (c.paidP || 0) } : { coins: Math.round(c.coins * use / c.kg), points: Math.round(c.points * use / c.kg) };
   c.paidC = (c.paidC || 0) + pay.coins; c.paidP = (c.paidP || 0) + pay.points;
   if (haggle) { const mk = saleFor(l.v, l.method, use, l).coins; pay.coins = Math.round(mk + Math.max(0, pay.coins - mk) * haggle); c.hm = true; }   /* the harbour master gets part of the boat's premium */
-  earn(pay); if (l.cupped) earn({ coins: Math.round(pay.coins * (CUP_PAY - 1)) }); if (l.micro) earn({ coins: pay.coins }); if (rule('hina')) earn({ coins: Math.round(pay.coins * 0.1) });   /* buyers pay extra for hand-cupped coffee */
+  earn(staff ? { coins: Math.round(pay.coins * staff), points: pay.points } : pay); if (l.cupped) earn({ coins: Math.round(pay.coins * (CUP_PAY - 1)) }); if (l.micro) earn({ coins: pay.coins }); if (rule('hina')) earn({ coins: Math.round(pay.coins * 0.1) });   /* buyers pay extra for hand-cupped coffee */
   if (done) {
     S.contracts = S.contracts.filter((x) => x !== c); S.nextContract = Math.min(S.nextContract, S.minutesTotal + 10); S.stats.contracts = (S.stats.contracts || 0) + 1; SFX.play('contract');
     star('contract'); task('contract', 1); if (c.event) star('drop'); if (c.cranes && !c.hm) { earn({ cranes: c.cranes }); SFX.play('crane'); } if (c.boat && !haggle) task('boat', 1);
@@ -3261,7 +3267,7 @@ function staffTick() {
     const l = S.lots[i]; if (l.left > 0 || reqLot(l) || boatWants(l)) continue;   /* lots a regular or the trader's boat wants wait for you */
     if (roasteryFeedWants() && canBin(l.v + '.' + l.method)) { toRoastery(i, true); continue; }   /* keeps the roastery's green store topped up when asked */
     const c = S.staff.agent && buyersOn() && S.contracts.find((x) => !x.boat && fits(x, l));
-    if (c) deliver(i, c.id, true); else sellLot(i, true);
+    if (c) deliver(i, c.id, true, 0, agentPay()); else sellLot(i, true, foremanPay());
   }
   /* when to start a lot: a big lot pays the same drying time as a small one, so the foreman waits for a good-sized lot: a quarter of the store
      on a small mill, less as racks are added (the store shared out over the racks), so a big late-game mill never stands empty while cherries pile up.
@@ -3518,6 +3524,7 @@ const NAV = [
   navTab('looks', 'Looks tab: everything you wear'),
   { id: 'replantall', when: () => hasPerk('replantall'), text: 'Replant all: every farm in one tap', t: '[data-act="replantask"], [data-act="uptab:fields"], .tab[data-tab="farm"]' },
   navStaff('foreman', () => foremanOK(), 'A mill foreman to hire', 'foreman'),
+  { id: 'train', when: () => LOCS.some((l) => S.farms[l].manager) && S.points >= trainCost('mgr', 'mogiana'), text: 'Staff training: spend know-how to make your staff better', t: '[data-act^="train:"], [data-act="uptab:staff"], .tab[data-tab="farm"]' },
   { id: 'cupall', when: () => hasPerk('cupall'), text: 'Cup all: tap the cupping table', t: 'cv:mill:' + (CUP_TABLE.x + 18) + ',' + (CUP_TABLE.y + 2) + ', .tab[data-tab="mill"]' },
   navStaff('agent', () => agentOK(), 'A contracts agent to hire', 'agent'),
   navTab('roast', 'The Roastery tab'),
@@ -3834,27 +3841,29 @@ function renderPanel() {
     if (f.unlocked) h += '<h3>Farm mastery · ' + nm + '</h3>' + row(img('i_trophy', 34), 'Mastery level ' + (f.mastery || 0), 'Pickers here work ' + (f.mastery || 0) + '% faster. Each level adds 1%, with no limit, and counts towards this farm\'s level. Best once the buildings here are done.' + (f.manager ? '' : ' Hire this farm\'s manager first (Staff).'), btn('Train', fmt(masterCost(S.loc)) + ' coins', 'master', !!f.manager && S.coins >= masterCost(S.loc)));
     } else if (ut === 'staff') {
     h += '<h3>Farm manager · ' + L.name.split(',')[0] + '</h3>';
-    h += row('<img src="' + url('worker_down_0', MGR_LOOK) + '" alt="" style="width:26px">', f.manager ? 'Manager on duty' : 'Hire a farm manager', 'Pickers here work 25% faster, and this farm brings in 50% more while you’re away.', f.manager ? btn('Hired', '', 'noop', false, 'blue') : !mgrOK() ? btn('Level ' + MGR_LV, 'managers come later', 'noop', false) : btn('Hire', fmt(MANAGER_COST(S.loc)) + ' coins', 'mgr', f.unlocked && S.coins >= MANAGER_COST(S.loc)));
+    h += row('<img src="' + url('worker_down_0', MGR_LOOK) + '" alt="" style="width:26px">', f.manager ? 'Manager on duty' : 'Hire a farm manager', 'Pickers here work ' + Math.round((mgrBoost(S.loc) - 1) * 100) + '% faster, more with training, and this farm brings in 50% more while you’re away.', f.manager ? btn('Hired', '', 'noop', false, 'blue') : !mgrOK() ? btn('Level ' + MGR_LV, 'managers come later', 'noop', false) : btn('Hire', fmt(MANAGER_COST(S.loc)) + ' coins', 'mgr', f.unlocked && S.coins >= MANAGER_COST(S.loc)));
     h += '<h3>Mill staff</h3>';
-    h += row(img('green_sack', 34), 'Mill foreman', 'Starts lots on free racks and sells them when they’re dry, even while you’re on another tab.', S.staff.foreman ? btn('Hired', '', 'noop', false, 'blue') : !foremanOK() ? btn('Prestige ' + FOREMAN_P, 'run the mill yourself first', 'noop', false) : btn('Hire', fmt(FOREMAN_COST) + ' coins', 'foreman', S.coins >= FOREMAN_COST));
+    h += row(img('green_sack', 34), 'Mill foreman', 'Starts lots on free racks and sells them when they’re dry, even while you’re on another tab. Sells at ' + Math.round(foremanPay() * 100) + '% of your price; training raises it.', S.staff.foreman ? btn('Hired', '', 'noop', false, 'blue') : !foremanOK() ? btn('Prestige ' + FOREMAN_P, 'run the mill yourself first', 'noop', false) : btn('Hire', fmt(FOREMAN_COST) + ' coins', 'foreman', S.coins >= FOREMAN_COST));
     if (S.staff.foreman) h += '<p class="note">Foreman’s process:</p><div class="seg">' + ['best'].concat(Object.keys(METHODS).filter((k) => S.methods[k])).map((k) => '<button type="button" data-act="rule:' + k + '" aria-pressed="' + (S.staff.rule === k) + '">' + (k === 'best' ? 'Best paying' : METHODS[k].name) + '</button>').join('') + '</div>';
     if (S.staff.foreman && hasPerk('notebook')) {
       const rules = S.staff.rules || {};
       h += '<p class="note"><b>Foreman\'s ledger:</b> a process for each coffee. "Main rule" follows the choice above. Buyers waiting for a coffee still come first.</p>' + VAR_ORDER.filter((v) => S.vars[v]).map((v) => '<label class="nb-row"><span>' + ART.varieties[v] + '</span><select data-rulev="' + v + '" aria-label="Process for ' + ART.varieties[v] + '"><option value="">Main rule</option>' + Object.keys(METHODS).filter((k) => S.methods[k]).map((k) => '<option value="' + k + '"' + (rules[v] === k ? ' selected' : '') + '>' + METHODS[k].name + '</option>').join('') + '</select></label>').join('');
     } else if (S.staff.foreman) h += '<p class="note">At prestige 7 the Foreman\'s ledger lets you set his process for each coffee.</p>';
-    h += row(img('board', 34), 'Contracts agent', 'Delivers finished lots to matching contracts first, tells the foreman which process buyers want, and adds a fourth contract slot.' + (buyersOn() ? '' : ' Buyers start posting contracts at level 5, so he has nothing to do before then.'), S.staff.agent ? btn('Hired', '', 'noop', false, 'blue') : !agentOK() ? btn(S.prestige >= AGENT_P ? 'Level ' + AGENT_LV : 'Prestige ' + AGENT_P, 'comes later', 'noop', false) : btn('Hire', fmt(AGENT_COST) + ' coins', 'agent', S.staff.foreman && S.coins >= AGENT_COST));
+    h += row(img('board', 34), 'Contracts agent', 'Delivers finished lots to matching contracts first, tells the foreman which process buyers want, and adds a fourth contract slot. His deliveries pay ' + Math.round(agentPay() * 100) + '% of yours; training raises it.' + (buyersOn() ? '' : ' Buyers start posting contracts at level 5, so he has nothing to do before then.'), S.staff.agent ? btn('Hired', '', 'noop', false, 'blue') : !agentOK() ? btn(S.prestige >= AGENT_P ? 'Level ' + AGENT_LV : 'Prestige ' + AGENT_P, 'comes later', 'noop', false) : btn('Hire', fmt(AGENT_COST) + ' coins', 'agent', S.staff.foreman && S.coins >= AGENT_COST));
     if (roasteryOpen()) h += '<h3>Roastery staff</h3>';
     if (roasteryOpen()) h += row(img('roaster_0', 34), 'Head roaster', 'Starts the best roast on free roasters, leaving you one while you play, and keeps roasting at half pace while you\'re away. Catches ' + Math.round(roasterCatch() * 100) + '% of first cracks, without the instant finish. His roasts earn no season stars.', S.staff.roaster ? btn('Hired', '', 'noop', false, 'blue') : !roasterOK() ? btn('Reputation ' + ROASTER_REP, 'roast more first', 'noop', false) : btn('Hire', fmtShort(ROASTER_COST) + ' coins', 'hireroaster', S.coins >= ROASTER_COST));
-    if (S.prestige >= ESTATE_P) { h += '<h3>Estate managers</h3>' + help('emgrs', 'One for each estate chore, hired from the estate card.', 'Do an estate chore yourself a few times, then hire its manager from the estate card. They work at 40% of your result, +5% per training level.');
+    if (S.prestige >= ESTATE_P) { h += '<h3>Estate managers</h3>' + help('emgrs', 'One for each estate chore, hired from the estate card.', 'Do an estate chore yourself a few times, then hire its manager from the estate card. They work at 40% of your result, +3% per training level, up to 100%.');
       h += EM_LOCS.map((l) => { const M = EMGR[l], face = '<img src="' + url('worker_down_0', M.look) + '" alt="" style="width:26px;image-rendering:pixelated">';
         return row(face, M.name + ' · ' + M.role + ' · ' + fname(l), emHired(l) ? 'Hired · works at ' + Math.round(emEff(l) * 100) + '% of you' : est(l) < M.stage ? 'Build ' + fname(l) + '\'s estate to stage ' + M.stage + ' first' : 'Do the chore yourself ' + M.need + ' times (' + Math.min(choreN(M.chore), M.need) + '/' + M.need + ')', emHired(l) ? btn('Hired', '', 'noop', false, 'blue') : btn(emCan(l) ? 'Hire' : 'Locked', emCan(l) ? fmtShort(emHire(l)) + ' coins' : '', emCan(l) ? 'emhire:' + l : 'noop', emCan(l) && S.coins >= emHire(l), 'green')); }).join(''); }
     if (!S.staff.foreman) h += '<p class="note">Hire the mill foreman before the contracts agent.</p>';
-    h += '<h3>Training</h3>';
-    if (S.prestige < TRAIN_P) h += help('train', 'Staff training opens at prestige ' + TRAIN_P + '.', 'Each training level: a manager\'s pickers 5% faster, the foreman\'s lots dry 5% faster, the agent\'s contracts pay 5% more. Up to level ' + TRAIN_MAX + '.');
-    else {
-      const tr = (who, label, what, ok) => { const l = trainLv(who, S.loc), c = trainCost(who, S.loc); return row(img('i_points', 26), label + ' · training ' + l + ' / ' + TRAIN_MAX, what + ' Now +' + l * 5 + '%.', !ok ? btn('Hire first', '', 'noop', false) : l >= TRAIN_MAX ? btn('Fully trained', '', 'noop', false, 'blue') : btn('Train', fmt(c) + ' coins', 'train:' + who, S.coins >= c)); };
-      h += '<p class="note">Training stays with your staff through every prestige.</p>' + tr('mgr', ART.locations[S.loc].name.split(',')[0] + ' manager', 'Pickers on this farm work 5% faster per level.', !!f.manager) + tr('foreman', 'Mill foreman', 'Lots dry 5% faster per level.', S.staff.foreman) + tr('agent', 'Contracts agent', 'New contracts pay 5% more per level.', S.staff.agent) + (roasteryOpen() ? tr('roaster', 'Head roaster', 'Catches 5% more first cracks per level.', S.staff.roaster) : '') + EM_LOCS.filter((l) => emHired(l)).map((l) => tr('em_' + l, EMGR[l].name + ' · ' + EMGR[l].role, 'Works 5% closer to you per level.', true)).join('');
-    }
+    h += '<h3>Training</h3>' + help('train', 'Spend know-how to train your staff. Training stays through every prestige.', 'Spend know-how to train your staff, up to level ' + TRAIN_MAX + '. Each level is a small step, and training stays through every prestige, so fully trained staff beat what they started at by a long way.');
+    const tr = (who, label, now, next, ok) => { const l = trainLv(who, S.loc), c = trainCost(who, S.loc); return row(img('i_points', 26), label + ' · training ' + l + ' / ' + TRAIN_MAX, now + (l < TRAIN_MAX ? ' Next level: ' + next + '.' : ''), !ok ? btn('Hire first', '', 'noop', false) : l >= TRAIN_MAX ? btn('Fully trained', '', 'noop', false, 'blue') : btn('Train', fmt(c) + ' know-how', 'train:' + who, S.points >= c)); };
+    const pc = (x) => Math.round(x * 100) + '%', mL = trainLv('mgr', S.loc), fL = trainLv('foreman'), aL = trainLv('agent'), rL = trainLv('roaster');
+    h += tr('mgr', ART.locations[S.loc].name.split(',')[0] + ' manager', 'Pickers here work ' + pc(0.05 + 0.04 * mL) + ' faster.', pc(0.09 + 0.04 * mL), !!f.manager) +
+      tr('foreman', 'Mill foreman', 'Sells at ' + pc(0.85 + 0.015 * fL) + ' of your price; lots dry ' + pc(0.03 * fL) + ' faster.', pc(0.865 + 0.015 * fL) + ' and ' + pc(0.03 * (fL + 1)), S.staff.foreman) +
+      tr('agent', 'Contracts agent', 'His deliveries pay ' + pc(0.85 + 0.015 * aL) + ' of yours.', pc(0.865 + 0.015 * aL), S.staff.agent) +
+      (roasteryOpen() ? tr('roaster', 'Head roaster', 'Catches ' + pc(0.3 + 0.03 * rL) + ' of first cracks.', pc(0.33 + 0.03 * rL), S.staff.roaster) : '') +
+      EM_LOCS.filter((l) => emHired(l)).map((l) => { const eL = trainLv('em_' + l); return tr('em_' + l, EMGR[l].name + ' · ' + EMGR[l].role, 'Works at ' + pc(0.4 + 0.03 * eL) + ' of you.', pc(0.43 + 0.03 * eL), true); }).join('');
     }
   } else if (tab === 'unlock') {
     const nt = ['coffees', 'processes', 'farms', 'research', 'notebook'].includes(S.unTab) ? S.unTab : 'coffees', nextFarm = LOCS.find((l) => canOpen(l));
@@ -4234,7 +4243,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'tech') { const t = TECH.find((x) => x.id === v); if (t && !techOwn(v) && techOpen(t) && spend('points', t.cost)) { S.tech[v] = true; toast(t.name + ' learned: ' + t.text.toLowerCase()); } }
   else if (a === 'research') { if (researchOpen() && spend('points', researchCost())) { S.research = (S.research || 0) + 1; toast('Cupping research level ' + S.research); } }
   else if (a === 'mgr') { if (!f.manager && mgrOK() && spend('coins', MANAGER_COST(S.loc))) { f.manager = { x: 150, y: 94, tx: 150, ty: 94, t: 0, walk: 0, dir: 'down' }; toast('Your manager takes over at ' + ART.locations[S.loc].name.split(',')[0]); } }
-  else if (a === 'train') { if (S.prestige >= TRAIN_P) { const who = v, l = trainLv(who, S.loc), c = trainCost(who, S.loc), ok = who === 'mgr' ? !!f.manager : who.startsWith('em_') ? emHired(who.slice(3)) : !!S.staff[who]; if (ok && l < TRAIN_MAX && spend('coins', c)) { S.train = S.train || { mgr: {} }; if (who === 'mgr') { S.train.mgr = S.train.mgr || {}; S.train.mgr[S.loc] = l + 1; } else S.train[who] = l + 1; toast('Training level ' + (l + 1) + ': +' + (l + 1) * 5 + '%'); } } }
+  else if (a === 'train') { { const who = v, l = trainLv(who, S.loc), c = trainCost(who, S.loc), ok = who === 'mgr' ? !!f.manager : who.startsWith('em_') ? emHired(who.slice(3)) : !!S.staff[who]; if (ok && l < TRAIN_MAX && spend('points', c)) { S.train = S.train || { mgr: {} }; if (who === 'mgr') { S.train.mgr = S.train.mgr || {}; S.train.mgr[S.loc] = l + 1; } else S.train[who] = l + 1; toast('Training level ' + (l + 1) + ' of ' + TRAIN_MAX); } } }
   else if (a === 'foreman') { if (!S.staff.foreman && foremanOK() && spend('coins', FOREMAN_COST)) { S.staff.foreman = true; toast('The mill foreman starts work'); } }
   else if (a === 'hireroaster') { if (!S.staff.roaster && roasterOK() && spend('coins', ROASTER_COST)) { S.staff.roaster = true; showModal(coachCard('Head roaster', 'Your head roaster starts today. He\'ll keep the drums going, and always leave one roaster for you.')); } }
   else if (a === 'emhire') { if (EMGR[v] && emCan(v) && spend('coins', emHire(v))) { S.emgr = S.emgr || {}; S.emgr[v] = true; SFX.play('achieve'); showModal(coachCard(EMGR[v].role, EMGR[v].name + ' starts today at ' + fname(v) + '. They step in only once you\'ve had your chance.'), true); } }
