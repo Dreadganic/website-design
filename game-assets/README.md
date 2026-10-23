@@ -594,7 +594,19 @@ Every staff member trains with know-how from the day they're hired, instead of w
   - Tap it to switch between half and full.
   - Drag it up for full, or down for half; dragging down from half puts the sheet away.
   - Pulling down from the top of a full page, or scrolling up past the top with a mouse wheel once the page has stopped there, returns to half. The tail of a fast flick to the top doesn't count.
-  - A new tab always opens at half. Every sheet has the same header: the tab's icon, its name and the ▾. Pages no longer repeat the tab's name as their first heading. The gear opens Settings the same way. On short phones the sheet starts a little higher so at least 320 px of it shows.
+  - A new tab always opens at half.
+- **Map tabs** (from playtest feedback). Farm, Mill and Roast move the map (`mapTab`, `MAP_TABS`); the other tabs open over whichever map is showing, so opening Unlock from the Mill keeps the mill behind it.
+  - Tapping a map tab you aren't on shows its map with the menu put away.
+  - Tapping it again opens its menu full screen; a third tap puts it away.
+  - Travelling between farms with ◀ ▶, or with a farm chip in Unlock › Farms, also puts the menu away.
+  - Rosa's "Show me" buttons and the lessons still open their page directly, at half height.
+- **Finished things fold away** (`doneStrip()`). These collapse into one line of small ✓ chips at the bottom of their list, so each page starts with what's still to do:
+  - maxed upgrades (storage, pickers, racks, stamina, the fourth field);
+  - maxed buildings;
+  - fully trained staff;
+  - owned coffees and processes, and learned techniques;
+  - open farms, whose chips still take you there.
+- **One row per staff member.** Farm › Staff shows Hire until someone is hired, then their training level and Train button in the same row. The separate Training section is gone. Every sheet has the same header: the tab's icon, its name and the ▾. Pages no longer repeat the tab's name as their first heading. The gear opens Settings the same way. On short phones the sheet starts a little higher so at least 320 px of it shows.
 - **What stays the same.** Tab styling, dots, locks and every page's content are unchanged; the page only builds while its sheet is open (the checks it runs keep going). The golden-bush button puts the sheet away so the bush is in view.
 - **Guide and arrows.** With the sheet put away, the guide bar floats over the bottom of the map, and the toast and sound buttons sit above it. With a sheet open, the guide bar moves into the sheet under its header, so the map above stays clear. A walk to a button further down a sheet scrolls the sheet to it. A map spot under the open sheet points at its tab first; tapping that tab puts the sheet away and the arrow moves to the spot.
 - **Farms (192 x 352).** The top 214 rows are as before. Below the fields:
