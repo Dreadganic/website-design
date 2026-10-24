@@ -60,8 +60,9 @@ exports.handler = async (event) => {
   if (!me) return G.json(401, { error: "sign_in" });
   const b = G.parse(event);
   if (!b) return G.json(400, { error: "bad_json" });
-  const name = G.cleanName(b.name);
+  let name = G.cleanName(b.name);
   if (!name) return G.json(422, { error: "bad_name" });
+  if (name.toLowerCase() === "you") name = "Farmer " + me.id.slice(2).replace(/[^A-Za-z0-9]/g, "").slice(0, 4).toUpperCase();   /* the game's default name: on a shared board everyone else would see a stranger called You */
   const key = "scores/" + me.id, prev = await store.get(key);
   const nextSeasonP = prev && prev.season !== season ? Math.min(b.seasonP | 0, 1) : b.seasonP | 0;   /* a new season starts the season count again */
   const next = { prestige: b.prestige | 0, seasonP: nextSeasonP, seasonKh: Math.floor(Number(b.seasonKh) || 0), seasonStars: Math.floor(Number(b.seasonStars) || 0), level: b.level | 0, points: Math.floor(Number(b.points) || 0) };

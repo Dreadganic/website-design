@@ -249,3 +249,14 @@ test("scores: in the welcome window a farm that grew offline joins with its prog
   const c = await newPlayer();
   assert.equal((await call(score, "POST", s(3, 2, 250000), c)).body.error, "too_far_for_a_new_player", "after the window a new farm starts small again");
 });
+
+test("scores: a farm still called You shows as Farmer and a tag of its own", async () => {
+  const a = await newPlayer(), id = a.split(".")[0];
+  const r = await call(score, "POST", { name: "You", prestige: 0, seasonP: 0, level: 1, points: 0 }, a);
+  assert.equal(r.status, 200);
+  const row = await store.get("scores/" + id);
+  assert.match(row.name, /^Farmer [A-Z0-9]{4}$/);
+  assert.equal(row.name, "Farmer " + id.slice(2).replace(/[^A-Za-z0-9]/g, "").slice(0, 4).toUpperCase(), "the same tag every time");
+  clock += 60e3; await call(score, "POST", { name: "Mika", prestige: 0, seasonP: 0, level: 1, points: 0 }, a);
+  assert.equal((await store.get("scores/" + id)).name, "Mika", "a chosen name replaces it");
+});
