@@ -30,5 +30,6 @@ python3 game-assets/sim/mktest.py /tmp/beju-farm.html /tmp/test.html          # 
 node game-assets/sim/ui_sweep.js /tmp/test.html fresh /tmp/sweep fresh       # or a run.js output instead of "fresh"; then [width] [height] [prep js]
 node game-assets/sim/online_e2e.js /tmp/test.html /tmp/online                 # the real functions behind a local server, two browser devices
 node game-assets/sim/names_e2e.js /tmp/test.html /tmp/names                   # the name window, unique names, renames and the offline copy (24 checks)
+node game-assets/sim/notes_e2e.js /tmp/t_fn.html /tmp/notes                   # co-op order size and Claim, every Claim button, the request rack, the Shop lock, the farm bar, farms and the menu (needs API '/fn/', as for community_e2e.js)
 ```
 `ui_sweep.js` opens every tab and sub-page, saves a screenshot of each and lists sideways scrolling, clipped buttons, broken images and "undefined"/"NaN" text (it should report 0 issues and 0 errors). `online_e2e.js` prints PASS or FAIL for: going online, saving, moving a farm with a code and with the recovery code, a used code, the newer-save choice (nothing overwritten while it's open), name checks and a reset restarting the leaderboard row.

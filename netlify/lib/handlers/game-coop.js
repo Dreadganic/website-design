@@ -34,15 +34,14 @@ async function prune(store, coop, now) {   /* a member gone a month leaves, so a
   if (keep.length === coop.members.length) return;
   coop.members = keep; await store.set("coops/" + coop.id, coop); await reindex(store, coop, now);
 }
-async function baseline(store, coop, pid, wk, now) {   /* what a member is expected to bring in a week; 0 for someone away a week who brought nothing last week */
+async function baseline(store, coop, pid, wk, now) {   /* what a member is expected to bring in a week: the more of last week's share and what their farm makes now (coopEst, from the game); 0 for someone away a week who brought nothing last week */
   const last = await store.get("coops/" + coop.id + "/week/" + C.prevWeek(wk));
-  const had = last && last.shares && last.shares[pid];
-  if (had > 0) return had;
-  if (awayFor(coop, pid, await scoreRow(store, pid), now) >= C.COOP_AWAY_DAYS * C.DAY) return 0;
+  const had = (last && last.shares && last.shares[pid]) || 0;
+  if (!had && awayFor(coop, pid, await scoreRow(store, pid), now) >= C.COOP_AWAY_DAYS * C.DAY) return 0;
   const p = await store.get("players/" + pid);
-  return Math.max(C.COOP_NEW_BASE, Math.floor((p && p.coopEst) || 0));
+  return Math.max(had, C.COOP_NEW_BASE, Math.floor((p && p.coopEst) || 0));   /* farms grow fast, so last week alone made orders far too small */
 }
-const orderSize = (base, active) => Math.max(C.COOP_MIN_PER * Math.max(1, active), Math.round(base * C.COOP_SHARE / 100) * 100);   /* 80% of last week, so an ordinary week reaches the top tier */
+const orderSize = (base, active) => Math.max(C.COOP_MIN_PER * Math.max(1, active), Math.round(base * C.coopSize(active) / 100) * 100);
 async function weekOf(store, coop, wk, now) {   /* this week's order, made on first touch */
   const key = "coops/" + coop.id + "/week/" + wk; let w = await store.get(key);
   if (!w) {
@@ -97,6 +96,7 @@ exports.handler = async (event) => {
   const act = b.act;
   if (act === "create" || act === "join" || act === "find") {
     if (coop) return G.json(422, { error: "already_in_a_coop" });
+    if (b.est > 0) me.coopEst = Math.min(1e9, Math.floor(b.est));   /* what the farm makes now, so a new member's first order fits their farm (joinCoop saves it) */
     let target = null;
     if (act === "create") {
       const name = C.cleanCoopName(b.name); if (!name) return G.json(422, { error: "bad_name" });

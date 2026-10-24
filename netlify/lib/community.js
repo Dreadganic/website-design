@@ -51,7 +51,8 @@ function harvestAllowed(unit, lastAt, starts, now) {
 const COOP_MAX = 8;
 const COOP_PROCESSES = ["washed", "natural", "honey"];   /* the weekly co-op order rotates through the processes everyone has */
 const COOP_TIERS = [[0.25, 1], [0.5, 2], [0.75, 3], [1, 4]];   /* share of the order reached, cranes for each member who helped: 10 in all, like the solo weekly order, so play cranes stay low */
-const COOP_MIN_PER = 1000, COOP_NEW_BASE = 1000, COOP_SHARE = 0.8;   /* kg of green coffee: at least 1,000 per active member; a new member counts as 1,000 until they have a week behind them; the order asks for 80% of what the members brought last week */
+const COOP_MIN_PER = 2000, COOP_NEW_BASE = 2000;   /* kg of green coffee: at least 2,000 per active member, and a member the server knows nothing about counts as 2,000 */
+const coopSize = (active) => 1 + 0.1 * (Math.max(1, active) - 1);   /* each member's usual week of the process, times 1.1 for 2 members up to 1.7 for 8: a bigger co-op asks more of everyone */
 const COOP_AWAY_DAYS = 7, COOP_GONE_DAYS = 30;   /* away a week: not counted in the order; away a month: leaves the co-op, freeing the place */
 const STICKERS = ["hello", "thanks", "nice", "onit", "washed", "natural", "honey", "roast", "golden", "prestige", "harvest", "night"];
 const HELPS_PER_DAY = 3;   /* how many helps one farmer can receive in a day; each speeds their drying by 10% */
@@ -66,4 +67,4 @@ const coopAutoName = (n) => "Cooperativa " + COOP_WORDS[n % COOP_WORDS.length] +
 const coopAllowed = (baseline, lastAt, now) => Math.round(Math.max(5000, baseline * 0.5) * Math.max(1 / 60, Math.min(12, (now - (lastAt || now - 3600e3)) / 3600e3)) + baseline);
 
 module.exports = { JST, DAY, weekKey, weekStart, prevWeek, activePlayers, HARVEST_GOALS, HARVEST_UNIT, firstSaturday, harvestFor, harvestAllowed,
-  COOP_MAX, COOP_PROCESSES, COOP_TIERS, COOP_MIN_PER, COOP_NEW_BASE, COOP_SHARE, COOP_AWAY_DAYS, COOP_GONE_DAYS, STICKERS, HELPS_PER_DAY, coopProcess, cleanCoopName, coopAutoName, coopAllowed };
+  COOP_MAX, COOP_PROCESSES, COOP_TIERS, COOP_MIN_PER, COOP_NEW_BASE, coopSize, COOP_AWAY_DAYS, COOP_GONE_DAYS, STICKERS, HELPS_PER_DAY, coopProcess, cleanCoopName, coopAutoName, coopAllowed };
