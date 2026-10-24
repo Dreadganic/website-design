@@ -1,0 +1,1182 @@
+{
+ "pig_0": {
+  "w": 16,
+  "h": 12,
+  "rows": [
+   "................",
+   "...OO...........",
+   "..OpPO..........",
+   ".OpppOOOOOOOO...",
+   "OOppwwppppppPO..",
+   "nnpeppppppppPPO.",
+   "nnppppppppppPPOO",
+   "OOpppppppppPPPOO",
+   "..OPPPPPPPPPPO..",
+   "..OPO.OPO.OPO...",
+   "..OO..OO..OO....",
+   "..aaaaaaaaaaa..."
+  ],
+  "pal": {
+   "O": "#3E2A1C",
+   "p": "#F4A8B0",
+   "P": "#D87C8C",
+   "n": "#C05C70",
+   "e": "#2E1E18",
+   "w": "#FFE4E8",
+   "a": "#2A2A0850"
+  }
+ },
+ "pig_1": {
+  "w": 16,
+  "h": 12,
+  "rows": [
+   "................",
+   "...OO...........",
+   "..OpPO..........",
+   ".OpppOOOOOOOO...",
+   "OOppwwppppppPO..",
+   "nnpeppppppppPPO.",
+   "nnppppppppppPPOO",
+   "OOpppppppppPPPOO",
+   "..OPPPPPPPPPPO..",
+   ".OPO.OPO..OPO...",
+   ".OO..OO...OO....",
+   "..aaaaaaaaaaa..."
+  ],
+  "pal": {
+   "O": "#3E2A1C",
+   "p": "#F4A8B0",
+   "P": "#D87C8C",
+   "n": "#C05C70",
+   "e": "#2E1E18",
+   "w": "#FFE4E8",
+   "a": "#2A2A0850"
+  }
+ },
+ "pig_gold": {
+  "w": 16,
+  "h": 12,
+  "rows": [
+   "................",
+   "...OO...........",
+   "..OpPO..........",
+   ".OpppOOOOOOOO...",
+   "OOppwwppppppPO..",
+   "nnpeppppppppPPO.",
+   "nnppppppppppPPOO",
+   "OOpppppppppPPPOO",
+   "..OPPPPPPPPPPO..",
+   "..OPO.OPO.OPO...",
+   "..OO..OO..OO....",
+   "..aaaaaaaaaaa..."
+  ],
+  "pal": {
+   "O": "#3E2A1C",
+   "p": "#F8D870",
+   "P": "#D8A838",
+   "n": "#B07820",
+   "e": "#2E1E18",
+   "w": "#FFF6C8",
+   "a": "#2A2A0850"
+  }
+ },
+ "dirt": {
+  "w": 20,
+  "h": 6,
+  "rows": [
+   "....OO.....OO.......",
+   "..OOddO..OOldO..OO..",
+   ".OdlDdDOOdDddOOOldO.",
+   "ODdddlDdDddlDdDdddDO",
+   ".ODDdDDdlDDdDDldDDO.",
+   "..OOOOOOOOOOOOOOOO.."
+  ],
+  "pal": {
+   "O": "#3E2A1C",
+   "d": "#7A4A28",
+   "D": "#5A3418",
+   "l": "#9A6438"
+  }
+ },
+ "rust": {
+  "w": 18,
+  "h": 22,
+  "rows": [
+   "..................",
+   "..................",
+   "..................",
+   "..................",
+   ".........rr.......",
+   "....rR...Ry.......",
+   "..........r.......",
+   "...yr.........rR..",
+   "...Rr.........y...",
+   "........rr........",
+   "....r...yR....r...",
+   "..............R...",
+   "..rR..............",
+   "..........ry......",
+   ".......r..Rr......",
+   "..................",
+   "...........rR.....",
+   "..................",
+   "..................",
+   "..................",
+   "..................",
+   ".................."
+  ],
+  "pal": {
+   "r": "#E8802A",
+   "R": "#B85818",
+   "y": "#F8B848"
+  }
+ },
+ "leaf_drop": {
+  "w": 8,
+  "h": 5,
+  "rows": [
+   ".g...G..",
+   "gG..rG..",
+   ".G....g.",
+   "...gG...",
+   "..G..r.."
+  ],
+  "pal": {
+   "g": "#8CB04A",
+   "G": "#5E7E2C",
+   "r": "#E8802A"
+  }
+ },
+ "monkey_0": {
+  "w": 14,
+  "h": 14,
+  "rows": [
+   "..OOOO........",
+   ".ObbbbO.......",
+   "ObffffbO......",
+   "ObfefefO......",
+   "ObffffbO..OOO.",
+   ".OObbOkcOcO..O",
+   "..ObbOcCcCO.O.",
+   "..OBbOckcCO.O.",
+   "..ObbbOCCO.O..",
+   "..OBBbbOObO...",
+   "..OBO.OBBO....",
+   ".OBO...OBO....",
+   ".OO.....OO....",
+   "..aaaaaaa....."
+  ],
+  "pal": {
+   "O": "#3E2A1C",
+   "b": "#8A5A34",
+   "B": "#6A4024",
+   "f": "#F4D2A8",
+   "e": "#2E1E18",
+   "c": "#E83A30",
+   "C": "#9A1C20",
+   "k": "#FFB4A0",
+   "a": "#2A2A0850"
+  }
+ },
+ "monkey_1": {
+  "w": 14,
+  "h": 14,
+  "rows": [
+   "..OOOO........",
+   ".ObbbbO.......",
+   "ObffffbO......",
+   "ObfefefO......",
+   "ObffffbO...OO.",
+   ".OObbOkcOcO..O",
+   "..ObbOcCcCO..O",
+   "..OBbOckcCO.O.",
+   "..ObbbOCCO.O..",
+   "..OBBbbOObO...",
+   "...OBOBBO.....",
+   "...OBOOBO.....",
+   "...OO.OO......",
+   "..aaaaaaa....."
+  ],
+  "pal": {
+   "O": "#3E2A1C",
+   "b": "#8A5A34",
+   "B": "#6A4024",
+   "f": "#F4D2A8",
+   "e": "#2E1E18",
+   "c": "#E83A30",
+   "C": "#9A1C20",
+   "k": "#FFB4A0",
+   "a": "#2A2A0850"
+  }
+ },
+ "monkey_e": {
+  "w": 14,
+  "h": 14,
+  "rows": [
+   "..OOOO........",
+   ".ObbbbO.......",
+   "ObffffbO......",
+   "ObfefefO......",
+   "ObffffbO..OOO.",
+   ".OObbbbOOO...O",
+   "..ObbbbbbO..O.",
+   "..OBbbbbO..O..",
+   "..ObbbbbO.O...",
+   "..OBBbbbbO....",
+   "..OBO.OBBO....",
+   ".OBO...OBO....",
+   ".OO.....OO....",
+   "..aaaaaaa....."
+  ],
+  "pal": {
+   "O": "#3E2A1C",
+   "b": "#8A5A34",
+   "B": "#6A4024",
+   "f": "#F4D2A8",
+   "e": "#2E1E18",
+   "c": "#E83A30",
+   "C": "#9A1C20",
+   "k": "#FFB4A0",
+   "a": "#2A2A0850"
+  }
+ },
+ "crow_sit": {
+  "w": 10,
+  "h": 9,
+  "rows": [
+   "...OOO....",
+   "..OkekO...",
+   ".yOkkkO...",
+   "..OkkkKO..",
+   "..OkkkKKO.",
+   "...OkKKKOO",
+   "....OOOO..",
+   "....y.y...",
+   "...aaaaa.."
+  ],
+  "pal": {
+   "O": "#1E1A22",
+   "k": "#3A3448",
+   "K": "#2A2634",
+   "y": "#F2C04A",
+   "e": "#FFFFFF",
+   "a": "#2A2A0850"
+  }
+ },
+ "crow_fly0": {
+  "w": 12,
+  "h": 8,
+  "rows": [
+   "O..........O",
+   "OkO......OkO",
+   ".OkO.OO.OkO.",
+   "..OkOkeOkO..",
+   "...OkkkkOy..",
+   "....OKKO....",
+   ".....OO.....",
+   "............"
+  ],
+  "pal": {
+   "O": "#1E1A22",
+   "k": "#3A3448",
+   "K": "#2A2634",
+   "y": "#F2C04A",
+   "e": "#FFFFFF",
+   "a": "#2A2A0850"
+  }
+ },
+ "crow_fly1": {
+  "w": 12,
+  "h": 8,
+  "rows": [
+   "............",
+   "............",
+   ".....OO.....",
+   "...OOkeOO...",
+   ".OOkkkkkkOy.",
+   "OkKO.KK.OKkO",
+   "OO..OOOO..OO",
+   "............"
+  ],
+  "pal": {
+   "O": "#1E1A22",
+   "k": "#3A3448",
+   "K": "#2A2634",
+   "y": "#F2C04A",
+   "e": "#FFFFFF",
+   "a": "#2A2A0850"
+  }
+ },
+ "scarecrow_0": {
+  "w": 16,
+  "h": 22,
+  "rows": [
+   ".....OOOOOO.....",
+   "....OhhhhhhO....",
+   "...OhhhhhhHHO...",
+   ".OOOHHHHHHHHOOO.",
+   "OhhhhhhhhhhhhhHO",
+   ".OOOOOOOOOOOOOO.",
+   "....OffffffO....",
+   "....OfeffefO....",
+   "....OffffffO....",
+   ".OOOOOrrrrOOOOO.",
+   "OsSOrrRbbrrROSsO",
+   "OSsOrrrbbrrrOsSO",
+   ".OOOrrRrrRrrOOO.",
+   "....OrrrrrrO....",
+   "....OOOwwOOO....",
+   ".......ww.......",
+   ".......ww.......",
+   ".......ww.......",
+   ".......ww.......",
+   ".......ww.......",
+   ".......ww.......",
+   "......aaaa......"
+  ],
+  "pal": {
+   "O": "#3E2A1C",
+   "s": "#F4DE9C",
+   "S": "#D8B868",
+   "h": "#C89850",
+   "H": "#A07030",
+   "r": "#D84A36",
+   "R": "#A8302A",
+   "b": "#4878C8",
+   "B": "#305898",
+   "w": "#76502A",
+   "f": "#F8F0DC",
+   "e": "#2E1E18",
+   "a": "#2A2A0850"
+  }
+ },
+ "scarecrow_1": {
+  "w": 16,
+  "h": 22,
+  "rows": [
+   ".....OOOOOO.....",
+   "....OhhhhhhO....",
+   "...OhhhhhhHHO...",
+   ".OOOHHHHHHHHOOO.",
+   "OhhhhhhhhhhhhhHO",
+   ".OOOOOOOOOOOOOO.",
+   "OsO.OffffffO.OsO",
+   ".OrOOfeffefOOrO.",
+   "..OrOffffffOrO..",
+   "..OOrrrrrrrrOO..",
+   "...OrrRbbrrRO...",
+   "...OrrrbbrrrO...",
+   "...OrrRrrRrrO...",
+   "....OrrrrrrO....",
+   "....OOOwwOOO....",
+   ".......ww.......",
+   ".......ww.......",
+   ".......ww.......",
+   ".......ww.......",
+   ".......ww.......",
+   ".......ww.......",
+   "......aaaa......"
+  ],
+  "pal": {
+   "O": "#3E2A1C",
+   "s": "#F4DE9C",
+   "S": "#D8B868",
+   "h": "#C89850",
+   "H": "#A07030",
+   "r": "#D84A36",
+   "R": "#A8302A",
+   "b": "#4878C8",
+   "B": "#305898",
+   "w": "#76502A",
+   "f": "#F8F0DC",
+   "e": "#2E1E18",
+   "a": "#2A2A0850"
+  }
+ },
+ "nest": {
+  "w": 12,
+  "h": 14,
+  "rows": [
+   ".....ww.....",
+   ".....ww.....",
+   "...OOOOOO...",
+   "..OggGggGO..",
+   ".OgGGggGGgO.",
+   ".OddddddddO.",
+   "OggGggGggGgO",
+   "OGGggGGggGGO",
+   "OddddddddddO",
+   ".OgGggGgGgO.",
+   ".OGGggGGggO.",
+   "..OdddhddO..",
+   "...OgghgO...",
+   "....OOOO...."
+  ],
+  "pal": {
+   "O": "#3E2A1C",
+   "g": "#C8BCA4",
+   "G": "#A89C84",
+   "d": "#7A6E5A",
+   "h": "#2E1E18",
+   "w": "#5A4630"
+  }
+ },
+ "hornet_0": {
+  "w": 4,
+  "h": 4,
+  "rows": [
+   ".ww.",
+   "wwww",
+   "OyOy",
+   ".yO."
+  ],
+  "pal": {
+   "O": "#1E1A22",
+   "y": "#F8C830",
+   "w": "#E8F4FF"
+  }
+ },
+ "hornet_1": {
+  "w": 4,
+  "h": 4,
+  "rows": [
+   "....",
+   "w..w",
+   "OyOy",
+   "wyOw"
+  ],
+  "pal": {
+   "O": "#1E1A22",
+   "y": "#F8C830",
+   "w": "#E8F4FF"
+  }
+ },
+ "smoke": {
+  "w": 10,
+  "h": 8,
+  "rows": [
+   "...wwww...",
+   "..wwwwgw..",
+   ".wwwgwwgw.",
+   "wwgwwwwggw",
+   "wwwwwggwgw",
+   ".wggwwwgG.",
+   "..wGgggG..",
+   "....GG...."
+  ],
+  "pal": {
+   "w": "#F4F0E8",
+   "g": "#C8C4BC",
+   "G": "#A8A49C"
+  }
+ },
+ "rat_0": {
+  "w": 13,
+  "h": 7,
+  "rows": [
+   "...OO........",
+   "..OpRO.......",
+   ".OrrrrOOOO...",
+   "perrrrrrrRO..",
+   ".OOrrrrrRROpp",
+   "...OROOROO...",
+   "....aaaaa...."
+  ],
+  "pal": {
+   "O": "#3E2A1C",
+   "r": "#8A8478",
+   "R": "#6A6458",
+   "p": "#E8A0A8",
+   "e": "#2E1E18",
+   "a": "#2A2A0850"
+  }
+ },
+ "rat_1": {
+  "w": 13,
+  "h": 7,
+  "rows": [
+   "...OO........",
+   "..OpRO.......",
+   ".OrrrrOOOO...",
+   "perrrrrrrROpp",
+   ".OOrrrrrRRO..",
+   "..ORO..ORO...",
+   "....aaaaa...."
+  ],
+  "pal": {
+   "O": "#3E2A1C",
+   "r": "#8A8478",
+   "R": "#6A6458",
+   "p": "#E8A0A8",
+   "e": "#2E1E18",
+   "a": "#2A2A0850"
+  }
+ },
+ "hole": {
+  "w": 10,
+  "h": 5,
+  "rows": [
+   "..OOOOOO..",
+   ".OkkkkkkO.",
+   "OkkkkkkkkO",
+   "OKkkkkkkKO",
+   ".OOOOOOOO."
+  ],
+  "pal": {
+   "O": "#3E2A1C",
+   "k": "#1E140C",
+   "K": "#3A2818",
+   "p": "#E8A0A8",
+   "P": "#C07880"
+  }
+ },
+ "hole_tail": {
+  "w": 10,
+  "h": 7,
+  "rows": [
+   "..OOOOOO..",
+   ".OkkkkkkO.",
+   "OkkkkkkkkO",
+   "OKkkkkkkPp",
+   ".OOOOOOOOp",
+   "........pP",
+   ".......pp."
+  ],
+  "pal": {
+   "O": "#3E2A1C",
+   "k": "#1E140C",
+   "K": "#3A2818",
+   "p": "#E8A0A8",
+   "P": "#C07880"
+  }
+ },
+ "trap": {
+  "w": 10,
+  "h": 6,
+  "rows": [
+   "..........",
+   ".OOOOOOO..",
+   "OmmmmmmmO.",
+   "OwwwwwyYO.",
+   "OWWWWWYYO.",
+   ".OOOOOOO.."
+  ],
+  "pal": {
+   "O": "#3E2A1C",
+   "w": "#C8A060",
+   "W": "#A07838",
+   "m": "#B8B8B8",
+   "y": "#F8D040",
+   "Y": "#D8A020"
+  }
+ },
+ "karen": {
+  "w": 16,
+  "h": 24,
+  "rows": [
+   "................",
+   ".....OOOOOOO....",
+   "....OhhhhhhhOO..",
+   "...OhhhhhhHHkO..",
+   "...OhHHhhhhHkO..",
+   "..OhHkOOOOOhkkO.",
+   "..OhkOsSssSOhkO.",
+   "..OhkOseSSeOhkO.",
+   "..OhkOsssssOkO..",
+   "..OkkOSmmmSOkO..",
+   "...OO.OSSSO.O...",
+   "...OOccccccOO...",
+   "..OsOcCccCcOgO..",
+   "..OsOCcccCCOgO..",
+   "..OSOCCCCCCOgO..",
+   "...OODDDDDDOO...",
+   "....OppppppO....",
+   "....OpPppPpO....",
+   "....OpPOOPpO....",
+   "....OPPOOPPO....",
+   "....ObbOObbO....",
+   ".....OO..OO.....",
+   "................",
+   "....aaaaaaaa...."
+  ],
+  "pal": {
+   "O": "#3E2A1C",
+   "h": "#F8E08C",
+   "H": "#E0BC5C",
+   "k": "#B88E38",
+   "s": "#F8D2B0",
+   "S": "#E2A882",
+   "e": "#2E1E18",
+   "m": "#C8485A",
+   "c": "#E888B0",
+   "C": "#C8608C",
+   "D": "#98406A",
+   "p": "#5A6A86",
+   "P": "#3E4A64",
+   "b": "#2E1E18",
+   "g": "#F2C04A",
+   "a": "#2A2A0850"
+  }
+ },
+ "bubble_angry": {
+  "w": 15,
+  "h": 11,
+  "rows": [
+   ".OOOOOOOOOOOOO.",
+   "OwwwwwwwwwwwwwO",
+   "OwwrrwwwrwrwwwO",
+   "OwwrrwwrrwrrwwO",
+   "OwwrrwwwwwwwwwO",
+   "OwwwwwwrrwrrwwO",
+   "OwwrrwwwrwrwwwO",
+   "OwwwwwwwwwwwwwO",
+   ".OOOwwOOOOOOOO.",
+   "...OwO.........",
+   "...OO.........."
+  ],
+  "pal": {
+   "O": "#3E2A1C",
+   "w": "#FFFFFF",
+   "r": "#D84A36"
+  }
+ },
+ "bell": {
+  "w": 10,
+  "h": 9,
+  "rows": [
+   "....OO....",
+   "...OggO...",
+   "..OgwggO..",
+   ".OgwgggGO.",
+   ".OggggGGO.",
+   "OggggGGGGO",
+   "OOOOOOOOOO",
+   "OmmmmmmmmO",
+   ".OOOOOOOO."
+  ],
+  "pal": {
+   "O": "#3E2A1C",
+   "g": "#F2C04A",
+   "G": "#C89028",
+   "w": "#FFF0A0",
+   "m": "#5A4630"
+  }
+ },
+ "fusebox": {
+  "w": 16,
+  "h": 15,
+  "rows": [
+   ".OOOOOOOOOOOOOO.",
+   "OwmmmmmmmmmmmmMO",
+   "OmddddddddddddMO",
+   "OmdOOOdOOOdOOOMO",
+   "OmdOgOdOrOdOgOMO",
+   "OmdOgOdOrOdOgOMO",
+   "OmdOdOdOrOdOdOMO",
+   "OmdOdOdOdOdOdOMO",
+   "OmdOOOdOOOdOOOMO",
+   "OmddddddddddddMO",
+   "OmdyYYyyyYYYydMO",
+   "OmddddddddddddMO",
+   "OmmmmmmmmmmmmmMO",
+   "OMMMMMMMMMMMMMMO",
+   ".OOOOOOOOOOOOOO."
+  ],
+  "pal": {
+   "O": "#3E2A1C",
+   "m": "#9AA0A4",
+   "M": "#6E7478",
+   "d": "#3A3E42",
+   "g": "#5AC85A",
+   "r": "#E84A3A",
+   "y": "#F8E070",
+   "w": "#E8ECEE",
+   "Y": "#2E1E18"
+  }
+ },
+ "lantern_oil": {
+  "w": 8,
+  "h": 12,
+  "rows": [
+   "...OO...",
+   "..O..O..",
+   "..OOOO..",
+   ".ObbbbO.",
+   "OgyyygO.",
+   "OgyfygO.",
+   "OgyfygO.",
+   "OgyyygO.",
+   ".ObbbbO.",
+   "OBBBBBBO",
+   ".OOOOOO.",
+   "........"
+  ],
+  "pal": {
+   "O": "#3E2A1C",
+   "b": "#C89028",
+   "B": "#906018",
+   "g": "#FFF4C0",
+   "y": "#F8C870",
+   "f": "#F87830",
+   "a": "#2A2A0850"
+  }
+ },
+ "flame_0": {
+  "w": 12,
+  "h": 12,
+  "rows": [
+   ".....r......",
+   "....rr...r..",
+   "...roor..r..",
+   "..roor..ror.",
+   "..royor.ror.",
+   ".royyorroor.",
+   ".roywyoroyr.",
+   "rroywwyooyor",
+   "royywwyyyyor",
+   "roywwwwwyyor",
+   ".royywwyyor.",
+   "..rroooorr.."
+  ],
+  "pal": {
+   "r": "#E83A30",
+   "o": "#F87830",
+   "y": "#F8D040",
+   "w": "#FFF4C0"
+  }
+ },
+ "flame_1": {
+  "w": 12,
+  "h": 12,
+  "rows": [
+   "......r.....",
+   "..r...rr....",
+   "..rr.roor...",
+   ".ror..roor..",
+   ".ror.royor..",
+   ".roorroyyor.",
+   ".ryoroywyor.",
+   "royooywwyorr",
+   "royyyywwyyor",
+   "royywwwwwyor",
+   ".royywwyyor.",
+   "..rroooorr.."
+  ],
+  "pal": {
+   "r": "#E83A30",
+   "o": "#F87830",
+   "y": "#F8D040",
+   "w": "#FFF4C0"
+  }
+ },
+ "smoke_dark": {
+  "w": 10,
+  "h": 8,
+  "rows": [
+   "...kkgg...",
+   "..kggggk..",
+   ".kgGggGgk.",
+   "kggggGGggk",
+   "gGgkggggGg",
+   ".gggGGggg.",
+   "..GGggGG..",
+   "...gGGg..."
+  ],
+  "pal": {
+   "g": "#6A6660",
+   "G": "#4A4640",
+   "k": "#8A867E"
+  }
+ },
+ "extinguisher": {
+  "w": 6,
+  "h": 11,
+  "rows": [
+   "..OOO.",
+   ".OmmmO",
+   "..OkO.",
+   ".OrrrO",
+   "OrwrrR",
+   "OrwrrR",
+   "OrrrrR",
+   "OrrrrR",
+   "OrrrRR",
+   "ORRRRR",
+   ".OOOO."
+  ],
+  "pal": {
+   "O": "#3E2A1C",
+   "r": "#D84A36",
+   "R": "#A8302A",
+   "m": "#B8B8B8",
+   "k": "#2E1E18",
+   "w": "#F8F0DC"
+  }
+ },
+ "foam": {
+  "w": 13,
+  "h": 5,
+  "rows": [
+   "....ww.ww....",
+   ".ww.wgwwgw.w.",
+   "wgwwwwwgwwwgw",
+   ".wwgwwgwwgww.",
+   "..ww.ww..ww.."
+  ],
+  "pal": {
+   "w": "#FFFFFF",
+   "g": "#DCE8F0"
+  }
+ },
+ "firebell": {
+  "w": 12,
+  "h": 13,
+  "rows": [
+   "OOOOOOOO....",
+   "OmmmmmmO....",
+   "OOOOmOOO....",
+   "...OmO......",
+   "..OOOOO.....",
+   ".OgwgggO....",
+   "OgwggggGO...",
+   "OgwggggGO...",
+   "OggggGGGO...",
+   "OggggGGGGO..",
+   "OOOOOOOOOO..",
+   "....OrO.....",
+   ".....O......"
+  ],
+  "pal": {
+   "O": "#3E2A1C",
+   "g": "#E8B848",
+   "G": "#B88428",
+   "w": "#FFF0A0",
+   "r": "#D84A36",
+   "m": "#5A4630"
+  }
+ },
+ "tarp": {
+  "w": 40,
+  "h": 5,
+  "rows": [
+   "OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO",
+   "ObbBbbBbbBbbBbbBbbBbbBbbBbbBbbBbbBbbBbbO",
+   "OBbbBbbBbbBbbBbbBbbBbbBbbBbbBbbBbbBbbBBO",
+   "OrbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbrO",
+   ".OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO."
+  ],
+  "pal": {
+   "O": "#203C68",
+   "b": "#4878C8",
+   "B": "#305898",
+   "r": "#E8E8E8"
+  }
+ },
+ "stake": {
+  "w": 3,
+  "h": 8,
+  "rows": [
+   ".O.",
+   "OwO",
+   "OwO",
+   "OsO",
+   "OwO",
+   "OWO",
+   "OWO",
+   ".O."
+  ],
+  "pal": {
+   "O": "#3E2A1C",
+   "w": "#C8A060",
+   "W": "#A07838",
+   "s": "#F8F0DC"
+  }
+ },
+ "shutters": {
+  "w": 22,
+  "h": 11,
+  "rows": [
+   "OOOOOOOOOOOOOOOOOOOOOO",
+   "OgGgGgGgGgOOgGgGgGgGgO",
+   "OgGgGgGgGgOOgGgGgGgGgO",
+   "OWWWWWWWWWWWWWWWWWWWWO",
+   "OgGgGgGgGgOOgGgGgGgGgO",
+   "OgGgGgGgGgOOgGgGgGgGgO",
+   "OgGgGgGgGgOOgGgGgGgGgO",
+   "OWWWWWWWWWWWWWWWWWWWWO",
+   "OgGgGgGgGgOOgGgGgGgGgO",
+   "OgGgGgGgGgOOgGgGgGgGgO",
+   "OOOOOOOOOOOOOOOOOOOOOO"
+  ],
+  "pal": {
+   "O": "#3E2A1C",
+   "g": "#4A8E66",
+   "G": "#2D6A46",
+   "w": "#C8A060",
+   "W": "#A07838",
+   "n": "#B8B8B8"
+  }
+ },
+ "cloud_storm": {
+  "w": 16,
+  "h": 10,
+  "rows": [
+   ".....OOOO.......",
+   "...OOggggOOO....",
+   "..OggggggggOO...",
+   ".OgggGGggggggO..",
+   "OggGGGGGggGGggO.",
+   "OGGGddGGGGGGdGO.",
+   ".OddOOyOOOddddO.",
+   "..OO.yy...OOOO..",
+   ".....yyy........",
+   ".......y........"
+  ],
+  "pal": {
+   "O": "#2A3040",
+   "g": "#8A94A8",
+   "G": "#6A7488",
+   "d": "#4A5468",
+   "y": "#F8E070"
+  }
+ },
+ "weathervane": {
+  "w": 16,
+  "h": 18,
+  "rows": [
+   "...OO...........",
+   "..OgGO..........",
+   ".OgggOOOOOOOO...",
+   "OOggggggggggGO..",
+   "GGggggggggggGGO.",
+   "GGggggggggggGGOO",
+   "OOgggggggggGGGOO",
+   "..OGGGGGGGGGGO..",
+   "..OGO.OGO.OGO...",
+   "..OO..OO..OO....",
+   ".......OO.......",
+   "...O...OO...O...",
+   "..OGOOOOOOOOGGO.",
+   "...O...OO...O...",
+   ".......OO.......",
+   ".......OO.......",
+   ".......OO.......",
+   "......OOOO......"
+  ],
+  "pal": {
+   "O": "#3E2A1C",
+   "g": "#E8B848",
+   "G": "#B88428"
+  }
+ },
+ "lens": {
+  "w": 10,
+  "h": 10,
+  "rows": [
+   "..OOOOO...",
+   ".OgggggO..",
+   "OgbwbbbgO.",
+   "OgwbblbgO.",
+   "OgbblrBgO.",
+   "OgbbBBBgO.",
+   ".OgggggOO.",
+   "..OOOOOOGO",
+   ".......OGO",
+   "........O."
+  ],
+  "pal": {
+   "O": "#3E2A1C",
+   "g": "#F2C04A",
+   "G": "#B88428",
+   "b": "#A8D8F0",
+   "B": "#78B0D8",
+   "w": "#FFFFFF",
+   "r": "#E8802A",
+   "l": "#8CB04A"
+  }
+ },
+ "plush": {
+  "w": 12,
+  "h": 12,
+  "rows": [
+   "..OO..OO....",
+   ".ObbOObbO...",
+   ".ObfbbfbO...",
+   "ObffffffbO..",
+   "ObfeffefbO..",
+   "ObffrrffbO..",
+   ".ObbffbbO...",
+   "ObbbbbbbbO.O",
+   "ObfbbbbfbOOb",
+   "ObbbbbbbbOb.",
+   ".ObOOOObO...",
+   "..aaaaaa...."
+  ],
+  "pal": {
+   "O": "#3E2A1C",
+   "b": "#B88A60",
+   "B": "#8A6440",
+   "f": "#F8E0C0",
+   "e": "#2E1E18",
+   "r": "#D84A36",
+   "a": "#2A2A0850"
+  }
+ },
+ "beehat": {
+  "w": 14,
+  "h": 10,
+  "rows": [
+   "....OOOOOO....",
+   "...OssssssO...",
+   "..OssssssSSO..",
+   ".OOySSSSSSyOO.",
+   "OssssssssssssO",
+   ".OOOOOOOOOOOO.",
+   ".OvVvVvVvVvVO.",
+   ".OVvVvVvVvVvO.",
+   ".OvVvVvVvVvVO.",
+   "..OOOOOOOOOO.."
+  ],
+  "pal": {
+   "O": "#3E2A1C",
+   "s": "#F8F4EC",
+   "S": "#D8D0BC",
+   "v": "#E8E8E0",
+   "V": "#B8B8B0",
+   "y": "#F8C830"
+  }
+ },
+ "catflap": {
+  "w": 14,
+  "h": 13,
+  "rows": [
+   "OOOOOOOOOOOOOO",
+   "OwwwwwwwwwwwWO",
+   "OwwwwwwwwwwwWO",
+   "OwwwwwwwwwwwWO",
+   "OwwwwwwwwwwwWO",
+   "OwwwOOOOOOwwWO",
+   "OwwOggggggOwWO",
+   "OwwOgkgkggOwWO",
+   "OwwOggggggOwWO",
+   "OwwOgGGGGGOwWO",
+   "OwwOOOOOOOOwWO",
+   "OWWWWWWWWWWWWO",
+   "OOOOOOOOOOOOOO"
+  ],
+  "pal": {
+   "O": "#3E2A1C",
+   "w": "#A07838",
+   "W": "#76502A",
+   "g": "#9AA0A4",
+   "G": "#6E7478",
+   "k": "#2E1E18"
+  }
+ },
+ "piglet": {
+  "w": 10,
+  "h": 8,
+  "rows": [
+   "..OO......",
+   ".OpPOOOO..",
+   "nnwppppPO.",
+   "nnepppPPOO",
+   ".OpppPPPO.",
+   ".OPO.OPO..",
+   ".OO..OO...",
+   "..aaaaa..."
+  ],
+  "pal": {
+   "O": "#3E2A1C",
+   "p": "#F4A8B0",
+   "P": "#D87C8C",
+   "n": "#C05C70",
+   "e": "#2E1E18",
+   "w": "#FFE4E8",
+   "a": "#2A2A0850"
+  }
+ },
+ "capuchin": {
+  "w": 12,
+  "h": 12,
+  "rows": [
+   "..OOOO......",
+   ".ObbbbO.....",
+   "ObffffbO....",
+   "ObfefefO....",
+   "ObffffbO....",
+   ".OObbbOO....",
+   ".ObfffbO.OO.",
+   "ObbfffbbOObO",
+   "OBbbbbbBO.bO",
+   ".OBBBBBO.bO.",
+   ".OBO.OBOOO..",
+   "..aaaaaa...."
+  ],
+  "pal": {
+   "O": "#3E2A1C",
+   "b": "#8A5A34",
+   "B": "#6A4024",
+   "f": "#F4D2A8",
+   "e": "#2E1E18",
+   "c": "#E83A30",
+   "C": "#9A1C20",
+   "k": "#FFB4A0",
+   "a": "#2A2A0850"
+  }
+ },
+ "millcat": {
+  "w": 12,
+  "h": 11,
+  "rows": [
+   ".O..O.......",
+   "OgOOgO......",
+   "OgggggO.....",
+   "OeggegO...O.",
+   "OgwpwgO..OgO",
+   ".OwwwOOOOOgO",
+   "..OggggggGO.",
+   "..OwgggGGGO.",
+   "..OwOOOOwGO.",
+   "..OO....OO..",
+   "...aaaaaa..."
+  ],
+  "pal": {
+   "O": "#3E2A1C",
+   "g": "#9A9AA0",
+   "G": "#6E6E78",
+   "w": "#F4F4F0",
+   "e": "#78C850",
+   "p": "#E8A0A8",
+   "a": "#2A2A0850"
+  }
+ },
+ "dalmatian": {
+  "w": 16,
+  "h": 12,
+  "rows": [
+   "................",
+   "..O.O...........",
+   ".OsOoO..........",
+   ".OoooosO....O...",
+   "OonoosO....OtO..",
+   ".OoooorOOOOOoO..",
+   "..OOOrosoooqO...",
+   "....OoooooqsqO..",
+   "....OoooOOOoqO..",
+   "....OsO....OqO..",
+   "....OO.....OO...",
+   "................"
+  ],
+  "pal": {
+   "O": "#3E2A1C",
+   "o": "#F8F8F4",
+   "q": "#D8D8D0",
+   "w": "#FFFFFF",
+   "n": "#2E1E18",
+   "t": "#F8F8F4",
+   "s": "#2E1E18",
+   "r": "#D84A36"
+  }
+ }
+}

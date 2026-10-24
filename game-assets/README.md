@@ -38,6 +38,8 @@ python3 game-assets/build_sprites.py
 python3 game-assets/inject.py <output.dc.html>
 ```
 
+Random-event art (proposed, not in the game yet) lives in `events/`: `python3 game-assets/events/sprites.py` writes `event-sprites.json` (same format as `sprites.json`) and a contact sheet.
+
 ## Free packs worth knowing about
 
 If the game later needs more general art, these CC0 packs can be used commercially with no credit required: Kenney Tiny Farm, Kenney 1-Bit Pack, and Ninja Adventure by Pixel-boy and AAA. Avoid the free version of Sprout Lands, which is licensed for non-commercial use only.
