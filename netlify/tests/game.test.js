@@ -18,7 +18,8 @@ const call = async (fn, method, body, auth, query) => {
   return { status: r.statusCode, body: JSON.parse(r.body) };
 };
 const newPlayer = async () => { const r = await call(account, "POST", { name: "Tester" }); return r.body.player + "." + r.body.token; };
-test.beforeEach(() => { store = G.memoryStore(); clock = Date.parse("2026-10-17T03:00:00Z"); });
+test.beforeEach(() => { store = G.memoryStore(); clock = Date.parse("2026-10-17T03:00:00Z"); process.env.GAME_WELCOME_UNTIL = "2026-01-01"; });   /* the welcome window is closed unless a test opens it */
+test.after(() => { delete process.env.GAME_WELCOME_UNTIL; });
 
 test("accounts: token works, wrong token does not", async () => {
   const a = await newPlayer();
@@ -229,4 +230,22 @@ test("scores: the board reads every row once per 15 s, and your own post shows s
   assert.equal((await call(score, "POST", s(200), b)).status, 200);
   assert.equal((await call(score, "GET", undefined, b, { mode: "season" })).body.players, 2, "b's own new row is on the board at once");
   store.get = get;
+});
+
+test("scores: in the welcome window a farm that grew offline joins with its progress, once", async () => {
+  process.env.GAME_WELCOME_UNTIL = "2026-11-30T23:59:59+09:00";
+  const s = (p, sp, pts, extra) => Object.assign({ name: "Farmer", prestige: p, seasonP: sp, seasonKh: pts, level: G.levelFor(pts), points: pts }, extra || {});
+  const a = await newPlayer();
+  const r = await call(score, "POST", s(3, 2, 250000), a);
+  assert.equal(r.status, 200, "a first score at prestige 3 is taken in the window");
+  assert.equal((await store.get("scores/" + a.split(".")[0])).prestige, 3);
+  clock += 60e3;
+  assert.equal((await call(score, "POST", s(3, 2, 9e9), a)).body.error, "too_fast", "after the first score the usual rules apply");
+  clock += 60e3;
+  assert.equal((await call(score, "POST", s(4, 3, 9e9, { reset: true }), a)).body.error, "too_far_for_a_new_player", "a reset row doesn't get the welcome");
+  const b = await newPlayer();
+  assert.equal((await call(score, "POST", s(31, 0, 0), b)).body.error, "too_far_for_a_new_player", "nothing absurd");
+  process.env.GAME_WELCOME_UNTIL = "2026-01-01";
+  const c = await newPlayer();
+  assert.equal((await call(score, "POST", s(3, 2, 250000), c)).body.error, "too_far_for_a_new_player", "after the window a new farm starts small again");
 });

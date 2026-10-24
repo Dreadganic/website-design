@@ -72,7 +72,10 @@ const RULES = {
 };
 
 /* A score is accepted only if it could have happened since the last accepted one */
-function checkScore(prev, next, now) {
+/* the online game didn't work on bejucoffee.com until 24 October 2026 (Blobs, see v2.js), so farms grew offline: until this date a farm's
+   first score may carry its progress. GAME_WELCOME_UNTIL (a date) moves it; a reset row is still checked like a new farm */
+const welcomeUntil = () => Date.parse(process.env.GAME_WELCOME_UNTIL || "2026-11-30T23:59:59+09:00");
+function checkScore(prev, next, now, fresh) {
   const n = next;
   if (!Number.isInteger(n.prestige) || !Number.isInteger(n.seasonP) || !Number.isFinite(n.points) || n.prestige < 0 || n.seasonP < 0 || n.points < 0) return "bad_numbers";
   n.seasonKh = Math.max(0, Math.floor(Number(n.seasonKh) || 0));
@@ -80,7 +83,7 @@ function checkScore(prev, next, now) {
   n.seasonStars = Math.max(0, Math.floor(Number(n.seasonStars) || 0));
   const lv = levelFor(n.points);
   if (n.level !== lv) return "level_mismatch";
-  if (!prev) return n.prestige <= 1 && n.points <= RULES.xpBurst * 4 && n.seasonKh <= RULES.xpBurst * 4 && n.seasonStars <= RULES.starsBurst + RULES.starsPerPrestige ? null : "too_far_for_a_new_player";
+  if (!prev) return (n.prestige <= 1 && n.points <= RULES.xpBurst * 4 && n.seasonKh <= RULES.xpBurst * 4 && n.seasonStars <= RULES.starsBurst + RULES.starsPerPrestige) || (fresh && now < welcomeUntil() && n.prestige <= 30) ? null : "too_far_for_a_new_player";
   const dt = Math.max(0, (now - prev.at) / 1000);
   if (dt < RULES.minScoreGapSec) return "too_soon";
   const sameSeason = prev.season === seasonKey(now);

@@ -66,7 +66,7 @@ exports.handler = async (event) => {
   const nextSeasonP = prev && prev.season !== season ? Math.min(b.seasonP | 0, 1) : b.seasonP | 0;   /* a new season starts the season count again */
   const next = { prestige: b.prestige | 0, seasonP: nextSeasonP, seasonKh: Math.floor(Number(b.seasonKh) || 0), seasonStars: Math.floor(Number(b.seasonStars) || 0), level: b.level | 0, points: Math.floor(Number(b.points) || 0) };
   const reset = b.reset === true && !!prev;   /* the farm started again: going back down is always allowed, then it's checked like a new farm */
-  const problem = G.checkScore(reset ? null : prev && Object.assign({}, prev, { seasonP: prev.season === season ? prev.seasonP : 0 }), next, now);
+  const problem = G.checkScore(reset ? null : prev && Object.assign({}, prev, { seasonP: prev.season === season ? prev.seasonP : 0 }), next, now, !prev);   /* !prev: a brand-new row, for the welcome window */
   if (problem) return G.json(422, { error: problem });
   const row = Object.assign(next, { id: me.id, name, look: G.cleanLook(b.look, next.prestige), season, at: now, prestigeAt: reset || !prev || next.prestige > prev.prestige ? now : prev.prestigeAt,
     starsAt: !prev || prev.season !== season || next.seasonStars > (prev.seasonStars || 0) ? now : prev.starsAt,   /* when they reached this star total, for ties */

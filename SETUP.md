@@ -110,6 +110,8 @@ The game's server parts run as Netlify Functions next to the payment functions, 
 
 The game functions use Netlify's current function format: each `netlify/functions/game-*.mjs` wraps a handler in `netlify/lib/handlers/` (`netlify/lib/v2.js` turns the Request into the event the handler expects). Netlify Blobs only does strong consistency in this format; in the older Lambda format every read failed with `BlobsConsistencyError`, so the game could never go online. Keep new game functions in this shape.
 
+Until the end of 30 November 2026 (Japan time) a farm's first leaderboard score may carry the progress it made offline, because the online game didn't work before 24 October and every website farm so far grew offline. After that a new farm starts small again (prestige 1 at most), as the anti-cheat rules expect. To move the date, set `GAME_WELCOME_UNTIL` (for example `2026-12-31T23:59:59+09:00`) in Netlify's environment variables.
+
 | Function | What it does |
 | --- | --- |
 | `game-account` | Creates an anonymous player: an id and a secret token (only its hash is stored). |
