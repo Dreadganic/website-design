@@ -593,6 +593,131 @@ spr('dalmatian', DAL, [
  '....OO.....OO...',
  '................'])
 
+# ---- Rare variants: each one a model of its own, not just a recolour of the usual trouble
+GS = json.load(open(os.path.join(HERE, '..', 'sprites.json')))['sprites']
+spr('truffle', {'O': O, 'k': '#3A2A22', 'K': '#5A4436', 'w': '#C8B49A', 'a': SH}, [
+ '.OOOO.',
+ 'OkKkkO',
+ 'OkkwKO',
+ 'OKkkkO',
+ '.OOOO.',
+ '.aaaa.'])
+SILVER = dict(GS['bush_caturra_ripe']['pal'], a='#24343C', b='#4A6470', c='#6E8C98', d='#8CAAB4', f='#B4CCD2', h='#DCEAEE', i='#A87818', j='#F2C04A', k='#FFF4B0')
+spr('bush_silver', SILVER, GS['bush_caturra_ripe']['rows'])
+BABY = {'O': O, 'l': '#E8C89A', 'L': '#C89A6A', 'w': '#FFF4E4', 'K': '#2E1E18', 'p': '#E8A0A8', 'r': '#E83A30', 'a': SH}
+spr('capuchin_baby_0', BABY, [
+ '..OOOO....',
+ '.OllllO...',
+ 'OlwwwwlO..',
+ 'OwKwwKwO..',
+ 'OlwpwwlO..',
+ '.OllllO.O.',
+ '..OLlO.OlO',
+ '.OlrlO..O.',
+ '.OlLlO.O..',
+ '.OlOlO....',
+ '..aaa.....'])
+spr('capuchin_baby_1', BABY, [
+ '..OOOO....',
+ '.OllllO...',
+ 'OlwwwwlO..',
+ 'OwKwwKwO..',
+ 'OlwpwwlO..',
+ '.OllllO..O',
+ '..OLlO..OO',
+ '.OlrlO.Ol.',
+ '.OlLlOO...',
+ '..OlOlO...',
+ '..aaa.....'])
+MAG = {'O': '#1E1A22', 'k': '#2A2632', 'K': '#3A3448', 'w': '#F4F4F0', 'B': '#2A8A9A', 'e': '#FFFFFF', 'g': '#F2C04A', 'y': '#F2C04A', 'a': SH}
+spr('magpie_sit', MAG, [
+ '...OOO......',
+ '..OkekO.....',
+ '.gOkkkO.....',
+ '..OkwwKO....',
+ '..OkwwBBO...',
+ '...OwBBBOOO.',
+ '....OOOOBBBO',
+ '....y.y..OO.',
+ '...aaaaa....'])
+spr('magpie_fly0', MAG, [
+ 'O..........O',
+ 'OwO......OwO',
+ '.OBO.OO.OBO.',
+ '..OBOkeOBO..',
+ '...OkwwkOg..',
+ '....OBBO....',
+ '.....OOO....',
+ '......OO....'])
+spr('magpie_fly1', MAG, [
+ '............',
+ '............',
+ '.....OO.....',
+ '...OOkeOO...',
+ '.OOwkwwkwOg.',
+ 'OBBO.BB.OBBO',
+ 'OO..OOOO..OO',
+ '......OO....'])
+spr('hive_gold', {'O': O, 'g': '#F8D060', 'G': '#E0A830', 'd': '#A87018', 'h': '#5A3410', 'w': '#5A4630', 'y': '#F2B830'}, S['nest']['rows'][:-1] + [
+ '....OyyO....',
+ '.....Oy.....',
+ '.....y......'])
+BEE = {'O': '#1E1A22', 'y': '#F8C830', 'K': '#2E1E18', 'w': '#E8F4FF'}
+spr('bee_0', BEE, ['.ww..', 'OyKyK', '.yKyO'])
+spr('bee_1', BEE, ['w..w.', 'OyKyK', 'wyKyO'])
+WR = {'O': O, 'r': '#F4F4F0', 'R': '#C8C8C4', 'p': '#F0A0B0', 'e': '#E04060', 's': '#B49058', 'S': '#C8402E', 'a': SH}
+spr('rat_white_0', WR, [
+ '...OO.OOOO...',
+ '..OpROsSSsO..',
+ '.OrrrrOsssO..',
+ 'perrrrrrrRO..',
+ '.OOrrrrrRROpp',
+ '...OROOROO...',
+ '....aaaaa....'])
+spr('rat_white_1', WR, [
+ '...OO.OOOO...',
+ '..OpROsSSsO..',
+ '.OrrrrOsssO..',
+ 'perrrrrrrROpp',
+ '.OOrrrrrRRO..',
+ '..ORO..ORO...',
+ '....aaaaa....'])
+KH = {'O': O, 'h': '#F8E08C', 'H': '#E0BC5C', 'k': '#B88E38', 's': '#F8D2B0', 'S': '#E2A882', 'm': '#C8485A', 'v': '#B898E8', 'V': '#8060C0', 'r': '#F2C04A',
+      'g': '#2E1E18', 'w': '#FFFFFF', 'c': '#6AA8D8', 'C': '#4A88B8', 'D': '#305898', 'p': '#F4F0E4', 'P': '#D8D0BC', 'b': '#2E1E18', 'B': '#C8402E', 'd': '#FFF4E4', 'n': '#2E1E18', 'a': SH}
+spr('karen_hat', KH, [
+ '.......OOOOOO.......',
+ '......OvvvvvvO......',
+ '......OvVVVVvO......',
+ '.....OrrrrrrrrO.....',
+ '.OOOOOOOOOOOOOOOOOO.',
+ 'OvvvvvvvvvvvvvvvvvVO',
+ '.OOOOOOOOOOOOOOOOOO.',
+ '....OhkOsSssSOhkO...',
+ '....OhkOgggggOhkO...',
+ '....OhkOsssssOkO....',
+ '....OkkOSmmmSOkO....',
+ '.....OO.OSSSO.O.O.O.',
+ '.....OOcwwwwcOOOdddO',
+ '....OsOcCccCcOsOdndO',
+ '....OsOCcccCCOsOBBBO',
+ '....OSOCCCCCCOSOBBBO',
+ '.....OODDDDDDOOOOOO.',
+ '......OppppppO......',
+ '......OpPppPpO......',
+ '......OpPOOPpO......',
+ '......OPPOOPPO......',
+ '......ObbOObbO......',
+ '.......OO..OO.......',
+ '....................',
+ '......aaaaaaaa......'])
+spr('fusebox_brass', dict(S['fusebox']['pal'], m='#D8A040', M='#A07020', w='#F8E0A0', d='#4A3020', g='#F4F0E4', r='#F4F0E4', y='#F2C04A', Y='#6E4624'), S['fusebox']['rows'])
+CAN = {'O': O, 'y': '#F8D040', 'o': '#F87830', 'w': '#FFF4E4', 'W': '#E8D8B8', 'm': '#C89028'}
+spr('candle_0', CAN, ['..y..', '.yoy.', '..o..', '.OwO.', '.OwO.', '.OWO.', 'OmmmO', 'OOOOO'])
+spr('candle_1', CAN, ['.y...', '.yo..', '..oy.', '.OwO.', '.OwO.', '.OWO.', 'OmmmO', 'OOOOO'])
+BLUE = {'r': '#2A5AC8', 'o': '#4AA0F0', 'y': '#A8E4FF', 'w': '#FFFFFF'}
+spr('flame_blue_0', BLUE, S['flame_0']['rows'])
+spr('flame_blue_1', BLUE, S['flame_1']['rows'])
+
 json.dump(S, open(os.path.join(HERE, 'event-sprites.json'), 'w'), indent=1)
 
 # contact sheet at 4x on the game's cream

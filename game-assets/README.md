@@ -38,7 +38,9 @@ python3 game-assets/build_sprites.py
 python3 game-assets/inject.py <output.dc.html>
 ```
 
-Random-event art (proposed, not in the game yet) lives in `events/`: `python3 game-assets/events/sprites.py` writes `event-sprites.json` (same format as `sprites.json`) and a contact sheet. `scenes.js` draws each event on the map and `targets.json` lists its tap targets. To check that no target sits under the interface, on a test page from `sim/mktest.py` and a late-game `run.js` save: `node events/measure.js <test> <save> <dir>` then `python3 events/check.py <dir>/cover.json` (six screen sizes), and `node events/gameshots.js <test> <save> <dir>` (screenshots in the real game, checked live). Both exit non-zero if a target is covered.
+Random-event art (proposed, not in the game yet) lives in `events/`: `python3 game-assets/events/sprites.py` writes `event-sprites.json` (same format as `sprites.json`) and a contact sheet. `scenes.js` draws each event on the map and `targets.json` lists its tap targets. To check that no target sits under the interface, on a test page from `sim/mktest.py` and a late-game `run.js` save: `node events/measure.js <test> <save> <dir>` then `python3 events/check.py <dir>/cover.json` (six screen sizes), and `node events/gameshots.js <test> <save> <dir>` (screenshots in the real game, usual and rare, checked live). Both exit non-zero if a target is covered.
+
+Event sounds live in `audio/event-sfx.js`, built on `audio/sfx.js` like every game sound: `EventSFX.start(id, { rare, here })` plays the start sting and runs the loop, then `.hit(name, n)` for each tap, `.here(onScreen)` to muffle it when its map isn't showing, `.clear()` or `.leave()`. `node events/sound_levels.js` plays them all in a headless browser and fails on a silent part or a page error.
 
 ## Free packs worth knowing about
 

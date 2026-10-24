@@ -41,14 +41,14 @@ const SFX = (function () {
     src.buffer = noise; src.playbackRate.value = o.rate || 1;
     f.type = o.type || 'bandpass'; f.frequency.setValueAtTime(o.f, t); if (o.f2) f.frequency.exponentialRampToValueAtTime(o.f2, t + o.dur); f.Q.value = o.q || 1;
     g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(o.gain, t + (o.attack || 0.003)); g.gain.exponentialRampToValueAtTime(0.0001, t + o.dur);
-    src.connect(f); f.connect(g); g.connect(out); if (o.verb) g.connect(verb);
+    src.connect(f); f.connect(g); g.connect(o.dest || out); if (o.verb) g.connect(verb);
     src.start(t, Math.random() * 0.8); src.stop(t + o.dur + 0.02);
   }
   function tone(t, o) {   /* pitched body: pops, knocks, chimes */
     const osc = ac.createOscillator(), g = ac.createGain();
     osc.type = o.wave || 'sine'; osc.frequency.setValueAtTime(o.f, t); if (o.f2) osc.frequency.exponentialRampToValueAtTime(o.f2, t + (o.glide || o.dur));
     g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(o.gain, t + (o.attack || 0.004)); g.gain.exponentialRampToValueAtTime(0.0001, t + o.dur);
-    osc.connect(g); g.connect(out); if (o.verb) g.connect(verb);
+    osc.connect(g); g.connect(o.dest || out); if (o.verb) g.connect(verb);
     osc.start(t); osc.stop(t + o.dur + 0.02);
   }
   function bell(t, f, gain, dur) { tone(t, { f, gain, dur: dur || 0.5, verb: true }); tone(t, { f: f * 2.76, gain: gain * 0.35, dur: (dur || 0.5) * 0.45, verb: true }); tone(t, { f: f * 5.4, gain: gain * 0.12, dur: (dur || 0.5) * 0.2 }); }
@@ -169,6 +169,7 @@ const SFX = (function () {
   const api = {
     play, unlock, names: Object.keys(S), onPlay: null,
     context: () => (init() ? ac : null),
+    kit: () => (init() ? { ac, out, verb, noise, hiss, tone, R } : null),   /* the building blocks, for event-sfx.js; o.dest routes a sound to another bus */
     setEnabled(v) { enabled = !!v; }, isEnabled: () => enabled,
     setVolume(v) { volume = v; if (out) out.gain.setTargetAtTime(v, ac.currentTime, 0.03); },
     state: () => (ac ? ac.state : 'not started')

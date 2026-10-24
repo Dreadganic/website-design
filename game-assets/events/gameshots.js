@@ -19,6 +19,8 @@ const SHOTS = [   // [scene, map, farm, warning, targets key]
   ['crows', 'farm', 'huila', 'Crows on the Huila bushes!', 'crows'], ['hornets', 'mill', null, 'Hornets at the mill!', 'hornets'], ['rats', 'mill', null, 'Rats in the green coffee!', 'rats'],
   ['karen', 'roast', null, 'A complaint at the counter!', 'karen'], ['power', 'roast', null, 'The roastery lights are out!', 'power'], ['fire', 'roast', null, 'Fire in roaster 2!', 'fire'],
   ['typhoon', 'farm', 'mogiana', 'Typhoon in 1:42: stake the bushes', 'typhoon farm'], ['typhoonMill', 'mill', null, 'Typhoon in 1:20: tarp the racks', 'typhoon mill'], ['typhoonRoast', 'roast', null, 'Typhoon in 0:55: bring in the plants', 'typhoon roastery']];
+// each rare variant too: its own model, in the same spots
+['pigs', 'rust', 'monkeys', 'crows', 'hornets', 'rats', 'karen', 'power', 'fire'].forEach((k) => { const s = SHOTS.find((x) => x[0] === k); SHOTS.push([k, s[1], s[2], 'Rare! ' + s[3], T[s[4] + ' (rare)'] ? s[4] + ' (rare)' : s[4], true]); });
 (async () => {
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
   const d = JSON.parse(fs.readFileSync(stateFile, 'utf8')); const st = d.final || d; st.last = Date.now(); st.name = st.name || 'Mock'; st.nameOk = st.name;
@@ -27,14 +29,14 @@ const SHOTS = [   // [scene, map, farm, warning, targets key]
     const errs = []; g.on('pageerror', (e) => errs.push(e.message));
     await g.addInitScript((st) => { localStorage.clear(); localStorage.setItem('beju-farm-save-v3', JSON.stringify(st)); }, st);
     await g.goto('file://' + path.resolve(page)); await g.evaluate(() => { window.__noHint = true; }); await g.waitForTimeout(1200);
-    await g.evaluate((src) => { (0, eval)(src); }, 'var SP = ' + JSON.stringify(SP) + ';\n' + scenes.replace(/^const |^let /gm, 'var ') + '\nSCENES.typhoonMill = { draw: (c, t) => SCENES.typhoon.mini(c, t, 0) }; SCENES.typhoonRoast = { draw: (c, t) => SCENES.typhoon.mini(c, t, 1) };\nwindow.__evDraw = (c, sc, t) => { const S = window.__ev && SCENES[window.__ev]; if (S && sc === window.__evMap) { c.save(); c.imageSmoothingEnabled = false; S.draw(c, t); c.restore(); } };');
+    await g.evaluate((src) => { (0, eval)(src); }, 'var SP = ' + JSON.stringify(SP) + ';\n' + scenes.replace(/^const |^let /gm, 'var ') + '\nSCENES.typhoonMill = { draw: (c, t) => SCENES.typhoon.mini(c, t, 0) }; SCENES.typhoonRoast = { draw: (c, t) => SCENES.typhoon.mini(c, t, 1) };\nwindow.__evDraw = (c, sc, t) => { const S = window.__ev && SCENES[window.__ev]; if (S && sc === window.__evMap) { c.save(); c.imageSmoothingEnabled = false; S.draw(c, t, window.__evRare); c.restore(); } };');
     const clean = () => g.evaluate(() => { const T = window.__T; for (let i = 0; i < 8; i++) T.closeModal(); document.getElementById('modal').hidden = true; document.getElementById('pcer').hidden = true; T.S.nav = null; T.S.navSeen = new Proxy({}, { get: () => true }); });
     for (let k = 0; k < 3; k++) { await g.waitForTimeout(250); await clean(); }
     await g.evaluate(() => { const F = window.__T.floats; F.length = 0; F.push = () => 0; });   /* no pick-up floats drifting over the HUD */
-    for (const [key, map, farm, warn, tk] of SHOTS) {
+    for (const [key, map, farm, warn, tk, rare] of SHOTS) {
       const tg = T[tk].t;
-      await g.evaluate(([key, map, farm, warn]) => { const X = window.__T; if (farm) X.S.loc = farm; X.setTab(map, true); window.__ev = key; window.__evMap = map;
-        window.__guide = '<span class="gstep">Event</span><span class="gtext">' + warn + '</span>'; }, [key, map, farm, warn]);
+      await g.evaluate(([key, map, farm, warn, rare]) => { const X = window.__T; if (farm) X.S.loc = farm; X.setTab(map, true); window.__ev = key; window.__evMap = map; window.__evRare = !!rare;
+        window.__guide = '<span class="gstep">Event</span><span class="gtext">' + warn + '</span>'; }, [key, map, farm, warn, rare]);
       await g.waitForTimeout(500); await clean();
       // where the game would scroll: open as usual; if a target isn't clear there, centre the event in the window
       await g.evaluate(([map, tg]) => { const sc = document.getElementById('scroller'), cv = document.getElementById('cv'), k = cv.getBoundingClientRect().width / 192, room = (sc.scrollHeight - sc.clientHeight) / k, win = sc.clientHeight / k;
@@ -50,8 +52,8 @@ const SHOTS = [   // [scene, map, farm, warning, targets key]
         const out = []; tg.forEach(([n, x, y, w, h]) => { const L = cv.left + (x - 2) * k, T = cv.top + (y - 2) * k, R = cv.left + (x + w + 2) * k, B = cv.top + (y + h + 2) * k;
           if (T < sr.top || B > sr.bottom) out.push(n + ': off screen');
           els.forEach(([id, q]) => { if (L < q.right && q.left < R && T < q.bottom && q.top < B) out.push(n + ' under ' + id); }); }); return out; }, tg);
-      await g.screenshot({ path: path.join(out, 'g' + w + '_' + key + '.png') });
-      console.log(w + 'x' + h, key, bad.length ? 'COVERED: ' + bad.join('; ') : 'clear'); if (bad.length) process.exitCode = 1;
+      await g.screenshot({ path: path.join(out, 'g' + w + '_' + key + (rare ? '_rare' : '') + '.png') });
+      console.log(w + 'x' + h, key + (rare ? ' (rare)' : ''), bad.length ? 'COVERED: ' + bad.join('; ') : 'clear'); if (bad.length) process.exitCode = 1;
     }
     if (errs.length) console.log('page errors', errs.slice(0, 3));
     await g.close();
