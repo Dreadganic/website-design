@@ -7,9 +7,11 @@ const parse = (event) => { try { return JSON.parse(event.isBase64Encoded ? Buffe
 
 /* One store per kind of record. On Netlify this is a Blobs store; in tests, a Map with the same methods.
    create() writes only if the key is new and says whether it did, so two requests can't both claim the same order or code. */
+let BLOBS = null;
+const useBlobs = (b) => { BLOBS = b; };
 function stores(event, deps) {
   if (deps && deps.store) return deps.store;
-  const blobs = require("@netlify/blobs");
+  const blobs = BLOBS || require("@netlify/blobs");   /* the functions in netlify/functions hand it over (see v2.js); the payment functions and tests require it */
   if (blobs.connectLambda && event && event.blobs) blobs.connectLambda(event);
   const s = blobs.getStore({ name: "beju-farm", consistency: "strong" });
   return {
@@ -194,4 +196,4 @@ const firstThisMonth = (me, now) => !(me.grants || []).some((g) => g.at && dayJS
 /* passport stamps the server has seen: each coffee stamps the first of its origins not stamped yet, as the game does */
 function addStamps(me, coffees) { me.stamps = me.stamps || []; (coffees || []).forEach((pid) => { const o = (STAMPS[pid] || []).find((x) => !me.stamps.includes(x)); if (o) me.stamps.push(o); }); }
 
-module.exports = { MONTH_BONUS, SUB_BONUS, firstThisMonth, addStamps, SEASON_FIRST, isFounder, TROPHY_ID, trophyRank, trophyId, publicTrophies, addTrophy, cleanFarm, FARM_LOCS, SAMPLE_RULES, SAMPLE_LADDER, dayJST, newSamples, sampleView, savePlayer, json, parse, stores, memoryStore, authed, hash, newId, newToken, XP_AT, levelFor, prestigeNeed, seasonKey, prevSeason, SEASON_JOIN, SEASON_IDS, RULES, checkScore, cleanName, cleanLook, STAMPS };
+module.exports = { useBlobs, MONTH_BONUS, SUB_BONUS, firstThisMonth, addStamps, SEASON_FIRST, isFounder, TROPHY_ID, trophyRank, trophyId, publicTrophies, addTrophy, cleanFarm, FARM_LOCS, SAMPLE_RULES, SAMPLE_LADDER, dayJST, newSamples, sampleView, savePlayer, json, parse, stores, memoryStore, authed, hash, newId, newToken, XP_AT, levelFor, prestigeNeed, seasonKey, prevSeason, SEASON_JOIN, SEASON_IDS, RULES, checkScore, cleanName, cleanLook, STAMPS };
