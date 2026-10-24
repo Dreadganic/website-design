@@ -38,7 +38,7 @@ python3 game-assets/build_sprites.py
 python3 game-assets/inject.py <output.dc.html>
 ```
 
-Random-event art (proposed, not in the game yet) lives in `events/`: `python3 game-assets/events/sprites.py` writes `event-sprites.json` (same format as `sprites.json`) and a contact sheet.
+Random-event art (proposed, not in the game yet) lives in `events/`: `python3 game-assets/events/sprites.py` writes `event-sprites.json` (same format as `sprites.json`) and a contact sheet. `scenes.js` draws each event on the map and `targets.json` lists its tap targets. To check that no target sits under the interface, on a test page from `sim/mktest.py` and a late-game `run.js` save: `node events/measure.js <test> <save> <dir>` then `python3 events/check.py <dir>/cover.json` (six screen sizes), and `node events/gameshots.js <test> <save> <dir>` (screenshots in the real game, checked live). Both exit non-zero if a target is covered.
 
 ## Free packs worth knowing about
 
