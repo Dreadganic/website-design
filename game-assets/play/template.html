@@ -27,8 +27,14 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-
 .top .name span { font-size: 12px; color: var(--muted); }
 .arrow { width: 38px; height: 38px; border: 2px solid var(--edge); border-radius: 8px; background: var(--paper-2); color: var(--ink); font-size: 16px; font-weight: 700; cursor: pointer; }
 .chip { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 5px; color: #fff; white-space: nowrap; }
-.stage { position: relative; width: min(100cqw, 100cqh * var(--ar)); aspect-ratio: var(--ar); border-radius: 8px; overflow: hidden; box-shadow: 0 0 0 3px #1E140C; background: #5E7A2C; }
-.stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; cursor: pointer; touch-action: manipulation; }
+.stage { --sw: min(100cqw, 100cqh * var(--ar) / 0.6); position: relative; width: var(--sw); height: min(100cqh, var(--sw) / (var(--ar))); border-radius: 8px; overflow: hidden; box-shadow: 0 0 0 3px #1E140C; background: #5E7A2C; }   /* the map fills the column like the bars above and below it; a scene taller than the room scrolls (no more than 40% of it out of view, even on a phone held sideways) */
+.scroller { position: absolute; inset: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
+.scroller::-webkit-scrollbar { display: none; }
+.scroller canvas { display: block; width: 100%; height: auto; aspect-ratio: var(--ar); image-rendering: pixelated; cursor: pointer; touch-action: pan-y; }
+.mfade { position: absolute; left: 0; right: 0; height: 16px; pointer-events: none; opacity: 0; transition: opacity 0.2s; }   /* more map this way */
+.mfade.t { top: 0; background: linear-gradient(rgba(30,20,12,0.45), transparent); }
+.mfade.b { bottom: 0; background: linear-gradient(transparent, rgba(30,20,12,0.45)); }
+.mfade.on { opacity: 1; }
 .hud-l { position: absolute; left: 6px; top: 6px; display: flex; flex-direction: column; gap: 5px; pointer-events: none; }
 .sound { position: absolute; left: 6px; bottom: calc(6px + var(--gh, 0px)); width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 10px; background: rgba(62,42,28,0.8); color: #FFF4DE; cursor: pointer; }
 .sound[aria-pressed="false"] { color: #B89A7A; }
@@ -405,7 +411,8 @@ canvas.hint { transform: none !important; }
 
   <div class="mapwrap">
   <div class="stage" id="stage">
-    <canvas id="cv" width="384" height="704" aria-label="Your farm seen from above. Tap shrubs with ripe cherries to pick them."></canvas>
+    <div class="scroller" id="scroller"><canvas id="cv" width="384" height="704" aria-label="Your farm seen from above. Tap shrubs with ripe cherries to pick them."></canvas></div>
+    <i class="mfade t" id="mfadeT"></i><i class="mfade b" id="mfadeB"></i>
     <div class="hud-l">
       <div class="hearts" id="hearts" aria-label="Hearts"></div>
       <div class="pill" id="hudLevel"></div>
@@ -1084,7 +1091,7 @@ const REP_T = [0, 0, 80, 200, 340, 500, 680, 880, 1100, 1600, 2300, 3200, 4300, 
 const REP_AT = (l) => REP_T[l];   /* reputation comes per bag, so levels follow how often you roast, not how big the drum is */
 const masterStars = () => Math.max(0, Math.min(10, Math.floor(((S.roastery.rep || 0) - REP_AT(20)) / 2000)));   /* past reputation 20: a star on the sign, and +1% bag price, every 2,000 reputation */
 const repLevel = () => { let l = 1; while (l < 20 && (S.roastery.rep || 0) >= REP_AT(l + 1)) l++; return l; };
-const REP_PERKS = { 2: 'Cooling tray: roasts take 20% less time', 3: 'Bigger drum: 80 kg a roast', 4: 'A second roaster', 6: 'Cupping lab: +5 roast quality', 7: 'Bigger drum: 160 kg a roast', 8: 'Repeat roast: a bin can start its next roast by itself', 10: 'House blends: blend two bags under a Beju name', 12: 'Bigger drum: 320 kg a roast', 15: 'A third roaster', 20: 'The Master roaster title' };
+const REP_PERKS = { 2: 'Cooling tray: roasts take 20% less time', 3: 'Bigger drum: 80 kg a roast', 4: 'A second roaster', 6: 'Cupping lab: +5 roast quality', 7: 'Bigger drum: 160 kg a roast', 8: 'Repeat roast: a bin can start its next roast by itself', 10: 'House blends: blend two bags under a Beju name. A head roaster to hire (Farm › Staff)', 12: 'Bigger drum: 320 kg a roast', 15: 'A third roaster', 20: 'The Master roaster title' };
 const roastCap = () => { const l = repLevel(); return l >= 12 ? 320 : l >= 7 ? 160 : l >= 3 ? 80 : 40; };
 const roasterCount = () => { const l = repLevel(); return (l >= 15 ? 3 : l >= 4 ? 2 : 1) + (estOn('osaka', 2) ? 1 : 0); };   /* the Osaka machiya adds one */
 const roastTime = (p) => ROASTS[p].time * (repLevel() >= 2 ? 0.8 : 1);
@@ -1114,13 +1121,14 @@ const RAPRON = { plain: { name: 'Charcoal' }, denim: { name: 'Denim', c: ['#6A8A
 const SHOP_F = 112;   /* how much lower the shop front sits since the café went in (H - 240) */
 const RPROP = { plants: { name: 'Hanging plants', at: [156, 208 + SHOP_F] }, record: { name: 'Record player', at: [152, 131] }, neon: { name: 'Neon COFFEE sign', at: [120, 213 + SHOP_F] }, booth: { name: 'Velvet booth', at: [56, 152] },
   maneki: { name: 'Maneki-neko', at: [113, 129] }, cat: { name: 'Shop cat', at: [145, 103] }, siphon: { name: 'Siphon bar', at: [132, 124] } };
-const RCOS = [   /* every item that isn't a default or a season item; src says how to earn it, and coins or cranes how to buy it */
-  { id: 'fin:copper', src: { rep: 5, coins: 250e3 } }, { id: 'fin:showa', src: { rep: 9, coins: 600e3 } }, { id: 'fin:sakura', src: { coins: 1.2e6 } }, { id: 'fin:beju', src: { rep: 14, coins: 2e6 } },
-  { id: 'fin:cream', src: { rep: 17, coins: 4e6 } }, { id: 'fin:gold', src: { rep: 20 } },
-  { id: 'room:kissaten', src: { rep: 11, coins: 5e6 } }, { id: 'room:modern', src: { coins: 8e6 } }, { id: 'room:showa', src: { coins: 12e6 } }, { id: 'room:machiya', src: { coins: 25e6 } },
-  { id: 'noren:crane', src: { rep: 19, coins: 1e6 } }, { id: 'noren:gold', src: { cranes: 20 } },
-  { id: 'prop:plants', src: { gift: ['cafe', 25], coins: 300e3 } }, { id: 'prop:record', src: { rep: 8, coins: 400e3 } }, { id: 'prop:neon', src: { rep: 16, gift: ['konbini', 25], coins: 800e3 } },
-  { id: 'prop:booth', src: { gift: ['kissa', 25], coins: 1e6 } }, { id: 'prop:maneki', src: { rep: 13, coins: 1.5e6 } }, { id: 'prop:cat', src: { rep: 18, coins: 2.5e6 } }, { id: 'prop:siphon', src: { coins: 3e6 } },
+const RCOS = [   /* every item that isn't a default or a season item; src says how to earn it, and coins or cranes how to buy it.
+     An item with a reputation level is a reward: it stays locked until that level and then comes free, so it has no price */
+  { id: 'fin:copper', src: { rep: 5 } }, { id: 'fin:showa', src: { rep: 9 } }, { id: 'fin:sakura', src: { coins: 1.2e6 } }, { id: 'fin:beju', src: { rep: 14 } },
+  { id: 'fin:cream', src: { rep: 17 } }, { id: 'fin:gold', src: { rep: 20 } },
+  { id: 'room:kissaten', src: { rep: 11 } }, { id: 'room:modern', src: { coins: 8e6 } }, { id: 'room:showa', src: { coins: 12e6 } }, { id: 'room:machiya', src: { coins: 25e6 } },
+  { id: 'noren:crane', src: { rep: 19 } }, { id: 'noren:gold', src: { cranes: 20 } },
+  { id: 'prop:plants', src: { gift: ['cafe', 25], coins: 300e3 } }, { id: 'prop:record', src: { rep: 8 } }, { id: 'prop:neon', src: { rep: 16, gift: ['konbini', 25] } },
+  { id: 'prop:booth', src: { gift: ['kissa', 25], coins: 1e6 } }, { id: 'prop:maneki', src: { rep: 13 } }, { id: 'prop:cat', src: { rep: 18 } }, { id: 'prop:siphon', src: { coins: 3e6 } },
   { id: 'label:kraft', src: { coins: 250e3 } }, { id: 'label:konbini', src: { gift: ['konbini', 100] } }, { id: 'label:beju', src: { cranes: 10 } }, { id: 'label:casablanca', src: { order: 'casablanca' } }, { id: 'label:pinkwhiskey', src: { order: 'pinkwhiskey' } }, { id: 'label:rumbarrel', src: { order: 'rumbarrel' } },
   { id: 'label:yirgacheffe', src: { order: 'yirgacheffe' } }, { id: 'label:strawberry', src: { order: 'strawberry' } },
   { id: 'apron:denim', src: { coins: 300e3 } }, { id: 'apron:beju', src: { coins: 1e6 } }, { id: 'apron:sakura', src: { coins: 2e6 } }, { id: 'apron:barista', src: { gift: ['cafe', 100] } }, { id: 'apron:black', src: { gift: ['kissa', 100] } },
@@ -1140,7 +1148,7 @@ function rName(id) {
 const BUYER_SHORT = { cafe: 'café', kissa: 'kissaten', konbini: 'konbini', guest: 'guests' };
 function rHow(id) {   /* how a locked item is earned, for the shop card */
   const it = rItem(id), s = it ? it.src : {}, out = [];
-  if (s.rep) out.push('Reputation ' + s.rep);
+  if (s.rep) out.push('Reputation ' + s.rep + ' (now ' + repLevel() + ')');
   if (s.gift) out.push(s.gift[1] + ' bags to ' + BUYER_SHORT[s.gift[0]] + ' (' + Math.min(s.gift[1], S.rcos.sold[s.gift[0]] || 0) + ')');
   if (s.cracks) out.push(s.cracks + ' perfect cracks (' + Math.min(s.cracks, S.rcos.cracks || 0) + ')');
   if (s.order) out.push('Order ' + COFFEES[s.order].name);
@@ -1164,7 +1172,7 @@ function rUse(id) {
   S.rcos.on[k] = v; if (k === 'fin') S.look.roaster = v === 'classic' ? '' : v;
 }
 function rBuy(id) {
-  const it = rItem(id); if (!it || rOwn(id)) return false;
+  const it = rItem(id); if (!it || rOwn(id) || it.src.rep) return false;   /* reputation rewards aren't for sale */
   if (it.src.coins ? spend('coins', it.src.coins) : it.src.cranes ? spend('cranes', it.src.cranes) : false) { S.rcos.own[id] = true; if (rSplit(id)[0] !== 'prop' && rSplit(id)[0] !== 'trim') rUse(id); toast(rName(id) + ' is yours. Shop charm +' + Math.round(shopCharm() * 100) + '%'); return true; }
   return false;
 }
@@ -1202,7 +1210,7 @@ function roastShopPanel() {
     const ids = (RDEF[k] ? [k + ':' + RDEF[k]] : []).concat(RCOS.filter((x) => x.id.startsWith(k + ':')).map((x) => x.id), Object.keys(S.rcos.own).filter((x) => x.startsWith(k + ':s_')));
     const toggle = k === 'prop' || k === 'trim';
     h += '<h3>' + title + '</h3>' + ownStrip(ids.filter(rOwn).map((id) => [rPic(id, 16), rName(id), 'ruse:' + id, toggle ? (S.rcos.hide[id] ? 'off' : 'on') : S.rcos.on[k] === rSplit(id)[1] ? 'on' : 'no']), toggle ? 'Tap to show or hide.' : '') + '<div class="grid2">' + ids.filter((id) => !rOwn(id)).map((id) => {
-      const it = rItem(id), btnH = it && it.src.coins ? btn('Buy', fmt(it.src.coins) + ' coins', 'rbuy:' + id, S.coins >= it.src.coins) : it && it.src.cranes ? btn('Buy', it.src.cranes + ' cranes', 'rbuy:' + id, S.cranes >= it.src.cranes) : '';
+      const it = rItem(id), btnH = it && it.src.rep ? btn('Locked', 'reputation ' + it.src.rep, 'noop', false) : it && it.src.coins ? btn('Buy', fmt(it.src.coins) + ' coins', 'rbuy:' + id, S.coins >= it.src.coins) : it && it.src.cranes ? btn('Buy', it.src.cranes + ' cranes', 'rbuy:' + id, S.cranes >= it.src.cranes) : '';
       return '<div class="tile"><div style="display:flex;justify-content:center;min-height:44px;align-items:center">' + rPic(id, 44) + '</div><b>' + rName(id) + '</b><span>' + rHow(id) + '</span>' + btnH + '</div>';
     }).join('') + '</div>';
   });
@@ -1769,7 +1777,7 @@ function rerollTask(i) {
 function task(id, n) { if (DERBY_KINDS.includes(id) && S.dw) S.dw.c[id] = (S.dw.c[id] || 0) + n; S.tasks.concat((S.wtasks || {}).list || []).forEach((t) => { if (t.id === id && !t.done) t.have = Math.min(t.goal, t.have + n); }); }
 
 /* ---------- the world loop ---------- */
-const cv = $('cv'), ctx = cv.getContext('2d'), frame = document.createElement('canvas'); frame.width = W; frame.height = H;
+const cv = $('cv'), scroller = $('scroller'), ctx = cv.getContext('2d'), frame = document.createElement('canvas'); frame.width = W; frame.height = H;
 cv.width = W * 2; cv.height = H * 2; $('app').style.setProperty('--ar', W + ' / ' + H);   /* the stage keeps the scene's shape */
 const fx = frame.getContext('2d');
 const floats = [], bursts = [];
@@ -1867,7 +1875,7 @@ function tick(dt) {
   S.lots.forEach((l) => { if (l.left > 0) { l.left = Math.max(0, l.left - d * dryMult()); if (!l.left) guideStep('dry'); if (!l.left && !S.staff.foreman) SFX.play('ding'); } });
   LOCS.forEach((l) => { const f = S.farms[l]; if (f.unlocked && !S.dormant[l]) tickFarm(f, d, l === S.loc && scene() === 'farm'); });
   tickMe(d); tickInside(dt);
-  rateC = rateC * Math.pow(0.99, dt) + earnedC * 60 * (1 - Math.pow(0.99, dt)) / Math.max(dt, 1e-3); rateX = rateX * Math.pow(0.99, dt) + earnedX * 60 * (1 - Math.pow(0.99, dt)) / Math.max(dt, 1e-3); earnedC = 0; earnedX = 0;
+  rateC = rateC * Math.pow(0.99, d) + earnedC * 60 * (1 - Math.pow(0.99, d)) / Math.max(d, 1e-3); rateX = rateX * Math.pow(0.99, d) + earnedX * 60 * (1 - Math.pow(0.99, d)) / Math.max(d, 1e-3);   /* in game time, so the Test tab's speed doesn't inflate income-sized rewards */ earnedC = 0; earnedX = 0;
   requestTick(); roasteryTick(); requestTickRoast();
   { const cg = $('crackGo'), cr = scene() !== 'roast' && S.roastery.roasters.some((r) => inCrack(r) && !r.crack); if (cg.hidden === cr) cg.hidden = !cr; }   /* catch first crack from any tab */
   { const gg = $('goldGo'), away = golden && golden.loc !== S.loc, txt = away ? 'Golden bush at ' + ART.locations[golden.loc].name.split(',')[0] + ' · Go (' + Math.ceil(golden.t) + ' s)' : ''; gg.hidden = !away; if (gg.textContent !== txt) gg.textContent = txt; }   /* Lookout: a Go button when the golden bush is on another farm */
@@ -2970,9 +2978,20 @@ function pwalkTick() {   /* starts the walk the first time a prestige is ready *
     S.pwalk = 1; showModal(coachCard('Prestige', 'You\'ve reached level ' + prestigeNeed() + '. Time for your first prestige. Let me show you.', 'Show me', 'pwalkgo'));
   }
 }
-function onMap(pt) {   /* is this map spot on screen, not under the open sheet or off the stage? */
-  const r = cv.getBoundingClientRect(), y = r.top + pt[1] / H * r.height;
-  return !sheetOpen || y < $('sheet').getBoundingClientRect().top - 6;
+function mapSpot(sy) {   /* where a map height sits on screen now, and the map's window: the stage, above the sheet when one is open */
+  const r = cv.getBoundingClientRect(), s = scroller.getBoundingClientRect();
+  return { y: r.top + sy / H * r.height, top: s.top + 10, bot: Math.min(s.bottom, sheetOpen ? $('sheet').getBoundingClientRect().top - 6 : s.bottom) - 10, room: scroller.scrollHeight - scroller.clientHeight, at: scroller.scrollTop };
+}
+function onMap(pt) {   /* can this map spot be on screen: in the window, or scrolled into it, and not under the open sheet? */
+  const m = mapSpot(pt[1]), y0 = m.y + m.at;   /* where it sits with the map scrolled to the top */
+  return y0 - m.room <= m.bot && y0 >= m.top;
+}
+let mapShown = '';
+function mapReveal(pt, key) {   /* in view? the first time a target asks, scroll the map to it; after that the player scrolls freely */
+  const m = mapSpot(pt[1]);
+  if (m.y >= m.top && m.y <= m.bot) return true;
+  if (mapShown !== key) { mapShown = key; scroller.scrollTo({ top: m.at + m.y - (m.top + m.bot) / 2, behavior: calm ? 'auto' : 'smooth' }); }
+  return false;
 }
 function inSheetView(el) { const r = el.getBoundingClientRect(), p = $('panel').getBoundingClientRect(); return r.top >= p.top && r.bottom <= p.bottom; }
 function renderGuide() {   /* the guide bar floats over the map; the sound buttons sit above it */
@@ -3012,20 +3031,26 @@ function guideBar() {
   if (g.say && S.guideSaid !== S.guide && $('modal').hidden) { S.guideSaid = S.guide; showModal(coachCard(g.ch, g.say)); }
   const tt = navTarget(g.target), t = tt && tt.el;
   if (t && t !== cv) { t.classList.add('hint'); showTarget(t, 'guide' + S.guide + '.' + tt.i); }
-  if (t === cv && S.guideSeenAt !== S.guide && $('modal').hidden) { S.guideSeenAt = S.guide; const r = cv.getBoundingClientRect(); if (r.top < 0 || r.bottom > innerHeight) cv.scrollIntoView({ block: 'start', behavior: calm ? 'auto' : 'smooth' }); }   /* lessons on the map bring the map back on screen */
+  if (t === cv && S.guideSeenAt !== S.guide && $('modal').hidden) { S.guideSeenAt = S.guide; const r = $('stage').getBoundingClientRect(); if (r.top < 0 || r.bottom > innerHeight) $('stage').scrollIntoView({ block: 'start', behavior: calm ? 'auto' : 'smooth' }); }   /* lessons on the map bring the map back on screen */
   placeArrow(t, tt && tt.pt);
 }
 function placeArrow(t, pt) {   /* a bouncing arrow over what to tap; on the farm it points at a ripe bush, or at pt on the map */
   const arrow = $('garrow');
   if (!t || !$('modal').hidden) { arrow.hidden = true; return; }
   let r = t.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top;
-  if (t.id === 'cv' && pt) { x = r.left + pt[0] / W * r.width; y = r.top + (pt[1] - 2) / H * r.height; }
-  else if (t.id === 'cv') { const sh = S.farms[S.loc].shrubs.find((s) => s.p >= 1); if (!sh) { arrow.hidden = true; return; } x = r.left + (sh.x + 9) / W * r.width; y = r.top + (sh.y - 2) / H * r.height; }
+  if (t.id === 'cv' && pt) { if (!mapReveal(pt, scene() + pt)) { arrow.hidden = true; return; } x = r.left + pt[0] / W * r.width; y = r.top + (pt[1] - 2) / H * r.height; }
+  else if (t.id === 'cv') { const sh = S.farms[S.loc].shrubs.find((s) => s.p >= 1); if (!sh || !mapReveal([sh.x + 9, sh.y], S.loc + ':' + S.farms[S.loc].shrubs.indexOf(sh))) { arrow.hidden = true; return; } x = r.left + (sh.x + 9) / W * r.width; y = r.top + (sh.y - 2) / H * r.height; }
   if (y < 8 || y > innerHeight) { arrow.hidden = true; return; }
   if (t.id !== 'cv' && $('panel').contains(t)) { const p = $('panel').getBoundingClientRect(); if (y < p.top - 4 || y > p.bottom - 6) { arrow.hidden = true; return; } }   /* scrolled out of the sheet */
   arrow.hidden = false; arrow.style.left = Math.round(x - 11) + 'px'; arrow.style.top = Math.round(y - 26) + 'px';
 }
 addEventListener('scroll', () => { if (!$('garrow').hidden) renderGuide(); }, { passive: true });
+const MAP_FOCUS = { farm: 0.3, mill: 0.2, roast: 0 };   /* where a scene taller than the screen opens: the share of what's out of view that sits above the top (fields, racks, the roaster bays and shelf) */
+let mapScene = '';
+function mapFocus() { const room = scroller.scrollHeight - scroller.clientHeight; scroller.scrollTop = room > 0 ? Math.round(room * MAP_FOCUS[scene()]) : 0; mapFade(); }
+function mapFade() { const room = scroller.scrollHeight - scroller.clientHeight; $('mfadeT').classList.toggle('on', scroller.scrollTop > 2); $('mfadeB').classList.toggle('on', scroller.scrollTop < room - 2); }
+scroller.addEventListener('scroll', () => { mapFade(); renderGuide(); }, { passive: true });
+new ResizeObserver(mapFocus).observe(scroller);
 const ownsLook = () => Object.keys(S.sitems.bg).length + Object.keys(S.sitems.charm).length + Object.keys(S.sitems.title).length > 0 || Object.keys(S.hats).some((k) => k.startsWith('s_')) || CHAR_IDS.some((id) => S.chars[id]);
 const TAB_OPEN = { looks: () => S.prestige >= 1 || ownsLook(), roast: () => roasteryOpen(), upgrades: () => S.stats.lotsSold >= 3 || S.guide >= GUIDE.length, unlock: () => level() >= 2 || S.guide >= GUIDE.length, orders: () => S.guide >= GUIDE.length, ranks: () => level() >= 9, shop: () => level() >= 8 };
 /* every tab shows from the start; locked ones say what opens them */
@@ -3061,6 +3086,7 @@ function renderTabs() {
 }
 const toastQ = [];
 function toast(msg) {   /* one notice at a time: one that arrives within a second of the last waits its turn (up to three) */
+  if (toast.quiet) return;   /* catching up after time away: no stale notices */
   const t = $('toast');
   if (!t.hidden && toastT > 1.6) { if (msg !== t.textContent && !toastQ.includes(msg) && toastQ.length < 3) toastQ.push(msg); return; }
   t.textContent = msg; t.hidden = false; toastT = msg.length > 70 ? 3.4 : 2.6; t.classList.toggle('long', msg.length > 70); t.classList.remove('pop'); void t.offsetWidth; t.classList.add('pop');
@@ -3783,7 +3809,7 @@ document.addEventListener('click', (e) => {
     if (v === 'dry') S.lots.forEach((l) => { l.left = 0; });
     toast('Boost used');
   }
-  else if (a === 'buyhat') { const cost = { beju: 15, sakura: 20, indigo: 15, harvest: 20 }[v]; if (cost && spend('cranes', cost)) { S.hats[v] = true; S.hat = v; } }
+  else if (a === 'buyhat') { const cost = { beju: 15, sakura: 20, indigo: 15, harvest: 20 }[v]; if (cost && !S.hats[v] && spend('cranes', cost)) { S.hats[v] = true; S.hat = v; } }
   else if (a === 'hat') S.hat = v;
   else if (a === 'order') realOrder(v);
   else if (a === 'add') {
@@ -4270,13 +4296,27 @@ async function cheersFarm(code) {
 setInterval(() => { cloudSync(); submitScore(); visitSync(); if (API && NET.acct && NET.status === 'online' && Date.now() - (NET.trophiesAt || 0) > 600000) { NET.trophiesAt = Date.now(); liveBoard('all'); } }, 30000);   /* the trophy list comes with your board row */
 
 /* ---------- start: offline earnings, intro, loop ---------- */
+let behind = 0;   /* ms of farm time still to play through */
+function catchUp(ms) {   /* time the page didn't run (a hidden tab, another app, a reload): up to 5 minutes is played through, a little each frame so the farm fast-forwards; longer is estimated by away() */
+  if (ms > 5 * 60 * 1000) { behind = 0; away(Math.min(awayCap(), Math.round(ms / 3600000 * 10) / 10 || 0.1)); }
+  else behind = Math.min(5 * 60 * 1000, behind + ms);
+}
+function playBehind() {   /* up to 25 ms of catching up a frame, quietly, so the page never freezes */
+  if (behind < 50) return;
+  const t0 = performance.now(); toast.quiet = true; SFX.setEnabled(false);
+  try { while (behind >= 50 && performance.now() - t0 < 25) { tick(0.05); behind -= 50; } } finally { toast.quiet = false; syncSound(); }
+}
 const awayMs = Date.now() - (S.last || Date.now());
 checkSamples(true);   /* a save already past a milestone gets its samples */
 refreshAll();
-if (awayMs > 5 * 60 * 1000) away(Math.min(awayCap(), Math.round(awayMs / 3600000 * 10) / 10 || 0.1));
+catchUp(awayMs);
 /* Rosa's first card is the only welcome */
-let last = performance.now(), uiT = 0, saveT = 0;
+let last = performance.now(), wall = Date.now(), uiT = 0, saveT = 0;
 function loop(t) {
+  const now = Date.now(), gap = now - wall; wall = now;
+  if (gap > 2000) { catchUp(gap); last = t; }   /* browsers stop drawing a hidden tab, and phones freeze a page in the background: the farm catches up when it's back */
+  playBehind();
+  if (scene() !== mapScene) { mapScene = scene(); mapFocus(); }   /* each scene opens where its work is */
   const dt = Math.min(0.05, (t - last) / 1000); last = t;
   tick(dt); draw(t / 1000);
   uiT += dt; saveT += dt;
