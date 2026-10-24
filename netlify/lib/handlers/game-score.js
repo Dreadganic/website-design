@@ -5,7 +5,7 @@
    The first request of a new season saves the last season's final board as seasons/<key>, before any player's row moves on to the new season.
    Each submission must be possible since the last one, except that a player who started their farm again (reset: true) may start their row again too.
    Every row is read once per ROWS_MS by each function instance, not once per request, so a busy board stays cheap. */
-const G = require("../lib/game");
+const G = require("../game");
 
 const rankSort = (key) => (a, b) => b[key] - a[key] || b.level - a.level || b.points - a.points;
 const seasonSort = (a, b) => (b.seasonStars || 0) - (a.seasonStars || 0) || (a.starsAt || Infinity) - (b.starsAt || Infinity) || (b.seasonKh || 0) - (a.seasonKh || 0);

@@ -108,6 +108,8 @@ Create a free form at **Formspree** (formspree.io) and paste its address into `c
 
 The game's server parts run as Netlify Functions next to the payment functions, and store their data in **Netlify Blobs** (built into Netlify; nothing to sign up for). `package.json` lists the one package this needs (`@netlify/blobs`), and Netlify installs it on deploy.
 
+The game functions use Netlify's current function format: each `netlify/functions/game-*.mjs` wraps a handler in `netlify/lib/handlers/` (`netlify/lib/v2.js` turns the Request into the event the handler expects). Netlify Blobs only does strong consistency in this format; in the older Lambda format every read failed with `BlobsConsistencyError`, so the game could never go online. Keep new game functions in this shape.
+
 | Function | What it does |
 | --- | --- |
 | `game-account` | Creates an anonymous player: an id and a secret token (only its hash is stored). |
@@ -125,6 +127,7 @@ The game's server parts run as Netlify Functions next to the payment functions, 
 
 ### Beju Farm rewards (backend, dormant until launch)
 - New functions: `game-samples` (free samples the server has decided a player earned), `game-checkin` (daily check-ins, Japan time), `game-grants` (cranes waiting for the game, for example from subscription renewals).
+- **Before launch:** `create-checkout` and `stripe-webhook` are still in the older Lambda format, so their game parts (sample reservations, subscription renewal cranes) can't read Blobs yet. Their payment parts don't use Blobs and work as they are. Move both to the current format, the same way as the game functions (handler in `netlify/lib/handlers/`, a `.mjs` wrapper), and test a real checkout before setting `GAME_SAMPLES`.
 - `create-checkout` adds an earned sample to orders of ¥3,000 or more **only when the environment variable `GAME_SAMPLES` is `on`**. Leave it unset until launch.
 - `stripe-webhook` now also handles `checkout.session.expired`, `checkout.session.async_payment_failed` and `invoice.paid`. In Stripe (Developers > Webhooks), add those three events to the existing endpoint so samples are released and renewals earn cranes.
 - Launch steps: `launch/README.md`.

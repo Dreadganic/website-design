@@ -2,9 +2,9 @@
 const test = require("node:test");
 const assert = require("node:assert");
 const G = require("../lib/game");
-const account = require("../functions/game-account");
-const save = require("../functions/game-save");
-const link = require("../functions/game-link");
+const account = require("../lib/handlers/game-account");
+const save = require("../lib/handlers/game-save");
+const link = require("../lib/handlers/game-link");
 
 let store, clock;
 const deps = () => ({ store, now: clock });

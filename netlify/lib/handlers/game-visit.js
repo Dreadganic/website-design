@@ -2,7 +2,7 @@
    PUT  /.netlify/functions/game-visit  { farm }     ->  { code, cheers }   (your own farm's snapshot; the code is made once and kept)
    POST /.netlify/functions/game-visit?code=ABC123   ->  { cheers }   (one Cheers per visitor per farm per day, never on your own farm)
    Farm visits: a read-only snapshot of how a farm looks. Nothing a visitor does changes it, apart from the Cheers count. */
-const G = require("../lib/game");
+const G = require("../game");
 
 const CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";   /* no 0/O, 1/I/L, so codes read aloud cleanly */
 const newCode = () => Array.from({ length: 6 }, () => CODE_CHARS[require("crypto").randomInt(CODE_CHARS.length)]).join("");

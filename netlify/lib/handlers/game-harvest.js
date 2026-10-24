@@ -2,8 +2,8 @@
    POST /.netlify/functions/game-harvest  { id, n }          ->  { total, mine, accepted }   (n: how many you've made in all this Harvest Day; only the rise counts, rate-capped)
    POST /.netlify/functions/game-harvest  { id, claim: true } ->  { reward: "decor" | "cranes", cranes, half }   (halfway: 2 cranes; the full goal: the decoration, then cranes; for anyone who took part)
    Harvest Day: one weekend a month, everyone works towards one goal. The goal scales with how many people play, and reaching it unlocks a reward for everyone who helped. */
-const G = require("../lib/game");
-const C = require("../lib/community");
+const G = require("../game");
+const C = require("../community");
 
 const RECOUNT_MS = 60e3;   /* the shared total is recounted from every player's record at most once a minute */
 const REPEAT_CRANES = 5, HALF_CRANES = 2;   /* after the first Harvest Day's decoration, each reached day gives cranes; halfway pays a little, so a quiet weekend still counts */

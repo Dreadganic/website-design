@@ -2,7 +2,7 @@
    POST /.netlify/functions/game-link  { act: "use", code }    ->  { player, token }   (on the new device: a token of its own for that farm)
    Moving a farm to another device. A code is 8 letters and numbers, works once and lasts LINK_MIN minutes. The new device gets its own token,
    so the old one keeps working; a player keeps at most MAX_TOKENS of them, and the oldest goes first. */
-const G = require("../lib/game");
+const G = require("../game");
 
 const CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";   /* no 0/O, 1/I/L, so codes read aloud cleanly */
 const newCode = () => Array.from({ length: 8 }, () => CODE_CHARS[require("crypto").randomInt(CODE_CHARS.length)]).join("");

@@ -1,6 +1,6 @@
 /* POST /.netlify/functions/game-grants  ->  { grants: [{ cranes, order, reason }] }
    Hands the game any rewards waiting on the server (cranes from paid subscription renewals and from gifts a friend opened) and clears them. */
-const G = require("../lib/game");
+const G = require("../game");
 
 exports.handler = async (event) => {
   const deps = exports.__deps;

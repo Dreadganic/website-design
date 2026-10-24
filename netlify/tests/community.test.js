@@ -3,13 +3,13 @@ const test = require("node:test");
 const assert = require("node:assert");
 const G = require("../lib/game");
 const C = require("../lib/community");
-const account = require("../functions/game-account");
-const score = require("../functions/game-score");
-const harvest = require("../functions/game-harvest");
-const coop = require("../functions/game-coop");
+const account = require("../lib/handlers/game-account");
+const score = require("../lib/handlers/game-score");
+const harvest = require("../lib/handlers/game-harvest");
+const coop = require("../lib/handlers/game-coop");
 const D = require("../lib/derby");
 const E = require("../lib/coe");
-const coe = require("../functions/game-coe");
+const coe = require("../lib/handlers/game-coe");
 
 let store, clock, harvestFile;
 const deps = () => ({ store, now: clock, harvest: harvestFile });

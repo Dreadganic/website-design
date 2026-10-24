@@ -1,7 +1,7 @@
 /* GET /.netlify/functions/game-events  ->  { now, events: [...] }
    Drop events for the game. Edit netlify/lib/game-events.json and push: the game picks them up without an app update. */
-const G = require("../lib/game");
-const EVENTS = require("../lib/game-events.json");
+const G = require("../game");
+const EVENTS = require("../game-events.json");
 
 exports.handler = async (event) => {
   const deps = exports.__deps, now = (deps && deps.now) || Date.now();

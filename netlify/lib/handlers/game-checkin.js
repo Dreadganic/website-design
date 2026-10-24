@@ -1,6 +1,6 @@
 /* POST /.netlify/functions/game-checkin  ->  { day, month, days }
    Records today's check-in (Japan time) on the server, once a day. Twenty check-ins in a month earn that month's free sample. */
-const G = require("../lib/game");
+const G = require("../game");
 
 exports.handler = async (event) => {
   const deps = exports.__deps;

@@ -1,7 +1,7 @@
 /* GET  /.netlify/functions/game-gift            ->  { gifts: [{ code, order, opened }], from }   (your gift codes, and who sent the gift you opened)
    POST /.netlify/functions/game-gift  { code }  ->  { ok, from }   (open a friend's gift: a furoshiki decoration for your farm, and 10 cranes for them)
    Every order linked to Beju Farm brings one gift for a friend (made in game-claim). Each player opens one gift ever, and never their own. */
-const G = require("../lib/game");
+const G = require("../game");
 
 const GIFT_CRANES = 10;   /* for the friend who sent it, when it's opened */
 

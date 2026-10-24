@@ -1,6 +1,6 @@
 /* POST /.netlify/functions/game-account  { name? }  ->  { player, token }
    Creates an anonymous Beju Farm player. The token is shown once; the server keeps only its hash. */
-const G = require("../lib/game");
+const G = require("../game");
 
 const PER_HOUR = 20;   /* new farms from one connection in an hour: plenty for a family or an office, not for a script */
 

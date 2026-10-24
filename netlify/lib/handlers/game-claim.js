@@ -3,8 +3,8 @@
    the game is never trusted to say what was bought. 1 crane per ¥100, plus MONTH_BONUS for the first order of the month (Japan time);
    each coffee bought can stamp the passport. Every order also brings one gift code for a friend (game-gift), and a subscription
    unlocks the subscribers' fireworks on the farm. */
-const G = require("../lib/game");
-const { stripe } = require("../lib/stripe");
+const G = require("../game");
+const { stripe } = require("../stripe");
 
 const CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 const newCode = () => Array.from({ length: 6 }, () => CODE_CHARS[require("crypto").randomInt(CODE_CHARS.length)]).join("");

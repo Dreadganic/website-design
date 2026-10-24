@@ -2,12 +2,12 @@
 const test = require("node:test");
 const assert = require("node:assert");
 const G = require("../lib/game");
-const account = require("../functions/game-account");
-const score = require("../functions/game-score");
-const claim = require("../functions/game-claim");
-const visit = require("../functions/game-visit");
-const gift = require("../functions/game-gift");
-const grants = require("../functions/game-grants");
+const account = require("../lib/handlers/game-account");
+const score = require("../lib/handlers/game-score");
+const claim = require("../lib/handlers/game-claim");
+const visit = require("../lib/handlers/game-visit");
+const gift = require("../lib/handlers/game-gift");
+const grants = require("../lib/handlers/game-grants");
 
 let store, clock, order;
 const fakeStripe = async (url) => ({ ok: true, json: async () => (url.includes("/line_items")

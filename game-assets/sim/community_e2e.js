@@ -2,7 +2,7 @@ const { chromium } = require('/opt/node-tools/node_modules/playwright');
 const N = require('path').join(__dirname, '../../netlify/');
 const G = require(N + 'lib/game'), C = require(N + 'lib/community'); const store = G.memoryStore();
 const now0 = Date.now(), hv = { days: [{ id: 'test-hv', name: 'Test weekend', text: 'Sell or deliver washed lots', unit: 'lots', method: 'washed', starts: new Date(now0 - 3600e3).toISOString(), ends: new Date(now0 + 864e5).toISOString(), target: 20 }] };
-const fns = {}; ['game-account', 'game-save', 'game-score', 'game-visit', 'game-events', 'game-grants', 'game-samples', 'game-claim', 'game-harvest', 'game-coop', 'game-coe', 'game-checkin'].forEach((n) => { fns[n] = require(N + 'functions/' + n); Object.defineProperty(fns[n], '__deps', { get: () => ({ store, now: Date.now(), harvest: hv }), configurable: true }); });
+const fns = {}; ['game-account', 'game-save', 'game-score', 'game-visit', 'game-events', 'game-grants', 'game-samples', 'game-claim', 'game-harvest', 'game-coop', 'game-coe', 'game-checkin'].forEach((n) => { fns[n] = require(N + 'lib/handlers/' + n); Object.defineProperty(fns[n], '__deps', { get: () => ({ store, now: Date.now(), harvest: hv }), configurable: true }); });
 const callAs = async (name, method, auth, body, q) => JSON.parse((await fns[name].handler({ httpMethod: method, headers: auth, queryStringParameters: q || {}, body: body ? JSON.stringify(body) : undefined })).body);
 const farmer = async (name, prestige) => { const acc = await callAs('game-account', 'POST', {}, { name }), auth = { authorization: 'Bearer ' + acc.player + '.' + acc.token };
   await callAs('game-score', 'POST', auth, { name, prestige: 0, seasonP: 0, level: 1, points: 0, look: { crest: 0, skin: 2, bg: 'gedeo' } });

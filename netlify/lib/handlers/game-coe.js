@@ -3,9 +3,9 @@
    POST /.netlify/functions/game-coe  { act: "start", v, m, profile }  ->  { n, c, hw, dur }   (opens an attempt: the crack window for this roast)
    POST /.netlify/functions/game-coe  { act: "submit", n, t }          ->  { score, mine }   (t: ms into the roast when you tapped Crack)
    The weekly board ranks each player's best attempt. When a week ends its final places feed the Q grader rating, and the Hall of Excellence ranks that rating. */
-const G = require("../lib/game");
-const C = require("../lib/community");
-const E = require("../lib/coe");
+const G = require("../game");
+const C = require("../community");
+const E = require("../coe");
 
 const BOARD_MS = 60e3;
 const PROFILES = ["light", "medium", "dark"];

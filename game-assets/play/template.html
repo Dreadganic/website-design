@@ -1398,7 +1398,7 @@ LOCS.forEach((l) => {
 const skinLook = (i) => ({ shirt: SKINS[i].shirt, hat: SKINS[i].hat, pants: SKINS[i].pants });
 /* the other players on the board (simulated until the app has a server) */
 const BOT_NAMES = ['mika.brews', 'kenji_pourover', 'hana.at.home', 'cafe_lucia', 'bean_samurai', 'pourover_pedro', 'tomo_roasts', 'aroma.amara', 'v60_vince', 'geisha_gabi', 'yuki.drip', 'marco_moka', 'sol_de_huila', 'chemex_chloe', 'riku.ristretto', 'nyala_coffee', 'barista.ben', 'kiko_kettle', 'mogiana_mae', 'dripdrop.dan', 'ayumi_aeropress', 'felipe_finca', 'sakura_sips', 'ruby_roastery', 'ole_espresso', 'lena_latte', 'sumatra_sam', 'koa_cupper', 'ivy.infuser', 'toba_terrace'];
-function bots(fin) {   /* fin: as the season stood when it closed */
+function bots(fin) {   /* made-up farmers for the offline practice copy only; fin: as the season stood when it closed */
   return BOT_NAMES.map((name, i) => {
     let z = (i + 1) * 9301 + 49297; const r = () => { z = (z * 233280 + 49297) % 2147483647; return z / 2147483647; };
     /* practice players follow the real rules: a run's level stays below their next prestige, and this month's know-how adds up the runs they finished this month */
@@ -1426,18 +1426,23 @@ function board(mode, fin) {   /* fin: the practice board as it stood when the se
   }
   if (!fin && API && NET.status === 'online') liveBoard(mode);
   const me = { pin: pinOf(S.look, myTrophies()), name: S.name, prestige: S.prestige, seasonP: S.season.prestige, seasonKh: Math.round(S.season.kh || 0), seasonStars: S.season.stars, starsAt: S.season.starsAt, level: level(), points: Math.round(S.xp), look: S.look, rookie: isRookie(), you: true };
+  if (API) return [me];   /* online the boards hold real farmers only: until the live board arrives, or when it can't be reached, it's just you */
   /* all time: prestige, then level, then know-how this run. This season (and the Rookie board of first-season players): season stars, then whoever reached them first */
   return bots(fin).concat([me]).filter((x) => mode !== 'rookie' || x.rookie).sort(mode === 'all' ? (a, b) => b.prestige - a.prestige || b.level - a.level || b.points - a.points : seasonSort);
 }
 function seasonTick() {   /* a new season closes the old one: unclaimed track tiers are granted, then the final rank comes from the server's record of the closed board */
   if (S.season.key === seasonKey()) return;
   const ss = S.season, old = ss.key, t = theme(old), reached = tierAt(ss.stars);
-  const wasRookie = S.firstSeason === old, local = board('season', true).findIndex((x) => x.you) + 1, localRookie = wasRookie ? board('rookie', true).findIndex((x) => x.you) + 1 : 0, got = [];
+  const wasRookie = S.firstSeason === old, local = API ? 0 : board('season', true).findIndex((x) => x.you) + 1, localRookie = wasRookie && !API ? board('rookie', true).findIndex((x) => x.you) + 1 : 0, got = [];   /* online the rank only comes from the server's record of the closed board */
   for (let n = 1; n <= reached; n++) { const r = grantTier(old, n, true); if (r && r.cosmetic) got.push(r.label); }
   const done = reached >= TRACK_TIERS, played = ss.stars > 0 || (ss.kh || 0) > 0;
   S.season = newSeason();
   const finish = (rank, rookieRank) => {
-    if (!played && rank > 10) return;
+    if (!played && (!rank || rank > 10)) return;
+    if (!rank) {   /* the server couldn't say where you finished: no guessed badge */
+      showModal('<h2>' + seasonName(old) + ' season over</h2><p class="note">You finished with <b>' + ss.stars + ' season stars</b> (track tier ' + reached + ' of ' + TRACK_TIERS + '). Your final place couldn\'t be checked with the leaderboard, so no place badge this time.</p>' + (got.length ? '<p class="note">Track rewards you hadn\'t claimed are now yours: ' + got.join(', ') + '.</p>' : '') + '<button class="btn green" data-act="close">Start the ' + theme().name + ' season</button>');
+      save(); return;
+    }
     S.badges.push({ key: old, rank, label: BADGE(rank), theme: t.id, gold: done });
     if (wasRookie && rookieRank && rookieRank <= 10) S.badges.push({ key: old, rank: rookieRank, label: 'Rookie ' + BADGE(rookieRank), theme: t.id, gold: done });   /* the best newcomers get their own badge */
     const nt = theme();
@@ -2715,7 +2720,7 @@ function prestigeCeremony(rankBefore, rankAfter, players) {
   el.innerHTML = '<div class="pc-rays"></div><canvas id="pcconf"></canvas><div class="pc-flash"></div><div class="pc-body shake"><span class="pc-kicker">PRESTIGE</span><span class="pc-num">' + S.prestige + '</span>' +
     '<span class="pc-crest">' + avatar(S.look, 128) + '</span><span class="pc-tier" style="color:' + TAG_COLOR[t] + '">' + (top ? TIERS[t] + ' ' + '★'.repeat(Math.min(5, starsFor(S.prestige))) : TIERS[t]) + '</span>' +
     '<span class="pc-plate">' + plate(S.name, S.look.crest, starsFor(S.prestige)) + '</span>' +
-    '<span class="pc-sub">' + (top ? 'Another star on your name.' : 'New crest unlocked and already on.') + (SAMPLE_LADDER.find((r) => r.prestige === S.prestige && !sampleOf(r.id)) ? '<br><b>Plus a free 100 g ' + ART.locations[SAMPLE_LADDER.find((r) => r.prestige === S.prestige).origin].reward + ' sample.</b>' : '') + (above > 0 ? '<br>You climbed <b>' + above + ' place' + (above === 1 ? '' : 's') + '</b> to <b>#' + rankAfter + '</b> of ' + players + ' on the all-time board.' : '<br>You are <b>#' + rankAfter + '</b> of ' + players + ' on the all-time board.') + '</span>' +
+    '<span class="pc-sub">' + (top ? 'Another star on your name.' : 'New crest unlocked and already on.') + (SAMPLE_LADDER.find((r) => r.prestige === S.prestige && !sampleOf(r.id)) ? '<br><b>Plus a free 100 g ' + ART.locations[SAMPLE_LADDER.find((r) => r.prestige === S.prestige).origin].reward + ' sample.</b>' : '') + (players < 2 ? '' : above > 0 ? '<br>You climbed <b>' + above + ' place' + (above === 1 ? '' : 's') + '</b> to <b>#' + rankAfter + '</b> of ' + players + ' on the all-time board.' : '<br>You are <b>#' + rankAfter + '</b> of ' + players + ' on the all-time board.') + '</span>' +
     '<button class="btn green pc-go" data-act="pcer">' + (S.skinPicks ? 'Choose your new outfit' : 'Back to the farm') + '</button></div>';
   el.hidden = false;
   SFX.play('prestige'); Cozy.duck(5.5, 0.1); fireworks = 6;
@@ -3441,7 +3446,7 @@ function renderPanel() {
     }
   } else if (tab === 'ranks') {
     const mode = S.rankTab || 'season', list = board(mode === 'hall' ? 'all' : mode), pos = list.findIndex((x) => x.you) + 1, t = tierOf(S.prestige), need = prestigeNeed(), ready = level() >= need;
-    h += '<div class="me">' + avatar(S.look, 64) + '<div class="me-t">' + plate(S.name, S.look.crest, starsFor(S.prestige), S.look.charm, pinOf(S.look, myTrophies())) + rBadge(S.look) + '<span class="note">Prestige ' + S.prestige + ' · ' + TIERS[t] + (S.look.title ? ' · ' + titleText(S.look.title) : '') + '</span><span class="note">Level ' + level() + ' · ' + fmt(Math.round(S.xp)) + ' know-how · rank #' + pos + ' of ' + list.length + '</span></div></div>';
+    h += '<div class="me">' + avatar(S.look, 64) + '<div class="me-t">' + plate(S.name, S.look.crest, starsFor(S.prestige), S.look.charm, pinOf(S.look, myTrophies())) + rBadge(S.look) + '<span class="note">Prestige ' + S.prestige + ' · ' + TIERS[t] + (S.look.title ? ' · ' + titleText(S.look.title) : '') + '</span><span class="note">Level ' + level() + ' · ' + fmt(Math.round(S.xp)) + ' know-how' + (list.length > 1 ? ' · rank #' + pos + ' of ' + list.length : '') + '</span></div></div>';
     const rsub = ['board', 'season', 'prestige'].concat(coeOK() ? ['cup'] : [], ['records']).includes(S.rankSub) ? S.rankSub : 'board', rdot = ready, ss = S.season, reached = tierAt(ss.stars), sdot = Array.from({ length: reached }, (_, i) => i + 1).some((n) => !ss.claimed[n]);
     h += '<div class="seg subtabs">' + [['board', 'Leaderboard'], ['season', 'Season'], ['prestige', 'Prestige']].concat(coeOK() ? [['cup', 'Cup']] : [], [['records', 'Records']]).map(([k, tl]) => '<button type="button" data-act="ranksub:' + k + '" aria-pressed="' + (rsub === k) + '">' + tl + ((k === 'prestige' && rdot) || (k === 'season' && sdot) ? ' <i class="dot" aria-label="something waiting"></i>' : '') + '</button>').join('') + '</div>';
     const strip = '<div class="season"><b>' + seasonName(ss.key) + ' season</b><span>' + daysLeft() + ' day' + (daysLeft() === 1 ? '' : 's') + ' left · ★ ' + ss.stars + ' season star' + (ss.stars === 1 ? '' : 's') + ' · track tier ' + reached + ' of ' + TRACK_TIERS + '</span></div>';
@@ -3478,7 +3483,7 @@ function renderPanel() {
       const stat = mode === 'all' ? '<b>P' + x.prestige + '</b> · Lv ' + x.level + ' · ' + fmt(x.points) + ' kh' : '<b>★ ' + (x.seasonStars || 0) + '</b> · P' + x.prestige + (x.seasonP ? ' (+' + x.seasonP + ' this season)' : '') + ' · ' + fmt(x.seasonKh || 0) + ' kh';
       return '<div class="lb-row' + (x.you ? ' you' : '') + '"><b class="rk">' + r + '</b>' + avatar(x.look, 40) + '<div class="lb-n">' + plate(x.name, normLook(x.look).crest, starsFor(x.prestige), normLook(x.look).charm, x.pin) + rBadge(normLook(x.look)) + '<span class="lb-s">' + stat + '</span><span class="note">' + (normLook(x.look).title ? titleText(normLook(x.look).title) : TIERS[tierOf(x.prestige)]) + (x.rookie && mode === 'season' ? ' · Rookie' : '') + '</span></div>' + (x.code && !x.you ? '<button type="button" class="visit-btn" data-act="visit:' + x.code + '">Visit</button>' : '') + '</div>';
     }).join('') + '</div>');
-    if (mode !== 'hall') h += '<p class="note">' + (NET.status === 'online' && NET.board[mode] ? 'Live leaderboard · ' + NET.board[mode].players + ' farmer' + (NET.board[mode].players === 1 ? '' : 's') : 'Practice board: the live leaderboard appears when the game is played on bejucoffee.com.') + '</p>';
+    if (mode !== 'hall') h += '<p class="note">' + (NET.status === 'online' && NET.board[mode] ? 'Live leaderboard · ' + NET.board[mode].players + ' farmer' + (NET.board[mode].players === 1 ? '' : 's') : API ? (NET.status === 'online' ? 'Loading the live leaderboard…' : 'The live leaderboard shows real farmers once the game is online. Until then it\'s just you.') : 'Practice board: made-up farmers for this offline copy. The live leaderboard of real farmers is on bejucoffee.com.') + '</p>';
     h += '<h3>Farm visits</h3>' + help('visits', 'Tap Visit on a farmer, or enter a farm code.', 'Tap Visit on a farmer or type their farm code to see their farm. One Cheers a day per farm; your first earns a season star.') +
       (API && NET.status === 'online' ? (S.farmCode ? '<p class="note">Your farm code: <b class="code">' + S.farmCode + '</b> · ♥ ' + fmt(S.farmCheers || 0) + ' Cheers <button type="button" class="linkbtn" data-act="visit:' + S.farmCode + '">see how it looks</button></p>' : '<p class="note">Your farm code arrives in a moment.</p>') +
         '<p class="note">Show visitors: <select data-showloc="1" aria-label="Farm visitors see first">' + LOCS.filter((l) => S.farms[l].unlocked).map((l) => '<option value="' + l + '"' + ((S.showLoc || S.loc) === l ? ' selected' : '') + '>' + fname(l) + '</option>').join('') + '</select></p>' +

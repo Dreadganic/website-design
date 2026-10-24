@@ -2,7 +2,7 @@
    POST /.netlify/functions/game-samples  ->  same, after granting any samples the player now qualifies for
    Free coffee samples live here, not in the game's save, so editing a save earns nothing. Eligibility comes from the
    server's own leaderboard record (prestige, level) and check-in days. */
-const G = require("../lib/game");
+const G = require("../game");
 
 exports.handler = async (event) => {
   const deps = exports.__deps;

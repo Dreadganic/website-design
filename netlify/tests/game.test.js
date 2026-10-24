@@ -3,12 +3,12 @@
 const test = require("node:test");
 const assert = require("node:assert");
 const G = require("../lib/game");
-const account = require("../functions/game-account");
-const save = require("../functions/game-save");
-const score = require("../functions/game-score");
-const claim = require("../functions/game-claim");
-const events = require("../functions/game-events");
-const visit = require("../functions/game-visit");
+const account = require("../lib/handlers/game-account");
+const save = require("../lib/handlers/game-save");
+const score = require("../lib/handlers/game-score");
+const claim = require("../lib/handlers/game-claim");
+const events = require("../lib/handlers/game-events");
+const visit = require("../lib/handlers/game-visit");
 
 let store, clock;
 const deps = () => ({ store, now: clock });

@@ -11,9 +11,9 @@
    POST /.netlify/functions/game-coop  { act: "claim" }                ->  { cranes, tiers, full }   (every tier of this week's order reached so far, once per member who helped)
    POST /.netlify/functions/game-coop  { act: "derbyclaim" }           ->  { cranes, rank, of, week }   (last week's Co-op Derby reward; a top 3 place adds a trophy)
    The weekly order asks for 80% of what the members brought last week (a new member counts their own estimate), never less than 1,000 kg per active member, so small and large co-ops both get a goal an ordinary week reaches. Members away a week don't count; away a month, they leave. */
-const G = require("../lib/game");
-const C = require("../lib/community");
-const D = require("../lib/derby");
+const G = require("../game");
+const C = require("../community");
+const D = require("../derby");
 
 const CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 const newCode = () => Array.from({ length: 6 }, () => CODE_CHARS[require("crypto").randomInt(CODE_CHARS.length)]).join("");

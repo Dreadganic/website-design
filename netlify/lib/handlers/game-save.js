@@ -1,7 +1,7 @@
 /* GET  /.netlify/functions/game-save                      ->  { version, at, data }, or { none: true } before the first save
    PUT  /.netlify/functions/game-save  { base, data }       ->  { version, at }   (409 with the server copy if it is newer)
    Cloud save for one player. "base" is the version the client last saw, so an old phone can't overwrite newer progress. */
-const G = require("../lib/game");
+const G = require("../game");
 
 exports.handler = async (event) => {
   const deps = exports.__deps;
