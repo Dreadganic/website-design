@@ -102,6 +102,8 @@ const EventSFX = (function () {
   const squeak = (t, d, p) => voice(t, d, { f: 3200 * p, f2: 4300 * p, f3: 3000 * p, dur: 0.07, gain: 0.09 });
   const gnaw = (t, d) => { for (let i = 0; i < 10; i++) hiss(t + i * 0.045, d, { f: R(3000, 4200), q: 3, gain: R(0.07, 0.12), dur: 0.014 }); };
   const scurry = (t, d) => patter(t, d, 8, 2600, 0.1);
+  const kingSqueak = (t, d) => voice(t, d, { f: 1300, f2: 1900, f3: 1150, dur: 0.18, wave: 'triangle', bp: 1600, q: 2, vib: 7, vibD: 40, gain: 0.13 });   /* the king rat: bigger, so lower and grander */
+  const fanfare = (t, d, g) => [[392, 0, 0.11], [523, 0.12, 0.11], [659, 0.24, 0.36]].forEach(([f, x, len]) => voice(t + x, d, { f, dur: len, wave: 'sawtooth', lp: f * 3, gain: g || 0.06, attack: 0.02, hold: 0.7, verb: true }));   /* a tiny trumpet: ta-ta-daa */
   /* Karen: a little babble, the way games give characters a voice without words */
   function babble(t, d, n, base, rise, g) {
     for (let i = 0; i < n; i++) { const f = base * Math.pow(2, (R(-3, 4) + rise * i / n) / 12); voice(t + i * 0.075, d, { f, f2: f * R(0.94, 1.06), dur: 0.06, wave: 'square', bp: pick([700, 1100, 1600]), q: 4, gain: g || 0.11 }); }
@@ -183,11 +185,12 @@ const EventSFX = (function () {
     rats: {
       start(t, d) { hiss(t, d, { f: 1200, f2: 3000, q: 1, gain: 0.22, dur: 0.3 }); squeak(t + 0.25, d, 1); squeak(t + 0.36, d, 1.1); squeak(t + 0.55, d, 0.95); scurry(t + 0.6, d); },
       every: [0.6, 1.5],
-      call(t, d, rare) { const x = Math.random(); if (x < 0.5) gnaw(t, d); else if (x < 0.8) { const p = R(0.9, 1.15); squeak(t, d, p); if (Math.random() < 0.4) squeak(t + 0.1, d, p * 1.06); } else scurry(t, d); if (rare && Math.random() < 0.4) { tone(t + 0.2, d, { f: 2637, gain: 0.03, dur: 0.25, verb: true }); hiss(t + 0.2, d, { f: 1500, q: 0.5, gain: 0.04, dur: 0.15 }); } },
+      rareStart(t, d) { fanfare(t, d, 0.07); kingSqueak(t + 0.5, d); },   /* the king announces himself */
+      call(t, d, rare) { const x = Math.random(); if (x < 0.5) gnaw(t, d); else if (x < 0.8) { const p = R(0.9, 1.15); squeak(t, d, p); if (Math.random() < 0.4) squeak(t + 0.1, d, p * 1.06); } else scurry(t, d); if (rare) { if (Math.random() < 0.4) kingSqueak(t + 0.25, d); if (Math.random() < 0.12) fanfare(t + 0.5, d, 0.035); } },
       hits: {
         trap: { label: 'Set a trap', play(t, d) { hiss(t, d, { type: 'highpass', f: 3500, gain: 0.28, dur: 0.015 }); tone(t, d, { f: 900, f2: 300, glide: 0.04, gain: 0.1, dur: 0.05, wave: 'square' }); bell(t + 0.01, d, 2093, 0.035, 0.3); voice(t + 0.08, d, { f: 3000, f2: 3600, dur: 0.07, lp: 1800, gain: 0.05 }); } },
         miss: { label: 'Tap an empty hole', play(t, d) { tone(t, d, { f: 300, f2: 250, gain: 0.08, dur: 0.05, wave: 'triangle' }); hiss(t, d, { type: 'lowpass', f: 500, gain: 0.05, dur: 0.05 }); } },
-        rare: { label: 'Catch the white rat', rare: true, play(t, d) { squeak(t, d, 1.2); tone(t + 0.05, d, { f: 2637, gain: 0.04, dur: 0.3, verb: true }); hiss(t + 0.1, d, { f: 1500, q: 0.5, gain: 0.06, dur: 0.2 }); shimmer(t + 0.25, d); } }
+        rare: { label: 'Trap the king rat', rare: true, play(t, d) { hiss(t, d, { type: 'highpass', f: 3000, gain: 0.3, dur: 0.02 }); tone(t, d, { f: 700, f2: 220, glide: 0.05, gain: 0.12, dur: 0.07, wave: 'square' }); kingSqueak(t + 0.08, d); fanfare(t + 0.35, d, 0.07); shimmer(t + 0.7, d); } }
       },
       clear(t, d) { scurry(t, d); wood(t + 0.4, d, 1400, 0.1); cleared(t + 0.55, d); }
     },
@@ -254,7 +257,7 @@ const EventSFX = (function () {
     if (ac.state !== 'running') ac.resume();
     const t0 = ac.currentTime + 0.02;
     let here = E.everywhere || opt.here !== false, alive = true, timer = 0, tickT = 0, muted = !SFX.isEnabled();
-    if (!muted) { E.start(t0, K.out, rare); if (rare) shimmer(t0 + 0.15, K.out); }   /* the sting: full volume, wherever you are */
+    if (!muted) { E.start(t0, K.out, rare); if (rare) { shimmer(t0 + 0.15, K.out); if (E.rareStart) E.rareStart(t0 + 0.9, K.out); } }   /* the sting: full volume, wherever you are */
     bus.gain.cancelScheduledValues(t0); bus.gain.setValueAtTime(0.0001, t0); if (!muted) bus.gain.setTargetAtTime(1, t0 + 0.9, 0.35);
     const setHere = (on, fast) => { const now = ac.currentTime, k = fast ? 0.01 : 0.18; muff.frequency.setTargetAtTime(on ? 16000 : 1000, now, k); if (alive && !muted) bus.gain.setTargetAtTime(on ? 1 : 0.3, now, k); };
     setHere(here, true);

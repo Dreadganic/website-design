@@ -665,23 +665,26 @@ spr('hive_gold', {'O': O, 'g': '#F8D060', 'G': '#E0A830', 'd': '#A87018', 'h': '
 BEE = {'O': '#1E1A22', 'y': '#F8C830', 'K': '#2E1E18', 'w': '#E8F4FF'}
 spr('bee_0', BEE, ['.ww..', 'OyKyK', '.yKyO'])
 spr('bee_1', BEE, ['w..w.', 'OyKyK', 'wyKyO'])
-WR = {'O': O, 'r': '#F4F4F0', 'R': '#C8C8C4', 'p': '#F0A0B0', 'e': '#E04060', 's': '#B49058', 'S': '#C8402E', 'a': SH}
-spr('rat_white_0', WR, [
- '...OO.OOOO...',
- '..OpROsSSsO..',
- '.OrrrrOsssO..',
- 'perrrrrrrRO..',
- '.OOrrrrrRROpp',
- '...OROOROO...',
- '....aaaaa....'])
-spr('rat_white_1', WR, [
- '...OO.OOOO...',
- '..OpROsSSsO..',
- '.OrrrrOsssO..',
- 'perrrrrrrROpp',
- '.OOrrrrrRRO..',
- '..ORO..ORO...',
- '....aaaaa....'])
+KING = {'O': O, 'w': '#FFFFFF', 'r': '#8A7E70', 'R': '#665C50', 'p': '#E8A0A8', 'e': '#2E1E18', 'g': '#F2C04A', 'G': '#C89028', 'j': '#D84A36', 'c': '#B83040', 'C': '#8A2030', 'm': '#F8F4EC', 'k': '#2E1E18', 'a': SH}
+KING_TOP = [
+ '.....g.g.g............',
+ '.....gjgjg............',
+ '....OGGGGGO...........',
+ '...OrrrrrrpO..OOOOO...',
+ '..OrrrrrrrrrOOcccccO..',
+ '.OrwerrrrrrRccCcccccO.',
+ 'pprrrrrrrrrRcCcCcCccO.',
+ '.OrrrrrrrrRRmkmmkmmmO.',
+ '..OOrrrrrRRRRRRRRRRROp',
+ '....ORRRRRRRRRRRRRRO.p']
+spr('rat_king_0', KING, KING_TOP + [
+ '....OrRO.OrRO.OrRO.Opp',
+ '....OOOO.OOOO.OOOO....',
+ '.....aaaaaaaaaaaaaa...'])
+spr('rat_king_1', KING, KING_TOP + [
+ '...OrRO..OrRO.OrRO.Opp',
+ '...OOOO..OOOO.OOOO....',
+ '.....aaaaaaaaaaaaaa...'])
 KH = {'O': O, 'h': '#F8E08C', 'H': '#E0BC5C', 'k': '#B88E38', 's': '#F8D2B0', 'S': '#E2A882', 'm': '#C8485A', 'v': '#B898E8', 'V': '#8060C0', 'r': '#F2C04A',
       'g': '#2E1E18', 'w': '#FFFFFF', 'c': '#6AA8D8', 'C': '#4A88B8', 'D': '#305898', 'p': '#F4F0E4', 'P': '#D8D0BC', 'b': '#2E1E18', 'B': '#C8402E', 'd': '#FFF4E4', 'n': '#2E1E18', 'a': SH}
 spr('karen_hat', KH, [

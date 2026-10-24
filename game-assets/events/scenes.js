@@ -93,8 +93,12 @@ const SCENES = {
     holes.forEach(([x, y], i) => put(c, tails.includes(i) ? 'hole_tail' : 'hole', x, y, { flip: i === 3 }));
     put(c, 'trap', 136, 294); tag(c, 141, 286, '✓', { fg: '#A8C86A', size: 11 });
     put(c, 'rat_' + frame(t, 5, 2), 14, 292, { flip: frame(t, 0.5, 2) === 1 });
-    const u = animOn ? (t * 0.35) % 1 : 0.3; put(c, (rare ? 'rat_white_' : 'rat_') + frame(t, 8, 2, 1), 42 + u * 60, 318, { flip: true }); if (rare) { put(c, 'sparkle', 46 + u * 60, 310); tag(c, 60, 240, 'rare: a white rat with an old sack', { fg: '#F2C04A', size: 11 }); }
-    arrow(c, 105, 296, t); tag(c, 44, 282, 'dried lots −2% a min', { fg: '#FFF4E4', size: 10 }); cost(c, 128, 256, 7200); tag(c, 128, 272, '1 of 3 traps set', { fg: '#F2C04A', size: 11 }); } },
+    const u = animOn ? (t * 0.35) % 1 : 0.3; put(c, 'rat_' + frame(t, 8, 2, 1), 42 + u * 60, 318, { flip: true });
+    if (rare) {   /* the king rat struts back and forth above the holes, slow and grand */
+      const ph = (animOn ? t : 0.8) * 0.5, kx = 134 + Math.sin(ph) * 22, k = frame(t, 3, 3);
+      put(c, 'rat_king_' + frame(t, 3, 2), kx - 11, 264, { flip: Math.cos(ph) > 0 }); put(c, 'sparkle', kx - 8 + k * 6, 258 + (k % 2) * 3);
+      tag(c, 52, 228, 'rare: the king rat', { fg: '#F2C04A', size: 11 }); }
+    arrow(c, 105, 296, t); tag(c, 44, 282, 'dried lots −2% a min', { fg: '#FFF4E4', size: 10 }); cost(c, 148, rare ? 244 : 256, 7200); tag(c, 148, rare ? 228 : 272, '1 of 3 traps set', { fg: '#F2C04A', size: 11 }); } },
   karen: { bg: 'roast', crop: [0, 112, CW, CH], draw(c, t, rare) {
     const gy = animOn ? (t * 12) % 36 : 10;
     put(c, 'worker_down_' + (1 + frame(t, 4, 2)), 86, 232 + gy, { pal: GUEST.cafe });
