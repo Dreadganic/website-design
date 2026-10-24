@@ -165,7 +165,7 @@ window.BOT = (function () {
   function decide() { closeAll(); lessons(); if (!G.GUIDE || G.S.guide >= G.GUIDE.length) G.checkIn(); G.checkTabs();   /* the game holds the first check-in until the lessons are done */ tap(); active(); mill(); estate(); roast(); knowhow(); coins(); prestige(); closeAll(); cycleEnd(); }
   function snap() {
     const S = G.S;
-    B.snaps.push({ t: Math.round(B.t), lv: G.level(), xp: Math.round(S.xp), p: S.prestige, coins: Math.round(S.coins), kh: Math.round(S.points), cranes: S.cranes, farms: G.LOCS.filter(live).length, workers: G.totalWorkers(), lots: S.stats.lotsSold, contracts: S.stats.contracts || 0, cap: G.cap(), racks: G.racks(), stored: Math.round(G.stored()), day: S.day });
+    B.snaps.push({ t: Math.round(B.t), lv: G.level(), xp: Math.round(S.xp), p: S.prestige, coins: Math.round(S.coins), kh: Math.round(S.points), cranes: S.cranes, farms: G.LOCS.filter(live).length, workers: G.totalWorkers(), lots: S.stats.lotsSold, sold: Math.round(S.stats.sold), contracts: S.stats.contracts || 0, cap: G.cap(), racks: G.racks(), stored: Math.round(G.stored()), day: S.day });
   }
   B.run = function (seconds, step) {   /* advance the game by `seconds`, deciding every `step` seconds */
     step = step || 2; const end = B.t + seconds; let nextD = B.t, nextS = Math.floor(B.t / 60) * 60 + 60;

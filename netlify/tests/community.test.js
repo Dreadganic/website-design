@@ -112,7 +112,7 @@ test("co-ops: the weekly order scales with members, counts only rises, and pays 
   const made = (await call(coop, "POST", { act: "create", name: "Cerrado" }, a)).body.coop;
   await call(coop, "POST", { act: "join", code: made.code }, b); await call(coop, "POST", { act: "join", code: made.code }, c);
   let v = (await call(coop, "GET", undefined, a)).body.coop;
-  assert.equal(v.order.target, Math.round(3 * C.COOP_NEW_BASE * C.coopSize(3) / 100) * 100, "three new members: 2,000 kg each, and 1.2 times that for a co-op of three");
+  assert.equal(v.order.target, Math.round(3 * C.coopFloor(0) * C.coopSize(3) / 100) * 100, "three new members: the floor for their prestige each, and 1.2 times that for a co-op of three");
   assert.equal(v.order.process, C.coopProcess(v.order.week));
   const wk = v.order.week;
   assert.equal((await call(coop, "POST", { act: "claim" }, a)).body.error, "did_not_help");
@@ -124,6 +124,8 @@ test("co-ops: the weekly order scales with members, counts only rises, and pays 
   clock += 60e3;
   v = (await call(coop, "POST", { act: "sync", week: wk, kg: 9e9 }, b)).body.coop;
   assert.ok(v.order.total < 9e9 && v.order.total > 2000, "a made-up number is capped");
+  clock += 12 * 3600e3; v = (await call(coop, "POST", { act: "sync", week: wk, kg: 9e9 }, b)).body.coop;   /* twelve hours later more may count */
+  assert.ok(v.order.total >= v.order.target, "the order is full");
   const claim = await call(coop, "POST", { act: "claim" }, a);
   assert.equal(claim.body.cranes, 10, "one claim pays every tier: 1 + 2 + 3 + 4"); assert.equal(claim.body.full, true); assert.deepEqual(claim.body.tiers, [0, 1, 2, 3]);
   assert.equal((await call(coop, "POST", { act: "claim" }, a)).body.error, "already_claimed");
@@ -133,8 +135,8 @@ test("co-ops: the weekly order scales with members, counts only rises, and pays 
   v = (await call(coop, "GET", undefined, a)).body.coop;
   assert.notEqual(v.order.week, wk);
   const last = await store.get("coops/" + (await store.get("players/" + a.split(".")[0])).coop + "/week/" + wk);
-  const usual = async (t) => Math.max(last.shares[t.split(".")[0]] || 0, C.COOP_NEW_BASE, (await store.get("players/" + t.split(".")[0])).coopEst || 0);
-  assert.equal(v.order.target, Math.max(2 * C.COOP_MIN_PER, Math.round(((await usual(a)) + (await usual(b))) * C.coopSize(2) / 100) * 100), "each member's usual week (last week's share or what their farm makes now, whichever is more), 1.1 times for two; Cai, away a week with nothing added, counts as zero");
+  const usual = async (t) => Math.max(last.shares[t.split(".")[0]] || 0, C.coopFloor(0), (await store.get("players/" + t.split(".")[0])).coopEst || 0);
+  assert.equal(v.order.target, Math.max(2 * C.COOP_MIN_PER, Math.round(((await usual(a)) + (await usual(b))) * C.coopSize(2) / 100) * 100), "each member's usual week (the most of last week's share, what their farm makes now and their prestige's floor), 1.1 times for two; Cai, away a week with nothing added, counts as zero");
   assert.equal(v.members.find((m) => m.name === "Cai").away, true);
 });
 
@@ -145,6 +147,18 @@ test("co-ops: a new co-op's first order fits the farms that join it, and asks mo
   const joined = (await call(coop, "POST", { act: "join", code: made.code, est: 10000 }, b)).body.coop;
   assert.equal(joined.order.target, Math.round(40000 * C.coopSize(2) / 100) * 100, "Ben brings his week, and two farmers are asked 1.1 times their usual");
   assert.ok(C.coopSize(8) > C.coopSize(4) && C.coopSize(4) > C.coopSize(1) && C.coopSize(1) === 1);
+});
+
+test("co-ops: a farmer counts for at least the floor for their prestige, and an order made under the old rules is sized again unless it's finished", async () => {
+  const a = await newPlayer("Pia", 3);
+  const made = (await call(coop, "POST", { act: "create", name: "Solo" }, a)).body.coop;
+  assert.equal(made.order.target, C.coopFloor(3), "a prestige 3 farm alone: 40,000 kg, not 1,000");
+  assert.equal(C.coopFloor(1), 20000);
+  const key = "coops/" + made.id + "/week/" + made.order.week, w = await store.get(key);
+  await store.set(key, Object.assign(w, { target: 1000, rules: undefined, shares: { [a.split(".")[0]]: 400 } }));
+  assert.equal((await call(coop, "GET", undefined, a)).body.coop.order.target, C.coopFloor(3), "an unfinished 1,000 kg order from before is sized again");
+  await store.set(key, Object.assign(await store.get(key), { target: 1000, rules: undefined, shares: { [a.split(".")[0]]: 1200 }, claimed: { [a.split(".")[0]]: [0, 1, 2, 3] } }));
+  assert.equal((await call(coop, "GET", undefined, a)).body.coop.order.target, 1000, "a finished one stays finished, with its tiers claimed");
 });
 
 test("co-ops: stickers only from the list, helps once a day per mate, and the helped farmer collects them", async () => {

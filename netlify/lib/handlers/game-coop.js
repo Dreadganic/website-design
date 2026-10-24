@@ -34,20 +34,22 @@ async function prune(store, coop, now) {   /* a member gone a month leaves, so a
   if (keep.length === coop.members.length) return;
   coop.members = keep; await store.set("coops/" + coop.id, coop); await reindex(store, coop, now);
 }
-async function baseline(store, coop, pid, wk, now) {   /* what a member is expected to bring in a week: the more of last week's share and what their farm makes now (coopEst, from the game); 0 for someone away a week who brought nothing last week */
+async function baseline(store, coop, pid, wk, now) {   /* what a member is expected to bring in a week: the most of last week's share, what their farm sells now (coopEst, from the game) and the floor for their prestige; 0 for someone away a week who brought nothing last week */
   const last = await store.get("coops/" + coop.id + "/week/" + C.prevWeek(wk));
-  const had = (last && last.shares && last.shares[pid]) || 0;
-  if (!had && awayFor(coop, pid, await scoreRow(store, pid), now) >= C.COOP_AWAY_DAYS * C.DAY) return 0;
+  const had = (last && last.shares && last.shares[pid]) || 0, row = await scoreRow(store, pid);
+  if (!had && awayFor(coop, pid, row, now) >= C.COOP_AWAY_DAYS * C.DAY) return 0;
   const p = await store.get("players/" + pid);
-  return Math.max(had, C.COOP_NEW_BASE, Math.floor((p && p.coopEst) || 0));   /* farms grow fast, so last week alone made orders far too small */
+  return Math.max(had, C.coopFloor(row.prestige), Math.floor((p && p.coopEst) || 0));   /* farms grow fast, so last week alone made orders far too small */
 }
 const orderSize = (base, active) => Math.max(C.COOP_MIN_PER * Math.max(1, active), Math.round(base * C.coopSize(active) / 100) * 100);
-async function weekOf(store, coop, wk, now) {   /* this week's order, made on first touch */
+async function weekOf(store, coop, wk, now) {   /* this week's order, made on first touch, or sized again if older rules made it */
   const key = "coops/" + coop.id + "/week/" + wk; let w = await store.get(key);
-  if (!w) {
+  const done = w && Object.values(w.shares).reduce((a, x) => a + x, 0) >= w.target;   /* a finished order stays finished: sizing it again would show every tier claimed on an empty bar */
+  if (!w || ((w.rules || 1) < C.COOP_RULES && !done)) {
     const bases = await Promise.all(coop.members.map((m) => baseline(store, coop, m, wk, now)));
     const base = bases.reduce((a, b) => a + b, 0), active = bases.filter((b) => b > 0).length;
-    w = { week: wk, process: C.coopProcess(wk), base, active, target: orderSize(base, active), shares: {}, at: {}, claimed: {}, joined: coop.members.slice() };
+    if (!w) w = { week: wk, process: C.coopProcess(wk), shares: {}, at: {}, claimed: {}, joined: coop.members.slice() };
+    Object.assign(w, { base, active, target: Math.max(w.target || 0, orderSize(base, active)), rules: C.COOP_RULES });   /* never smaller than it was */
     await store.set(key, w);
   }
   return w;
@@ -124,7 +126,7 @@ exports.handler = async (event) => {
     if (b.est > 0) { me.coopEst = Math.min(1e9, Math.floor(b.est)); await G.savePlayer(store, me); }
     if (b.week === wk) {
       const w = await weekOf(store, coop, wk, now), had = w.shares[me.id] || 0, rise = Math.max(0, Math.floor(Number(b.kg) || 0) - had);
-      const ok = Math.min(rise, C.coopAllowed(Math.max(C.COOP_NEW_BASE, await baseline(store, coop, me.id, wk, now)), w.at[me.id], now));
+      const ok = Math.min(rise, C.coopAllowed(Math.max(C.COOP_MIN_PER, await baseline(store, coop, me.id, wk, now)), w.at[me.id], now));
       if (ok > 0) { w.shares[me.id] = had + ok; w.at[me.id] = now; await store.set("coops/" + coop.id + "/week/" + wk, w); }
       const idx = await index(store); if (idx[coop.id] && now - (idx[coop.id].act || 0) > 3600e3) { idx[coop.id].act = now; await store.set("coopidx", idx); }   /* this co-op is alive */
       await D.derbyAdd(store, coop, me, b.derby, now);
