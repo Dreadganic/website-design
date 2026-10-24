@@ -2387,7 +2387,7 @@ function fresh() {
     methods: { washed: true, natural: true }, vars: { caturra: true }, staff: { foreman: false, agent: false, rule: 'best' }, decor: {}, contracts: [], nextContract: 0, hat: 'straw', hats: { straw: true }, stamps: {},
     cherries: {}, lots: [], boosts: {}, minutes: 7 * 60 + 30, minutesTotal: 0, day: 1, taps: 0, year: 1, bonus: 0,
     tasks: null, weekly: { mine: 0, team: 1800, target: 4000, start: 1, claimed: false }, samples: [], stats: { picked: 0, sold: 0, lotsSold: 0 },
-    farms: {}, intro: 0, seasonPick: 'auto', speed: 1, sfx: true, music: true, musicVol: 0.45, guide: 0, guideN: 0, guideV: GUIDE_V, tabs: { upgrades: false, unlock: false, orders: false, ranks: false, shop: false }, newTab: null, checkin: { last: '', streak: 0, freezes: 1 }, season: newSeason(), sitems: { bg: {}, charm: {}, title: {} }, firstSeason: seasonKey(), roastery: { rep: 0, beans: {}, roasters: [], bags: [] }, estate: { st: {}, cellar: [] }, rcos: { own: {}, on: { fin: 'classic', room: 'brick', noren: 'indigo', label: 'house', apron: 'plain' }, hide: {}, sold: {}, cracks: 0 }, badges: [], event: null, prestige: 0, name: 'You', look: { crest: 0, skin: 0, bg: 'none', char: 'none', hat: '', charm: '', title: '' }, skins: { 0: true }, chars: {}, bskins: {}, skinPicks: 0, dormant: {}, last: Date.now()
+    farms: {}, intro: 0, seasonPick: 'auto', speed: 1, sfx: true, music: true, musicVol: 0.45, guide: 0, guideN: 0, guideV: GUIDE_V, tabs: { upgrades: false, unlock: false, orders: false, ranks: false, shop: false }, newTab: null, checkin: { last: '', streak: 0, freezes: 1 }, season: newSeason(), sitems: { bg: {}, charm: {}, title: {} }, firstSeason: seasonKey(), roastery: { rep: 0, beans: {}, roasters: [], bags: [] }, estate: { st: {}, cellar: [] }, rcos: { own: {}, on: { fin: 'classic', room: 'brick', noren: 'indigo', label: 'house', apron: 'plain' }, hide: {}, sold: {}, cracks: 0 }, badges: [], event: null, prestige: 0, name: 'You', nameOk: '', look: { crest: 0, skin: 0, bg: 'none', char: 'none', hat: '', charm: '', title: '' }, skins: { 0: true }, chars: {}, bskins: {}, skinPicks: 0, dormant: {}, last: Date.now()
   };
   LOCS.forEach((l) => { st.farms[l] = newFarm(l); });
   return st;
@@ -3573,7 +3573,8 @@ function showSheet(on) {   /* the tab's sheet over the lower half of the map */
   $('sheetI').src = url(tb ? tb[2] : 'i_points'); document.querySelector('.sheet-x').setAttribute('aria-label', 'Put away ' + $('sheetT').textContent);
   renderTabs(); renderPanel(); renderGuide();
 }
-addEventListener('keydown', (e) => {   /* Escape: a window with a Close or Cancel goes first, then the sheet */
+addEventListener('keydown', (e) => {   /* Escape: a window with a Close or Cancel goes first, then the sheet. Enter in a name box saves it */
+  if (e.key === 'Enter' && e.target && (e.target.id === 'nameAsk' || e.target.id === 'nameIn')) { const b = e.target.parentNode.querySelector('[data-act="nameset"], [data-act="rename"]'); if (b) { e.preventDefault(); b.click(); } return; }
   if (e.key !== 'Escape') return;
   if (!$('modal').hidden) { const c = $('modalCard').querySelector('[data-act="close"]'); if (c) c.click(); return; }
   if (sheetOpen) showSheet(false);
@@ -3814,7 +3815,7 @@ function guideBar() {
   if (S.guide >= GUIDE.length || guideWaiting()) { el.hidden = true; arrow.hidden = true; return; }
   const g = GUIDE[S.guide]; el.hidden = false;
   setHTML(el, '<span class="gstep">' + g.ch + ' · ' + (S.guide + 1) + '/' + GUIDE.length + '</span><span class="gtext">' + g.text + (g.goal > 1 ? ' (' + (S.guideN || 0) + '/' + g.goal + ')' : '') + '</span><button type="button" class="gskip" data-act="guideNext" aria-label="Skip this step">›</button><button type="button" class="gskip" data-act="guideSkip">Skip all</button>');
-  if (g.say && S.guideSaid !== S.guide && $('modal').hidden) { S.guideSaid = S.guide; showModal(coachCard(g.ch, g.say)); }
+  if (g.say && S.guideSaid !== S.guide && $('modal').hidden && !needsName()) { S.guideSaid = S.guide; showModal(coachCard(g.ch, g.say)); }
   const tt = navTarget(g.target), t = tt && tt.el;
   if (t && t !== cv) { t.classList.add('hint'); showTarget(t, 'guide' + S.guide + '.' + tt.i); }
   if (t === cv && S.guideSeenAt !== S.guide && $('modal').hidden) { S.guideSeenAt = S.guide; const r = $('stage').getBoundingClientRect(); if (r.top < 0 || r.bottom > innerHeight) $('stage').scrollIntoView({ block: 'start', behavior: calm ? 'auto' : 'smooth' }); }   /* lessons on the map bring the map back on screen */
@@ -4264,7 +4265,7 @@ function renderPanel() {
       (API && NET.status === 'online' ? (S.farmCode ? '<p class="note">Your farm code: <b class="code">' + S.farmCode + '</b> · ♥ ' + fmt(S.farmCheers || 0) + ' Cheers <button type="button" class="linkbtn" data-act="visit:' + S.farmCode + '">see how it looks</button></p>' : '<p class="note">Your farm code arrives in a moment.</p>') +
         '<p class="note">Show visitors: <select data-showloc="1" aria-label="Farm visitors see first">' + LOCS.filter((l) => S.farms[l].unlocked).map((l) => '<option value="' + l + '"' + ((S.showLoc || S.loc) === l ? ' selected' : '') + '>' + fname(l) + '</option>').join('') + '</select></p>' +
         '<div class="seg"><input id="visitIn" maxlength="7" placeholder="Farm code" aria-label="Farm code to visit" autocapitalize="characters"><button type="button" data-act="visitcode">Visit</button></div>' : '<p class="note">Farm visits work when you play online at bejucoffee.com.</p>');
-    h += '<h3>Your name</h3><div class="seg"><input id="nameIn" maxlength="16" value="' + S.name.replace(/"/g, '') + '" aria-label="Your name on the leaderboard"><button type="button" data-act="rename">Save</button></div>';
+    h += nameField();
     } else {
     h += '<div class="pnext">' + plate('P' + S.prestige, tierOf(S.prestige)) + '<span>→</span>' + plate('P' + (S.prestige + 1), tierOf(S.prestige + 1)) + '</div>';
     h += '<h3>Prestige</h3>' + help('prestige', 'Restart your level for a new crest. Coins, buildings and farms stay.', 'Prestige restarts your level for a new crest; coins, buildings, farms and unlocks stay. Each needs 8 more levels. Know-how you haven\'t spent becomes cupping research, so none is lost.');
@@ -4386,7 +4387,7 @@ function renderPanel() {
     if (coopOK()) h += '<h3>Co-op stickers</h3><div class="seg">' + [['0', 'Shown'], ['1', 'Hidden']].map(([v, tl]) => '<button type="button" data-act="hidestickers:' + v + '" aria-pressed="' + ((S.hideStickers ? '1' : '0') === v) + '">' + tl + '</button>').join('') + '</div>';
     h += '<h3>Help text</h3><div class="seg">' + [[false, 'Short, with i buttons'], [true, 'Always in full']].map(([v, tl]) => '<button type="button" data-act="showhelp:' + (v ? 1 : 0) + '" aria-pressed="' + (!!S.showHelp === v) + '">' + tl + '</button>').join('') + '</div>';
     h += '<h3>Music volume</h3><div class="seg">' + [['0.25', 'Quiet'], ['0.45', 'Normal'], ['0.7', 'Loud']].map(([v, tl]) => '<button type="button" data-act="mvol:' + v + '" aria-pressed="' + (String(S.musicVol) === v) + '">' + tl + '</button>').join('') + '</div><p class="note">Sound effects and music switch on and off with the buttons on the farm.</p>';
-    h += onlineCard();
+    h += nameField() + onlineCard();
     h += '<h3>Start again</h3><div class="seg"><button type="button" data-act="reset">Reset the game</button></div><p class="note">Clears this farm from this browser. Free samples you have earned stay with your online account.</p>';
   } else {
     h += '<h2>Test tools</h2><p class="note">For playtesting: everything here stands in for something that will come from real orders or real time.</p>';
@@ -4399,7 +4400,7 @@ function renderPanel() {
     h += '<h3>Game speed</h3><div class="seg">' + [1, 3, 10].map((x) => '<button type="button" data-act="speed:' + x + '" aria-pressed="' + (S.speed === x) + '">×' + x + '</button>').join('') + '</div>';
     h += '<h3>Weather</h3><div class="seg">' + ['auto', 'harvest', 'rainy', 'spring', 'summer', 'autumn', 'winter'].map((x) => '<button type="button" data-act="season:' + x + '" aria-pressed="' + (S.seasonPick === x) + '">' + x + '</button>').join('') + '</div><p class="note">Harvest and rainy apply to the coffee farms; spring to winter apply to Osaka.</p>';
     h += '<h3>Music volume</h3><div class="seg">' + [['0.25', 'Quiet'], ['0.45', 'Normal'], ['0.7', 'Loud']].map(([v, t]) => '<button type="button" data-act="mvol:' + v + '" aria-pressed="' + (S.musicVol === +v) + '">' + t + '</button>').join('') + '</div><p class="note">Each farm has its own theme. Night versions play from 7 pm to 6 am on the farm clock. Use the buttons at the bottom left of the farm to turn music or sounds off.</p>';
-    h += onlineCard() + '<h3>Online</h3><p class="note">' + (API ? (NET.status === 'online' ? 'Connected as ' + NET.acct.player + ' · cloud save v' + NET.ver + (NET.rank ? ' · rank #' + NET.rank : '') + (NET.scoreError ? ' · last score refused: ' + NET.scoreError : '') : 'Connecting to bejucoffee.com…') : 'Offline prototype. Accounts, cloud saves, the live leaderboard and order links switch on when the game runs on bejucoffee.com.') + '</p>';
+    h += nameField() + onlineCard() + '<h3>Online</h3><p class="note">' + (API ? (NET.status === 'online' ? 'Connected as ' + NET.acct.player + ' · cloud save v' + NET.ver + (NET.rank ? ' · rank #' + NET.rank : '') + (NET.scoreError ? ' · last score refused: ' + NET.scoreError : '') : 'Connecting to bejucoffee.com…') : 'Offline prototype. Accounts, cloud saves, the live leaderboard and order links switch on when the game runs on bejucoffee.com.') + '</p>';
     h += '<h3>Save</h3><div class="seg"><button type="button" data-act="reset">Reset the game</button></div><p class="note">Progress saves in this browser every few seconds.</p>';
   }
   const strips = [...P.querySelectorAll('.ccards')].map((x) => x.scrollLeft);
@@ -4426,7 +4427,7 @@ document.addEventListener('click', (e) => {
   setTimeout(() => {   /* sound for the action, once its effect is known */
     const spent = S.coins + S.points + S.cranes < wallet;
     const BUY = { hire: 'hire', up: 'buy', build: 'build', mgr: 'hire', foreman: 'hire', agent: 'hire', var: 'achieve', farm: 'achieve', method: 'achieve', buyhat: 'achieve', master: 'buy', research: 'achieve', tech: 'achieve', buychar: 'achieve', buybskin: 'achieve', boost: 'crane', decor: 'achieve', fxbuy: 'achieve', mktbuy: 'achieve' };
-    const ALWAYS = { pin: 'tick', fx: 'tick', dv: 'tick', dailysub: 'tick', stickersall: 'tick', derbyall: 'tick', hidestickers: 'tick', ranktab: 'tick', ranksub: 'tick', millview: 'tick', millsub: 'tick', untab: 'tick', crest: 'tick', skin: 'tick', bg: 'tick', char: 'tick', bskin: 'build', bskinall: 'build', rename: 'tick', mvol: 'tick', uptab: 'tick', shoptab: 'tick', hat: 'tick', rule: 'tick', mv: 'tick', speed: 'tick', season: 'tick', go: 'click', bed: 'click', skip: 'page', plant: 'dig', task: 'coins', weekly: 'crane', order: 'crane', sellraw: 'coins', add: 'xp' };
+    const ALWAYS = { pin: 'tick', fx: 'tick', dv: 'tick', dailysub: 'tick', stickersall: 'tick', derbyall: 'tick', hidestickers: 'tick', ranktab: 'tick', ranksub: 'tick', millview: 'tick', millsub: 'tick', untab: 'tick', crest: 'tick', skin: 'tick', bg: 'tick', char: 'tick', bskin: 'build', bskinall: 'build', rename: 'tick', nameset: 'tick', mvol: 'tick', uptab: 'tick', shoptab: 'tick', hat: 'tick', rule: 'tick', mv: 'tick', speed: 'tick', season: 'tick', go: 'click', bed: 'click', skip: 'page', plant: 'dig', task: 'coins', weekly: 'crane', order: 'crane', sellraw: 'coins', add: 'xp' };
     if (BUY[a] && spent) SFX.play(BUY[a]); else if (a === 'decor' && decorOwned) SFX.play('tick'); else if (ALWAYS[a]) SFX.play(ALWAYS[a]);
   }, 0);
   if (a === 'hire') { if (f.workers.length < maxPickers(f) && spend('coins', hireCost())) { addWorker(f); guideStep('hire'); toast('A new picker joins you'); } }
@@ -4590,7 +4591,8 @@ document.addEventListener('click', (e) => {
   else if (a === 'buybskin') { const s = ART.bskins[v]; if (s && !s.season && !S.bskins[v] && spend('cranes', s.cost)) { S.bskins[v] = true; f.skin = v; toast(s.name + ' style on ' + ART.locations[S.loc].name.split(',')[0]); } }
   else if (a === 'bskin') { if (v === 'classic' || S.bskins[v]) f.skin = v; }
   else if (a === 'bskinall') { if (S.bskins[v]) { LOCS.forEach((l) => { S.farms[l].skin = v; }); toast(ART.bskins[v].name + ' style on every farm'); } }
-  else if (a === 'rename') { const [nv, why] = nameCheck($('nameIn').value); if (!nv) { SFX.play('nope'); toast(why); return; } S.name = nv; NET.scoreError = ''; toast('Name saved'); }
+  else if (a === 'rename') setName($('nameIn').value);
+  else if (a === 'nameset') setName(($('nameAsk') || {}).value, true);
   else if (a === 'boost') {
     const cost = { grow: 5, pick: 5, hearts: 2, points: 10, dry: 6 }[v];
     if (!spend('cranes', cost)) return;
@@ -4613,7 +4615,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'speed') S.speed = +v;
   else if (a === 'mvol') { S.musicVol = +v; syncMusic(); }
   else if (a === 'season') S.seasonPick = v;
-  else if (a === 'reset') { if (b.dataset.sure) { try { localStorage.removeItem(SAVE_KEY); } catch (er) { /* nothing saved */ } const fs = S.firstSeason; S = fresh(); migrate(); S.firstSeason = fs; S.resetPending = !!NET.acct; NET.lastScore = ''; rateC = rateX = 0; golden = null; LOCS.forEach((l) => plant(S.farms[l])); addWorker(S.farms[START]); addWorker(S.farms[START]); newTasks(); toast('New game started'); } else { b.dataset.sure = '1'; b.textContent = 'Tap again to reset'; return; } }
+  else if (a === 'reset') { if (b.dataset.sure) { try { localStorage.removeItem(SAVE_KEY); } catch (er) { /* nothing saved */ } const fs = S.firstSeason, nm = [S.name, S.nameOk]; S = fresh(); migrate(); S.firstSeason = fs; [S.name, S.nameOk] = nm; S.resetPending = !!NET.acct; NET.lastScore = ''; rateC = rateX = 0; golden = null; LOCS.forEach((l) => plant(S.farms[l])); addWorker(S.farms[START]); addWorker(S.farms[START]); newTasks(); toast('New game started'); } else { b.dataset.sure = '1'; b.textContent = 'Tap again to reset'; return; } }
   refreshAll();
 });
 
@@ -4670,6 +4672,10 @@ async function api(path, method, body, acct) {   /* acct: another farm's account
 }
 const keepAcct = () => { try { localStorage.setItem('beju-farm-account', JSON.stringify(NET.acct)); } catch (e) { /* storage blocked */ } };
 let onlineTries = 0;
+function account() {   /* this browser's online account, made the first time anything needs one (the game opening, or the name window) */
+  if (NET.acct) return Promise.resolve(NET.acct);
+  return NET.acctP || (NET.acctP = api('game-account', 'POST', {}).then((r) => { if (r.status !== 201) throw new Error('account'); NET.acct = { player: r.data.player, token: r.data.token, ver: 0 }; keepAcct(); return NET.acct; }).finally(() => { NET.acctP = null; }));
+}
 const levelOf = (xp) => { let l = 1; while ((xp || 0) >= XP_AT(l + 1)) l++; return l; };
 const farmLine = (d, at) => 'prestige ' + (d.prestige || 0) + ', level ' + levelOf(d.xp) + ', ' + fmt(d.coins || 0) + ' coins' + (at ? ', saved ' + new Date(at).toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
 /* another device saved this farm since this one last did: show both and let the player choose. Nothing saves online until they do */
@@ -4678,7 +4684,7 @@ async function online() {
   if (!API || NET.status === 'online' || NET.trying) return;
   NET.trying = true;
   try {
-    if (!NET.acct) { const r = await api('game-account', 'POST', { name: S.name }); if (r.status !== 201) throw new Error('account'); NET.acct = { player: r.data.player, token: r.data.token, ver: 0 }; keepAcct(); }
+    await account();
     NET.ver = NET.acct.ver || 0;
     const sv = await api('game-save');
     if (sv.status === 401) { NET.status = 'signedout'; return; }   /* this device was signed out (five newer devices took its place): Settings offers a code to sign in again */
@@ -4691,7 +4697,7 @@ async function online() {
     const ev = await api('game-events');
     const live = ev.status === 200 && ev.data.events.find((x) => x.live);
     if (live && (!S.event || S.event.id !== live.id)) startDrop(live.id, live);
-    NET.status = 'online'; onlineTries = 0; cloudSync(); await visitSync(true); await submitScore(); syncSamples(); harvestSync(true); coopSync(true);
+    NET.status = 'online'; onlineTries = 0; cloudSync(); await visitSync(true); await nameSync(); await submitScore(); syncSamples(); harvestSync(true); coopSync(true);
     const gr = await api('game-grants', 'POST', {}).catch(() => null);
     if (gr && gr.status === 200) gr.data.grants.forEach((g) => { if (g.reason === 'gift') { S.cranes += g.cranes; NET.giftsAt = 0; SFX.play('crane'); toast('A friend opened your gift: +' + g.cranes + ' cranes'); } else applyGrant({ cranes: g.cranes, bonus: g.bonus, reason: g.reason, coffees: [], order: g.order + (g.reason === 'subscription' ? ' (subscription renewal)' : '') }); });
   } catch (e) { NET.status = 'offline'; onlineTries += 1; setTimeout(online, Math.min(300, 15 * Math.pow(2, onlineTries - 1)) * 1000); }   /* no network: try again in 15 s, 30 s, 1 min ... up to 5 min */
@@ -4709,6 +4715,7 @@ async function cloudSync(force) {
 }
 async function submitScore() {
   if (!API || !NET.acct || NET.status !== 'online' || NET.hold) return;   /* held while a newer save waits for a choice, so an old device can't post old progress */
+  if (S.nameOk !== S.name) { if (Date.now() - (NET.nameAt || 0) > 60e3) nameSync(); return; }   /* the board waits for a name of your own */
   seasonTick();   /* never send last season's stars into a new season */
   const body = { name: S.name, prestige: S.prestige, seasonP: S.season.prestige, seasonKh: Math.floor(S.season.kh || 0), seasonStars: S.season.stars, level: level(), points: Math.floor(S.xp), look: S.look }, sig = JSON.stringify(body) + (S.farmCode || '');   /* a new farm code resends the row, so the board links to the farm */
   const key = JSON.stringify([S.name, S.prestige, S.season.prestige, S.season.stars, S.look, S.farmCode || '', !!S.resetPending]);
@@ -4716,7 +4723,9 @@ async function submitScore() {
   if (S.resetPending) body.reset = true;   /* the farm started again: the server lets the row start again too */
   NET.scoreAt = Date.now();
   const r = await api('game-score', 'POST', body).catch(() => null);
-  if (r && r.status === 200) { NET.lastScore = sig; NET.lastKey = key; NET.rank = r.data.rank; NET.scoreError = ''; if (body.reset) S.resetPending = false; } else if (r && r.status === 422) NET.scoreError = r.data.error;
+  if (r && r.status === 200) { NET.lastScore = sig; NET.lastKey = key; NET.rank = r.data.rank; NET.scoreError = ''; if (body.reset) S.resetPending = false; if (r.data.name && r.data.name !== S.name) S.name = S.nameOk = r.data.name; }   /* renamed on another device */
+  else if (r && (r.status === 409 || /name/.test((r.data && r.data.error) || ''))) { S.nameOk = ''; nameSync(); }
+  else if (r && r.status === 422) NET.scoreError = r.data.error;
 }
 async function syncSamples() {   /* the server's sample list is the real one; local ones it hasn't confirmed show as pending */
   if (!API || !NET.acct || NET.status !== 'online') return;
@@ -4731,12 +4740,46 @@ async function giftsSync() {   /* your gift codes and whether friends have opene
   const r = await api('game-gift').catch(() => null);
   if (r && r.status === 200) { NET.gifts = r.data; if (r.data.from && !S.giftFrom) { S.giftFrom = r.data.from; if (S.decor.gift === undefined) S.decor.gift = true; } if (tab === 'shop') renderPanel(); }
 }
-function nameCheck(s) {   /* the leaderboard's rules for names (cleanName in netlify/lib/game.js): [name, or null and why not] */
+function nameKey(s) { return String(s || '').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, ''); }   /* "Ana Paula" and "ana.paula" are the same name */
+function nameCheck(s) {   /* the leaderboard's rules for names (cleanName, nameKey and GENERIC in netlify/lib/game.js): [name, or null and why not] */
   const t = String(s || '').normalize('NFKC').replace(/[\u0000-\u001f<>"'`\\]/g, '').trim().slice(0, 16);
-  if (t.length < 2) return [null, 'A name needs at least 2 letters'];
+  if (t.length < 2 || nameKey(t).length < 2) return [null, 'A name needs at least 2 letters or numbers'];
   if (/(https?:|www\.|\.com|fuck|shit|cunt|nigg|fag|hitler|nazi)/i.test(t)) return [null, 'That name can\'t go on the leaderboard'];
+  if (/^(you|me|farmer|farm|player|guest|anon|anonymous|user|username|name|yourname|myname|nickname|test|admin|administrator|moderator|mod|nobody|noname|none|null|undefined|unknown|someone|newplayer|newfarmer)\d*$/.test(nameKey(t)) || /^Farmer [A-Z0-9]{4}$/.test(t)) return [null, '"' + t + '" could be anyone. Pick a name that\'s yours'];
   return [t, ''];
 }
+function needsName() { return !nameCheck(S.name)[0]; }   /* a new farm is called You until its farmer picks a name (Rosa's lessons wait for it) */
+function askName(why) {   /* every farmer picks a name of their own: the first time the game opens, and again if theirs was taken */
+  if (NET.asking) return; NET.asking = true;
+  showModal('<h2>' + (why ? 'Choose a new name' : 'Welcome to Beju Farm!') + '</h2><p class="note">' + (why || 'What should other farmers call you? Your name goes on the leaderboard, on your farm when friends visit, and in your co-op.') + '</p>' +
+    '<input id="nameAsk" class="codein" maxlength="16" autocomplete="nickname" autocapitalize="words" spellcheck="false" placeholder="Your name" aria-label="Your farmer name">' +
+    '<p class="note" id="nameWhy" role="status">' + (API ? 'No two farmers share a name. ' : '') + 'You can change it later in Settings.</p><button class="btn green" data-act="nameset">' + (why ? 'Save my name' : 'Start farming') + '</button>');
+}
+async function setName(raw, ask) {   /* ask: from the name window, which stays open until the name is settled */
+  const [nv, why] = nameCheck(raw), say = (t) => { SFX.play('nope'); const w = ask && $('nameWhy'); if (w) w.innerHTML = '<b>' + t + '</b>'; else toast(t); };
+  if (!nv) return say(why);
+  let r = null;
+  if (API && !(nv === S.name && S.nameOk === nv)) {
+    if (NET.naming) return; NET.naming = true;
+    try { await account(); r = await api('game-name', 'POST', { name: nv }); } catch (e) { r = null; } finally { NET.naming = false; }   /* no connection: keep it here and claim it when the game is online */
+    if (r && r.status !== 200) return say({ name_taken: 'Another farmer is already called ' + nv + '. Try another name.', too_many_renames: 'A name can change 3 times a day. Try again tomorrow.', generic_name: '"' + nv + '" could be anyone. Pick a name that\'s yours' }[r.data.error] || 'That name can\'t be used. Try another.');
+  }
+  S.name = r ? r.data.name : nv; if (r) S.nameOk = r.data.name;
+  NET.scoreError = ''; save();
+  if (ask) { NET.asking = false; closeModal(); }
+  toast(API && !r && S.nameOk !== S.name ? 'Name saved. It goes on the leaderboard once you\'re online.' : ask ? 'Nice to meet you, ' + S.name + '!' : 'Name saved');
+  submitScore(); renderPanel();
+}
+async function nameSync() {   /* online: a farm named offline, or before names were kept, claims its name; one whose name went to someone else picks another */
+  if (needsName()) { askName(); return; }
+  if (S.nameOk === S.name || NET.naming) return;
+  NET.nameAt = Date.now(); NET.naming = true;
+  const r = await api('game-name', 'POST', { name: S.name }).catch(() => null);
+  NET.naming = false;
+  if (r && r.status === 200) S.name = S.nameOk = r.data.name;
+  else if (r && (r.status === 409 || r.status === 422)) askName(r.status === 409 ? 'Another farmer took the name <b>' + S.name + '</b> first. Choose another one: it\'s how other farmers will know you.' : 'Your name can\'t go on the leaderboard. Choose another one.');
+}
+const nameField = () => '<h3>Your name</h3><div class="seg"><input id="nameIn" maxlength="16" value="' + S.name.replace(/"/g, '') + '" aria-label="Your name on the leaderboard"><button type="button" data-act="rename">Save</button></div>' + (API ? '<p class="note">One farmer per name. It can change 3 times a day.</p>' : '');
 function onlineCard() {   /* Settings: your account, and moving the farm to or from another device */
   if (!API) return '<h3>Your farm online</h3><p class="note">Progress saves in this browser. Played on bejucoffee.com, your farm also saves online and can move to another device.</p>';
   const use = btn('Use a code', 'from another device', 'linkask', true, 'blue');
@@ -5117,6 +5160,7 @@ function loop(t) {
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
+if (needsName()) askName();
 online();
 document.addEventListener('visibilitychange', () => { if (document.hidden) { save(); cloudSync(true); } });
 let soundReady = false;

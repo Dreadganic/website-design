@@ -1,5 +1,6 @@
-/* POST /.netlify/functions/game-account  { name? }  ->  { player, token }
-   Creates an anonymous Beju Farm player. The token is shown once; the server keeps only its hash. */
+/* POST /.netlify/functions/game-account  { name? }  ->  { player, token, name }
+   Creates an anonymous Beju Farm player. The token is shown once; the server keeps only its hash.
+   A name that's free becomes theirs (name in the answer); otherwise name is null and the game asks for one (game-name). */
 const G = require("../game");
 
 const PER_HOUR = 20;   /* new farms from one connection in an hour: plenty for a family or an office, not for a script */
@@ -16,6 +17,7 @@ exports.handler = async (event) => {
     await store.set(rk, { n: n + 1 });
   }
   const id = G.newId(), token = G.newToken();
-  await store.set("players/" + id, { tokenHash: G.hash(token), name: G.cleanName(body.name) || "Farmer", created: now, grants: [] });
-  return G.json(201, { player: id, token });
+  await store.set("players/" + id, { tokenHash: G.hash(token), created: now, grants: [] });
+  const named = body.name ? await G.claimName(store, { id }, body.name, now) : {};
+  return G.json(201, { player: id, token, name: named.name || null });
 };

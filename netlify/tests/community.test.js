@@ -18,9 +18,11 @@ const call = async (fn, method, body, auth, query) => {
   const r = await fn.handler({ httpMethod: method, body: body === undefined ? undefined : JSON.stringify(body), headers: auth ? { authorization: "Bearer " + auth } : {}, queryStringParameters: query || {} });
   return { status: r.statusCode, body: JSON.parse(r.body) };
 };
+let seq = 0;   /* every farmer needs a name of their own */
 const newPlayer = async (name, prestige) => {
-  const r = await call(account, "POST", { name: name || "Tester" }), a = r.body.player + "." + r.body.token;
-  await call(score, "POST", { name: name || "Tester", prestige: 0, seasonP: 0, level: 1, points: 0 }, a);
+  name = name || "Tester " + (++seq);
+  const r = await call(account, "POST", { name }), a = r.body.player + "." + r.body.token;
+  await call(score, "POST", { name, prestige: 0, seasonP: 0, level: 1, points: 0 }, a);
   if (prestige) { const row = await store.get("scores/" + r.body.player); row.prestige = prestige; await store.set("scores/" + r.body.player, row); }
   return a;
 };

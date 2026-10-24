@@ -1,4 +1,4 @@
-/* POST /.netlify/functions/game-score  { name, prestige, seasonP, seasonKh, seasonStars, level, points, look }  ->  { ok, rank } or 422 { error }
+/* POST /.netlify/functions/game-score  { name, prestige, seasonP, seasonKh, seasonStars, level, points, look }  ->  { ok, rank, name } or 422 { error }   (409/422 name errors: pick a name with game-name)
    GET  /.netlify/functions/game-score?mode=season|rookie|all  ->  { season, top: [...], me? }   (rookie: players in their first season)
    GET  /.netlify/functions/game-score?mode=final&season=YYYY-MM  ->  the closed board of a past season, with the caller's final rank
    The leaderboard. All time ranks by prestige, then level, then points; the season board ranks by season stars, then by who reached that total first (so a bigger farm doesn't win ties).
@@ -21,7 +21,8 @@ async function allRows(store, ck, now) {
 const keepRow = (ck, row) => { const c = rowCache.get(ck); if (!c) return; const i = c.rows.findIndex((r) => r.id === row.id); if (i > -1) c.rows[i] = row; else c.rows.push(row); };
 async function boardFor(store, mode, season, ck, now) {
   const rows = await allRows(store, ck, now);
-  const live = mode === "all" ? rows : rows.filter((r) => r.season === season && (mode !== "rookie" || r.firstSeason === season));
+  const named = rows.filter((r) => !G.genericName(r.name));   /* rows from before names had to be chosen ("You") wait until their farm picks one */
+  const live = mode === "all" ? named : named.filter((r) => r.season === season && (mode !== "rookie" || r.firstSeason === season));
   return live.sort(mode === "all" ? rankSort("prestige") : seasonSort);
 }
 const pinOf = (r) => { const p = r.look && r.look.pin; return p ? (r.trophies || []).find((t) => t.id === p) || null : null; };   /* the one trophy a player shows beside their name */
@@ -60,9 +61,8 @@ exports.handler = async (event) => {
   if (!me) return G.json(401, { error: "sign_in" });
   const b = G.parse(event);
   if (!b) return G.json(400, { error: "bad_json" });
-  let name = G.cleanName(b.name);
-  if (!name) return G.json(422, { error: "bad_name" });
-  if (name.toLowerCase() === "you") name = "Farmer " + me.id.slice(2).replace(/[^A-Za-z0-9]/g, "").slice(0, 4).toUpperCase();   /* the game's default name: on a shared board everyone else would see a stranger called You */
+  let name = me.nameKey && me.name;   /* the name the player holds (game-name); a farm from before names were claimed claims the one it sends */
+  if (!name) { const c = await G.claimName(store, me, b.name, now); if (c.error) return G.json(c.error === "name_taken" ? 409 : 422, { error: c.error }); name = c.name; }
   const key = "scores/" + me.id, prev = await store.get(key);
   const nextSeasonP = prev && prev.season !== season ? Math.min(b.seasonP | 0, 1) : b.seasonP | 0;   /* a new season starts the season count again */
   const next = { prestige: b.prestige | 0, seasonP: nextSeasonP, seasonKh: Math.floor(Number(b.seasonKh) || 0), seasonStars: Math.floor(Number(b.seasonStars) || 0), level: b.level | 0, points: Math.floor(Number(b.points) || 0) };
@@ -79,5 +79,5 @@ exports.handler = async (event) => {
   row.trophies = G.publicTrophies(me.trophies);
   await store.set(key, row); keepRow(ck, row);
   const list = await boardFor(store, "season", season, ck, now);
-  return G.json(200, { ok: true, rank: list.findIndex((r) => r.id === me.id) + 1, players: list.length });
+  return G.json(200, { ok: true, rank: list.findIndex((r) => r.id === me.id) + 1, players: list.length, name });
 };

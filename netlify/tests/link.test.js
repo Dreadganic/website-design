@@ -13,7 +13,8 @@ const call = async (fn, method, body, auth) => {
   const r = await fn.handler({ httpMethod: method, body: body === undefined ? undefined : JSON.stringify(body), headers: auth ? { authorization: "Bearer " + auth } : {}, queryStringParameters: {} });
   return { status: r.statusCode, body: JSON.parse(r.body) };
 };
-const newPlayer = async () => { const r = await call(account, "POST", { name: "Tester" }); return r.body.player + "." + r.body.token; };
+let seq = 0;   /* every farmer needs a name of their own */
+const newPlayer = async () => { const r = await call(account, "POST", { name: "Tester " + (++seq) }); return r.body.player + "." + r.body.token; };
 test.beforeEach(() => { store = G.memoryStore(); clock = Date.parse("2026-10-17T03:00:00Z"); });
 
 test("link: a code moves the farm to a new device, which gets a token of its own", async () => {

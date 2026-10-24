@@ -24,7 +24,8 @@ const call = async (fn, method, body, auth, extra) => {
   const r = await fn.handler(Object.assign({ httpMethod: method, body: body === undefined ? undefined : (typeof body === "string" ? body : JSON.stringify(body)), headers: auth ? { authorization: "Bearer " + auth } : {}, queryStringParameters: {} }, extra || {}));
   return { status: r.statusCode, body: (() => { try { return JSON.parse(r.body); } catch (e) { return r.body; } })() };
 };
-const newPlayer = async () => { const r = await call(account, "POST", { name: "Tester" }); return r.body.player + "." + r.body.token; };
+let seq = 0;   /* every farmer needs a name of their own */
+const newPlayer = async () => { const r = await call(account, "POST", { name: "Tester " + (++seq) }); return r.body.player + "." + r.body.token; };
 const setScore = async (auth, prestige, level) => store.set("scores/" + auth.split(".")[0], { prestige, level, seasonP: 0, points: G.XP_AT(level), at: clock, season: G.seasonKey(clock) });
 const signed = (evt) => { const raw = JSON.stringify(evt), t = Math.floor(Date.now() / 1000); return { body: raw, headers: { "stripe-signature": "t=" + t + ",v1=" + crypto.createHmac("sha256", process.env.STRIPE_WEBHOOK_SECRET).update(t + "." + raw).digest("hex") } }; };
 test.beforeEach(() => { store = G.memoryStore(); clock = Date.parse("2026-10-17T03:00:00Z"); sent = null; process.env.STRIPE_SECRET_KEY = "sk_test_x"; process.env.STRIPE_WEBHOOK_SECRET = "whsec_test"; delete process.env.GAME_SAMPLES; delete process.env.ORDER_NOTIFY_URL; });

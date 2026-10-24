@@ -9,15 +9,17 @@ const score = require("../lib/handlers/game-score");
 const claim = require("../lib/handlers/game-claim");
 const events = require("../lib/handlers/game-events");
 const visit = require("../lib/handlers/game-visit");
+const nameFn = require("../lib/handlers/game-name");
 
 let store, clock;
 const deps = () => ({ store, now: clock });
-for (const f of [account, save, score, claim, events, visit]) Object.defineProperty(f, "__deps", { get: deps, configurable: true });
+for (const f of [account, save, score, claim, events, visit, nameFn]) Object.defineProperty(f, "__deps", { get: deps, configurable: true });
 const call = async (fn, method, body, auth, query) => {
   const r = await fn.handler({ httpMethod: method, body: body === undefined ? undefined : JSON.stringify(body), headers: auth ? { authorization: "Bearer " + auth } : {}, queryStringParameters: query || {} });
   return { status: r.statusCode, body: JSON.parse(r.body) };
 };
-const newPlayer = async () => { const r = await call(account, "POST", { name: "Tester" }); return r.body.player + "." + r.body.token; };
+let seq = 0;   /* every farmer needs a name of their own */
+const newPlayer = async (name) => { const r = await call(account, "POST", { name: name || "Tester " + (++seq) }); return r.body.player + "." + r.body.token; };
 test.beforeEach(() => { store = G.memoryStore(); clock = Date.parse("2026-10-17T03:00:00Z"); process.env.GAME_WELCOME_UNTIL = "2026-01-01"; });   /* the welcome window is closed unless a test opens it */
 test.after(() => { delete process.env.GAME_WELCOME_UNTIL; });
 
@@ -67,7 +69,7 @@ test("scores: impossible jumps are rejected", async () => {
   clock += 30000;
   assert.equal((await call(score, "POST", s(0, 0, 9e6), a)).body.error, "too_fast");
   assert.equal((await call(score, "POST", s(1, 1, 0), a)).body.error, "prestige_without_level");
-  assert.equal((await call(score, "POST", { name: "www.spam.com", prestige: 0, seasonP: 0, level: 1, points: 0 }, a)).body.error, "bad_name");
+  assert.equal((await call(nameFn, "POST", { name: "www.spam.com" }, a)).body.error, "bad_name");
 });
 
 test("scores: a real prestige is accepted, but not twice in a few minutes", async () => {
@@ -171,7 +173,7 @@ test("roastery cosmetics: finishes, the crack master charm and title pass; made-
 
 
 test("seasons: the rookie board lists only players in their first season, and final ranks include a rookie rank", async () => {
-  const a = await newPlayer();
+  const a = await newPlayer("Rookie");
   await call(score, "POST", { name: "Rookie", prestige: 0, seasonP: 0, seasonKh: 100, seasonStars: 5, level: G.levelFor(100), points: 100 }, a);
   await store.set("scores/veteran", { id: "veteran", name: "Old hand", prestige: 6, seasonP: 0, seasonKh: 9e6, seasonStars: 50, level: 40, points: 1e7, look: {}, season: G.seasonKey(clock), at: clock });
   clock += 16e3;   /* a row written by another function instance shows once this one's row cache is 15 s old */
@@ -183,7 +185,7 @@ test("seasons: the rookie board lists only players in their first season, and fi
   assert.deepEqual([fin.body.me.rank, fin.body.me.rookieRank], [2, 1]);
 });
 test("visits: a farm snapshot gets a code, anyone can look, and Cheers come once a day per visitor", async () => {
-  const a = await newPlayer(), b = await newPlayer();
+  const a = await newPlayer("Ana"), b = await newPlayer();
   const farm = { loc: "huila", store: 6, decor: ["bench", "s_momiji", "<script>"], spiece: "momiji", farms: { mogiana: { u: 1, b: [5, 5, 5, 5, 5, 5], f: true, s: "fazenda", e: 3, h: 2, beds: ["caturra", "geisha", "../x"] }, huila: { u: 1, b: [3, 99], e: 9 }, toba: { u: 0 } } };
   const put = await call(visit, "PUT", { farm }, a);
   assert.equal(put.status, 200); assert.match(put.body.code, /^[A-Z2-9]{6}$/);
@@ -250,13 +252,42 @@ test("scores: in the welcome window a farm that grew offline joins with its prog
   assert.equal((await call(score, "POST", s(3, 2, 250000), c)).body.error, "too_far_for_a_new_player", "after the window a new farm starts small again");
 });
 
-test("scores: a farm still called You shows as Farmer and a tag of its own", async () => {
-  const a = await newPlayer(), id = a.split(".")[0];
-  const r = await call(score, "POST", { name: "You", prestige: 0, seasonP: 0, level: 1, points: 0 }, a);
-  assert.equal(r.status, 200);
-  const row = await store.get("scores/" + id);
-  assert.match(row.name, /^Farmer [A-Z0-9]{4}$/);
-  assert.equal(row.name, "Farmer " + id.slice(2).replace(/[^A-Za-z0-9]/g, "").slice(0, 4).toUpperCase(), "the same tag every time");
-  clock += 60e3; await call(score, "POST", { name: "Mika", prestige: 0, seasonP: 0, level: 1, points: 0 }, a);
-  assert.equal((await store.get("scores/" + id)).name, "Mika", "a chosen name replaces it");
+test("names: one farmer per name, ignoring case and spaces; stand-in names are nobody's; a new name frees the old one", async () => {
+  const made = await call(account, "POST", { name: "Ana Paula" }), a = made.body.player + "." + made.body.token;
+  assert.equal(made.status, 201); assert.equal(made.body.name, "Ana Paula", "a free name is theirs from the start");
+  const b = await call(account, "POST", { name: "ana.paula" });
+  assert.equal(b.status, 201); assert.equal(b.body.name, null, "a taken name still makes the farm, without a name");
+  const bt = b.body.player + "." + b.body.token;
+  assert.equal((await call(nameFn, "POST", { name: "ANA PAULA" }, bt)).status, 409);
+  for (const n of ["You", "farmer", "Player 2", "Guest", "Farmer AB12"]) assert.equal((await call(nameFn, "POST", { name: n }, bt)).body.error, "generic_name", n);
+  assert.equal((await call(nameFn, "POST", { name: "<>" }, bt)).body.error, "bad_name");
+  assert.equal((await call(nameFn, "POST", { name: "Mika" })).status, 401);
+  assert.equal((await call(nameFn, "POST", { name: "Mika" }, bt)).body.name, "Mika");
+  assert.equal((await call(score, "POST", { name: "Ana Paula", prestige: 0, seasonP: 0, level: 1, points: 0 }, bt)).body.name, "Mika", "the board shows the name you hold, not one you send");
+  assert.equal((await store.get("scores/" + b.body.player)).name, "Mika");
+  assert.equal((await call(nameFn, "POST", { name: "ana paula" }, a)).body.name, "ana paula", "your own name in other letters is still yours");
+  assert.equal((await call(nameFn, "POST", { name: "Bea" }, a)).body.name, "Bea");
+  assert.equal((await call(nameFn, "POST", { name: "Ana Paula" }, bt)).body.name, "Ana Paula", "the old name is free again");
+  assert.equal((await call(nameFn, "POST", { name: "Mika" }, a)).body.name, "Mika", "and so is Mika");
+  assert.equal((await call(nameFn, "POST", { name: "Cai" }, a)).body.name, "Cai");
+  assert.equal((await call(nameFn, "POST", { name: "Dee" }, a)).body.error, "too_many_renames", "three new names a day");
+  clock += 864e5; assert.equal((await call(nameFn, "POST", { name: "Dee" }, a)).body.name, "Dee");
+});
+
+test("names: farms already on the board keep their names; unnamed rows wait off the board until they pick one", async () => {
+  const a = await newPlayer(), b = await newPlayer(), c = await newPlayer(), id = (t) => t.split(".")[0];
+  for (const t of [a, b, c]) { const p = await store.get("players/" + id(t)); delete p.nameKey; delete p.name; await store.set("players/" + id(t), p); }
+  for (const k of await store.list("names/")) await store.del(k);   /* as the store was before names were kept */
+  const row = (t, name, prestige) => store.set("scores/" + id(t), { id: id(t), name, prestige, seasonP: 0, seasonKh: 0, seasonStars: 0, level: 1, points: 0, look: {}, season: G.seasonKey(clock), at: clock, firstSeason: G.seasonKey(clock) });
+  await row(a, "Beju", 1); await row(b, "beju", 0); await row(c, "You", 0);
+  const d = await newPlayer(); clock += 60e3;
+  assert.equal((await call(nameFn, "POST", { name: "BEJU" }, d)).status, 409, "the name the bigger farm had on the board is still theirs");
+  assert.equal((await call(score, "POST", { name: "Beju", prestige: 1, seasonP: 0, level: 1, points: 0 }, a)).status, 200);
+  assert.equal((await call(score, "POST", { name: "beju", prestige: 0, seasonP: 0, level: 1, points: 0 }, b)).body.error, "name_taken", "the other one is asked to pick a name");
+  assert.equal((await call(score, "POST", { name: "You", prestige: 0, seasonP: 0, level: 1, points: 0 }, c)).body.error, "generic_name");
+  clock += 16e3;
+  const top = (await call(score, "GET", undefined, d, { mode: "all" })).body.top.map((r) => r.name);
+  assert.ok(top.includes("Beju") && !top.includes("You"), "the farm still called You is off the board for now");
+  await call(nameFn, "POST", { name: "Kenji" }, c); clock += 16e3;
+  assert.ok((await call(score, "GET", undefined, d, { mode: "all" })).body.top.some((r) => r.name === "Kenji"), "picking a name puts the row back, renamed");
 });

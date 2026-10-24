@@ -18,12 +18,13 @@ function stores(event, deps) {
     get: (k) => s.get(k, { type: "json" }),
     set: (k, v) => s.setJSON(k, v),
     create: async (k, v) => !!(await s.setJSON(k, v, { onlyIfNew: true })).modified,
+    del: (k) => s.delete(k),
     list: async (prefix) => (await s.list({ prefix })).blobs.map((b) => b.key)
   };
 }
 function memoryStore() {   /* for tests and local runs */
   const m = new Map();
-  return { get: async (k) => (m.has(k) ? JSON.parse(m.get(k)) : null), set: async (k, v) => { m.set(k, JSON.stringify(v)); }, create: async (k, v) => { if (m.has(k)) return false; m.set(k, JSON.stringify(v)); return true; }, list: async (p) => [...m.keys()].filter((k) => k.startsWith(p)), _m: m };
+  return { get: async (k) => (m.has(k) ? JSON.parse(m.get(k)) : null), set: async (k, v) => { m.set(k, JSON.stringify(v)); }, create: async (k, v) => { if (m.has(k)) return false; m.set(k, JSON.stringify(v)); return true; }, del: async (k) => { m.delete(k); }, list: async (p) => [...m.keys()].filter((k) => k.startsWith(p)), _m: m };
 }
 
 /* Players are anonymous until they link an order: an id plus a secret token, of which the server keeps only a hash.
@@ -107,6 +108,40 @@ function cleanName(s) {
   s = String(s || "").normalize("NFKC").replace(/[\u0000-\u001f<>"'`\\]/g, "").trim().slice(0, 16);
   if (s.length < 2 || BLOCK.test(s)) return null;
   return s;
+}
+/* Every farmer's name is their own. Two names are the same when they match ignoring case, spaces and punctuation ("Ana Paula" = "ana.paula"),
+   and the stand-in names everyone would pick are nobody's. names/<key> says which player holds a name; create() hands it to one player only. */
+const nameKey = (s) => String(s || "").normalize("NFKC").toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+const GENERIC = /^(you|me|farmer|farm|player|guest|anon|anonymous|user|username|name|yourname|myname|nickname|test|admin|administrator|moderator|mod|nobody|noname|none|null|undefined|unknown|someone|newplayer|newfarmer)\d*$/;   /* keep in step with nameCheck() in the game */
+const genericName = (s) => GENERIC.test(nameKey(s)) || /^Farmer [A-Z0-9]{4}$/.test(s || "");   /* the second: the stand-in rows unnamed farms were given before names had to be chosen */
+const RENAMES_PER_DAY = 3;
+async function legacyNames(store) {   /* once: farms already on the board keep the names they had, the biggest farm first if two shared one */
+  if (await store.get("names/_legacy")) return;
+  const rows = (await Promise.all((await store.list("scores/")).map((k) => store.get(k)))).filter(Boolean).sort((a, b) => (b.prestige || 0) - (a.prestige || 0) || (b.points || 0) - (a.points || 0));
+  for (const r of rows) {
+    const name = cleanName(r.name), key = name && nameKey(name), p = key && !genericName(name) && (await store.get("players/" + r.id));
+    if (!p || p.nameKey || key.length < 2 || !(await store.create("names/" + key, { id: r.id }))) continue;
+    await store.set("players/" + r.id, Object.assign(p, { name, nameKey: key }));
+  }
+  await store.set("names/_legacy", { at: Date.now() });
+}
+async function claimName(store, me, raw, now) {   /* -> { name } or { error }; a new name frees the old one for someone else */
+  const name = cleanName(raw), key = nameKey(name);
+  if (!name || key.length < 2) return { error: "bad_name" };
+  if (genericName(name)) return { error: "generic_name" };
+  await legacyNames(store);
+  Object.assign(me, await store.get("players/" + me.id));
+  const renames = (me.renames || []).filter((t) => now - t < 864e5);
+  if (me.nameKey !== key) {
+    if (me.nameKey && renames.length >= RENAMES_PER_DAY) return { error: "too_many_renames" };
+    if (!(await store.create("names/" + key, { id: me.id, at: now }))) { const held = await store.get("names/" + key); if (!held || held.id !== me.id) return { error: "name_taken" }; }
+    if (me.nameKey) { const old = await store.get("names/" + me.nameKey); if (old && old.id === me.id) await store.del("names/" + me.nameKey); renames.push(now); }
+  }
+  Object.assign(me, { name, nameKey: key, renames });
+  await savePlayer(store, me);
+  const row = await store.get("scores/" + me.id);
+  if (row && row.name !== name) { row.name = name; await store.set("scores/" + me.id, row); }   /* the board shows the new name straight away */
+  return { name };
 }
 /* A look is a crest (nameplate and border, capped at the tier the player's prestige has reached), an outfit (any of the 8 once they have prestiged, since each prestige picks one) and a background. Old clients sent plate/border. */
 const BGS = ["none", "mogiana", "huila", "gedeo", "toba", "turrialba", "osaka", "beju"];
@@ -199,4 +234,4 @@ const firstThisMonth = (me, now) => !(me.grants || []).some((g) => g.at && dayJS
 /* passport stamps the server has seen: each coffee stamps the first of its origins not stamped yet, as the game does */
 function addStamps(me, coffees) { me.stamps = me.stamps || []; (coffees || []).forEach((pid) => { const o = (STAMPS[pid] || []).find((x) => !me.stamps.includes(x)); if (o) me.stamps.push(o); }); }
 
-module.exports = { useBlobs, MONTH_BONUS, SUB_BONUS, firstThisMonth, addStamps, SEASON_FIRST, isFounder, TROPHY_ID, trophyRank, trophyId, publicTrophies, addTrophy, cleanFarm, FARM_LOCS, SAMPLE_RULES, SAMPLE_LADDER, dayJST, newSamples, sampleView, savePlayer, json, parse, stores, memoryStore, authed, hash, newId, newToken, XP_AT, levelFor, prestigeNeed, seasonKey, prevSeason, SEASON_JOIN, SEASON_IDS, RULES, checkScore, cleanName, cleanLook, STAMPS };
+module.exports = { useBlobs, MONTH_BONUS, SUB_BONUS, firstThisMonth, addStamps, SEASON_FIRST, isFounder, TROPHY_ID, trophyRank, trophyId, publicTrophies, addTrophy, cleanFarm, FARM_LOCS, SAMPLE_RULES, SAMPLE_LADDER, dayJST, newSamples, sampleView, savePlayer, json, parse, stores, memoryStore, authed, hash, newId, newToken, XP_AT, levelFor, prestigeNeed, seasonKey, prevSeason, SEASON_JOIN, SEASON_IDS, RULES, checkScore, cleanName, nameKey, genericName, claimName, cleanLook, STAMPS };

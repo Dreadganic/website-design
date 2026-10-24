@@ -115,6 +115,7 @@ Until the end of 30 November 2026 (Japan time) a farm's first leaderboard score 
 | Function | What it does |
 | --- | --- |
 | `game-account` | Creates an anonymous player: an id and a secret token (only its hash is stored). |
+| `game-name` | Gives a player a name of their own. The game asks for one the first time it opens; no two farmers can hold the same name (ignoring capitals, spaces and punctuation), stand-in names like "You", "Farmer" or "Player 2" are nobody's, and a name can change 3 times a day. The leaderboard, visits and co-ops all show this name. |
 | `game-save` | Cloud save. Versioned, so an old phone can't overwrite newer progress. |
 | `game-score` | Live leaderboard (season and all time). Each score must be possible since the last one, so impossible jumps are refused. |
 | `game-claim` | Turns a paid order into game rewards, once: 1 crane per ¥100 and a passport stamp for each coffee, checked with Stripe on the server. |

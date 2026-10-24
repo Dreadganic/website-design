@@ -19,7 +19,8 @@ const call = async (fn, method, body, auth, query) => {
   const r = await fn.handler({ httpMethod: method, body: body === undefined ? undefined : JSON.stringify(body), headers: auth ? { authorization: "Bearer " + auth } : {}, queryStringParameters: query || {} });
   return { status: r.statusCode, body: JSON.parse(r.body) };
 };
-const newPlayer = async () => { const r = await call(account, "POST", { name: "Tester" }); return r.body.player + "." + r.body.token; };
+let seq = 0;   /* every farmer needs a name of their own */
+const newPlayer = async () => { const r = await call(account, "POST", { name: "Tester " + (++seq) }); return r.body.player + "." + r.body.token; };
 const row = (look) => ({ name: "Farmer", prestige: 0, seasonP: 0, seasonKh: 500, level: G.levelFor(500), points: 500, look: look || {} });
 const farm = { loc: "mogiana", farms: { mogiana: { u: 1, b: [1], f: false, s: "", e: 0, h: 0, beds: [] } }, store: 1, decor: ["shelf", "gift"], fx: ["hanabi", "fireflies"] };
 test.beforeEach(() => { store = G.memoryStore(); clock = Date.parse("2026-10-17T03:00:00Z"); order = {}; process.env.STRIPE_SECRET_KEY = "sk_test_x"; });
@@ -88,11 +89,12 @@ test("gifts: one per order, opened once by a friend, who gets the furoshiki whil
   assert.equal((await call(gift, "POST", { code }, a)).status, 422, "not your own");
   assert.equal((await call(gift, "POST", { code: "ZZZZZZ" }, b)).status, 404);
   const open = await call(gift, "POST", { code: code.toLowerCase() }, b);
-  assert.equal(open.status, 200); assert.equal(open.body.from, "Farmer");
+  const aName = (await store.get("scores/" + a.split(".")[0])).name;
+  assert.equal(open.status, 200); assert.equal(open.body.from, aName);
   assert.equal((await call(gift, "POST", { code }, c)).status, 409, "opened already");
   assert.deepEqual((await call(grants, "POST", {}, a)).body.grants.map((g) => [g.reason, g.cranes]), [["gift", 10]]);
   assert.deepEqual((await call(gift, "GET", undefined, a)).body.gifts, [{ code, order: "order001", opened: true }]);
-  assert.equal((await call(gift, "GET", undefined, b)).body.from, "Farmer");
+  assert.equal((await call(gift, "GET", undefined, b)).body.from, aName);
   const code2 = (await call(claim, "POST", { session_id: "cs_test_giftorder002" }, a)).body.gift;
   assert.equal((await call(gift, "POST", { code: code2 }, b)).status, 422, "one gift each");
   const firstOrder = (await store.get("players/" + a.split(".")[0])).grants.length;

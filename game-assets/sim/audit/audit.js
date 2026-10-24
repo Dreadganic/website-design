@@ -39,6 +39,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       const before = { tab: s.tab, sheet: s.sheet };
       if (key === lastModal && tries++ > 6) { await issue(s, 'window does not close', { text: key }); await g.evaluate(() => window.__G.closeModal()); tries = 0; continue; }
       if (btn.covered) await issue(s, 'window button covered by ' + btn.covered, { text: key });
+      if (await g.evaluate(() => !!document.querySelector('#modalCard #nameAsk'))) await g.fill('#nameAsk', 'Audit farmer');   /* the name window: a new player types a name first */
       await click(btn.x, btn.y);
       const a = await I();
       E('window', { lv: s.lv, p: s.p, text: key, buttons: s.modal.buttons.map((x) => x.label), pressed: btn.label, act: btn.act, queued: s.queue, during: s.mode && s.mode !== 'guide-wait' ? stepName(s) : '', before, after: { tab: a.tab, sheet: a.sheet, full: a.full, scene: a.scene, farmSub: a.farmSub, unTab: a.unTab, rankSub: a.rankSub, mode: a.mode, modalNext: !!a.modal } });

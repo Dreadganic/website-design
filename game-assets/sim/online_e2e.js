@@ -5,7 +5,7 @@ const http = require('http'), fs = require('fs'), path = require('path');
 const N = path.join(__dirname, '../../netlify/');
 const G = require(N + 'lib/game'); const store = G.memoryStore();
 const fns = {};
-['game-account', 'game-save', 'game-score', 'game-visit', 'game-events', 'game-grants', 'game-samples', 'game-claim', 'game-harvest', 'game-coop', 'game-coe', 'game-checkin', 'game-gift', 'game-link'].forEach((n) => { fns[n] = require(N + 'lib/handlers/' + n); Object.defineProperty(fns[n], '__deps', { get: () => ({ store, now: Date.now(), harvest: { days: [] } }), configurable: true }); });
+['game-account', 'game-save', 'game-score', 'game-visit', 'game-events', 'game-grants', 'game-samples', 'game-claim', 'game-harvest', 'game-coop', 'game-coe', 'game-checkin', 'game-gift', 'game-link', 'game-name'].forEach((n) => { fns[n] = require(N + 'lib/handlers/' + n); Object.defineProperty(fns[n], '__deps', { get: () => ({ store, now: Date.now(), harvest: { days: [] } }), configurable: true }); });
 const html = fs.readFileSync(path.resolve(process.argv[2]), 'utf8');
 const log = [];
 const srv = http.createServer((req, res) => {
