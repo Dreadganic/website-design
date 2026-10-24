@@ -97,7 +97,9 @@ window.BOT = (function () {
       if (G.EM_LOCS) G.EM_LOCS.forEach((l) => { if (G.emCan(l)) c.push([S.loc, 'emhire:' + l, G.emHire(l)]); else if (G.emHired(l) && G.trainLv('em_' + l) < 10 && S.prestige >= 5) c.push([S.loc, 'train:em_' + l, G.trainCost('em_' + l)]); });   /* estate managers */   /* staff training */
       if (G.estateNext && !B.cfg.noEstate) G.LOCS.forEach((l) => { const n = G.estateNext(l); if (n && !n.why && S.points >= n.k) c.push([l, 'estbuy:' + l, n.c]); });   /* estate projects */
       if (!S.staff.foreman) { if (!G.foremanOK || G.foremanOK()) c.push([S.loc, 'foreman', G.FOREMAN_COST]); } else if (!S.staff.agent && (!G.agentOK || G.agentOK())) c.push([S.loc, 'agent', G.AGENT_COST]);
-      c.sort((a, b) => a[2] - b[2]);
+      B.fullT = (B.fullT || 0) * 0.98 + (G.stored() >= G.cap() * 0.9 ? 1 : 0);   /* how often storage has been near full lately */
+      const rank = (x) => (x[1] === 'up:storage' && B.fullT > 5 ? x[2] / 20 : x[1] === 'up:racks' && B.fullT > 5 ? x[2] / 4 : x[2]);   /* a full store puts the next barn (and racks) first, as a player would */
+      c.sort((a, b) => rank(a) - rank(b));
       if (H()) {
         Object.keys(G.DECOR).forEach((k) => { if (S.decor[k] === undefined) c.push([S.loc, 'decor:' + k, G.DECOR[k].cost]); });
         if (G.RCOS && S.rcos && !B.cfg.noCos && G.roasteryOpen && G.roasteryOpen()) G.RCOS.forEach((x) => { if (!S.rcos.own[x.id] && x.src.coins && (!B.cfg.cosShare || rnd() < B.cfg.cosShare)) c.push([S.loc, 'rbuy:' + x.id, x.src.coins]); });   /* roastery cosmetics in Shop > Roastery */
@@ -165,7 +167,7 @@ window.BOT = (function () {
   function decide() { closeAll(); lessons(); if (!G.GUIDE || G.S.guide >= G.GUIDE.length) G.checkIn(); G.checkTabs();   /* the game holds the first check-in until the lessons are done */ tap(); active(); mill(); estate(); roast(); knowhow(); coins(); prestige(); closeAll(); cycleEnd(); }
   function snap() {
     const S = G.S;
-    B.snaps.push({ t: Math.round(B.t), lv: G.level(), xp: Math.round(S.xp), p: S.prestige, coins: Math.round(S.coins), kh: Math.round(S.points), cranes: S.cranes, farms: G.LOCS.filter(live).length, workers: G.totalWorkers(), lots: S.stats.lotsSold, sold: Math.round(S.stats.sold), contracts: S.stats.contracts || 0, cap: G.cap(), racks: G.racks(), stored: Math.round(G.stored()), day: S.day });
+    B.snaps.push({ t: Math.round(B.t), lv: G.level(), xp: Math.round(S.xp), p: S.prestige, coins: Math.round(S.coins), kh: Math.round(S.points), cranes: S.cranes, farms: G.LOCS.filter(live).length, workers: G.totalWorkers(), lots: S.stats.lotsSold, sold: Math.round(S.stats.sold), picked: Math.round(S.stats.picked), busy: S.lots.filter((l) => l.left > 0).length, rcap: G.rackCap ? G.rackCap() : 0, rkg: Math.round(S.lots.reduce((a, l) => a + l.kg, 0)), dry: S.lots.length ? Math.round(S.lots.reduce((a, l) => a + (l.total || 0), 0) / S.lots.length) : 0, contracts: S.stats.contracts || 0, cap: G.cap(), racks: G.racks(), stored: Math.round(G.stored()), day: S.day });
   }
   B.run = function (seconds, step) {   /* advance the game by `seconds`, deciding every `step` seconds */
     step = step || 2; const end = B.t + seconds; let nextD = B.t, nextS = Math.floor(B.t / 60) * 60 + 60;

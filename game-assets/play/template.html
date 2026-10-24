@@ -482,7 +482,7 @@ const BUILD = {
   housing: { base: 600, sub: (n) => '+' + (2 * n) + ' picker places here (' + (6 + 2 * n) + ' in all)' },
   compost: { base: 900, sub: (n) => '+' + (10 * n) + '% growth on this farm' },
   wetmill: { base: 1200, sub: (n) => 'Washed lots dry ' + Math.round(wetCut(withHere('wetmill', n)) * 100) + '% faster, counting every farm\'s wet mill (up to 60%)' },
-  drybeds: { base: 2000, sub: (n) => '+' + n + ' drying racks in the mill' },
+  drybeds: { base: 2000, sub: (n) => Math.floor(withHere('drybeds', n) / 3) + ' racks in the mill from ' + withHere('drybeds', n) + ' levels of drying beds, counting every farm (a rack per 3 levels)' },
   shade: { base: 2500, sub: (n) => '+' + shadeCup(withHere('shade', n)).toFixed(1) + ' cup score on every lot, counting every farm\'s shade trees (up to +4)' },
   sorter: { base: 3500, sub: (n) => (3 * n) + '% chance a lot sorts out as a peaberry lot worth double' }
 };
@@ -516,7 +516,7 @@ const ESTATE_P = 4, ESTATE_LV = [30, 40, 50], ESTATE_COST = [[1e6, 100e3], [5e6,
 const estateCost = (loc, n) => ESTATE_COST[n].map((c) => Math.round(c * (1 + 0.3 * LOCS.indexOf(loc)) / 1000) * 1000);   /* n is the stage being built, 0-2; later farms cost a little more */
 const ESTATE = {
   mogiana: { name: 'The terreiro', mech: 'Patio drying', stages: [
-    ['Painted patio', 'The patio is repainted for sun drying, with bunting and two rakers', '6 more lots dry at once on the patio, beside your mill racks'],
+    ['Painted patio', 'The patio is repainted for sun drying, with bunting and two rakers', '3 more lots dry at once on the patio, beside your mill racks'],
     ['Dryer house', 'A brick house of guardiola drum dryers with a smoking chimney', 'Natural lots dry 40% faster, from any farm'],
     ['Tasting house', 'A colonial tasting house with a fountain and palms', 'Natural lots cup +1, from any farm']] },
   huila: { name: 'The marquesinas', mech: 'Micro-lots', stages: [
@@ -692,10 +692,10 @@ const buildStep = (n) => (n <= 5 ? Math.pow(3, n) : Math.pow(3, 5) * Math.pow(2,
 const buildCost = (loc, k) => Math.round(BUILD[k].base * buildStep(S.farms[loc].build[k] || 0) * farmMult(loc) / 10) * 10;
 const sumBuild = (k) => LOCS.reduce((a, l) => a + (S.farms[l].unlocked ? (S.farms[l].build[k] || 0) : 0), 0);
 const maxPickers = (f) => 6 + 2 * (f.build.housing || 0);
-const racks = () => Math.min(S.lv.racks, RACK_COUNT) + sumBuild('drybeds') + (estOn('mogiana', 1) ? 6 : 0);   /* the Mogiana patio dries six more */
+const racks = () => Math.min(S.lv.racks, RACK_COUNT) + Math.floor(sumBuild('drybeds') / 3) + (estOn('mogiana', 1) ? 3 : 0);   /* a rack for every 3 levels of drying beds across your farms, and the Mogiana patio dries three more. A rack each made the mill outrun the farms: storage and racks never filled, so their upgrades meant nothing */
 /* a rack holds so much: a lot fills one rack and what doesn't fit waits in storage, so a full barn needs racks, not one tap. The Drying racks line's
    first five levels add a rack and size; the rest make every rack bigger, opening with prestige like storage (sized against the pacing bot's picking) */
-const RACK_COUNT = 5, RACK_KG = [0, 200, 300, 400, 500, 600, 800, 1100, 1500, 2000, 3000, 4000, 6000], RACK_GATE = { 6: 1, 7: 2, 8: 3, 9: 4, 10: 5, 11: 6, 12: 8 };
+const RACK_COUNT = 5, RACK_KG = [0, 200, 300, 400, 500, 600, 750, 900, 1100, 1300, 1600, 2000, 2500], RACK_GATE = { 6: 1, 7: 2, 8: 3, 9: 4, 10: 5, 11: 6, 12: 8 };
 const rackCap = () => RACK_KG[Math.min(S.lv.racks, RACK_KG.length - 1)];
 const upGated = (k) => (k === 'storage' && STORE[S.lv.storage] && STORE[S.lv.storage].p > S.prestige) || (k === 'racks' && (RACK_GATE[S.lv.racks + 1] || 0) > S.prestige);
 /* shade trees and wet mills add up across farms with diminishing returns, so every level counts towards +4 cup and 60% faster washed drying */
@@ -1684,8 +1684,8 @@ function addWorker(f) {
 const totalWorkers = () => LOCS.reduce((s, l) => s + S.farms[l].workers.length, 0);
 /* hiring is priced per farm, so every new farm can be staffed */
 const hireCost = (f) => { f = f || S.farms[S.loc]; return Math.round(150 * farmMult(f.loc) * Math.pow(1.45, Math.max(0, f.workers.length - 2)) / 10) * 10; };
-/* storage past the Beju barn opens with prestige, for the late game when cherries pile up faster */
-const STORE = ART.storage.concat([{ name: 'Big barn', cap: 6000, p: 3 }, { name: 'Warehouse', cap: 12000, p: 4 }, { name: 'Silo row', cap: 25000, p: 5 }, { name: 'Bulk warehouse', cap: 50000, p: 6 }, { name: 'Beju depot', cap: 100000, p: 7 }]);
+/* storage past the Beju barn opens with prestige, one barn a prestige */
+const STORE = ART.storage.concat([{ name: 'Big barn', cap: 8000, p: 1 }, { name: 'Warehouse', cap: 20000, p: 2 }, { name: 'Silo row', cap: 40000, p: 3 }, { name: 'Bulk warehouse', cap: 80000, p: 4 }, { name: 'Beju depot', cap: 150000, p: 5 }]);   /* a barn for every prestige, each holding about ten minutes of that stage's picking: it fills when the mill falls behind, and it's what your pickers bring in while you're away */
 const storeSprite = (l) => 'storage_' + Math.min(5, l);
 const cap = () => Math.round(STORE[S.lv.storage - 1].cap * (1 + techSum('store')));
 const stored = () => Object.values(S.cherries).reduce((a, b) => a + b, 0);
@@ -2524,9 +2524,10 @@ const cupFor = (v, method) => { const vr = VAR[v]; return Math.min(95, METHODS[m
 const CUP_BONUS = 1.5, CUP_PAY = 1.2;
 const lotCup = (l) => cupFor(l.v, l.method) + (l.cupped ? CUP_BONUS : 0) + (l.aged || 0) + (l.raked || 0);
 const seasonSale = (method) => ((rule('momiji') && method === 'honey') || (rule('ume') && method === 'natural') || (rule('koinobori') && method === 'washed') ? 1.15 : 1);   /* season rules */
+const MILL_PAY = 1.1;   /* lots pay 10% more since racks were cut back (the mill now limits a farm at times), so a run takes as long as before */
 function saleFor(v, method, green, lot) {
   const bonus = 1 + S.bonus, cup = cupFor(v, method) + (lot && lot.cupped ? CUP_BONUS : 0) + ((lot && lot.aged) || 0) + ((lot && lot.raked) || 0);
-  return { cup, coins: Math.round((1 + techSum('sale')) * (lot && lot.cupped ? CUP_PAY : 1) * (lot && lot.micro ? 2 : 1) * (lot && lot.aged ? 1 + 0.1 * lot.aged : 1) * green * 22 * VAR[v].value * METHODS[method].mult * bonus * (method === marketPick() ? MARKET : 1) * (eventDrop() && (v === eventDrop().variety || method === eventDrop().method) ? EVENT_MULT : 1) * seasonSale(method) * originMult(v, method)), points: Math.round(green * (3 + Math.max(0, cup - 80)) * 0.8 * bonus * researchMult()) };
+  return { cup, coins: Math.round((1 + techSum('sale')) * (lot && lot.cupped ? CUP_PAY : 1) * (lot && lot.micro ? 2 : 1) * (lot && lot.aged ? 1 + 0.1 * lot.aged : 1) * green * 22 * MILL_PAY * VAR[v].value * METHODS[method].mult * bonus * (method === marketPick() ? MARKET : 1) * (eventDrop() && (v === eventDrop().variety || method === eventDrop().method) ? EVENT_MULT : 1) * seasonSale(method) * originMult(v, method)), points: Math.round(green * (3 + Math.max(0, cup - 80)) * 0.8 * MILL_PAY * bonus * researchMult()) };
 }
 function cupLot(i) {
   const l = S.lots[i]; if (!l || l.cupped) return;
@@ -2619,8 +2620,8 @@ function staffTick() {
     const c = S.staff.agent && buyersOn() && S.contracts.find((x) => !x.boat && fits(x, l));
     if (c) deliver(i, c.id, true, 0, agentPay()); else sellLot(i, true, foremanPay());
   }
-  /* when to start a lot: a big lot pays the same drying time as a small one, so the foreman waits for a good-sized lot: a quarter of the store
-     on a small mill, less as racks are added (the store shared out over the racks), so a big late-game mill never stands empty while cherries pile up.
+  /* when to start a lot: a big lot pays the same drying time as a small one, so the foreman waits for a good-sized lot: a full rack, or a quarter
+     of the store if that's less, so racks fill and a rack upgrade shows.
      He starts sooner when a buyer is waiting for that coffee (just enough to fill the contract), when half the racks stand empty,
      or when a rack has sat empty for a minute */
   const ok = Object.keys(METHODS).filter((k) => S.methods[k]), byPay = (a, b) => METHODS[b].mult - METHODS[a].mult;
@@ -2628,7 +2629,7 @@ function staffTick() {
   let guard = 0;
   const keep = reqWaiting() ? 1 : 0;   /* a request waiting to be started keeps a rack free for you */
   while (S.lots.length < racks() - keep && stored() > 0 && guard++ < 8) {
-    const free = racks() - S.lots.length, idle = S.minutesTotal - (S.millT || 0) > REAL_MIN, full = stored() >= cap() * 0.9, lot = Math.min(rackCap(), cap() / Math.max(4, racks()));
+    const free = racks() - S.lots.length, idle = S.minutesTotal - (S.millT || 0) > REAL_MIN, full = stored() >= cap() * 0.9, lot = Math.min(rackCap(), cap() / 4);
     const pick = Object.keys(S.cherries).filter((v) => S.cherries[v] >= 10).map((v) => ({ v, c: buyer(v) }))
       .sort((a, b) => (!!b.c - !!a.c) || S.cherries[b.v] - S.cherries[a.v])
       .find(({ v, c }) => full || S.cherries[v] >= (c ? Math.min(lot, Math.max(10, (c.kg - c.have) / 0.2)) : idle || free * 2 >= racks() ? Math.max(10, Math.min(lot, cap() * 0.05)) : Math.max(10, lot)));
