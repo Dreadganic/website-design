@@ -2100,10 +2100,16 @@ function roasteryTick() {
     SFX.play('achieve'); showModal('<h2>Roastery reputation ' + lv + '</h2>' + img('roaster_0', 52) + '<p class="note">' + (got.length ? got.map((g) => '<b>' + g + '</b>').join('<br>') : 'Buyers across Japan are talking about your roasts.') + '</p><button class="btn green" data-act="close">Lovely</button>');
   } else if (newCos.length) { SFX.play('achieve'); toast('New for your roastery: ' + newCos.join(', ') + '. See Shop › Roastery'); }
 }
-function roasteryPanel() {
-  const R = S.roastery, lv = repLevel(), nextP = Array.from({ length: 20 - lv }, (_, i) => lv + 1 + i).find((l) => REP_PERKS[l] || RCOS.some((x) => x.src.rep === l));
+function repInfo() {   /* the roastery's reputation and what it brings next (shown in the bar over the roastery, like a farm's level) */
+  const R = S.roastery, lv = repLevel(), ms = masterStars(), nextP = Array.from({ length: 20 - lv }, (_, i) => lv + 1 + i).find((l) => REP_PERKS[l] || RCOS.some((x) => x.src.rep === l));
   const nextTxt = nextP ? [REP_PERKS[nextP]].concat(RCOS.filter((x) => x.src.rep === nextP).map((x) => rName(x.id))).filter(Boolean).join(', ') : '';
-  let h = '<div class="season"><b>Reputation ' + lv + (lv < 20 ? ' · ' + fmt(R.rep) + ' / ' + fmt(REP_AT(lv + 1)) : ' · Master roaster ' + ('★'.repeat(masterStars()) || '')) + '</b><span>' + (nextP ? 'At ' + nextP + ': ' + nextTxt : masterStars() < 10 ? 'Master roaster stars: ' + masterStars() + ' / 10, each +1% bag price. Next at ' + fmt(REP_AT(20) + 2000 * (masterStars() + 1)) + ' reputation (now ' + fmt(R.rep) + ').' : 'Ten master roaster stars: +10% on every bag.') + '</span></div>';
+  const lo = lv < 20 ? REP_AT(lv) : REP_AT(20) + 2000 * ms, hi = lv < 20 ? REP_AT(lv + 1) : REP_AT(20) + 2000 * (ms + 1);
+  return { badge: 'Rep ' + lv + (lv >= 20 && ms ? ' ★' + ms : ''), pct: ms >= 10 ? 100 : Math.max(0, Math.min(100, Math.round(((R.rep || 0) - lo) / (hi - lo) * 100))),
+    text: 'Roastery reputation ' + lv + (lv < 20 ? ': ' + fmt(R.rep || 0) + ' / ' + fmt(hi) + '. ' : ', master roaster. ') + (nextP ? 'At ' + nextP + ': ' + nextTxt + '.' : ms < 10 ? 'Master roaster stars: ' + ms + ' / 10, each +1% bag price. Next at ' + fmt(hi) + '.' : 'Ten master roaster stars: +10% on every bag.') + ' Every bag sold raises it.' };
+}
+function roasteryPanel() {   /* the reputation sits in the bar over the roastery (repInfo) */
+  const R = S.roastery, lv = repLevel();
+  let h = '';
   { const sr = seasonRoast(); if (sr && sr.known) h += '<div class="season"><b>' + theme().name + ' seasonal roast: ' + sr.name + '</b><span>' + (sr.known ? 'A ' + sroastText(sr) + '. Bags that match get the ' + theme().name + ' label and sell for 20% more until the season ends.' : 'Reach tier 8 of the season track to learn this month\'s recipe.') + '</span></div>'; }
   /* bags to sell come first: that's where the coins are */
   h += '<h3>Bags to sell ' + R.bags.length + '</h3>';
@@ -3190,7 +3196,7 @@ function travel(dir) {
   refreshAll();
 }
 $('prevLoc').addEventListener('click', () => travel(-1));
-$('locTap').addEventListener('click', () => { const fl = scene() === 'farm' && farmLvInfo(); if (fl) { SFX.play('tick'); toast(fl.text); } });
+$('locTap').addEventListener('click', () => { const fl = barLvInfo(); if (fl) { SFX.play('tick'); toast(fl.text); } });
 const HUD_GO = {   /* tap a number on the map to go where it's spent; each only once that page is open */
   hudLevel: () => (level() >= prestigeNeed() && S.tabs.ranks ? (S.rankSub = 'prestige', 'ranks') : S.tabs.unlock ? 'unlock' : null),
   hudCoins: () => (S.tabs.upgrades ? (S.farmSub = 'upgrades', 'farm') : null),
@@ -4622,9 +4628,10 @@ document.addEventListener('click', (e) => {
 function farmLvInfo() {   /* this farm's own level and its next milestone, once there are buildings to raise it (shown in the farm bar) */
   const f = S.farms[S.loc]; if (!f.unlocked || !S.tabs.upgrades) return null;
   const lv = farmLevel(f), next = FARM_MILESTONES.find((m) => lv < m.lv), prev = [...FARM_MILESTONES].reverse().find((m) => lv >= m.lv), nm = ART.locations[S.loc].name.split(',')[0];
-  return { lv, pct: Math.round(next ? (lv - (prev ? prev.lv : 0)) / (next.lv - (prev ? prev.lv : 0)) * 100 : 100),
+  return { lv, badge: 'Lv ' + lv, pct: Math.round(next ? (lv - (prev ? prev.lv : 0)) / (next.lv - (prev ? prev.lv : 0)) * 100 : 100),
     text: nm + ' farm level ' + lv + '. ' + (next ? 'Next at ' + next.lv + ': ' + next.label(S.loc) + '.' : 'Every milestone reached.') + ' Buildings, a manager, the fourth field and mastery raise it.' };
 }
+const barLvInfo = () => (scene() === 'farm' ? farmLvInfo() : scene() === 'roast' ? repInfo() : null);
 function refreshHud() {
   const L = ART.locations[S.loc], sea = season(S.loc);
   $('locName').textContent = L.name;
@@ -4633,11 +4640,11 @@ function refreshHud() {
   const SEA = { harvest: ['Harvest ×1.5', '#D85A3A'], rainy: ['Rainy · flowering', '#4A8AB8'], spring: ['Spring', '#E688A8'], summer: ['Summer ×1.25', '#6CA442'], autumn: ['Autumn', '#D2702C'], winter: ['Winter ×0.5', '#8CA8C8'] }[sea];
   $('seasonChip').textContent = SEA[0] + (S.seasonPick !== 'auto' && sea === S.seasonPick ? ' (test)' : ''); $('seasonChip').title = 'Weather: ' + SEA[0]; $('seasonChip').style.background = SEA[1];
   const sc = scene(); $('seasonChip').hidden = sc !== 'farm';   /* the Mill tab shows the mill yard or the roastery instead of a farm */
-  { const fl = farmLvInfo(), on = !!fl && sc === 'farm';   /* this farm's level beside its name, and a line along the bar to its next milestone */
+  { const fl = barLvInfo(), on = !!fl;   /* a farm's level, or the roastery's reputation, beside the name, and a line along the bar to what comes next */
     $('locLv').hidden = $('locLvBar').hidden = !on;
-    if (on) { const t = 'Lv ' + fl.lv; if ($('locLv').textContent !== t) $('locLv').textContent = t; $('locLvBar').firstChild.style.width = fl.pct + '%'; $('locTap').setAttribute('aria-label', fl.text); } else $('locTap').removeAttribute('aria-label'); }
+    if (on) { const t = fl.badge; if ($('locLv').textContent !== t) $('locLv').textContent = t; $('locLvBar').firstChild.style.width = fl.pct + '%'; $('locTap').setAttribute('aria-label', fl.text); } else $('locTap').removeAttribute('aria-label'); }
   if (sc === 'mill') { $('locName').textContent = 'Dry mill'; $('locBeds').textContent = S.lots.length + ' / ' + racks() + ' racks in use · ' + fmtKg(stored()) + ' kg of cherries waiting'; }
-  if (sc === 'roast') { $('locName').textContent = 'Roastery, Osaka'; $('locBeds').textContent = 'Reputation ' + repLevel() + ' · ' + S.roastery.roasters.length + ' / ' + roasterCount() + ' roasting · ' + S.roastery.bags.length + ' bags on the shelf'; }
+  if (sc === 'roast') { $('locName').textContent = 'Roastery, Osaka'; $('locBeds').textContent = S.roastery.roasters.length + ' / ' + roasterCount() + ' roasting · ' + S.roastery.bags.length + ' bags on the shelf'; }
   const lab = sc === 'mill' ? 'Your dry mill: lots drying on raised racks. Tap a rack to cup its lot, or to sell it once it is dry.' : sc === 'roast' ? 'Your roastery. Tap a free roaster to roast your largest green coffee at its best roast, and tap a roaster at first crack.' : 'Your farm seen from above. Tap shrubs with ripe cherries to pick them.';
   if (cv.getAttribute('aria-label') !== lab) cv.setAttribute('aria-label', lab);
   const mh = maxHearts();
