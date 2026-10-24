@@ -36,7 +36,7 @@ window.BOT = (function () {
       let g = 0;
       while (S.lots.length < G.racks() && G.stored() > 0 && g++ < 8) {
         const v = Object.keys(S.cherries).filter((x) => S.cherries[x] > 0).sort((a, b) => S.cherries[b] - S.cherries[a])[0];
-        if (S.cherries[v] < Math.max(10, G.cap() * 0.2) && G.stored() < G.cap() * 0.85 && S.stats.lotsSold > 0) break;
+        if (S.cherries[v] < Math.max(10, Math.min(G.rackCap ? G.rackCap() : Infinity, G.cap() * 0.2)) && G.stored() < G.cap() * 0.85 && S.stats.lotsSold > 0) break;   /* a full rack, or a fifth of the store */
         const want = S.buyers && S.contracts.find((c) => (!c.v || c.v === v) && c.method && S.methods[c.method] && c.have < c.kg);
         const best = Object.keys(G.METHODS).filter((k) => S.methods[k]).sort((a, b) => G.METHODS[b].mult - G.METHODS[a].mult)[0];
         const n = S.lots.length; act('mv:' + v); act('lot:' + (want ? want.method : best)); if (S.lots.length === n) break;
@@ -91,7 +91,7 @@ window.BOT = (function () {
         if (G.masterCost && f.manager) c.push([l, 'master', G.masterCost(l)]);
         if (!f.field && l !== 'osaka') c.push([l, 'up:field', G.UP.field.cost()]);
       });
-      ['storage', 'pickers', 'racks', 'hearts'].forEach((k) => { if (S.lv[k] < G.UP[k].max && !(k === 'storage' && G.STORE && G.STORE[S.lv[k]] && G.STORE[S.lv[k]].p > S.prestige)) c.push([S.loc, 'up:' + k, G.UP[k].cost(S.lv[k])]); });
+      ['storage', 'pickers', 'racks', 'hearts'].forEach((k) => { if (S.lv[k] < G.UP[k].max && !(k === 'storage' && G.STORE && G.STORE[S.lv[k]] && G.STORE[S.lv[k]].p > S.prestige) && !(k === 'racks' && G.RACK_GATE && (G.RACK_GATE[S.lv[k] + 1] || 0) > S.prestige)) c.push([S.loc, 'up:' + k, G.UP[k].cost(S.lv[k])]); });
       if (G.trainCost && S.prestige >= 5) { G.LOCS.forEach((l) => { if (live(l) && S.farms[l].manager && G.trainLv('mgr', l) < 10) c.push([l, 'train:mgr', G.trainCost('mgr', l)]); }); ['foreman', 'agent', 'roaster'].forEach((w) => { if (S.staff[w] && G.trainLv(w) < 10) c.push([S.loc, 'train:' + w, G.trainCost(w)]); }); }
       if (G.roasterOK && !S.staff.roaster && G.roasterOK()) c.push([S.loc, 'hireroaster', G.ROASTER_COST]);   /* the late staff */
       if (G.EM_LOCS) G.EM_LOCS.forEach((l) => { if (G.emCan(l)) c.push([S.loc, 'emhire:' + l, G.emHire(l)]); else if (G.emHired(l) && G.trainLv('em_' + l) < 10 && S.prestige >= 5) c.push([S.loc, 'train:em_' + l, G.trainCost('em_' + l)]); });   /* estate managers */   /* staff training */

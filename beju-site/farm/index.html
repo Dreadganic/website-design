@@ -1467,7 +1467,12 @@ const buildStep = (n) => (n <= 5 ? Math.pow(3, n) : Math.pow(3, 5) * Math.pow(2,
 const buildCost = (loc, k) => Math.round(BUILD[k].base * buildStep(S.farms[loc].build[k] || 0) * farmMult(loc) / 10) * 10;
 const sumBuild = (k) => LOCS.reduce((a, l) => a + (S.farms[l].unlocked ? (S.farms[l].build[k] || 0) : 0), 0);
 const maxPickers = (f) => 6 + 2 * (f.build.housing || 0);
-const racks = () => S.lv.racks + sumBuild('drybeds') + (estOn('mogiana', 1) ? 6 : 0);   /* the Mogiana patio dries six more */
+const racks = () => Math.min(S.lv.racks, RACK_COUNT) + sumBuild('drybeds') + (estOn('mogiana', 1) ? 6 : 0);   /* the Mogiana patio dries six more */
+/* a rack holds so much: a lot fills one rack and what doesn't fit waits in storage, so a full barn needs racks, not one tap. The Drying racks line's
+   first five levels add a rack and size; the rest make every rack bigger, opening with prestige like storage (sized against the pacing bot's picking) */
+const RACK_COUNT = 5, RACK_KG = [0, 200, 300, 400, 500, 600, 800, 1100, 1500, 2000, 3000, 4000, 6000], RACK_GATE = { 6: 1, 7: 2, 8: 3, 9: 4, 10: 5, 11: 6, 12: 8 };
+const rackCap = () => RACK_KG[Math.min(S.lv.racks, RACK_KG.length - 1)];
+const upGated = (k) => (k === 'storage' && STORE[S.lv.storage] && STORE[S.lv.storage].p > S.prestige) || (k === 'racks' && (RACK_GATE[S.lv.racks + 1] || 0) > S.prestige);
 /* shade trees and wet mills add up across farms with diminishing returns, so every level counts towards +4 cup and 60% faster washed drying */
 const shadeCup = (n) => 4 * (1 - Math.pow(0.85, n === undefined ? sumBuild('shade') : n));
 const wetCut = (n) => 0.6 * (1 - Math.pow(0.85, n === undefined ? sumBuild('wetmill') : n));
@@ -2303,7 +2308,7 @@ const UP = {
   storage: { name: 'Storage', max: 10, cost: (l) => [0, 300, 1500, 6000, 25000, 250e3, 1e6, 4e6, 15e6, 60e6][l], cur: 'coins' },
   /* pickers: one line for speed and carrying; the gear improves at levels 4 and 8 */
   pickers: { name: 'Pickers', max: 10, cost: (l) => Math.round(400 * Math.pow(2.1, l - 1) / 10) * 10, cur: 'coins' },
-  racks: { name: 'Drying racks', max: 5, cost: (l) => [0, 600, 4800, 24000, 96000][l], cur: 'coins' },
+  racks: { name: 'Drying racks', max: 12, cost: (l) => [0, 600, 4800, 24000, 96000, 150e3, 600e3, 2.5e6, 10e6, 40e6, 150e6, 500e6][l], cur: 'coins' },
   hearts: { name: 'Stamina', max: 4, cost: (l) => [0, 300, 2400, 12000][l], cur: 'coins' },
   field: { name: 'Clear the fourth field', max: 2, cost: () => Math.round(1200 * Math.pow(3, LOCS.filter((l) => S.farms[l].field && l !== 'osaka').length)), cur: 'coins' }
 };
@@ -2998,7 +3003,7 @@ function drawGuy(o) {
   if (o.look === MGR_LOOK && o.dir !== 'up') { fx.fillStyle = '#3E2A1C'; fx.fillRect(X + 11, Y + 14, 4, 5); fx.fillStyle = '#F8F4EC'; fx.fillRect(X + 12, Y + 15, 2, 3); }
   return { X, Y };
 }
-const moreRacks = () => racks() < RACK_SHOWN && !!S.tabs.upgrades && (S.lv.racks < UP.racks.max || LOCS.some((l) => S.farms[l].unlocked && (S.farms[l].build.drybeds || 0) < buildMax()));   /* a rack can still be added */
+const moreRacks = () => racks() < RACK_SHOWN && !!S.tabs.upgrades && (S.lv.racks < RACK_COUNT || LOCS.some((l) => S.farms[l].unlocked && (S.farms[l].build.drybeds || 0) < buildMax()));   /* a rack can still be added */
 function drawMill(time) {
   const M = IN.mill, things = [], shown = Math.min(RACK_SHOWN, racks()), bySlot = rackSlots();
   if (moreRacks()) { const r = rackAt(racks()); fx.globalAlpha = 0.3; fx.drawImage(sprite('mill_rack'), r.x, r.y); fx.globalAlpha = 1; fx.fillStyle = '#F2C04A'; fx.fillRect(r.x + 18, r.y + 7, 5, 1); fx.fillRect(r.x + 20, r.y + 5, 1, 5); }   /* the next rack's spot */
@@ -3248,7 +3253,7 @@ function buyUpgrade(key) {
     toast('Field cleared: 8 new shrubs planted'); return;
   }
   const l = S.lv[key]; if (l >= u.max) return;
-  if (key === 'storage' && STORE[l] && STORE[l].p && S.prestige < STORE[l].p) return;   /* the bigger stores wait for prestige */
+  if (upGated(key)) return;   /* the bigger stores and racks wait for prestige */
   if (!spend(u.cur, u.cost(l))) return;
   S.lv[key] = l + 1;
   if (key === 'pickers') { S.lv.speed = l + 1; const gear = l + 1 >= 8 ? 3 : l + 1 >= 4 ? 2 : 1; if (gear > S.lv.carry) { S.lv.carry = gear; toast('Your pickers now carry a ' + ART.carry[gear - 1].name.toLowerCase()); return; } }
@@ -3262,14 +3267,14 @@ const lotTime = (method) => METHODS[method].time * (method === 'washed' ? 1 - we
 const durText = (sec) => { const x = Math.max(1, Math.ceil(sec)); return x < 60 ? x + ' s' : Math.floor(x / 60) + ' min' + (x % 60 ? ' ' + (x % 60) + ' s' : ''); };
 const dryText = (units) => durText(units / dryMult() / (S.speed || 1));   /* real time left */
 function startLot(v, method, quiet) {
-  const busy = S.lots.length, kg = S.cherries[v] || 0;
+  const busy = S.lots.length, have = S.cherries[v] || 0, kg = have - rackCap() < 1 ? have : rackCap();   /* a lot fills one rack; the rest waits in storage */
   if (busy >= racks() || kg <= 0 || !S.methods[method]) return false;
   const tutorial = !quiet && S.guide < 4 && !S.stats.lotsSold;   /* the guide's first lot dries twice as fast */
   const m = METHODS[method], time = lotTime(method) * (tutorial ? 0.5 : 1);
   const micro = rnd() < microChance(method);   /* Huila's marquesinas: now and then a micro-lot */
   const carried = Math.min(kg, (S.carriedKg || {})[v] || 0);   /* cherries carried over a prestige go into lots first */
   if (carried > 0) { S.carriedKg[v] -= carried; if (S.carriedKg[v] < 1) delete S.carriedKg[v]; }
-  S.cherries[v] = 0; S.millT = S.minutesTotal; S.mlots = S.mlots || {}; S.mlots[method] = (S.mlots[method] || 0) + 1;
+  S.cherries[v] = have - kg; S.millT = S.minutesTotal; S.mlots = S.mlots || {}; S.mlots[method] = (S.mlots[method] || 0) + 1;
   S.lots.push(Object.assign({ v, kg, method, left: time, total: time }, micro ? { micro: true } : {}, method === 'natural' && rakeCup() ? { raked: rakeCup() } : {}, carried > 0 ? { carry: carried / kg } : {}));
   if (micro) { S.stats.micro = (S.stats.micro || 0) + 1; task('micro', 1); if (!quiet) SFX.play('achieve'); }
   task('store', 0);
@@ -3392,7 +3397,7 @@ function staffTick() {
   const buyer = (v) => S.staff.agent && buyersOn() && S.contracts.find((c) => (!c.v || c.v === v) && c.have < c.kg && (!c.method || S.methods[c.method]) && ok.some((k) => (!c.method || c.method === k) && cupFor(v, k) >= c.minCup));
   let guard = 0;
   while (S.lots.length < racks() && stored() > 0 && guard++ < 8) {
-    const free = racks() - S.lots.length, idle = S.minutesTotal - (S.millT || 0) > REAL_MIN, full = stored() >= cap() * 0.9, lot = cap() / Math.max(4, racks());
+    const free = racks() - S.lots.length, idle = S.minutesTotal - (S.millT || 0) > REAL_MIN, full = stored() >= cap() * 0.9, lot = Math.min(rackCap(), cap() / Math.max(4, racks()));
     const pick = Object.keys(S.cherries).filter((v) => S.cherries[v] >= 10).map((v) => ({ v, c: buyer(v) }))
       .sort((a, b) => (!!b.c - !!a.c) || S.cherries[b.v] - S.cherries[a.v])
       .find(({ v, c }) => full || S.cherries[v] >= (c ? Math.min(lot, Math.max(10, (c.kg - c.have) / 0.2)) : idle || free * 2 >= racks() ? Math.max(10, Math.min(lot, cap() * 0.05)) : Math.max(10, lot)));
@@ -3896,7 +3901,7 @@ const starsFor = (p) => (p >= TIERS.length ? p - TIERS.length + 1 : 0);
 function bottleneck() {   /* name the one thing slowing the farm down right now */
   const f = S.farms[S.loc];
   if (stored() >= cap()) return '<b>Storage is full.</b> Pickers have stopped. Process cherries in the Mill or build bigger storage.';
-  if (S.lots.length >= racks() && stored() > cap() * 0.5) return '<b>Every drying rack is busy.</b> More racks (Farm › Upgrades) or raised drying beds (Farm › Buildings) would keep the mill moving.';
+  if (S.lots.length >= racks() && stored() > cap() * 0.5) return '<b>Every drying rack is busy.</b> More or bigger racks (Farm › Upgrades) or raised drying beds (Farm › Buildings) would keep the mill moving.';
   if (f.workers.length && !f.shrubs.some((x) => x.p >= 1) && f.workers.every((w) => w.state === 'walk' && w.next === 'seek' || w.state === 'seek')) return '<b>Pickers are waiting for cherries.</b> Faster coffees, a compost shed or the fourth field would give them more to pick.';
   return '';
 }
@@ -3920,7 +3925,7 @@ function lotValue(v, method, kg) {
 function bestLot() {   /* the coffee and process whose lot pays most right now, contracts included */
   let best = null;
   Object.keys(S.cherries).filter((v) => S.cherries[v] > 0).forEach((v) => Object.keys(METHODS).filter((m) => S.methods[m]).forEach((m) => {
-    const c = lotValue(v, m, S.cherries[v]).coins; if (!best || c > best[2]) best = [v, m, c];
+    const c = lotValue(v, m, Math.min(S.cherries[v], rackCap())).coins; if (!best || c > best[2]) best = [v, m, c];
   }));
   return best;
 }
@@ -3955,7 +3960,7 @@ function practiceCard() {   /* shown on the Farm and Mill while the lessons run 
 function farmSubtabs(cur, f) {   /* the Farm tab: your fields, plus the pages where coins go once you've sold a lot */
   if (!S.tabs.upgrades) return '';
   const ready = {   /* a dot on a sub-tab when something in it is affordable */
-    upgrades: ['storage', 'pickers', 'racks', 'hearts'].some((k) => S.lv[k] < UP[k].max && S.coins >= UP[k].cost(S.lv[k])),
+    upgrades: ['storage', 'pickers', 'racks', 'hearts'].some((k) => S.lv[k] < UP[k].max && !upGated(k) && S.coins >= UP[k].cost(S.lv[k])),
     build: f.unlocked && BUILD_ORDER.some((k) => (f.build[k] || 0) < buildMax() && S.coins >= buildCost(S.loc, k)),
     staff: (f.unlocked && S.loc !== 'osaka' && !f.manager && mgrOK() && S.coins >= MANAGER_COST(S.loc)) || (!S.staff.foreman && foremanOK() && S.coins >= FOREMAN_COST) || (S.staff.foreman && !S.staff.agent && agentOK() && S.coins >= AGENT_COST) || (!S.staff.roaster && roasterOK() && S.coins >= ROASTER_COST) || EM_LOCS.some((l) => emCan(l) && S.coins >= emHire(l))
   };
@@ -4013,7 +4018,7 @@ function renderPanel() {
       const boats = S.contracts.filter((c) => c.boat); if (boats.length) h += '<div class="ccards">' + boats.map(contractCard).join('') + '</div>';
     } else if (buyersOn()) h += '<h3>Buyers waiting · ' + S.contracts.length + (S.staff.agent ? ' <button type="button" class="linkbtn" data-act="buyersopen">fold</button>' : '') + '</h3>' + help('buyers', 'Contracts pay about twice the roastery. Swipe to see them all.', 'Contracts pay about twice the roastery, as each delivery arrives. Swipe to see them all; lots that fit are tagged.') + '<div class="ccards">' + (S.contracts.length ? S.contracts.map(contractCard).join('') : '<p class="note">No buyers right now. New ones arrive shortly.</p>') + '</div>';
     h += requestCard();
-    h += '<h3>Drying racks ' + S.lots.length + ' / ' + racks() + '</h3>';
+    h += '<h3>Drying racks ' + S.lots.length + ' / ' + racks() + ' · ' + fmt(rackCap()) + ' kg each</h3>';
     /* with many racks the lots become a grid of small tiles, with one-tap Cup all and Sell all, so nothing needs scrolling */
     const view = S.millView || (racks() >= 4 ? 'grid' : 'list'), toCup = S.lots.filter((l) => !l.cupped).length, dry = S.lots.filter((l) => l.left <= 0).length;
     if (S.lots.length > 1) h += '<div class="rackbar">' + (hasPerk('cupall') ? btn('Cup all', toCup ? toCup + ' lot' + (toCup > 1 ? 's' : '') + ' · +' + Math.round((CUP_PAY - 1) * 100) + '% pay' : 'all cupped', 'cupall', toCup > 0, 'gold') : btn('Cup all', 'prestige 2 perk', 'noop', false, 'gold')) + btn('Sell all dry', dry ? dry + ' lot' + (dry > 1 ? 's' : '') + (buyersOn() ? ' · buyers first' : '') : 'none dry yet', 'sellall', dry > 0, 'green') + '<div class="seg rackview">' + [['grid', 'Grid'], ['list', 'List']].map(([k, t]) => '<button type="button" data-act="millview:' + k + '" aria-pressed="' + (view === k) + '">' + t + '</button>').join('') + '</div></div>';
@@ -4036,14 +4041,15 @@ function renderPanel() {
     if (!S.lots.length) h += '<p class="note">No lots drying yet.</p>';
     if (S.staff.foreman) {   /* the staff as a status line; the detail is behind the i */
       h += '<div class="chips"><span class="chip">Foreman: running</span>' + (S.staff.agent ? '<span class="chip">Agent: delivering</span>' : '') + (roasteryOpen() ? '<span class="chip">' + (feedRoasts() ? 'Stocks the roastery (' + feedRoasts() + ' roasts)' : 'Roastery stocking off') + '</span>' : '') + '</div>';
-      h += help('foreman', 'Staff never cup, so cupping by hand still pays +' + Math.round((CUP_PAY - 1) * 100) + '%.', 'Your foreman starts and sells lots' + (S.staff.agent ? ', and the agent fills contracts first' : '') + '. Staff never cup, so cupping by hand still adds +' + CUP_BONUS + ' cup and +' + Math.round((CUP_PAY - 1) * 100) + '% pay. He waits for bigger lots, which dry in the same time.');
+      h += help('foreman', 'Staff never cup, so cupping by hand still pays +' + Math.round((CUP_PAY - 1) * 100) + '%.', 'Your foreman starts and sells lots' + (S.staff.agent ? ', and the agent fills contracts first' : '') + '. Staff never cup, so cupping by hand still adds +' + CUP_BONUS + ' cup and +' + Math.round((CUP_PAY - 1) * 100) + '% pay. He waits for a fuller rack, which dries in the same time.');
     }
     h += '<h3>Start a lot</h3>';
     if (!vs.length) h += '<p class="note">Storage is empty. Pick some cherries first.</p>';
     else {
       const pickV = S.millV && S.cherries[S.millV] > 0 ? S.millV : vs[0]; S.millV = pickV;
       h += '<div class="seg">' + vs.map((v) => '<button type="button" data-act="mv:' + v + '" aria-pressed="' + (v === pickV) + '">' + ART.varieties[v] + ' ' + fmt(S.cherries[v]) + ' kg' + (wanted(v).length ? ' <span class="want">wanted</span>' : '') + '</button>').join('') + '</div>';
-      const vals = {}; Object.keys(METHODS).filter((k) => S.methods[k]).forEach((k) => { vals[k] = lotValue(pickV, k, S.cherries[pickV]); });
+      const vals = {}, lotKg = Math.min(S.cherries[pickV], rackCap()); Object.keys(METHODS).filter((k) => S.methods[k]).forEach((k) => { vals[k] = lotValue(pickV, k, lotKg); });
+      if (S.cherries[pickV] - lotKg >= 1) h += '<p class="note">A rack holds ' + fmt(rackCap()) + ' kg, so this lot takes ' + fmt(lotKg) + ' kg and the other ' + fmt(S.cherries[pickV] - lotKg) + ' kg wait for the next rack.</p>';
       const bestK = Object.keys(vals).sort((a, b) => vals[b].coins - vals[a].coins)[0];
       h += '<div class="grid2">' + Object.keys(METHODS).filter((k) => S.methods[k]).map((k) => {
         const m = METHODS[k], ok = S.methods[k], val = vals[k];
@@ -4052,7 +4058,7 @@ function renderPanel() {
       }).join('') + '</div>';
       const locked = Object.keys(METHODS).filter((k) => !S.methods[k]).length;
       if (locked) h += '<p class="note">' + locked + ' more process' + (locked > 1 ? 'es' : '') + ' to unlock.</p>' + btn('See processes in Unlock', '', 'gounlock:processes', true, 'blue');
-      if (S.lots.length >= racks()) h += '<p class="note">All racks are busy. Add racks (Farm › Upgrades) or raised drying beds (Farm › Buildings).</p>';
+      if (S.lots.length >= racks()) h += '<p class="note">All racks are busy. Add racks or make them bigger (Farm › Upgrades), or build raised drying beds (Farm › Buildings).</p>';
     }
   } else if (tab === 'farm') {
     const ut = fsub === 'upgrades' ? 'farm' : fsub;
@@ -4065,7 +4071,11 @@ function renderPanel() {
     const pl = S.lv.pickers, nextGear = pl < 4 ? 4 : pl < 8 ? 8 : 0;
     if (pl >= 10) done.push([ART.carry[S.lv.carry - 1].sprite, 'Pickers lv ' + pl]); else
     h += row(img(ART.carry[S.lv.carry - 1].sprite, 34), 'Pickers lv ' + pl, '+18% walking and picking a level. Carrying a ' + ART.carry[S.lv.carry - 1].name.toLowerCase() + ' (' + carryKg() + ' kg)' + (nextGear ? '; a ' + ART.carry[nextGear === 4 ? 1 : 2].name.toLowerCase() + ' at lv ' + nextGear : '') + '.', btn(pl >= 10 ? 'Max' : 'Train', pl >= 10 ? '' : fmt(UP.pickers.cost(pl)) + ' coins', 'up:pickers', pl < 10 && S.coins >= UP.pickers.cost(pl)));
-    [['racks', 'proc_natural', 'Drying racks: ' + S.lv.racks, 'Process more lots at once'], ['hearts', 'i_heart', 'Stamina: ' + maxHearts() + ' hearts', '+6 hearts for picking by hand']].forEach(([k, a, t, sub]) => {
+    { const lv = S.lv.racks, u = UP.racks, nx = RACK_KG[lv + 1], gate = RACK_GATE[lv + 1] || 0, title = 'Drying racks: ' + racks() + ' · ' + fmt(rackCap()) + ' kg each';
+      if (lv >= u.max) done.push(['proc_natural', title]);
+      else h += row(img('proc_natural', 36), title, (lv < RACK_COUNT ? 'Next: one more rack, and every rack holds ' + fmt(nx) + ' kg.' : 'Next: bigger racks, ' + fmt(nx) + ' kg each.') + ' A lot fills one rack; what doesn\'t fit waits in storage.' + (gate > S.prestige ? ' Opens at prestige ' + gate + '.' : ''),
+        gate > S.prestige ? btn('Locked', 'Prestige ' + gate, 'noop', false) : btn('Up', fmt(u.cost(lv)) + ' coins', 'up:racks', S.coins >= u.cost(lv))); }
+    [['hearts', 'i_heart', 'Stamina: ' + maxHearts() + ' hearts', '+6 hearts for picking by hand']].forEach(([k, a, t, sub]) => {
       const lv = S.lv[k], u = UP[k], max = lv >= u.max;
       if (max) { done.push([a, t]); return; }
       h += row(img(a, k === 'hearts' ? 28 : 36), t, sub, btn(max ? 'Max' : 'Up', max ? '' : fmt(u.cost(lv)) + ' coins', 'up:' + k, !max && S.coins >= u.cost(lv)));
@@ -4466,7 +4476,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'method') { if (gateOK('method:' + v) && spend('points', METHODS[v].cost)) { S.methods[v] = true; S.lastMethod = v; toast(METHODS[v].name + ' unlocked'); } }
   else if (a === 'up') { const before = S.lv[v]; buyUpgrade(v); if (S.lv[v] !== before) guideStep('up:' + v); }
   else if (a === 'guideNext') { if (S.guide < GUIDE.length) guideDone(); }
-  else if (a === 'guideSkip') { S.guide = GUIDE.length; tutorialEnd(); ['upgrades', 'unlock', 'orders', 'ranks', 'shop'].forEach((k) => { S.tabs[k] = true; }); toast('Lessons skipped: every tab is open'); }
+  else if (a === 'guideSkip') { S.guide = GUIDE.length; tutorialEnd(); checkTabs(); const wait = [!S.tabs.shop && 'the Shop opens at level ' + TAB_LEVEL.shop, !S.tabs.ranks && 'Ranks at level ' + TAB_LEVEL.ranks].filter(Boolean).join(' and '); toast('Lessons skipped.' + (wait ? ' ' + wait[0].toUpperCase() + wait.slice(1) + '.' : '')); }   /* only what the lessons open: the Shop and Ranks keep their levels */
   else if (a === 'farm') unlockFarm(v);
   else if (a === 'uptab') { S.farmSub = v === 'farm' ? 'upgrades' : v; if (v !== 'fields') S.upTab = v; }
   else if (a === 'untab') S.unTab = v;
