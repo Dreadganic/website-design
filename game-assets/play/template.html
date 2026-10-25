@@ -1924,7 +1924,7 @@ function tick(dt) {
    a Karen at the roastery counter. Each costs a little income until you stop it with a few taps, and pays only in cosmetics:
    the fifth stop of an event brings its keepsake, and its rare variant (1 in 20) a rare one. Events wait while you're away,
    never start during the lessons or over a window, and give up after 10 minutes of play. Their sounds are in event-sfx.js */
-const REV_FIRST = 60, REV_GAP = 900, REV_ROLL = 60, REV_CHANCE = 0.25, REV_MAX = 600, REV_RARE = 1 / 20, REV_COS = 5, REV_SHARE = 0.12;   /* seconds of play: the first roll comes 1 minute into a session, whenever the last event was; after that 15 or more between events (about 19 on average) */
+const REV_FIRST = 60, REV_GAP = 300, REV_ROLL = 60, REV_CHANCE = 0.3, REV_MAX = 600, REV_RARE = 1 / 20, REV_COS = 5, REV_SHARE = 0.12;   /* seconds of play: the first roll comes 1 minute into a session, whenever the last event was; after that 5 or more between events (about 8 on average) */
 const REV_BEDS = [[10, 110, 80, 42], [104, 110, 80, 42], [10, 158, 80, 42], [104, 158, 80, 42]];   /* each field's patch of ground, in shrub order */
 const PIG_OFF = [[6, 26], [32, 10], [56, 28], [60, 2], [8, 4], [34, 30]];   /* where the pigs root about in a field */
 const KAREN_Q = [   /* her complaint, the reply that settles her, and two that don't */
