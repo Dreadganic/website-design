@@ -28,6 +28,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-
 .flv { display: inline-block; margin-right: 5px; padding: 0 5px; border-radius: 5px; background: var(--leaf-ink); color: #FFF8E8; font: 700 11px var(--pixel); font-style: normal; line-height: 15px; }
 .flvbar { position: absolute; left: 10px; right: 10px; bottom: 2px; height: 3px; border-radius: 2px; background: rgba(0, 0, 0, 0.08); overflow: hidden; pointer-events: none; }
 .flvbar i { display: block; height: 100%; background: var(--leaf); }
+.arrow.evt { background: #F2C04A; box-shadow: 0 0 0 2px #E8602A; }
 .arrow { width: 38px; height: 38px; border: 2px solid var(--edge); border-radius: 8px; background: var(--paper-2); color: var(--ink); font-size: 16px; font-weight: 700; cursor: pointer; }
 .chip { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 5px; color: #fff; white-space: nowrap; }
 .stage { --sw: min(100cqw, 100cqh * var(--ar) / 0.6); position: relative; width: var(--sw); height: min(100cqh, var(--sw) / (var(--ar))); border-radius: 8px; overflow: hidden; box-shadow: 0 0 0 3px #1E140C; background: #5E7A2C; }   /* the map fills the column like the bars above and below it; a scene taller than the room scrolls (no more than 40% of it out of view, even on a phone held sideways) */
@@ -1036,6 +1037,7 @@ const titleText = (k) => { if (!k) return ''; const [a, b] = k.split(':');
   if (a === 'nb' && VAR[b]) return ART.varieties[b] + ' specialist'; if (a === 'nbm' && METHODS[b]) return METHODS[b].name + ' master';
   if (a === 'nbt') { const t = NB_TOTALS.find((x) => x[1] === b); return t ? t[2] : ''; }
   if (a === 'rr') return b === 'crack' ? 'Crack master' : 'Master roaster';
+  if (a === 'ev') return b === 'steady' ? 'Steady hands' : '';
   return ART.seasons[String(+k.slice(5))] ? theme(k).title + ' ' + k.slice(0, 4) : ''; };
 /* the cupping notebook: every coffee and process pair you sell earns stars at 1, 25 and 250 lots; each star adds +0.5 cup score to that pair */
 const NB_STARS = [1, 25, 250], NB_MAX = 9 * 6 * 3;
@@ -1105,7 +1107,7 @@ const roastTime = (p) => ROASTS[p].time * (repLevel() >= 2 ? 0.8 : 1);
 const BLEND_NAMES = ['Casablanca Blend', 'Osaka Morning', 'Kissaten Dark', 'Sakura Light', 'Crane House Blend', 'Kyoto Evening', 'Beju Breakfast', 'Momiji Roast'];
 const beanName = (key) => { const [v, m] = key.split('.'); return ART.varieties[v] + ' ' + METHODS[m].name.toLowerCase(); };
 const bagName = (b) => (b.seasonal ? b.seasonal + ' · ' : '') + (b.blend || beanName(b.key)) + (b.blend ? '' : ' · ' + ROASTS[b.profile].name.toLowerCase());
-const bagPrice = (b, k) => { const rb = RBUYERS[k], want = b.blend || !rb.wants || b.profile === rb.wants; return Math.round(b.coins * (want ? rb.mult * (b.blend ? 1.1 : 1) : 1) * (0.7 + b.q / 200) * (1 + shopCharm()) * (b.seasonal && b.skey === S.season.key ? 1.2 : 1) * (1 + 0.01 * masterStars()) * (b.pc && estOn('osaka', 3) ? 1.1 : 1)); };
+const bagPrice = (b, k) => { const rb = RBUYERS[k], want = b.blend || !rb.wants || b.profile === rb.wants; return Math.round(b.coins * (want ? rb.mult * (b.blend ? 1.1 : 1) : 1) * (0.7 + b.q / 200) * (1 + shopCharm()) * (b.seasonal && b.skey === S.season.key ? 1.2 : 1) * (1 + 0.01 * masterStars()) * (b.pc && estOn('osaka', 3) ? 1.1 : 1) * revBagMult()); };
 /* how many roasts' worth of green coffee the foreman keeps waiting in the roastery (0 = off); on by default, so you never race him for lots */
 const feedRoasts = () => (S.roastery.feed === true ? 2 : S.roastery.feed === undefined ? 4 : +S.roastery.feed || 0);
 const roasteryFeedWants = () => roasteryOpen() && feedRoasts() > 0 && Object.values(S.roastery.beans).reduce((a, b) => a + b.kg, 0) < roastCap() * roasterCount() * feedRoasts();
@@ -1127,7 +1129,8 @@ const RAPRON = { plain: { name: 'Charcoal' }, denim: { name: 'Denim', c: ['#6A8A
   barista: { name: 'Barista brown', c: ['#A8784A', '#86582E', '#5E3C1C'] }, black: { name: 'Kissaten black', c: ['#3A3A3A', '#2A2A2A', '#1A1A1A'] } };
 const SHOP_F = 112;   /* how much lower the shop front sits since the café went in (H - 240) */
 const RPROP = { plants: { name: 'Hanging plants', at: [156, 208 + SHOP_F] }, record: { name: 'Record player', at: [152, 131] }, neon: { name: 'Neon COFFEE sign', at: [120, 213 + SHOP_F] }, booth: { name: 'Velvet booth', at: [56, 152] },
-  maneki: { name: 'Maneki-neko', at: [113, 129] }, cat: { name: 'Shop cat', at: [145, 103] }, siphon: { name: 'Siphon bar', at: [132, 124] } };
+  maneki: { name: 'Maneki-neko', at: [113, 129] }, cat: { name: 'Shop cat', at: [145, 103] }, siphon: { name: 'Siphon bar', at: [132, 124] },
+  evbell: { name: 'Manager\'s bell', at: [123, 132] }, evreview: { name: 'Five-star review', at: [128, 104] } };   /* keepsakes from Karen: no shop charm, they're not for sale */
 const RCOS = [   /* every item that isn't a default or a season item; src says how to earn it, and coins or cranes how to buy it.
      An item with a reputation level is a reward: it stays locked until that level and then comes free, so it has no price */
   { id: 'fin:copper', src: { rep: 5 } }, { id: 'fin:showa', src: { rep: 9 } }, { id: 'fin:sakura', src: { coins: 1.2e6 } }, { id: 'fin:beju', src: { rep: 14 } },
@@ -1162,7 +1165,7 @@ function rHow(id) {   /* how a locked item is earned, for the shop card */
   if (!it) out.push(rSplit(id)[0] === 'noren' ? 'Season track tier 12' : 'Season track tier 22');
   return out.join(' or ');
 }
-const rCount = () => Object.keys(S.rcos.own).filter((k) => S.rcos.own[k]).length;
+const rCount = () => Object.keys(S.rcos.own).filter((k) => S.rcos.own[k] && !k.startsWith('prop:ev')).length;
 const shopCharm = () => Math.min(0.2, rCount() * 0.01);
 function rCheck() {   /* grants whatever reputation, buyer gifts and perfect cracks have earned; returns the new names */
   const lv = repLevel(), got = [];
@@ -1214,7 +1217,7 @@ function roastShopPanel() {
   let h = '<h2>Roastery</h2><div class="season"><b>Shop charm +' + pct + '%</b><span>Customers pay 1% more for bags for every roastery cosmetic you own, up to +20%. You own ' + own + '.</span></div>';
   h += '<p class="note">' + icon('i_coin') + ' ' + fmt(S.coins) + ' coins · ' + icon('i_crane') + ' ' + S.cranes + ' cranes. Earn them free from reputation, buyers and perfect cracks, or buy them here.</p>';
   RKIND.forEach(([k, title]) => {
-    const ids = (RDEF[k] ? [k + ':' + RDEF[k]] : []).concat(RCOS.filter((x) => x.id.startsWith(k + ':')).map((x) => x.id), Object.keys(S.rcos.own).filter((x) => x.startsWith(k + ':s_')));
+    const ids = (RDEF[k] ? [k + ':' + RDEF[k]] : []).concat(RCOS.filter((x) => x.id.startsWith(k + ':')).map((x) => x.id), Object.keys(S.rcos.own).filter((x) => x.startsWith(k + ':s_') || x.startsWith(k + ':ev')));
     const toggle = k === 'prop' || k === 'trim';
     h += '<h3>' + title + '</h3>' + ownStrip(ids.filter(rOwn).map((id) => [rPic(id, 16), rName(id), 'ruse:' + id, toggle ? (S.rcos.hide[id] ? 'off' : 'on') : S.rcos.on[k] === rSplit(id)[1] ? 'on' : 'no']), toggle ? 'Tap to show or hide.' : '') + '<div class="grid2">' + ids.filter((id) => !rOwn(id)).map((id) => {
       const it = rItem(id), btnH = it && it.src.rep ? btn('Locked', 'reputation ' + it.src.rep, 'noop', false) : it && it.src.coins ? btn('Buy', fmt(it.src.coins) + ' coins', 'rbuy:' + id, S.coins >= it.src.coins) : it && it.src.cranes ? btn('Buy', it.src.cranes + ' cranes', 'rbuy:' + id, S.cranes >= it.src.cranes) : '';
@@ -1619,7 +1622,7 @@ function fresh() {
     methods: { washed: true, natural: true }, vars: { caturra: true }, staff: { foreman: false, agent: false, rule: 'best' }, decor: {}, contracts: [], nextContract: 0, hat: 'straw', hats: { straw: true }, stamps: {},
     cherries: {}, lots: [], boosts: {}, minutes: 7 * 60 + 30, minutesTotal: 0, day: 1, taps: 0, year: 1, bonus: 0,
     tasks: null, weekly: { mine: 0, team: 1800, target: 4000, start: 1, claimed: false }, samples: [], stats: { picked: 0, sold: 0, lotsSold: 0 },
-    farms: {}, intro: 0, seasonPick: 'auto', speed: 1, sfx: true, music: true, musicVol: 0.45, guide: 0, guideN: 0, guideV: GUIDE_V, tabs: { upgrades: false, unlock: false, orders: false, ranks: false, shop: false }, newTab: null, checkin: { last: '', streak: 0, freezes: 1 }, season: newSeason(), sitems: { bg: {}, charm: {}, title: {} }, firstSeason: seasonKey(), roastery: { rep: 0, beans: {}, roasters: [], bags: [] }, estate: { st: {}, cellar: [] }, rcos: { own: {}, on: { fin: 'classic', room: 'brick', noren: 'indigo', label: 'house', apron: 'plain' }, hide: {}, sold: {}, cracks: 0 }, badges: [], event: null, prestige: 0, name: 'You', nameOk: '', look: { crest: 0, skin: 0, bg: 'none', char: 'none', hat: '', charm: '', title: '' }, skins: { 0: true }, chars: {}, bskins: {}, skinPicks: 0, dormant: {}, last: Date.now()
+    farms: {}, intro: 0, seasonPick: 'auto', speed: 1, sfx: true, music: true, musicVol: 0.45, guide: 0, guideN: 0, guideV: GUIDE_V, tabs: { upgrades: false, unlock: false, orders: false, ranks: false, shop: false }, newTab: null, checkin: { last: '', streak: 0, freezes: 1 }, season: newSeason(), sitems: { bg: {}, charm: {}, title: {} }, firstSeason: seasonKey(), roastery: { rep: 0, beans: {}, roasters: [], bags: [] }, estate: { st: {}, cellar: [] }, rcos: { own: {}, on: { fin: 'classic', room: 'brick', noren: 'indigo', label: 'house', apron: 'plain' }, hide: {}, sold: {}, cracks: 0 }, badges: [], event: null, rev: { log: {}, streak: 0, best: 0, total: 0, since: 0, cur: null, boost: 0, show: {} }, prestige: 0, name: 'You', nameOk: '', look: { crest: 0, skin: 0, bg: 'none', char: 'none', hat: '', charm: '', title: '' }, skins: { 0: true }, chars: {}, bskins: {}, skinPicks: 0, dormant: {}, last: Date.now()
   };
   LOCS.forEach((l) => { st.farms[l] = newFarm(l); });
   return st;
@@ -1635,7 +1638,7 @@ function migrate() {   /* fields added after a save was made; also run on a rese
     S.skins = {}; for (let i = 0; i <= tierOf(S.prestige || 0); i++) S.skins[i] = true;
     S.look = { crest: tierOf(S.look.plate || 0), skin: S.look.skin || 0, bg: 'none' };
   }
-  ['staff', 'decor', 'contracts', 'nextContract', 'sfx', 'music', 'musicVol', 'name', 'look', 'skins', 'skinPicks', 'chars', 'bskins', 'dormant', 'guide', 'guideN', 'tabs', 'newTab', 'checkin', 'season', 'sitems', 'roastery', 'badges', 'event'].forEach((k) => { if (S[k] === undefined) S[k] = JSON.parse(JSON.stringify(d[k])); });
+  ['staff', 'decor', 'contracts', 'nextContract', 'sfx', 'music', 'musicVol', 'name', 'look', 'skins', 'skinPicks', 'chars', 'bskins', 'dormant', 'guide', 'guideN', 'tabs', 'newTab', 'checkin', 'season', 'sitems', 'roastery', 'badges', 'event', 'rev'].forEach((k) => { if (S[k] === undefined) S[k] = JSON.parse(JSON.stringify(d[k])); });
   const ns = newSeason(); Object.keys(ns).forEach((k) => { if (S.season[k] === undefined) S.season[k] = ns[k]; });   /* seasons gained stars and a track */
   if (S.guideV !== GUIDE_V) { S.guide = S.guide >= 9 ? GUIDE.length : Math.min(S.guide || 0, 5); S.guideN = 0; S.guideV = GUIDE_V; }   /* the 14-step guide became 9 steps in three chapters */   /* the old six-step guide maps onto the new one */
   if (veteran) { S.guide = GUIDE.length; S.tabs = { upgrades: true, unlock: true, orders: true, ranks: true, shop: true }; }   /* existing players skip the guide */
@@ -1824,7 +1827,7 @@ function tickFarm(f, d, visible) {
   f.workers.forEach((w) => {
     if (w.state === 'seek') {
       let best = null, bd = 1e9;
-      if (w.carry < carry && !full) f.shrubs.forEach((s) => { if (s.p >= 1 && !s.claim) { const dd = Math.abs(s.x + 9 - w.x) + Math.abs(s.y + 23 - w.y); if (dd < bd) { bd = dd; best = s; } } });
+      if (w.carry < carry && !full) f.shrubs.forEach((s, si) => { if (s.p >= 1 && !s.claim && !revBlocked(f, si)) { const dd = Math.abs(s.x + 9 - w.x) + Math.abs(s.y + 23 - w.y); if (dd < bd) { bd = dd; best = s; } } });
       if (best) { best.claim = w; w.target = best; w.path = route(w, { x: best.x + 9, y: best.y + 23 }); w.state = 'walk'; w.next = 'pick'; }
       else if (w.carry) { w.path = route(w, DROP); w.state = 'walk'; w.next = 'deposit'; }
       else { w.idle -= d; if (w.idle <= 0) { w.idle = 2 + rnd() * 3; w.path = route(w, { x: 140 + rnd() * 22, y: 82 + rnd() * 12 }); w.state = 'walk'; w.next = 'seek'; } }
@@ -1890,7 +1893,7 @@ function tick(dt) {
   S.weekly.team = 1500 + 2200 * Math.min(1, (Date.now() / 864e5 - S.weekly.start) / 7);
   if (S.sacks) sackPour();
   S.heartT += d; if (S.heartT >= 2) { S.heartT = 0; if (S.hearts < maxHearts()) S.hearts += 1; }
-  S.lots.forEach((l) => { if (l.left > 0) { l.left = Math.max(0, l.left - d * dryMult()); if (!l.left) guideStep('dry'); if (!l.left && !S.staff.foreman) SFX.play('ding'); } });
+  S.lots.forEach((l) => { if (l.left > 0 && !revNoDry(l)) { l.left = Math.max(0, l.left - d * dryMult()); if (!l.left) guideStep('dry'); if (!l.left && !S.staff.foreman) SFX.play('ding'); } });
   LOCS.forEach((l) => { const f = S.farms[l]; if (f.unlocked && !S.dormant[l]) tickFarm(f, d, l === S.loc && scene() === 'farm'); });
   tickMe(d); tickInside(dt);
   rateC = rateC * Math.pow(0.99, d) + earnedC * 60 * (1 - Math.pow(0.99, d)) / Math.max(d, 1e-3); rateX = rateX * Math.pow(0.99, d) + earnedX * 60 * (1 - Math.pow(0.99, d)) / Math.max(d, 1e-3);   /* in game time, so the Test tab's speed doesn't inflate income-sized rewards */ earnedC = 0; earnedX = 0;
@@ -1917,11 +1920,287 @@ function tick(dt) {
   bursts.forEach((b) => { b.t += dt; b.x += b.vx * dt; b.y += b.vy * dt; b.vy += 120 * dt; });
   for (let i = bursts.length - 1; i >= 0; i--) if (bursts[i].t > 0.6) bursts.splice(i, 1);
 }
+/* ---------- random events: now and then trouble turns up while you play: wild pigs in a field, hornets nesting in the mill,
+   a Karen at the roastery counter. Each costs a little income until you stop it with a few taps, and pays only in cosmetics:
+   the fifth stop of an event brings its keepsake, and its rare variant (1 in 20) a rare one. Events wait while you're away,
+   never start during the lessons or over a window, and give up after 10 minutes of play. Their sounds are in event-sfx.js */
+const REV_FIRST = 180, REV_GAP = 900, REV_ROLL = 60, REV_CHANCE = 0.1, REV_MAX = 600, REV_RARE = 1 / 20, REV_COS = 5, REV_SHARE = 0.12;   /* seconds of play: none in a session's first 3 minutes, then 15 or more between events (about 25 on average) */
+const REV_BEDS = [[10, 110, 80, 42], [104, 110, 80, 42], [10, 158, 80, 42], [104, 158, 80, 42]];   /* each field's patch of ground, in shrub order */
+const PIG_OFF = [[6, 26], [32, 10], [56, 28], [60, 2], [8, 4], [34, 30]];   /* where the pigs root about in a field */
+const KAREN_Q = [   /* her complaint, the reply that settles her, and two that don't */
+  ['This was meant to be LIGHT!', 'Swap it for a light roast', 'That is a light roast', 'Here\'s 10% off'],
+  ['This bag is STALE!', 'Here\'s a fresh bag, on us', 'It was roasted last week', 'Coffee keeps for months'],
+  ['I waited FOREVER!', 'Sorry! Yours is next', 'We\'re very busy today', 'It\'s only been a minute'],
+  ['It tastes BURNT!', 'Try our medium roast instead', 'That\'s how dark tastes', 'Add some milk to it']
+], KAREN_HARD = [   /* from prestige 3 */
+  ['Too sour! And too bitter!', 'Let me pick a balanced one', 'It can\'t be both', 'Try the other bag then'],
+  ['The label said FRUITY!', 'Try our natural process', 'It is fruity', 'Labels can be wrong']
+];
+const karenQ = (E) => KAREN_Q.concat(KAREN_HARD)[E.q] || KAREN_Q[0];
+/* keepsakes: where each one goes and how it shows or hides */
+const REV_COSM = {
+  vane: { name: 'Pig weathervane', pic: 'deco_ev_vane', where: 'on the barn roof of every farm', own: () => S.decor.ev_vane !== undefined, give() { S.decor.ev_vane = true; }, on: () => !!S.decor.ev_vane, flip() { S.decor.ev_vane = !S.decor.ev_vane; } },
+  vanegold: { name: 'Gold pig weathervane', pic: 'deco_ev_vanegold', where: 'on the barn roof of every farm, in place of the iron one', own: () => S.decor.ev_vanegold !== undefined, give() { S.decor.ev_vanegold = true; }, on: () => !!S.decor.ev_vanegold, flip() { S.decor.ev_vanegold = !S.decor.ev_vanegold; } },
+  beehat: { name: 'Beekeeper hats', pic: 'ev_beehat', where: 'for your pickers (Shop › Farmer)', own: () => !!S.hats.ev_bee, give() { S.hats.ev_bee = true; S.rev.hatWas = S.hat; S.hat = 'ev_bee'; }, on: () => S.hat === 'ev_bee', flip() { const was = S.rev.hatWas; if (S.hat !== 'ev_bee') { S.rev.hatWas = S.hat; S.hat = 'ev_bee'; } else S.hat = was && was !== 'ev_bee' && S.hats[was] ? was : 'straw'; } },
+  hivelamp: { name: 'Honeycomb lantern', pic: 'ev_hivelamp', where: 'on the mill patio', own: () => S.rev.show.hivelamp !== undefined, give() { S.rev.show.hivelamp = true; }, on: () => !!S.rev.show.hivelamp, flip() { S.rev.show.hivelamp = !S.rev.show.hivelamp; } },
+  bell: { name: 'Manager\'s bell', pic: 'rp_evbell', where: 'on the roastery counter', own: () => !!S.rcos.own['prop:evbell'], give() { S.rcos.own['prop:evbell'] = true; }, on: () => !S.rcos.hide['prop:evbell'], flip() { S.rcos.hide['prop:evbell'] = !S.rcos.hide['prop:evbell']; } },
+  review: { name: 'Five-star review', pic: 'rp_evreview', where: 'framed on the roastery wall', own: () => !!S.rcos.own['prop:evreview'], give() { S.rcos.own['prop:evreview'] = true; }, on: () => !S.rcos.hide['prop:evreview'], flip() { S.rcos.hide['prop:evreview'] = !S.rcos.hide['prop:evreview']; } }
+};
+let revSess = 0, revRollT = REV_ROLL, revH = null, revHere = null, revShown = '', catching = false, revNoDryLots = new Set(), revChips = [];
+const revGone = [];   /* what leaves the map once an event ends: bolting pigs, scattering hornets, Karen on her way out */
+const revOn = (id) => { const E = (S.rev || {}).cur; return !!E && E.id === id && !catching; };   /* in force: its harm applies, except while catching up after time away */
+const revNoDry = (l) => !catching && revNoDryLots.has(l);
+const revFarms = () => LOCS.filter((l) => l !== 'osaka' && S.farms[l].unlocked && !S.dormant[l] && S.farms[l].shrubs.length >= 8);
+const revBlocked = (f, i) => revOn('pigs') && S.rev.cur.loc === f.loc && Math.floor(i / 8) === S.rev.cur.bed;   /* pickers leave the raided field alone */
+const revBagMult = () => (revOn('karen') ? (S.rev.cur.loud > 0 ? 0.5 : 0.65) : 1);   /* bags sell for less while she's at the counter, and half while she's shouting */
+const revInBox = (lx, ly, b, pad) => lx >= b[0] - pad && lx < b[0] + b[2] + pad && ly >= b[1] - pad && ly < b[1] + b[3] + pad;
+function revPut(name, x, y, flip) { const s = sprite(name), X = Math.round(x), Y = Math.round(y); if (flip) { fx.save(); fx.translate(X + s.width, Y); fx.scale(-1, 1); fx.drawImage(s, 0, 0); fx.restore(); } else fx.drawImage(s, X, Y); }
+function revRound(x, y, w, h, r, col) { ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); ctx.fill(); }
+function revTag(x, y, text, o) {   /* a label centred on a map point, drawn sharp at full size; returns its box in map pixels, for taps */
+  o = o || {}; const size = o.size || 12; ctx.font = '600 ' + size + 'px "Pixelify Sans", monospace';
+  const w = Math.ceil(ctx.measureText(text).width) + 12, h = size + 8, X = Math.round(Math.min(W * 2 - w / 2 - 4, Math.max(w / 2 + 4, x * 2)) - w / 2), Y = Math.round(y * 2 - h / 2);
+  revRound(X - 2, Y - 2, w + 4, h + 4, 6, o.edge || '#1E140C'); revRound(X, Y, w, h, 5, o.bg || '#3E2A1C');
+  ctx.fillStyle = o.fg || '#FFB4A0'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, X + w / 2, Y + h / 2 + 1); ctx.textBaseline = 'alphabetic';
+  return [(X - 2) / 2, (Y - 2) / 2, (w + 4) / 2, (h + 4) / 2];
+}
+const revCost = (E, x, y) => { if (E.cost >= 1) revTag(x, y, '−' + fmt(E.cost) + ' coins'); };   /* roughly what the trouble has cost so far */
+const REVS = {
+  pigs: { name: 'Pig raid', short: 'Pig raid', map: 'farm', cos: 'vane', rareCos: 'vanegold', ok: () => revFarms().length > 0,
+    start(E) {
+      const ls = revFarms(); E.loc = ls[Math.floor(Math.random() * ls.length)];
+      const f = S.farms[E.loc]; E.bed = Math.floor(Math.random() * Math.min(4, Math.floor(f.shrubs.length / 8))); E.n = S.prestige < 2 ? 3 : Math.min(6, S.prestige + 2);
+      const b = REV_BEDS[E.bed]; E.pigs = PIG_OFF.slice(0, E.n).map(([x, y]) => ({ x: b[0] + x, y: b[1] + y, ph: Math.random() * 6 }));
+      if (E.rare) E.pigs[Math.floor(Math.random() * E.n)].gold = true;   /* a golden truffle pig among them */
+      f.shrubs.forEach((s, i) => { if (Math.floor(i / 8) === E.bed && s.claim) { const w = s.claim; w.target = null; w.state = 'seek'; w.path = []; s.claim = null; } });
+    },
+    valid: (E) => S.farms[E.loc].unlocked && !S.dormant[E.loc],
+    here: (E) => scene() === 'farm' && S.loc === E.loc,
+    box: (E) => REV_BEDS[E.bed],
+    point: (E) => (E.pigs.length ? [E.pigs[0].x + 8, E.pigs[0].y] : null),   /* the guide arrow: over a pig */
+    warn: (E) => (E.rare ? 'A golden truffle pig is' : 'Wild pigs are') + ' rooting up a field at ' + fname(E.loc) + '!',
+    how: (E) => 'Tap each pig ' + (S.prestige >= 3 ? 'twice ' : '') + 'to shoo it off (' + (E.n - E.pigs.length) + '/' + E.n + ')',   /* from prestige 3 they dodge the first tap */
+    pos: (E, p) => ({ x: p.x + Math.sin(E.t * 1.1 + p.ph) * 6, flip: Math.cos(E.t * 1.1 + p.ph) > 0 }),
+    draw(E, time) {
+      const b = REV_BEDS[E.bed]; fx.fillStyle = 'rgba(122,74,40,0.16)'; fx.fillRect(b[0], b[1], b[2], b[3]);
+      E.pigs.forEach((p) => fx.drawImage(sprite('ev_dirt'), p.x - 2, p.y + 7));
+      E.pigs.forEach((p, i) => {
+        const q = REVS.pigs.pos(E, p), hop = p.hop !== undefined && E.t - p.hop < 0.4 ? Math.round(Math.sin((E.t - p.hop) / 0.4 * Math.PI) * 5) : 0;
+        if (p.gold) fx.drawImage(sprite('ev_truffle'), p.x - 6, p.y + 7);
+        revPut(p.gold ? 'ev_pig_gold' : 'ev_pig_' + (Math.floor(time * 6 + i) % 2), q.x, p.y - hop, q.flip);
+        if (p.gold) { const k = Math.floor(time * 3 + i) % 3; fx.drawImage(sprite('sparkle'), Math.round(q.x + [2, 11, 6][k]), p.y - 6 + [0, 2, -2][k]); }
+      });
+    },
+    top(E) { const b = REV_BEDS[E.bed]; revCost(E, b[0] + 40, b[1] - 5); revTag(b[0] + 40, b[1] + b[3] + 5, (E.n - E.pigs.length) + ' of ' + E.n + ' shooed', { fg: '#F2C04A', size: 11 }); },
+    click(E, lx, ly) {
+      if (!REVS.pigs.here(E)) return false;
+      let best = null, bd = 1e9;
+      E.pigs.forEach((p) => { const q = REVS.pigs.pos(E, p); if (revInBox(lx, ly, [q.x, p.y, 16, 12], 4)) { const dd = Math.hypot(lx - q.x - 8, ly - p.y - 6); if (dd < bd) { bd = dd; best = p; } } });
+      const b = REV_BEDS[E.bed];
+      if (best) {
+        const q = REVS.pigs.pos(E, best);
+        if (S.prestige >= 3 && !best.hit) {   /* from prestige 3 a pig hops away from the first tap */
+          best.hit = 1; best.hop = E.t; best.x = Math.max(b[0] + 6, Math.min(b[0] + b[2] - 22, best.x + (best.x - b[0] < 34 ? 24 : -24)));
+          revSfx('tap'); floats.push({ x: q.x + 8, y: best.y - 4, text: 'dodged!', t: 0 }); return true;
+        }
+        E.pigs.splice(E.pigs.indexOf(best), 1);
+        revGone.push({ map: 'farm', loc: E.loc, spr: best.gold ? 'ev_pig_gold' : 'ev_pig_', anim: !best.gold, x: q.x, y: best.y, vx: -75, vy: 0, t: 0, life: 3.5 });
+        revSfx(best.gold ? 'rare' : 'tap'); floats.push({ x: q.x + 8, y: best.y - 4, text: best.gold ? 'truffle pig!' : 'shoo!', t: 0 });
+        if (!E.pigs.length) revEnd(true);
+        return true;
+      }
+      if (revInBox(lx, ly, b, 0)) { SFX.play('nope'); floats.push({ x: lx, y: ly - 4, text: 'shoo the pigs first', t: 0 }); return true; }
+      return false;
+    },
+    leave(E) { E.pigs.forEach((p) => revGone.push({ map: 'farm', loc: E.loc, spr: p.gold ? 'ev_pig_gold' : 'ev_pig_', anim: !p.gold, x: p.x, y: p.y, vx: -30, vy: 0, t: 0, life: 7 })); },
+    done: 'pigs gone!', gone: (E) => 'The pigs wandered off from ' + fname(E.loc) + ' on their own'
+  },
+  hornets: { name: 'Hornet attack', short: 'Hornets', map: 'mill', cos: 'beehat', rareCos: 'hivelamp', ok: () => racks() > 0,
+    start(E) {
+      const n = Math.min(RACK_SHOWN, racks()), all = Array.from({ length: n }, (_, i) => i), mid = all.filter((i) => rackAt(i).y >= 122 && rackAt(i).y <= 220), k = mid.length ? mid[Math.floor(Math.random() * mid.length)] : n - 1, r = rackAt(k);
+      const far = (i) => Math.hypot(rackAt(i).x - r.x, (rackAt(i).y - r.y) * 2);   /* the racks beside it first, then the rows above and below */
+      E.nest = [r.x + 14, r.y + 12]; E.need = S.prestige >= 3 ? 8 : 5; E.hits = 0; E.swarm = all.sort((a, b) => far(a) - far(b)).slice(0, Math.max(1, Math.round(racks() / 5)));
+    },
+    valid: () => true, here: () => scene() === 'mill',
+    box: (E) => [E.nest[0] - 2, E.nest[1] - 2, 16, E.rare ? 21 : 18],
+    warn: (E) => (E.rare ? 'Bees are building a golden hive in the mill!' : 'Hornets are nesting in the mill!') + ' ' + (E.swarm.length > 1 ? E.swarm.length + ' racks have' : 'A rack has') + ' stopped drying',
+    how: (E) => 'Tap the nest to smoke them out (' + E.hits + '/' + E.need + ')',
+    draw(E, time) {
+      E.swarm.forEach((i) => { const r = rackAt(i); fx.fillStyle = E.rare ? 'rgba(255,220,120,0.22)' : 'rgba(255,196,60,0.30)'; fx.fillRect(r.x, r.y, 40, 11); });
+      const [nx, ny] = E.nest; fx.drawImage(sprite(E.rare ? 'ev_hive_gold' : 'ev_nest'), nx, ny);
+      if (E.rare) { const k = Math.floor(time * 3) % 3; fx.drawImage(sprite('sparkle'), nx - 3 + k * 5, ny - 4 + (k % 2) * 6); }
+      E.swarm.forEach((ri, r) => { const R = rackAt(ri); for (let i = 0; i < 6; i++) { const a = time * (2.6 + i * 0.13) + i * 2.1 + r; fx.drawImage(sprite((E.rare ? 'ev_bee_' : 'ev_hornet_') + (Math.floor(time * (E.rare ? 8 : 12) + i) % 2)), Math.round(R.x + 18 + Math.sin(a) * 17), Math.round(R.y + 3 + Math.cos(a * 1.3) * 6)); } });
+      const bx = Math.round(nx + 6 - E.need * 2.5), by = ny + (E.rare ? 19 : 16);
+      for (let s = 0; s < E.need; s++) { fx.fillStyle = s < E.hits ? '#F2C04A' : '#3E2A1C'; fx.fillRect(bx + s * 5, by, 4, 3); }
+    },
+    top(E) { revCost(E, E.nest[0] + 6, E.nest[1] + (E.rare ? 29 : 26)); },
+    click(E, lx, ly) {
+      if (scene() !== 'mill') return false;
+      if (revInBox(lx, ly, REVS.hornets.box(E), 3)) {
+        E.hits += 1; revSfx(E.hits >= E.need && E.rare ? 'rare' : 'smoke', E.hits);
+        revGone.push({ map: 'mill', spr: 'ev_smoke', x: E.nest[0] - 1, y: E.nest[1] - 2, vx: -3, vy: -12, t: 0, life: 1.2, fade: true });
+        if (E.hits >= E.need) revEnd(true);
+        return true;
+      }
+      if (E.swarm.some((i) => { const r = rackAt(i); return revInBox(lx, ly, [r.x, r.y - 4, 40, 22], 0); })) { SFX.play('nope'); floats.push({ x: lx, y: ly - 4, text: 'smoke the nest first', t: 0 }); return true; }
+      return false;
+    },
+    leave(E) { E.swarm.forEach((ri) => { const r = rackAt(ri); for (let i = 0; i < 4; i++) { const a = Math.random() * 6.28; revGone.push({ map: 'mill', spr: E.rare ? 'ev_bee_' : 'ev_hornet_', anim: true, x: r.x + 20, y: r.y + 4, vx: Math.cos(a) * 60, vy: Math.sin(a) * 40 - 20, t: 0, life: 2.5 }); } }); },
+    done: 'smoked out!', gone: () => 'The hornets moved on from the mill by themselves'
+  },
+  karen: { name: 'Karen at the counter', short: 'Karen', map: 'roast', cos: 'bell', rareCos: 'review', ok: () => roasteryOpen(),
+    start(E) {
+      E.q = Math.floor(Math.random() * (KAREN_Q.length + (S.prestige >= 3 ? KAREN_HARD.length : 0))); E.order = [1, 2, 3].sort(() => Math.random() - 0.5); E.open = false; E.loud = 0;
+      IN.roast.guests.forEach((g) => { g.seat = undefined; g.state = 'out'; g.path = [{ x: DOOR.x, y: g.y }, { x: DOOR.x, y: DOOR.y }]; });   /* the other customers make for the door */
+    },
+    valid: () => roasteryOpen(), here: () => scene() === 'roast',
+    box: (E) => (E.open ? [92, 154, 88, 76] : E.rare ? [120, 155, 20, 25] : [122, 156, 16, 24]),   /* with her replies, once they're up */
+    face: (E) => (E.rare ? [120, 155, 20, 25] : [122, 156, 16, 24]),
+    warn: (E) => (E.rare ? 'A Karen in her Sunday best (and her dog) is' : 'A Karen is') + ' complaining at the roastery counter! Bags sell for less until she\'s happy',
+    how: (E) => (E.open ? (E.loud > 0 ? 'She\'s shouting! Pick the reply that settles her' : 'Pick the reply that settles her') : 'Tap her to hear her out'),
+    tick(E, d) { if (E.loud > 0) E.loud = Math.max(0, E.loud - d); },
+    draw(E, time) { const bob = Math.floor(time * 3) % 2 ? 0 : -1, sh = E.loud > 0 ? Math.round(Math.sin(time * 40)) : 0; if (E.rare) fx.drawImage(sprite('ev_karen_hat'), 120 + sh, 155 + bob); else fx.drawImage(sprite('ev_karen'), 122 + sh, 156 + bob); },
+    top(E, time) {
+      const q = karenQ(E), msg = E.loud > 0 ? q[0].toUpperCase() : q[0];
+      ctx.font = '600 13px "Pixelify Sans", monospace'; const w = ctx.measureText(msg).width + 16, X = Math.round(Math.max(6, 148 - w / 2)), Y = 280;   /* her speech bubble, its tail on her */
+      revRound(X - 2, Y - 2, w + 4, 30, 7, '#3E2A1C'); revRound(X, Y, w, 26, 6, E.loud > 0 ? '#FFE4DC' : '#FFFFFF');
+      ctx.fillStyle = '#3E2A1C'; ctx.beginPath(); ctx.moveTo(X + w - 22, Y + 26); ctx.lineTo(X + w - 6, Y + 26); ctx.lineTo(252, 324); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#C8402E'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(msg, X + w / 2, Y + 14); ctx.textBaseline = 'alphabetic';
+      if (E.rare && Math.floor(time * 2) % 4 === 1) revTag(150, 166, 'yip!', { fg: '#FFF4E4', size: 9 });
+      revChips = E.open ? E.order.map((k, i) => ({ k, box: revTag(136, 194 + i * 14, q[k], { bg: '#F4E6C6', fg: '#3E2A1C', edge: '#6E4624', size: 11 }) })) : [];
+      revCost(E, 136, E.open ? 238 : 194);
+    },
+    click(E, lx, ly) {
+      if (scene() !== 'roast') return false;
+      const c = revChips.find((x) => revInBox(lx, ly, x.box, 1));
+      if (c) {
+        if (c.k === 1) { revSfx('right'); revEnd(true); return true; }
+        E.loud = 10; E.order = [1, 2, 3].sort(() => Math.random() - 0.5); revSfx('wrong'); floats.push({ x: 128, y: 150, text: 'wrong answer!', t: 0 }); return true;
+      }
+      if (revInBox(lx, ly, REVS.karen.face(E), 2)) { if (!E.open && E.rare) revSfx('rare'); else SFX.play('page'); E.open = true; return true; }
+      return false;
+    },
+    leave(E) { revGone.push({ map: 'roast', spr: E.rare ? 'ev_karen_hat' : 'ev_karen', x: E.rare ? 120 : 122, y: E.rare ? 155 : 156, vx: -5, vy: 36, t: 0, life: 6 }); },
+    done: 'all smiles!', gone: () => 'Karen gave up and stormed out of the roastery'
+  }
+};
+function revSfx(name, n) { if (revH) revH.hit(name, n); }
+function revStart(id, opt) {   /* a random event now; opt.rare forces the rare variant or the usual one (the Test tab) */
+  const R = S.rev; if (R.cur) return false;
+  if (!id) { const ids = Object.keys(REVS).filter((k) => REVS[k].ok()); id = ids[Math.floor(Math.random() * ids.length)]; }
+  const D = REVS[id]; if (!D || !D.ok()) return false;
+  const rare = opt && opt.rare !== undefined ? !!opt.rare : Math.random() < REV_RARE * (R.boost > Date.now() ? 2 : 1);
+  const E = { id, rare, t: 0, cost: 0, at: Date.now() }; D.start(E); R.cur = E; R.seen = true;
+  revHere = null; revSyncSound();
+  return true;
+}
+function revEnd(stopped) {   /* stopped by you, or let go: it gave up after 10 minutes */
+  const R = S.rev, E = R.cur; if (!E) return;
+  R.cur = null; R.since = 0; revRollT = REV_ROLL; revChips = []; revNoDryLots = new Set();
+  if (revH) { if (stopped) revH.clear(); else revH.leave(); revH = null; } revHere = null;
+  const D = REVS[E.id];
+  if (stopped) revReward(E); else { if (D.leave) D.leave(E); R.streak = 0; toast(D.gone(E)); }
+  if (stopped && D.leave && E.id !== 'pigs') D.leave(E);
+}
+function revGive(c) { const k = REV_COSM[c]; if (k.own()) return ''; k.give(); return k.name; }
+function revReward(E) {   /* only cosmetics: a keepsake on the fifth stop, a rare one the first time you stop a rare variant, a flame for a streak */
+  const R = S.rev, D = REVS[E.id], L = R.log[E.id] || (R.log[E.id] = { n: 0, rare: 0 }), first = !R.total, got = [];
+  L.n += E.rare && L.rare ? 2 : 1; if (E.rare) L.rare += 1;   /* a rare one counts double after the first */
+  R.total += 1; R.streak += 1; R.best = Math.max(R.best, R.streak);
+  if (E.rare) got.push(revGive(D.rareCos));
+  if (L.n >= REV_COS) got.push(revGive(D.cos));
+  if (R.streak === 10) R.boost = Date.now() + 3600e3;
+  if (R.streak === 25 && !S.sitems.title['ev:steady']) { S.sitems.title['ev:steady'] = true; got.push('the Steady hands title'); }
+  const b = D.box(E), x = b[0] + b[2] / 2, y = b[1] + 4, gifts = got.filter(Boolean);
+  floats.push({ x, y, text: D.done, t: 0 });
+  for (let i = 0; i < 18; i++) bursts.push({ x, y: y + 4, vx: (Math.random() - 0.5) * 80, vy: -30 - Math.random() * 50, t: 0, c: i % 2 ? '#F2C04A' : '#FFF4B0' });
+  if (gifts.length) { SFX.play('achieve'); toast(D.name + ' stopped! Yours now: ' + listAnd(gifts) + '. See Ranks › Records'); }
+  else if (first) toast(D.name + ' stopped. Stop it ' + REV_COS + ' times for a keepsake: Ranks › Records keeps count');
+  else if (R.streak === 5) toast('Five events stopped in a row: a flame by your name');
+  else if (R.streak === 10) toast('Ten in a row: rare events come twice as often for an hour');
+}
+function revTick(dt) {   /* real seconds of play, from the loop: an event's clock, or the wait for the next one */
+  const R = S.rev, E = R.cur; revSess += dt;
+  if (E) {
+    const D = REVS[E.id]; if (!D || !D.valid(E)) { R.cur = null; if (revH) { revH.stop(); revH = null; } return; }   /* its farm went to sleep at a prestige */
+    E.t += dt; E.cost += Math.max(0, rateC) / 60 * REV_SHARE * dt; if (D.tick) D.tick(E, dt);
+    if (E.t >= REV_MAX) revEnd(false);
+  } else {
+    R.since += dt;
+    if (revSess >= REV_FIRST && R.since >= REV_GAP && (revRollT -= dt) <= 0) {
+      revRollT = REV_ROLL;
+      if (S.guide >= GUIDE.length && !S.pwalk && $('modal').hidden && $('pcer').hidden && Math.random() < REV_CHANCE) revStart();
+    }
+  }
+  const hv = R.cur && R.cur.id === 'hornets' ? R.cur : null;   /* lots on the swarmed racks stop drying */
+  if (hv) { const slots = rackSlots(); revNoDryLots = new Set(hv.swarm.map((i) => slots[i]).filter(Boolean)); } else if (revNoDryLots.size) revNoDryLots = new Set();
+  for (let i = revGone.length - 1; i >= 0; i--) { const g = revGone[i]; g.t += dt; g.x += g.vx * dt; g.y += g.vy * dt; if (g.t > g.life || g.x < -30 || g.x > W + 30 || g.y > H + 30) revGone.splice(i, 1); }
+  revSyncSound();
+}
+function revIsHere() {   /* is the event on screen: its map showing, and not hidden under the sheet */
+  const E = S.rev.cur; if (!E || document.hidden || !REVS[E.id].here(E)) return false;
+  if (!sheetOpen) return true; if (sheetFull) return false;
+  const b = REVS[E.id].box(E), m = mapSpot(b[1] + b[3] / 2); return m.y < m.bot;
+}
+function revSyncSound() {   /* the event's loop plays until it ends, muffled when you're on another map or the sheet covers it */
+  const E = S.rev.cur;
+  if (!E) { if (revH) { revH.stop(); revH = null; } return; }
+  if (!revH) { if (typeof EventSFX === 'undefined' || SFX.state() !== 'running') return; revHere = revIsHere(); revH = EventSFX.start(E.id, { rare: E.rare, here: revHere }); return; }
+  const h = revIsHere(); if (h !== revHere) { revHere = h; revH.here(h); }
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) revHere = null; });   /* back from another app: loud again if it's on screen */
+function revDraw(sc, time) {   /* in map pixels, under the night tint */
+  const E = S.rev.cur;
+  if (E && REVS[E.id].here(E)) REVS[E.id].draw(E, time);
+  revGone.forEach((g) => { if (g.map !== sc || (g.loc && g.loc !== S.loc)) return; if (g.fade) fx.globalAlpha = Math.max(0, 1 - g.t / g.life); revPut(g.anim ? g.spr + (Math.floor(time * 10) % 2) : g.spr, g.x, g.y, false); fx.globalAlpha = 1; });
+}
+function revTop(sc, time) { const E = S.rev.cur; if (E && REVS[E.id].here(E)) REVS[E.id].top(E, time); else revChips = []; }   /* labels at full size, over the night tint */
+function revClick(lx, ly) { const E = S.rev.cur; return !!E && REVS[E.id].click(E, lx, ly); }
+function revGo() { const E = S.rev.cur; if (!E) return; const m = REVS[E.id].map; if (m === 'farm') S.loc = E.loc; setTab(m, true); revShown = ''; }   /* the guide bar's Go: to the event's map, the sheet put away */
+const revDot = (m) => { const E = (S.rev || {}).cur; return !!E && REVS[E.id].map === m && !revIsHere(); };
+const REV_HUD = '#hearts, #hudLevel, .hud-r .clock > *, #hudCoins, #hudCranes, #hudStore, #sfxBtn, #musicBtn, #gearBtn, #goldGo, #crackGo';
+function revCovered(b) {   /* is part of this map box under the HUD, or under the guide bar floating over the map? */
+  const r = cv.getBoundingClientRect(), k = r.width / W, L = r.left + b[0] * k, T = r.top + b[1] * k, Rt = L + b[2] * k, B = T + b[3] * k;
+  return [...document.querySelectorAll(REV_HUD)].concat(sheetOpen ? [] : [$('guide')]).some((e) => { if (e.hidden || !e.offsetParent) return false; const q = e.getBoundingClientRect(); return q.width > 0 && q.left < Rt && q.right > L && q.top < B && q.bottom > T; });
+}
+function revGuide(el) {   /* the guide bar during an event: what's wrong, how to stop it, and Go when it's on another map */
+  const E = S.rev.cur, D = REVS[E.id], here = revIsHere();
+  el.hidden = false; setHTML(el, '<span class="gstep">' + (E.rare ? 'Rare! ' : '') + D.short + '</span><span class="gtext">' + (here ? D.how(E) : D.warn(E)) + '</span>' + (here ? '' : '<button type="button" class="gskip" data-act="revgo">Go</button>'));
+  if (!here) { $('garrow').hidden = true; return; }
+  const b = D.box(E), key = E.at + scene() + (E.open ? 'o' : '');
+  if (mapScene !== scene()) return;   /* the map's own focus comes first, on the next frame */
+  if (revShown !== key && revCovered(b)) { const m = mapSpot(b[1] + b[3] / 2); scroller.scrollTo({ top: m.at + m.y - (m.top + m.bot) / 2, behavior: calm ? 'auto' : 'smooth' }); }   /* once per event: scroll it out from under the HUD */
+  revShown = key; placeArrow(cv, (D.point && D.point(E)) || [b[0] + b[2] / 2, b[1]]);
+}
+function revVane() {   /* the pig weathervane on the barn's ridge, or on its own post beside the baskets and crates before there's a barn; the gold one, when shown, stands in for the iron */
+  const k = S.decor.ev_vanegold ? 'ev_vanegold' : S.decor.ev_vane ? 'ev_vane' : ''; if (!k) return;
+  if (S.lv.storage < 4) { const x = STORE_AT.x + 2, y = STORE_AT.y + 2; fx.fillStyle = '#3E2A1C'; fx.fillRect(x + 7, y + 18, 2, 12); fx.fillRect(x + 5, y + 29, 6, 2); fx.drawImage(sprite('deco_' + k), x, y); return; }
+  const s = ART.sprites[storeSprite(S.lv.storage)], y = s.rows.findIndex((r) => /[^.]/.test(r)), r = s.rows[y], a = r.search(/[^.]/), b = r.length - 1 - r.split('').reverse().join('').search(/[^.]/);
+  fx.drawImage(sprite('deco_' + k), STORE_AT.x + Math.round((a + b) / 2) - 7, STORE_AT.y + y - 17);
+}
+function revLamp(time) {   /* the honeycomb lantern on its post on the mill patio, glowing after dark */
+  if (!S.rev.show.hivelamp) return;
+  fx.fillStyle = '#3E2A1C'; fx.fillRect(127, 63, 2, 21); fx.fillRect(125, 83, 6, 2); fx.drawImage(sprite('ev_hivelamp'), 124, 54);
+  const hr = S.minutes / 60; if (hr >= 18 || hr < 6) { const gl = fx.createRadialGradient(128, 59, 1, 128, 59, 14); gl.addColorStop(0, 'rgba(255,200,90,' + (0.5 + Math.sin(time * 3) * 0.06).toFixed(2) + ')'); gl.addColorStop(1, 'rgba(255,200,90,0)'); fx.fillStyle = gl; fx.fillRect(114, 45, 28, 28); }
+}
+function revFlame(x, y) {   /* the streak flame beside your name tag, five or more events stopped in a row */
+  const rows = ['..o..', '.oo..', '.ooo.', 'ooyoo', 'oyYyo', 'oyYYo', '.ooo.'], col = { o: '#E8602A', y: '#F2A040', Y: '#FFE27A' }, lick = Math.floor(Date.now() / 160) % 2;
+  rows.forEach((r, j) => { for (let i = 0; i < 5; i++) { const c = r[lick && j < 2 ? 4 - i : i]; if (c !== '.') { ctx.fillStyle = col[c]; ctx.fillRect(x + i * 2, y + j * 2, 2, 2); } } });
+}
+function revPage() {   /* Ranks › Records: each event, how often you've stopped it, and its keepsakes */
+  const R = S.rev; let h = '<h3>Random events</h3><p class="note">Trouble turns up now and then while you play. Stop it for keepsakes: one after ' + REV_COS + ' stops of the same event, and a rare one for stopping its rare variant. ' + fmt(R.total) + ' stopped · ' + R.streak + ' in a row now · best ' + R.best + (R.boost > Date.now() ? ' · rare events twice as likely for ' + Math.ceil((R.boost - Date.now()) / 60e3) + ' min' : '') + '.</p>';
+  Object.keys(REVS).filter((id) => REVS[id].ok() || (R.log[id] || {}).n).forEach((id) => {
+    const D = REVS[id], L = R.log[id] || { n: 0, rare: 0 }, c = REV_COSM[D.cos], rc = REV_COSM[D.rareCos];
+    const chips = [D.cos, D.rareCos].filter((k) => REV_COSM[k].own()).map((k) => [REV_COSM[k].pic, REV_COSM[k].name, 'revshow:' + k, REV_COSM[k].on() ? 'on' : 'off']);
+    h += row(img(c.pic, 30), D.name, 'Stopped ' + L.n + (L.n === 1 ? ' time' : ' times') + (c.own() ? '' : ' · ' + Math.min(L.n, REV_COS) + '/' + REV_COS + ' for the ' + c.name.toLowerCase()) + (rc.own() ? '' : ' · rare variant: the ' + rc.name.toLowerCase()), '') + doneStrip(chips, chips.length ? 'Tap to show or hide.' : '', '✓ Yours', 'own');
+  });
+  return h;
+}
 function nameTag(x, y) {   /* your name tag, in your tier's colour, with stars past the top tier */
   const stars = S.prestige >= TIERS.length ? ' ' + '★'.repeat(Math.min(5, S.prestige - TIERS.length + 1)) : '', label = S.name + stars;
   ctx.font = '700 12px "Pixelify Sans", monospace'; ctx.textAlign = 'center';
   const tx = Math.round(x) * 2, ty = (Math.round(y) - 27) * 2, w = ctx.measureText(label).width + 10;
   ctx.fillStyle = 'rgba(30,20,12,0.72)'; ctx.fillRect(tx - w / 2, ty - 11, w, 15); ctx.fillStyle = TAG_COLOR[tierOf(S.prestige)]; ctx.fillText(label, tx, ty);
+  if ((S.rev || {}).streak >= 5) revFlame(Math.round(tx - w / 2 - 13), ty - 12);
 }
 function drawFloats() {
   ctx.textAlign = 'center'; ctx.font = '700 19px "Zen Kaku Gothic New", system-ui, sans-serif';   /* floating +coins and +kg read best in the body font */
@@ -2000,6 +2279,7 @@ function draw(time) {
   if (!f.field) fx.drawImage(sprite('sign'), 134, 168);
   fx.drawImage(sprite(storeSprite(S.lv.storage)), STORE_AT.x, STORE_AT.y);
   if (S.lv.storage > 5) { fx.fillStyle = '#F2C04A'; for (let k = 0; k < S.lv.storage - 5; k++) fx.fillRect(STORE_AT.x + 4 + k * 4, STORE_AT.y + 1, 2, 2); }   /* a gold mark for each level past the barn */
+  revVane();
   if (stored() >= cap() && Math.floor(time * 2) % 2 === 0) fx.drawImage(sprite('bubble_full'), STORE_AT.x + 12, STORE_AT.y - 8);
   const gold = golden && golden.loc === S.loc && f.shrubs[golden.i];
   const things = f.shrubs.map((s) => ({ y: s.y + 22, s })).concat(f.workers.map((w) => ({ y: w.y, w })), [{ y: f.dog.y, dog: f.dog }], f.manager ? [{ y: f.manager.y, mg: f.manager }] : [], [{ y: me.y, me: true }]);
@@ -2043,6 +2323,7 @@ function draw(time) {
       }
     }
   });
+  revDraw('farm', time);
   aura.forEach((a) => { fx.globalAlpha = Math.max(0, 1 - a.t / 1.6); fx.fillStyle = { leaf: '#7ED0A8', petal: '#F8B8CC', ember: a.t < 0.5 ? '#FFD070' : '#E8602A', gold: (Math.floor(a.t * 8) % 2) ? '#FFF4B0' : '#F2C04A' }[a.kind]; fx.fillRect(Math.round(a.x), Math.round(a.y), a.kind === 'petal' ? 2 : 1, 1); });
   fx.globalAlpha = 1;
   bursts.forEach((p) => { fx.fillStyle = p.c; fx.fillRect(Math.round(p.x), Math.round(p.y), 1, 1); });
@@ -2079,6 +2360,7 @@ function draw(time) {
     ctx.fillStyle = '#9C6C3C'; ctx.fillRect(W - w / 2, 226, w, 2); ctx.fillStyle = '#FFF4DE'; ctx.fillText(tx, W, 233);
   }
   if (!f.field) { ctx.font = '700 13px "Pixelify Sans", monospace'; ctx.fillStyle = '#4A2E18'; ctx.fillText('EXPAND', 142 * 2, 173 * 2); }
+  revTop('farm', time);
   drawHint('farm', time);
   drawFloats();
 }
@@ -2198,7 +2480,7 @@ function tickRoast(d) {
     if (repLevel() >= 6) spots.push({ x: 146, y: 110 });
     h.path = [spots[Math.floor(rnd() * spots.length)]]; h.t = 2 + rnd() * 3; h.state = 'idle';
   } else { h.dir = h.y < 80 ? 'up' : h.x < 60 && h.y > 160 ? 'side' : 'up'; h.flip = true; h.work += d; }
-  if (RS.bags.length && (R.guestT -= d) <= 0) { R.guestT = 25 + rnd() * 25; roastGuest(Object.keys(RBUYERS)[Math.floor(rnd() * 3)], false); }   /* window shoppers */
+  if (RS.bags.length && !revOn('karen') && (R.guestT -= d) <= 0) { R.guestT = 25 + rnd() * 25; roastGuest(Object.keys(RBUYERS)[Math.floor(rnd() * 3)], false); }   /* window shoppers */
   for (let i = R.guests.length - 1; i >= 0; i--) {
     const g = R.guests[i];
     if (step(g, d, 22)) continue;
@@ -2244,6 +2526,7 @@ function drawGuy(o) {
 const moreRacks = () => racks() < RACK_SHOWN && !!S.tabs.upgrades && (S.lv.racks < RACK_COUNT || LOCS.some((l) => S.farms[l].unlocked && (S.farms[l].build.drybeds || 0) < buildMax()));   /* a rack can still be added */
 function drawMill(time) {
   const M = IN.mill, things = [], shown = Math.min(RACK_SHOWN, racks()), bySlot = rackSlots();
+  revLamp(time);
   if (moreRacks()) { const r = rackAt(racks()); fx.globalAlpha = 0.3; fx.drawImage(sprite('mill_rack'), r.x, r.y); fx.globalAlpha = 1; fx.fillStyle = '#F2C04A'; fx.fillRect(r.x + 18, r.y + 7, 5, 1); fx.fillRect(r.x + 20, r.y + 5, 1, 5); }   /* the next rack's spot */
   for (let i = 0; i < shown; i++) things.push({ y: rackAt(i).y + 18, rack: i });
   M.hands.concat(M.fore ? [M.fore] : [], [M.me], M.carry).forEach((o) => o && things.push({ y: o.y, o }));
@@ -2315,6 +2598,7 @@ function drawInside(sc, time) {
   fx.imageSmoothingEnabled = false;
   if (b.complete && b.naturalWidth) fx.drawImage(b, 0, 0); else { fx.fillStyle = '#C89A64'; fx.fillRect(0, 0, W, H); }
   if (sc === 'mill') drawMill(time); else drawRoast(time);
+  revDraw(sc, time);
   bursts.forEach((p) => { fx.fillStyle = p.c; fx.fillRect(Math.round(p.x), Math.round(p.y), 1, 1); });
   const hr = S.minutes / 60, k = sc === 'roast' ? 0.45 : 1;   /* the roastery is indoors, so night only dims it a little */
   const tint = hr >= 20 || hr < 5 ? 'rgba(30,40,110,' + (0.38 * k).toFixed(2) + ')' : hr >= 17.5 ? 'rgba(240,120,40,' + ((0.08 + (hr - 17.5) * 0.06) * k).toFixed(2) + ')' : hr < 7 ? 'rgba(240,150,170,' + (0.14 * k).toFixed(2) + ')' : null;
@@ -2336,6 +2620,7 @@ function drawInside(sc, time) {
     if (S.roastery.bags.length > SHELF_SHOWN) { const tx = '+' + (S.roastery.bags.length - SHELF_SHOWN); ctx.fillStyle = 'rgba(30,20,12,0.72)'; ctx.fillRect(214, 100, 36, 18); ctx.fillStyle = '#FFF4DE'; ctx.fillText(tx, 232, 113); }
     for (let i = roasterCount(); i < BAYS.length; i++) { const tx = 'REP ' + (i === 1 ? 4 : 15); ctx.fillStyle = 'rgba(62,42,28,0.55)'; ctx.fillText(tx, (BAYS[i] + 13) * 2, (BAY_Y + 16) * 2); }
   }
+  revTop(sc, time);
   drawHint(sc, time);
   drawFloats();
 }
@@ -2376,6 +2661,7 @@ function insideClick(lx, ly) {
 /* ---------- player actions ---------- */
 cv.addEventListener('click', (e) => {
   const r = cv.getBoundingClientRect(), lx = (e.clientX - r.left) / r.width * W, ly = (e.clientY - r.top) / r.height * H;
+  if (revClick(lx, ly)) return;   /* a random event's taps come first */
   if (scene() !== 'farm') { insideClick(lx, ly); return; }
   const f = S.farms[S.loc];
   const s = f.shrubs.find((x) => lx >= x.x && lx < x.x + 18 && ly >= x.y && ly < x.y + 22);
@@ -3036,6 +3322,7 @@ function guideBar() {
     const qs = tg.split(', '), i = qs.findIndex((q) => { const x = document.querySelector(q); return x && x.offsetParent !== null; }), t = i > -1 ? document.querySelector(qs[i]) : null;
     if (t) { t.classList.add('hint'); showTarget(t, 'pwalk' + S.pwalk + '.' + i); } placeArrow(t); return;
   }
+  if ((S.rev || {}).cur && S.guide >= GUIDE.length) { revGuide(el); return; }   /* a random event borrows the bar and arrow next */
   const nv = navCur();
   if (nv) {   /* a new unlock borrows the guide bar and arrow too */
     el.hidden = false; setHTML(el, '<span class="gstep">Unlocked</span><span class="gtext">' + nv.text + '</span><button type="button" class="gskip" data-act="navend">Got it</button>');
@@ -3068,7 +3355,11 @@ function placeArrow(t, pt) {   /* a bouncing arrow over what to tap; on the farm
 addEventListener('scroll', () => { if (!$('garrow').hidden) renderGuide(); }, { passive: true });
 const MAP_FOCUS = { farm: 0.3, mill: 0.2, roast: 0 };   /* where a scene taller than the screen opens: the share of what's out of view that sits above the top (fields, racks, the roaster bays and shelf) */
 let mapScene = '';
-function mapFocus() { const room = scroller.scrollHeight - scroller.clientHeight; scroller.scrollTop = room > 0 ? Math.round(room * MAP_FOCUS[scene()]) : 0; mapFade(); }
+function mapFocus() {   /* a random event on this map: centred, whatever made the map move (a new scene, a resize) */
+  const room = scroller.scrollHeight - scroller.clientHeight, E = (S.rev || {}).cur, b = E && REVS[E.id].here(E) ? REVS[E.id].box(E) : null;
+  if (b && room > 0) { const m = mapSpot(b[1] + b[3] / 2); scroller.scrollTop = Math.max(0, Math.min(room, Math.round(m.at + m.y - (m.top + m.bot) / 2))); } else scroller.scrollTop = room > 0 ? Math.round(room * MAP_FOCUS[scene()]) : 0;
+  mapFade();
+}
 function mapFade() { const room = scroller.scrollHeight - scroller.clientHeight; $('mfadeT').classList.toggle('on', scroller.scrollTop > 2); $('mfadeB').classList.toggle('on', scroller.scrollTop < room - 2); }
 scroller.addEventListener('scroll', () => { mapFade(); renderGuide(); }, { passive: true });
 new ResizeObserver(mapFocus).observe(scroller);
@@ -3099,7 +3390,7 @@ function unlockReady() {   /* is there an unlock the player can afford right now
   return S.tabs.unlock && (VAR_ORDER.some((v) => !S.vars[v] && gateOK('var:' + v) && S.points >= VAR[v].cost) || Object.keys(METHODS).some((k) => !S.methods[k] && METHODS[k].cost && gateOK('method:' + k) && S.points >= METHODS[k].cost) || (nf && S.points >= FARM_COST[nf]) || (!S.farms.osaka.unlocked && S.cranes >= OSAKA_CRANES));
 }
 function renderTabs() {
-  const dot = { looks: S.skinPicks > 0, ranks: S.tabs.ranks && Array.from({ length: tierAt(S.season.stars) }, (_, i) => i + 1).some((n) => !S.season.claimed[n]), unlock: unlockReady(), farm: !!golden && scene() !== 'farm', orders: S.tasks.concat((S.wtasks || {}).list || []).some((t) => t.have >= t.goal && !t.done) || (S.weekly.team + S.weekly.mine >= S.weekly.target && !S.weekly.claimed), mill: S.lots.some((l) => l.left <= 0), roast: roasteryOpen() && scene() !== 'roast' && (S.roastery.roasters.some((r) => inCrack(r) && !r.crack) || S.roastery.bags.length > 0) };
+  const dot = { looks: S.skinPicks > 0, ranks: S.tabs.ranks && Array.from({ length: tierAt(S.season.stars) }, (_, i) => i + 1).some((n) => !S.season.claimed[n]), unlock: unlockReady(), farm: (!!golden && scene() !== 'farm') || revDot('farm'), orders: S.tasks.concat((S.wtasks || {}).list || []).some((t) => t.have >= t.goal && !t.done) || (S.weekly.team + S.weekly.mine >= S.weekly.target && !S.weekly.claimed), mill: S.lots.some((l) => l.left <= 0) || revDot('mill'), roast: (roasteryOpen() && scene() !== 'roast' && (S.roastery.roasters.some((r) => inCrack(r) && !r.crack) || S.roastery.bags.length > 0)) || revDot('roast') };
   const shown = TABS.filter(([id]) => (id !== 'roast' || roasteryOpen() || level() >= 9) && (id !== 'looks' || S.tabs.looks || S.prestige >= 1 || S.tabs.ranks));   /* the Roast tab shows from level 9, locked until the roastery opens, so the first sessions stay simple */
   $('tabs').style.gridTemplateColumns = 'repeat(' + shown.length + ', minmax(0, 1fr))';
   setHTML($('tabs'), shown.map(([id, label, ic]) => { const locked = tabLocked(id);
@@ -3460,6 +3751,7 @@ function renderPanel() {
     if (rsub === 'cup') h += coePage();
     else if (rsub === 'records') {
       const got = ACH.filter((x) => S.ach[x.id]), all = ACH.reduce((a, x) => a + x.cr, 0);
+      if ((S.rev || {}).seen) h += revPage();
       h += '<h3>Achievements</h3><p class="note">' + got.length + ' of ' + ACH.length + ' · ' + got.reduce((a, x) => a + x.cr, 0) + ' of ' + all + ' cranes. Each one pays once.</p>';
       h += ACH.filter((x) => !S.ach[x.id]).map((x) => row(img('i_crane', 26), x.name, x.text + (x.need > 1 ? ' · ' + fmt(Math.min(x.need, x.have())) + ' / ' + fmt(x.need) : ''), '<span class="note">+' + x.cr + '</span>')).join('');
       if (got.length) h += '<p class="note"><b>Done:</b> ' + got.map((x) => x.name).join(' · ') + '</p>';
@@ -3557,7 +3849,7 @@ function renderPanel() {
     h += ownStrip(cAll.filter(cOwn).map((id) => [chipImg(url(bodyOf(normLook({ crest: S.look.crest, skin: S.look.skin, bg: S.look.bg, char: id })) + 'down_0', skinLook(S.look.skin))), ART.chars[id] ? ART.chars[id].name : 'Farmer', 'char:' + id, S.look.char === id ? 'on' : 'no']), 'Tap a farmer to play as them.') + '<div class="grid2">' + cAll.filter((id) => !cOwn(id)).map((id) => { const c = ART.chars[id];
       return '<div class="tile">' + avatar({ crest: S.look.crest, skin: S.look.skin, bg: S.look.bg, char: id }, 56) + '<b>' + c.name + '</b><span>From ' + c.from + '</span>' + btn('Buy', c.cost + ' cranes', 'buychar:' + id, S.cranes >= c.cost) + '</div>';
     }).join('') + '</div>';
-    const hatKeys = Object.keys(ART.hats).filter((k) => !k.startsWith('s_') || S.hats[k]), hatName = (k) => ({ straw: 'Straw', beju: 'Beju green', sakura: 'Sakura', indigo: 'Indigo', harvest: 'Harvest orange' })[k] || themeById(k).name + ' (season)', hatPic = (k) => url('worker_down_0', { hat: ART.hats[k] });
+    const hatKeys = Object.keys(ART.hats).filter((k) => !(k.startsWith('s_') || k.startsWith('ev_')) || S.hats[k]), hatName = (k) => ({ straw: 'Straw', beju: 'Beju green', sakura: 'Sakura', indigo: 'Indigo', harvest: 'Harvest orange', ev_bee: 'Beekeeper' })[k] || themeById(k).name + ' (season)', hatPic = (k) => url('worker_down_0', { hat: ART.hats[k] });
     h += '<h3>Picker hats</h3><p class="note">Hats for your pickers, bought with cranes.</p>' + ownStrip(hatKeys.filter((k) => S.hats[k]).map((k) => [chipImg(hatPic(k)), hatName(k), 'hat:' + k, S.hat === k ? 'on' : 'no']), 'Tap a hat for your pickers to wear it.') + '<div class="grid2">' + hatKeys.filter((k) => !S.hats[k]).map((k) => {
       const cost = { straw: 0, beju: 15, sakura: 20, indigo: 15, harvest: 20 }[k];
       return '<div class="tile"><div style="display:flex;align-items:center;gap:6px"><img src="' + hatPic(k) + '" alt="" style="width:32px;image-rendering:pixelated"><b>' + hatName(k) + '</b></div>' + btn('Buy', cost + ' cranes', 'buyhat:' + k, S.cranes >= cost) + '</div>';
@@ -3587,6 +3879,8 @@ function renderPanel() {
     if (S.decor.shelf !== undefined) dOwn.push(dChip('shelf', 'Trophy shelf'));
     if (S.decor.sacks !== undefined) dOwn.push(dChip('sacks', 'Origin sacks', 'osack'));
     if (S.decor.gift !== undefined) dOwn.push(dChip('gift', 'Furoshiki gift'));
+    if (S.decor.ev_vane !== undefined) dOwn.push(dChip('ev_vane', 'Pig weathervane'));
+    if (S.decor.ev_vanegold !== undefined) dOwn.push(dChip('ev_vanegold', 'Gold pig weathervane'));
     h += ownStrip(dOwn, 'Tap to show or hide.' + (Object.keys(S.decor).some((k) => k.startsWith('s_')) ? ' Up to three season decorations show at once.' : '') + (S.decor.shelf !== undefined ? ' Pin a trophy in Looks to put it first on the shelf.' : ''));
     Object.keys(DECOR).filter((k) => S.decor[k] === undefined).forEach((k) => { const d = DECOR[k];
       h += row(img('deco_' + k, k === 'bunting' || k === 'cart' ? 40 : 30), d.name, d.sub, btn('Buy', fmt(d.cost) + ' coins', 'decor:' + k, S.coins >= d.cost));
@@ -3626,6 +3920,7 @@ function renderPanel() {
     h += '<h3>Simulate a bejucoffee.com order</h3><div class="seg">' + Object.keys(COFFEES).map((k) => '<button type="button" data-act="order:' + k + '">' + COFFEES[k].name + '</button>').join('') + '</div>';
     h += '<div class="stamps">' + LOCS.map((l) => '<img src="' + url('stamp_' + l) + '" alt="' + ART.locations[l].name + (S.stamps[l] ? ', stamped' : ', not yet') + '" class="' + (S.stamps[l] ? '' : 'off') + ((S.goldStamps || {})[l] ? ' gold' : '') + '">').join('') + '</div>';
     h += '<h3>Resources</h3><div class="seg"><button type="button" data-act="add:coins">+1,000 coins</button><button type="button" data-act="add:bigcoins">+25,000 coins</button><button type="button" data-act="add:contracts">New contracts</button><button type="button" data-act="add:checkin">Next real day</button><button type="button" data-act="add:drop">Start a drop event</button><button type="button" data-act="add:season">End the season</button><button type="button" data-act="add:stars">+50 season stars</button><button type="button" data-act="add:guide">Restart guide</button><button type="button" data-act="add:points">+2,000 know-how</button><button type="button" data-act="add:cranes">+50 cranes</button><button type="button" data-act="add:vars">All varieties</button><button type="button" data-act="add:xp">+1 level</button><button type="button" data-act="add:cherries">Fill storage</button><button type="button" data-act="add:stamp">Next passport stamp</button><button type="button" data-act="add:sample">Next free sample</button><button type="button" data-act="add:days">+20 check-in days</button></div>';
+    h += '<h3>Random events</h3><div class="seg">' + Object.keys(REVS).filter((k) => REVS[k].ok()).map((k) => '<button type="button" data-act="revtest:' + k + '">' + REVS[k].name + '</button><button type="button" data-act="revtest:' + k + '.rare">' + REVS[k].name + ' (rare)</button>').join('') + '</div>';
     h += '<h3>Time</h3><div class="seg"><button type="button" data-act="away:1">Away 1 h</button><button type="button" data-act="away:4">Away 4 h</button><button type="button" data-act="away:12">Away 12 h</button><button type="button" data-act="day">Next day</button></div>';
     h += '<h3>Game speed</h3><div class="seg">' + [1, 3, 10].map((x) => '<button type="button" data-act="speed:' + x + '" aria-pressed="' + (S.speed === x) + '">×' + x + '</button>').join('') + '</div>';
     h += '<h3>Weather</h3><div class="seg">' + ['auto', 'harvest', 'rainy', 'spring', 'summer', 'autumn', 'winter'].map((x) => '<button type="button" data-act="season:' + x + '" aria-pressed="' + (S.seasonPick === x) + '">' + x + '</button>').join('') + '</div><p class="note">Harvest and rainy apply to the coffee farms; spring to winter apply to Osaka.</p>';
@@ -3652,12 +3947,12 @@ document.addEventListener('click', (e) => {
   const f = S.farms[S.loc];
   if (a === 'close') { SFX.play('close'); closeModal(); return; }
   if (a === 'pcer') { SFX.play('page'); $('pcer').hidden = true; if (S.pwalk === 3) { dropPrestigeCard(); setTab('looks'); setTimeout(() => showModal(coachCard('Looks', 'Every prestige lets you pick one new outfit. Tap one to keep it.')), 300); } return; }
-  if (!TEST_TOOLS && ['add', 'order', 'away', 'day', 'speed', 'season'].includes(a)) return;   /* no cheats in the public game */
+  if (!TEST_TOOLS && ['add', 'order', 'away', 'day', 'speed', 'season', 'revtest'].includes(a)) return;   /* no cheats in the public game */
   const wallet = S.coins + S.points + S.cranes, decorOwned = S.decor[v] !== undefined;
   setTimeout(() => {   /* sound for the action, once its effect is known */
     const spent = S.coins + S.points + S.cranes < wallet;
     const BUY = { hire: 'hire', up: 'buy', build: 'build', mgr: 'hire', foreman: 'hire', agent: 'hire', var: 'achieve', farm: 'achieve', method: 'achieve', buyhat: 'achieve', master: 'buy', research: 'achieve', tech: 'achieve', buychar: 'achieve', buybskin: 'achieve', boost: 'crane', decor: 'achieve', fxbuy: 'achieve', mktbuy: 'achieve' };
-    const ALWAYS = { pin: 'tick', fx: 'tick', dv: 'tick', dailysub: 'tick', stickersall: 'tick', derbyall: 'tick', hidestickers: 'tick', ranktab: 'tick', ranksub: 'tick', millview: 'tick', millsub: 'tick', untab: 'tick', crest: 'tick', skin: 'tick', bg: 'tick', char: 'tick', bskin: 'build', bskinall: 'build', rename: 'tick', nameset: 'tick', mvol: 'tick', uptab: 'tick', shoptab: 'tick', hat: 'tick', rule: 'tick', mv: 'tick', speed: 'tick', season: 'tick', go: 'click', bed: 'click', skip: 'page', plant: 'dig', task: 'coins', weekly: 'crane', order: 'crane', sellraw: 'coins', add: 'xp' };
+    const ALWAYS = { pin: 'tick', fx: 'tick', dv: 'tick', dailysub: 'tick', stickersall: 'tick', derbyall: 'tick', hidestickers: 'tick', ranktab: 'tick', ranksub: 'tick', revshow: 'tick', revgo: 'click', millview: 'tick', millsub: 'tick', untab: 'tick', crest: 'tick', skin: 'tick', bg: 'tick', char: 'tick', bskin: 'build', bskinall: 'build', rename: 'tick', nameset: 'tick', mvol: 'tick', uptab: 'tick', shoptab: 'tick', hat: 'tick', rule: 'tick', mv: 'tick', speed: 'tick', season: 'tick', go: 'click', bed: 'click', skip: 'page', plant: 'dig', task: 'coins', weekly: 'crane', order: 'crane', sellraw: 'coins', add: 'xp' };
     if (BUY[a] && spent) SFX.play(BUY[a]); else if (a === 'decor' && decorOwned) SFX.play('tick'); else if (ALWAYS[a]) SFX.play(ALWAYS[a]);
   }, 0);
   if (a === 'hire') { if (f.workers.length < maxPickers(f) && spend('coins', hireCost())) { addWorker(f); guideStep('hire'); } }   /* the new picker walks onto the farm */
@@ -3719,6 +4014,9 @@ document.addEventListener('click', (e) => {
   else if (a === 'gounlock') { S.unTab = v || 'processes'; setTab('unlock'); }
   else if (a === 'ranktab') S.rankTab = v;
   else if (a === 'ranksub') S.rankSub = v;
+  else if (a === 'revgo') revGo();
+  else if (a === 'revshow') { if (REV_COSM[v] && REV_COSM[v].own()) REV_COSM[v].flip(); }
+  else if (a === 'revtest') { if (S.rev.cur) { S.rev.cur = null; revSyncSound(); } const [id, rr] = v.split('.'); if (revStart(id, { rare: rr === 'rare' })) revGo(); }
   else if (a === 'tier') { if (+v <= tierAt(S.season.stars)) grantTier(S.season.key, +v); }
   else if (a === 'tierall') { for (let n = 1; n <= tierAt(S.season.stars); n++) grantTier(S.season.key, n, true); SFX.play('achieve'); toast('Season track rewards claimed'); }
   else if (a === 'lookhat') { if (!v || S.hats[v]) S.look.hat = v; }
@@ -3867,6 +4165,8 @@ function refreshHud() {
   { const fl = barLvInfo(), on = !!fl;   /* a farm's level, or the roastery's reputation, beside the name, and a line along the bar to what comes next */
     $('locLv').hidden = $('locLvBar').hidden = !on;
     if (on) { const t = fl.badge; if ($('locLv').textContent !== t) $('locLv').textContent = t; $('locLvBar').firstChild.style.width = fl.pct + '%'; $('locTap').setAttribute('aria-label', fl.text); } else $('locTap').removeAttribute('aria-label'); }
+  { const E = (S.rev || {}).cur, d = E && REVS[E.id].map === 'farm' && E.loc !== S.loc ? (LOCS.indexOf(E.loc) - LOCS.indexOf(S.loc) + LOCS.length) % LOCS.length : 0;   /* the arrow the short way to a farm with trouble */
+    $('nextLoc').classList.toggle('evt', d > 0 && d <= LOCS.length / 2); $('prevLoc').classList.toggle('evt', d > LOCS.length / 2); }
   if (sc === 'mill') { $('locName').textContent = 'Dry mill'; $('locBeds').textContent = S.lots.length + ' / ' + racks() + ' racks in use · ' + fmtKg(stored()) + ' kg of cherries waiting'; }
   if (sc === 'roast') { $('locName').textContent = 'Roastery, Osaka'; $('locBeds').textContent = S.roastery.roasters.length + ' / ' + roasterCount() + ' roasting · ' + S.roastery.bags.length + ' bags on the shelf'; }
   const lab = sc === 'mill' ? 'Your dry mill: lots drying on raised racks. Tap a rack to cup its lot, or to sell it once it is dry.' : sc === 'roast' ? 'Your roastery. Tap a free roaster to roast your largest green coffee at its best roast, and tap a roaster at first crack.' : 'Your farm seen from above. Tap shrubs with ripe cherries to pick them.';
@@ -4380,7 +4680,8 @@ function catchUp(ms) {   /* time the page didn't run (a hidden tab, another app,
 function playBehind() {   /* up to 25 ms of catching up a frame, quietly, so the page never freezes */
   if (behind < 50) return;
   const t0 = performance.now(); toast.quiet = true; SFX.setEnabled(false);
-  try { while (behind >= 50 && performance.now() - t0 < 25) { tick(0.05); behind -= 50; } } finally { toast.quiet = false; syncSound(); }
+  catching = true;   /* random events wait: their harm stops while the farm catches up */
+  try { while (behind >= 50 && performance.now() - t0 < 25) { tick(0.05); behind -= 50; } } finally { toast.quiet = false; catching = false; syncSound(); }
 }
 const awayMs = Date.now() - (S.last || Date.now());
 checkSamples(true);   /* a save already past a milestone gets its samples */
@@ -4394,7 +4695,7 @@ function loop(t) {
   playBehind();
   if (scene() !== mapScene) { mapScene = scene(); mapFocus(); }   /* each scene opens where its work is */
   const dt = Math.min(0.05, (t - last) / 1000); last = t;
-  tick(dt); draw(t / 1000);
+  tick(dt); revTick(dt); draw(t / 1000);
   uiT += dt; saveT += dt;
   if (toastT > 0) { toastT -= dt; if (toastT <= 0) { if (toastQ.length) toast(toastQ.shift()); else $('toast').hidden = true; } }
   if (uiT > 0.5) { uiT = 0; refreshHud(); syncMusic(); if (!panelBusy()) { if (!(document.activeElement && document.activeElement.id === 'nameIn')) renderPanel(); checkTabs(); renderTabs(); renderGuide(); } harvestSync(); coopSync(); coeTick(); }

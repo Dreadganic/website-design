@@ -5,12 +5,16 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 d = json.load(open(os.path.join(ROOT, "sprites.json")))
 art = {k: d[k] for k in ("sprites", "shirts", "shrubs", "locations", "varieties", "storage", "carry", "hats", "buildings", "chars", "bskins", "seasons", "estbg")}
+ev = json.load(open(os.path.join(ROOT, "events", "event-sprites.json")))   # random events: their art goes in under ev_, and the cosmetics under the names the game draws them by
+art["sprites"] = dict(art["sprites"], **{"ev_" + k: v for k, v in ev.items()})
+art["sprites"].update({"deco_ev_vane": ev["weathervane_iron"], "deco_ev_vanegold": ev["weathervane"], "rp_evbell": ev["bell"], "rp_evreview": ev["review"]})
+art["hats"] = dict(art["hats"], ev_bee=["#F8F4EC", "#D8D0BC", "#A89C84"])
 bgs = {}
 for f in sorted(os.listdir(os.path.join(ROOT, "bg"))):
     if f.endswith(".png"):
         bgs[f[:-4]] = "data:image/png;base64," + base64.b64encode(open(os.path.join(ROOT, "bg", f), "rb").read()).decode()
 t = open(os.path.join(HERE, "template.html")).read()
-sfx = open(os.path.join(ROOT, "audio", "sfx.js")).read()
+sfx = open(os.path.join(ROOT, "audio", "sfx.js")).read() + "\n" + open(os.path.join(ROOT, "audio", "event-sfx.js")).read()
 music = open(os.path.join(ROOT, "audio", "music.js")).read()
 cozy = open(os.path.join(ROOT, "audio", "cozy.js")).read()
 if "--launch" in sys.argv:   # the public game: no Test tab cheats

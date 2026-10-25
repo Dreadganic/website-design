@@ -721,6 +721,31 @@ BLUE = {'r': '#2A5AC8', 'o': '#4AA0F0', 'y': '#A8E4FF', 'w': '#FFFFFF'}
 spr('flame_blue_0', BLUE, S['flame_0']['rows'])
 spr('flame_blue_1', BLUE, S['flame_1']['rows'])
 
+# ---- Cosmetics that needed their own art in the game
+spr('weathervane_iron', dict(VANE, g='#9A948A', G='#6A645A'), S['weathervane']['rows'])
+spr('review', {'O': O, 'w': '#C89028', 'W': '#906018', 'p': '#FFF8EC', 'y': '#F2C04A', 'k': '#3E2A1C'}, [
+ 'OOOOOOOOOOOO',
+ 'OwwwwwwwwwwO',
+ 'OwppppppppWO',
+ 'OwpyypyypyWO',
+ 'OwppppppppWO',
+ 'OwpkkkkkkpWO',
+ 'OwpkkkkpppWO',
+ 'OwppppppppWO',
+ 'OWWWWWWWWWWO',
+ 'OOOOOOOOOOOO'])
+spr('hivelamp', {'O': O, 'm': '#5A4630', 'g': '#F8D060', 'G': '#E0A830', 'd': '#A87018', 'y': '#FFF4C0', 'a': SH}, [
+ '...OO...',
+ '...Om...',
+ '..OOOO..',
+ '.OgGgGO.',
+ 'OgdydygO',
+ 'OGygyGGO',
+ 'OgdydygO',
+ '.OGgGgO.',
+ '..OddO..',
+ '...OO...'])
+
 json.dump(S, open(os.path.join(HERE, 'event-sprites.json'), 'w'), indent=1)
 
 # contact sheet at 4x on the game's cream

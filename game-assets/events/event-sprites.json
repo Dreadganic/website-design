@@ -1678,5 +1678,83 @@
    "y": "#A8E4FF",
    "w": "#FFFFFF"
   }
+ },
+ "weathervane_iron": {
+  "w": 16,
+  "h": 18,
+  "rows": [
+   "...OO...........",
+   "..OgGO..........",
+   ".OgggOOOOOOOO...",
+   "OOggggggggggGO..",
+   "GGggggggggggGGO.",
+   "GGggggggggggGGOO",
+   "OOgggggggggGGGOO",
+   "..OGGGGGGGGGGO..",
+   "..OGO.OGO.OGO...",
+   "..OO..OO..OO....",
+   ".......OO.......",
+   "...O...OO...O...",
+   "..OGOOOOOOOOGGO.",
+   "...O...OO...O...",
+   ".......OO.......",
+   ".......OO.......",
+   ".......OO.......",
+   "......OOOO......"
+  ],
+  "pal": {
+   "O": "#3E2A1C",
+   "g": "#9A948A",
+   "G": "#6A645A"
+  }
+ },
+ "review": {
+  "w": 12,
+  "h": 10,
+  "rows": [
+   "OOOOOOOOOOOO",
+   "OwwwwwwwwwwO",
+   "OwppppppppWO",
+   "OwpyypyypyWO",
+   "OwppppppppWO",
+   "OwpkkkkkkpWO",
+   "OwpkkkkpppWO",
+   "OwppppppppWO",
+   "OWWWWWWWWWWO",
+   "OOOOOOOOOOOO"
+  ],
+  "pal": {
+   "O": "#3E2A1C",
+   "w": "#C89028",
+   "W": "#906018",
+   "p": "#FFF8EC",
+   "y": "#F2C04A",
+   "k": "#3E2A1C"
+  }
+ },
+ "hivelamp": {
+  "w": 8,
+  "h": 10,
+  "rows": [
+   "...OO...",
+   "...Om...",
+   "..OOOO..",
+   ".OgGgGO.",
+   "OgdydygO",
+   "OGygyGGO",
+   "OgdydygO",
+   ".OGgGgO.",
+   "..OddO..",
+   "...OO..."
+  ],
+  "pal": {
+   "O": "#3E2A1C",
+   "m": "#5A4630",
+   "g": "#F8D060",
+   "G": "#E0A830",
+   "d": "#A87018",
+   "y": "#FFF4C0",
+   "a": "#2A2A0850"
+  }
  }
 }
