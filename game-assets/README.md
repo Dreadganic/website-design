@@ -119,6 +119,8 @@ The game talks to Netlify Functions (`netlify/functions/game-*.js`, storage in N
 ## Pacing rules (from the prestige playtest)
 - **Hiring** is priced per farm: 150 × the farm's price multiplier × 1.45 for each picker past the second on that farm.
 - **Daily tasks** reset each real day and the **weekly order** runs for a real week; the other farmers' share fills steadily over the week.
+- **Daily goals grow with prestige**: picks, cups, lots sold, roasts, cracks and bags ask ×1.5 at prestige 1, ×2.5 at 3, up to ×4 from prestige 6 (15 picks become 60). Once-a-day chores (a contract, the season's roast, the estate chores) stay at one, and "bring in" already follows your barn.
+- **Co-op orders follow the highest-ranked member**: each active member counts for at least the floor of the co-op's top prestige, so a prestige 5 farmer with newer mates gets an order sized for prestige 5.
 - **Away time:** with a mill foreman, lots keep drying and selling while you are away (storage still caps what the pickers bring in). The welcome-back screen shows what the mill earned.
 - **Buildings** go to level 5. **Farm mastery** (Upgrades › Build, coins, needs the farm's manager) adds 10% picking per level, cost ×1.45 a level. **Cupping research** (Upgrades › Seeds, know-how) adds 0.3 cup score per level, cost ×1.4 a level.
 - **Prestige** needs level 10, 18, 26, 34 ... by lifetime prestige, and each level past 10 needs 1.22× the XP of the last. The season board ranks know-how earned this month; the all-time board stays prestige first. The server mirrors these rules.

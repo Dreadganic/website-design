@@ -161,6 +161,14 @@ test("co-ops: a farmer counts for at least the floor for their prestige, and an 
   assert.equal((await call(coop, "GET", undefined, a)).body.coop.order.target, 1000, "a finished one stays finished, with its tiers claimed");
 });
 
+test("co-ops: every member's floor follows the co-op's highest-ranked member", async () => {
+  const a = await newPlayer("Vera", 5), b = await newPlayer("Wes", 0);
+  const made = (await call(coop, "POST", { act: "create", name: "Mixed" }, a)).body.coop;
+  assert.equal(made.order.target, C.coopFloor(5), "the prestige 5 founder alone: 60,000 kg");
+  const joined = (await call(coop, "POST", { act: "join", code: made.code }, b)).body.coop;
+  assert.equal(joined.order.target, Math.round(2 * C.coopFloor(5) * C.coopSize(2) / 100) * 100, "a prestige 0 farmer joining counts at the founder's floor, not his own 10,000 kg");
+});
+
 test("co-ops: stickers only from the list, helps once a day per mate, and the helped farmer collects them", async () => {
   const a = await newPlayer("Ana"), b = await newPlayer("Ben");
   const made = (await call(coop, "POST", { act: "create", name: "Pergola" }, a)).body.coop;

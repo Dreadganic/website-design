@@ -10,7 +10,7 @@
    POST /.netlify/functions/game-coop  { act: "takehelp" }             ->  { n, from }   (helps waiting for you; the game speeds up your drying lots)
    POST /.netlify/functions/game-coop  { act: "claim" }                ->  { cranes, tiers, full }   (every tier of this week's order reached so far, once per member who helped)
    POST /.netlify/functions/game-coop  { act: "derbyclaim" }           ->  { cranes, rank, of, week }   (last week's Co-op Derby reward; a top 3 place adds a trophy)
-   The weekly order asks for 80% of what the members brought last week (a new member counts their own estimate), never less than 1,000 kg per active member, so small and large co-ops both get a goal an ordinary week reaches. Members away a week don't count; away a month, they leave. */
+   The weekly order asks for 80% of what the members brought last week (a new member counts their own estimate), never less than 1,000 kg per active member, so small and large co-ops both get a goal an ordinary week reaches. Members away a week don't count; away a month, they leave. Each member's floor is set at the prestige of the co-op's highest-ranked member. */
 const G = require("../game");
 const C = require("../community");
 const D = require("../derby");
@@ -34,19 +34,20 @@ async function prune(store, coop, now) {   /* a member gone a month leaves, so a
   if (keep.length === coop.members.length) return;
   coop.members = keep; await store.set("coops/" + coop.id, coop); await reindex(store, coop, now);
 }
-async function baseline(store, coop, pid, wk, now) {   /* what a member is expected to bring in a week: the most of last week's share, what their farm sells now (coopEst, from the game) and the floor for their prestige; 0 for someone away a week who brought nothing last week */
+async function baseline(store, coop, pid, wk, now, topP) {   /* what a member is expected to bring in a week: the most of last week's share, what their farm sells now (coopEst, from the game) and the floor for their prestige; 0 for someone away a week who brought nothing last week */
   const last = await store.get("coops/" + coop.id + "/week/" + C.prevWeek(wk));
   const had = (last && last.shares && last.shares[pid]) || 0, row = await scoreRow(store, pid);
   if (!had && awayFor(coop, pid, row, now) >= C.COOP_AWAY_DAYS * C.DAY) return 0;
   const p = await store.get("players/" + pid);
-  return Math.max(had, C.coopFloor(row.prestige), Math.floor((p && p.coopEst) || 0));   /* farms grow fast, so last week alone made orders far too small */
+  return Math.max(had, C.coopFloor(Math.max(row.prestige || 0, topP || 0)), Math.floor((p && p.coopEst) || 0));   /* the floor follows the co-op's highest-ranked member, so a high-prestige farm doesn't carry an easy order alone */   /* farms grow fast, so last week alone made orders far too small */
 }
+async function topPrestige(store, ids) { const rows = await Promise.all(ids.map((m) => scoreRow(store, m))); return rows.reduce((a, r) => Math.max(a, r.prestige || 0), 0); }   /* the co-op's highest-ranked member */
 const orderSize = (base, active) => Math.max(C.COOP_MIN_PER * Math.max(1, active), Math.round(base * C.coopSize(active) / 100) * 100);
 async function weekOf(store, coop, wk, now) {   /* this week's order, made on first touch, or sized again if older rules made it */
   const key = "coops/" + coop.id + "/week/" + wk; let w = await store.get(key);
   const done = w && Object.values(w.shares).reduce((a, x) => a + x, 0) >= w.target;   /* a finished order stays finished: sizing it again would show every tier claimed on an empty bar */
   if (!w || ((w.rules || 1) < C.COOP_RULES && !done)) {
-    const bases = await Promise.all(coop.members.map((m) => baseline(store, coop, m, wk, now)));
+    const topP = await topPrestige(store, coop.members), bases = await Promise.all(coop.members.map((m) => baseline(store, coop, m, wk, now, topP)));
     const base = bases.reduce((a, b) => a + b, 0), active = bases.filter((b) => b > 0).length;
     if (!w) w = { week: wk, process: C.coopProcess(wk), shares: {}, at: {}, claimed: {}, joined: coop.members.slice() };
     Object.assign(w, { base, active, target: Math.max(w.target || 0, orderSize(base, active)), rules: C.COOP_RULES });   /* never smaller than it was */
@@ -74,7 +75,7 @@ async function joinCoop(store, me, coop, now) {
   coop.members.push(me.id); coop.seen = Object.assign(coop.seen || {}, { [me.id]: now }); await store.set("coops/" + coop.id, coop);
   me.coop = coop.id; me.coopJoined = now; await G.savePlayer(store, me);
   const w = await store.get("coops/" + coop.id + "/week/" + C.weekKey(now));
-  if (w && !w.joined.includes(me.id)) { w.base = (w.base || 0) + await baseline(store, coop, me.id, w.week, now); w.active = (w.active || 0) + 1; w.target = Math.max(w.target, orderSize(w.base, w.active)); w.joined.push(me.id); await store.set("coops/" + coop.id + "/week/" + w.week, w); }   /* a new member brings their share of the goal */
+  if (w && !w.joined.includes(me.id)) { w.base = (w.base || 0) + await baseline(store, coop, me.id, w.week, now, await topPrestige(store, coop.members.concat(me.id))); w.active = (w.active || 0) + 1; w.target = Math.max(w.target, orderSize(w.base, w.active)); w.joined.push(me.id); await store.set("coops/" + coop.id + "/week/" + w.week, w); }   /* a new member brings their share of the goal */
   await reindex(store, coop, now);
 }
 async function makeCoop(store, name) {
@@ -126,7 +127,7 @@ exports.handler = async (event) => {
     if (b.est > 0) { me.coopEst = Math.min(1e9, Math.floor(b.est)); await G.savePlayer(store, me); }
     if (b.week === wk) {
       const w = await weekOf(store, coop, wk, now), had = w.shares[me.id] || 0, rise = Math.max(0, Math.floor(Number(b.kg) || 0) - had);
-      const ok = Math.min(rise, C.coopAllowed(Math.max(C.COOP_MIN_PER, await baseline(store, coop, me.id, wk, now)), w.at[me.id], now));
+      const ok = Math.min(rise, C.coopAllowed(Math.max(C.COOP_MIN_PER, await baseline(store, coop, me.id, wk, now, await topPrestige(store, coop.members))), w.at[me.id], now));
       if (ok > 0) { w.shares[me.id] = had + ok; w.at[me.id] = now; await store.set("coops/" + coop.id + "/week/" + wk, w); }
       const idx = await index(store); if (idx[coop.id] && now - (idx[coop.id].act || 0) > 3600e3) { idx[coop.id].act = now; await store.set("coopidx", idx); }   /* this co-op is alive */
       await D.derbyAdd(store, coop, me, b.derby, now);

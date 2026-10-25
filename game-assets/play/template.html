@@ -1759,7 +1759,12 @@ const WEEK_KINDS = {
 };
 const kindOk = (K, k) => !K[k].ok || K[k].ok();
 const pickOf = (ks) => ks[Math.floor(Math.random() * ks.length)];
-function taskOf(K, k, reward, slot) { const d = K[k], goal = d.scale ? d.scale() : d.goal; return { id: k, text: d.text.replace('{n}', fmt(goal)), goal, have: 0, reward, slot }; }
+const DAILY_ONCE = ['contract', 'sroast', 'ceremony', 'koi', 'rake', 'age'];   /* once-a-day chores stay at one */
+const dailyMult = () => 1 + 0.5 * Math.min(6, S.prestige || 0);   /* daily goals grow with prestige: ×1.5 at prestige 1, up to ×4 from prestige 6, since a later farm does them in minutes */
+function taskOf(K, k, reward, slot) {
+  const d = K[k], goal = d.scale ? d.scale() : K === TASK_KINDS && !DAILY_ONCE.includes(k) ? Math.round(d.goal * dailyMult()) : d.goal;
+  return { id: k, text: (K === TASK_KINDS && !d.scale && goal !== d.goal ? d.text.replace(/\d+/, fmt(goal)) : d.text).replace('{n}', fmt(goal)), goal, have: 0, reward, slot };
+}
 function slotPool(slot) {   /* the kinds a daily slot can draw today; the third slot mixes the roastery and the estates evenly */
   const ks = Object.keys(TASK_KINDS).filter((k) => TASK_KINDS[k].slot === slot && kindOk(TASK_KINDS, k));
   if (slot < 2) return ks;

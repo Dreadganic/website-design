@@ -53,7 +53,7 @@ const COOP_PROCESSES = ["washed", "natural", "honey"];   /* the weekly co-op ord
 const COOP_TIERS = [[0.25, 1], [0.5, 2], [0.75, 3], [1, 4]];   /* share of the order reached, cranes for each member who helped: 10 in all, like the solo weekly order, so play cranes stay low */
 const COOP_MIN_PER = 2000;   /* kg of green coffee: never less than 2,000 per active member */
 const coopFloor = (prestige) => 10000 * (Math.max(0, prestige || 0) + 1);   /* the least a member counts for: when co-ops open (prestige 1) a farm sells about 14,000 kg of green coffee an hour, and more with each prestige, so 20,000 kg at prestige 1, 30,000 at 2 ... */
-const COOP_RULES = 2;   /* a week's order made under older rules is sized again on its next visit (never smaller) */
+const COOP_RULES = 3;   /* a week's order made under older rules is sized again on its next visit (never smaller) */
 const coopSize = (active) => 1 + 0.1 * (Math.max(1, active) - 1);   /* each member's usual week of the process, times 1.1 for 2 members up to 1.7 for 8: a bigger co-op asks more of everyone */
 const COOP_AWAY_DAYS = 7, COOP_GONE_DAYS = 30;   /* away a week: not counted in the order; away a month: leaves the co-op, freeing the place */
 const STICKERS = ["hello", "thanks", "nice", "onit", "washed", "natural", "honey", "roast", "golden", "prestige", "harvest", "night"];
