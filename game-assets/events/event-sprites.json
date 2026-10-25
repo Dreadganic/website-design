@@ -1756,5 +1756,42 @@
    "y": "#FFF4C0",
    "a": "#2A2A0850"
   }
+ },
+ "crown": {
+  "w": 7,
+  "h": 5,
+  "rows": [
+   "O.O.O.O",
+   "OgOwOgO",
+   "OgggggO",
+   "OgrgrGO",
+   "OOOOOOO"
+  ],
+  "pal": {
+   "O": "#3E2A1C",
+   "g": "#F2C04A",
+   "G": "#B88428",
+   "r": "#D84A36",
+   "w": "#FFF4B0"
+  }
+ },
+ "scorch": {
+  "w": 12,
+  "h": 6,
+  "rows": [
+   ".OOOOOOOOOO.",
+   "OfyffyffyffO",
+   "OkKkkKkkKkkO",
+   "OkkKkkKkkKkO",
+   "OkKkkKkkKkkO",
+   ".OOOOOOOOOO."
+  ],
+  "pal": {
+   "O": "#3E2A1C",
+   "k": "#2A1A12",
+   "K": "#4A2A1A",
+   "f": "#E8602A",
+   "y": "#F8B848"
+  }
  }
 }

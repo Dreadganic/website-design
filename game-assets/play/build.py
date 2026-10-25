@@ -7,7 +7,7 @@ d = json.load(open(os.path.join(ROOT, "sprites.json")))
 art = {k: d[k] for k in ("sprites", "shirts", "shrubs", "locations", "varieties", "storage", "carry", "hats", "buildings", "chars", "bskins", "seasons", "estbg")}
 ev = json.load(open(os.path.join(ROOT, "events", "event-sprites.json")))   # random events: their art goes in under ev_, and the cosmetics under the names the game draws them by
 art["sprites"] = dict(art["sprites"], **{"ev_" + k: v for k, v in ev.items()})
-art["sprites"].update({"deco_ev_vane": ev["weathervane_iron"], "deco_ev_vanegold": ev["weathervane"], "rp_evbell": ev["bell"], "rp_evreview": ev["review"]})
+art["sprites"].update({"deco_ev_vane": ev["weathervane_iron"], "deco_ev_vanegold": ev["weathervane"], "rp_evbell": ev["bell"], "rp_evreview": ev["review"], "charm_evlens": ev["lens"]})
 art["hats"] = dict(art["hats"], ev_bee=["#F8F4EC", "#D8D0BC", "#A89C84"])
 bgs = {}
 for f in sorted(os.listdir(os.path.join(ROOT, "bg"))):

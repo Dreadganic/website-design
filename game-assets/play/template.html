@@ -1037,7 +1037,7 @@ const titleText = (k) => { if (!k) return ''; const [a, b] = k.split(':');
   if (a === 'nb' && VAR[b]) return ART.varieties[b] + ' specialist'; if (a === 'nbm' && METHODS[b]) return METHODS[b].name + ' master';
   if (a === 'nbt') { const t = NB_TOTALS.find((x) => x[1] === b); return t ? t[2] : ''; }
   if (a === 'rr') return b === 'crack' ? 'Crack master' : 'Master roaster';
-  if (a === 'ev') return b === 'steady' ? 'Steady hands' : '';
+  if (a === 'ev') return b === 'steady' ? 'Steady hands' : b === 'trouble' ? 'Troubleshooter' : '';
   return ART.seasons[String(+k.slice(5))] ? theme(k).title + ' ' + k.slice(0, 4) : ''; };
 /* the cupping notebook: every coffee and process pair you sell earns stars at 1, 25 and 250 lots; each star adds +0.5 cup score to that pair */
 const NB_STARS = [1, 25, 250], NB_MAX = 9 * 6 * 3;
@@ -1277,7 +1277,7 @@ function toRoastery(i, quiet) {   /* a dry lot goes to the roastery's green stor
   if (!quiet) { SFX.play('stamp'); toast(fmtKg(green) + ' kg of green ' + beanName(key) + ' sent to the roastery'); }
 }
 function startRoast(key, profile, quiet) {
-  const R = S.roastery, b = R.beans[key]; if (!b || b.kg < 0.5 || R.roasters.length >= roasterCount() || !ROASTS[profile]) return;
+  const R = S.roastery, b = R.beans[key]; if (!b || b.kg < 0.5 || R.roasters.length >= roasterCount() - (revOn('fire') && S.rev.cur.burnt ? 1 : 0) || !ROASTS[profile]) return;   /* a burnt-out roaster stays out until the fire's out */
   const kg = Math.min(roastCap(), b.kg), f = kg / b.kg;
   R.roasters.push({ key, profile, kg, coins: b.coins * f, pts: b.pts * f, np: b.np ? b.np * f : undefined, cup: b.cup, start: Date.now(), dur: roastTime(profile) * 1000, crack: 0, cw: crackSecs(key) / roastTime(profile) });
   b.kg -= kg; b.coins -= b.coins * f; b.pts -= b.pts * f; if (b.np) b.np -= b.np * f; if (b.kg < 0.5) delete R.beans[key];
@@ -1366,7 +1366,7 @@ function roasteryPanel() {   /* the reputation sits in the bar over the roastery
   h += row(img('rp_maneki_1', 26), 'Shop charm +' + Math.round(shopCharm() * 100) + '%', 'Every roastery cosmetic you own adds 1% to bag prices, up to +20%. You own ' + rCount() + '.', btn('Decorate', 'Shop › Roastery', 'decorgo', !tabLocked('shop'), 'blue')) + '<p class="note">Each finished roast gives a season star (up to 3 a day).</p>';
   return h;
 }
-const charmName = (k) => (k === 'qgrader' ? 'Master cupper' : k === 'crack' ? 'Crack master' : k === 'founder' ? 'Founding farmer' : themeById(k) ? themeById(k).name : '');
+const charmName = (k) => (k === 'evlens' ? 'Agronomist\'s lens' : k === 'qgrader' ? 'Master cupper' : k === 'crack' ? 'Crack master' : k === 'founder' ? 'Founding farmer' : themeById(k) ? themeById(k).name : '');
 const FARM_LEVEL = { huila: 3, gedeo: 5, toba: 7, turrialba: 9 };   /* the lowest level each dormant farm reopens at after a prestige */
 /* each farm reopens at a share of the XP the run needs for the next prestige, so reopening stays a string of milestones through the run at every prestige, not a minute's work */
 const FARM_WAKE = { huila: 0.02, gedeo: 0.05, toba: 0.10, turrialba: 0.18 };
@@ -1822,7 +1822,7 @@ function store(f, v, kg) {
 }
 function tickFarm(f, d, visible) {
   const g = d * (S.boosts.grow > S.minutesTotal ? 2 : 1);
-  f.shrubs.forEach((s) => { if (s.p < 1) s.p = Math.min(1, s.p + g * varGrowth(f, s.v) / s.g); });
+  const rg = revGrow(f); f.shrubs.forEach((s) => { if (s.p < 1) s.p = Math.min(1, s.p + g * rg * varGrowth(f, s.v) / s.g); });
   const full = stored() >= cap(), pm = (1 + techSum('pick')) * pickerMult() * (f.manager ? mgrBoost(f.loc) : 1) * masteryMult(f) * (cerOn() ? 1.2 : 1), carry = carryKg();
   f.workers.forEach((w) => {
     if (w.state === 'seek') {
@@ -1949,9 +1949,12 @@ const REV_COSM = {
 let revSess = 0, revSessEv = false, revRollT = 0, revH = null, revHere = null, revShown = '', catching = false, revNoDryLots = new Set(), revChips = [];
 const revGone = [];   /* what leaves the map once an event ends: bolting pigs, scattering hornets, Karen on her way out */
 const revOn = (id) => { const E = (S.rev || {}).cur; return !!E && E.id === id && !catching; };   /* in force: its harm applies, except while catching up after time away */
-const revNoDry = (l) => !catching && revNoDryLots.has(l);
+const revNoDry = (l) => !catching && (revNoDryLots.has(l) || revStorm('mill'));
 const revFarms = () => LOCS.filter((l) => l !== 'osaka' && S.farms[l].unlocked && !S.dormant[l] && S.farms[l].shrubs.length >= 8);
-const revBlocked = (f, i) => revOn('pigs') && S.rev.cur.loc === f.loc && Math.floor(i / 8) === S.rev.cur.bed;   /* pickers leave the raided field alone */
+const revBlocked = (f, i) => { const E = (S.rev || {}).cur; if (!E || catching || E.loc !== f.loc) return false;   /* pickers leave the raided field, the crows' bushes and a storm-hit farm alone */
+  return (E.id === 'pigs' && Math.floor(i / 8) === E.bed) || (E.id === 'crows' && E.c.some((c) => c.i === i)) || (E.id === 'typhoon' && E.t >= E.warnT && E.staked.length < E.stakes.length); };
+const revGrow = (f) => (revOn('rust') && S.rev.cur.loc === f.loc ? (S.rev.cur.f2 !== undefined ? 0.5 : 0.6) : 1);   /* leaf rust: the farm grows 40% slower, half once it reaches a second field */
+const revStorm = (k) => revOn('typhoon') && S.rev.cur.t >= S.rev.cur.warnT && !tyDone(S.rev.cur)[k];   /* the typhoon's storm on a map you didn't batten down */
 const revBagMult = () => (revOn('karen') ? (S.rev.cur.loud > 0 ? 0.5 : 0.65) : 1);   /* bags sell for less while she's at the counter, and half while she's shouting */
 const revInBox = (lx, ly, b, pad) => lx >= b[0] - pad && lx < b[0] + b[2] + pad && ly >= b[1] - pad && ly < b[1] + b[3] + pad;
 function revPut(name, x, y, flip) { const s = sprite(name), X = Math.round(x), Y = Math.round(y); if (flip) { fx.save(); fx.translate(X + s.width, Y); fx.scale(-1, 1); fx.drawImage(s, 0, 0); fx.restore(); } else fx.drawImage(s, X, Y); }
@@ -2083,11 +2086,347 @@ const REVS = {
     done: 'all smiles!', gone: () => 'Karen gave up and stormed out of the roastery'
   }
 };
+/* the other seven: leaf rust, monkeys and crows on the farms, rats in the mill, a power cut and a roaster fire in the roastery, and the
+   typhoon, which comes at most once a monthly season while a farm is in its rainy season and touches every map */
+const RAT_HOLES = [[82, 292], [100, 286], [118, 294], [136, 286], [154, 294], [172, 286]];   /* as low as small phones can scroll to, above the guide bar */
+const SCARE_AT = [128, 109], EXT_AT = [98, 66], FUSE_AT = [6, 148], PLANTS_AT = [164, 280, 26, 22];
+const shrubBox = (f, i) => { const s = f.shrubs[i]; return s ? [s.x, s.y, 18, 22] : [0, 0, 0, 0]; };
+const unionBox = (bs) => { const x0 = Math.min(...bs.map((b) => b[0])), y0 = Math.min(...bs.map((b) => b[1])), x1 = Math.max(...bs.map((b) => b[0] + b[2])), y1 = Math.max(...bs.map((b) => b[1] + b[3])); return [x0, y0, x1 - x0, y1 - y0]; };
+const farmHere = (E) => scene() === 'farm' && S.loc === E.loc;
+const revRing = (x, y, r, time, col) => { const k = calm ? 0.3 : (time * 1.4) % 1; ctx.save(); ctx.strokeStyle = col || '#F2C04A'; ctx.globalAlpha = 1 - k; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x * 2, y * 2, (r + k * 6) * 2, 0, 7); ctx.stroke(); ctx.restore(); };
+function revRain(time, n) {   /* storm rain and wind gusts, in map pixels */
+  fx.fillStyle = 'rgba(200,228,244,0.7)';
+  for (let i = 0; i < n; i++) { const x = (i * 73.13) % W, y = (i * 41.7 + time * 160) % H; for (let k = 0; k < 4; k++) fx.fillRect(Math.round(x - k * 0.5), Math.round(y + k * 2), 1, 2); }
+  fx.fillStyle = 'rgba(255,255,255,0.45)';
+  for (let i = 0; i < 6; i++) { const x = ((i * 61 + time * 90) % 240) - 30, y = 40 + (i * 53) % (H - 80); fx.fillRect(Math.round(x), Math.round(y), 22, 1); }
+}
+const tyRainy = () => revFarms().filter((l) => season(l) === 'rainy');
+const tyDone = (E) => ({ farm: E.staked.length >= E.stakes.length, mill: E.tarped.length >= E.tarpN, roast: E.plants !== false });
+Object.assign(REVS, {
+  rust: { name: 'Leaf rust', short: 'Leaf rust', map: 'farm', cos: 'lens', rareCos: 'seedling', ok: () => revFarms().length > 0,
+    start(E) {
+      const ls = revFarms(); E.loc = ls[Math.floor(Math.random() * ls.length)];
+      const f = S.farms[E.loc], beds = Math.min(4, Math.floor(f.shrubs.length / 8)); E.bed = Math.floor(Math.random() * beds);
+      const idx = Array.from({ length: 8 }, (_, k) => E.bed * 8 + k).sort(() => Math.random() - 0.5);
+      E.sick = idx.slice(0, 4); E.next = 6; E.n = 4; if (E.rare) E.silver = idx[4];
+    },
+    valid: (E) => S.farms[E.loc].unlocked && !S.dormant[E.loc], here: farmHere,
+    box: (E) => unionBox((E.sick.length ? E.sick : [E.bed * 8]).map((i) => shrubBox(S.farms[E.loc], i))),
+    point: (E) => { const s = S.farms[E.loc].shrubs[E.sick[0]]; return s ? [s.x + 9, s.y + 2] : null; },
+    warn: (E) => (E.rare ? 'Leaf rust, and one bush is holding out' : 'Leaf rust is spreading') + ' at ' + fname(E.loc) + '! The farm grows slower',
+    how: (E) => 'Prune the spotted bushes before it spreads (' + E.sick.length + ' left)',
+    tick(E, d) {   /* every 6 s a spotted bush infects a neighbour, up to 8; after 3 minutes it can jump to the next field */
+      if ((E.next -= d) > 0) return; E.next = 6;
+      const f = S.farms[E.loc], beds = Math.min(4, Math.floor(f.shrubs.length / 8)); if (E.sick.length >= 8 || !E.sick.length) return;
+      const ok = (i) => i >= 0 && i < beds * 8 && !E.sick.includes(i) && i !== E.silver && (Math.floor(i / 8) === E.bed || (E.t >= 180 && (E.f2 === undefined || Math.floor(i / 8) === E.f2)));
+      const from = f.shrubs[E.sick[Math.floor(Math.random() * E.sick.length)]], near = f.shrubs.map((s, i) => [i, Math.hypot(s.x - from.x, s.y - from.y)]).filter(([i]) => ok(i)).sort((a, b) => a[1] - b[1])[0];
+      if (!near) return; E.sick.push(near[0]); E.n += 1; if (Math.floor(near[0] / 8) !== E.bed) E.f2 = Math.floor(near[0] / 8);
+    },
+    draw(E, time) {
+      const f = S.farms[E.loc];
+      E.sick.forEach((i, k) => { const s = f.shrubs[i]; if (!s) return; fx.drawImage(sprite('ev_rust'), s.x, s.y); const u = calm ? 0.4 : (time * 0.6 + k * 0.37) % 1; fx.globalAlpha = 1 - u; fx.drawImage(sprite('ev_leaf_drop'), s.x + 5, Math.round(s.y + 12 + u * 10)); fx.globalAlpha = 1; });
+      if (E.silver !== undefined) { const s = f.shrubs[E.silver]; if (s) { fx.drawImage(sprite('ev_bush_silver'), s.x, s.y); const k = Math.floor(time * 3) % 3; fx.drawImage(sprite('sparkle'), s.x + [3, 11, 7][k], s.y + [4, 8, 1][k]); } }
+    },
+    top(E, time) { const b = REVS.rust.box(E); revCost(E, b[0] + b[2] / 2, b[1] - 6); if (E.sick.length < 8) revTag(b[0] + b[2] / 2, b[1] + b[3] + 6, 'spreads in ' + Math.ceil(E.next) + ' s', { fg: '#F8B848', size: 11 }); },
+    click(E, lx, ly) {
+      if (!farmHere(E)) return false; const f = S.farms[E.loc];
+      const i = E.sick.find((j) => revInBox(lx, ly, shrubBox(f, j), 1));
+      if (i !== undefined) { const s = f.shrubs[i]; E.sick.splice(E.sick.indexOf(i), 1); revSfx('prune'); floats.push({ x: s.x + 9, y: s.y, text: 'pruned', t: 0 }); revGone.push({ map: 'farm', loc: E.loc, spr: 'ev_leaf_drop', x: s.x + 5, y: s.y + 8, vx: 0, vy: 14, t: 0, life: 1.2, fade: true }); if (!E.sick.length) revEnd(true); return true; }
+      if (E.silver !== undefined && revInBox(lx, ly, shrubBox(f, E.silver), 1)) { revSfx('rare'); floats.push({ x: f.shrubs[E.silver].x + 9, y: f.shrubs[E.silver].y, text: 'rust-proof!', t: 0 }); return true; }
+      return false;
+    },
+    done: 'rust pruned!', gone: (E) => 'The rust at ' + fname(E.loc) + ' burnt itself out'
+  },
+  monkeys: { name: 'Cherry monkeys', short: 'Monkeys', map: 'farm', cos: 'plush', rareCos: 'capuchin', ok: () => revFarms().length > 0,
+    start(E) { const ls = revFarms(); E.loc = ls[Math.floor(Math.random() * ls.length)]; E.n = S.prestige < 2 ? 3 : S.prestige < 4 ? 4 : 5; E.per = S.prestige >= 3 ? 7 : 9; E.m = Array.from({ length: E.n }, (_, k) => ({ off: k / E.n + 0.05, last: 0 })); E.lost = 0; },
+    valid: (E) => S.farms[E.loc].unlocked && !S.dormant[E.loc], here: farmHere,
+    pos(E, m) {   /* down from the trees to the barn empty-handed, then back with an armful */
+      const u = (E.t / E.per + m.off) % 1;
+      if (u < 0.4) { const p = u / 0.4; return { x: 24 + p * 88, y: 106 - Math.sin(p * Math.PI) * 8, full: false, show: true }; }
+      if (u >= 0.5 && u < 0.9) { const p = (u - 0.5) / 0.4; return { x: 112 - p * 88, y: 106 - Math.sin(p * Math.PI) * 8, full: true, show: true }; }
+      return { show: false, u };
+    },
+    box: () => [17, 86, 102, 22],
+    point: (E) => { const m = E.m.find((x) => { const p = REVS.monkeys.pos(E, x); return p.show && p.full; }); if (!m) return null; const p = REVS.monkeys.pos(E, m); return [p.x, p.y - 12]; },
+    warn: (E) => 'Monkeys are raiding the barn at ' + fname(E.loc) + '!',
+    how: (E) => 'Tap the monkeys carrying cherries (' + E.m.length + ' left)',
+    tick(E) {   /* each armful that reaches the trees is a little of the barn gone */
+      E.m.forEach((m) => { const u = (E.t / E.per + m.off) % 1; if (m.last < 0.9 && u >= 0.9) { const kg = stored() * 0.001; if (kg > 0) { const tot = stored(); Object.keys(S.cherries).forEach((v) => { S.cherries[v] -= S.cherries[v] / tot * kg; }); E.lost += kg; } } m.last = u; });
+    },
+    draw(E, time) {
+      E.m.forEach((m, i) => { const p = REVS.monkeys.pos(E, m); if (!p.show) return; revPut(p.full ? 'ev_monkey_' + (Math.floor(time * 8 + i) % 2) : 'ev_monkey_e', p.x - 7, p.y - 12, !p.full); if (p.full) { fx.fillStyle = '#E83A30'; fx.fillRect(Math.round(p.x - 6), Math.round(p.y - 4 + (i % 2)), 1, 1); fx.fillRect(Math.round(p.x - 3), Math.round(p.y - 2), 1, 1); } });
+      if (E.rare && E.baby !== false) { const u = (E.t / E.per + 0.15) % 1, p = u < 0.5 ? u * 2 : 2 - u * 2, x = 112 - p * 88, y = 106 - Math.abs(Math.sin(p * Math.PI * 6)) * 4; revPut('ev_capuchin_baby_' + (Math.floor(time * 6) % 2), x - 5, y - 9, u >= 0.5); const k = Math.floor(time * 3) % 3; fx.drawImage(sprite('sparkle'), Math.round(x - 4 + k * 3), Math.round(y - 16)); }
+    },
+    top(E) { revCost(E, 68, 84); },
+    click(E, lx, ly) {
+      if (!farmHere(E)) return false;
+      if (E.rare && E.baby !== false) { const u = (E.t / E.per + 0.15) % 1, p = u < 0.5 ? u * 2 : 2 - u * 2, x = 112 - p * 88; if (revInBox(lx, ly, [x - 7, 92, 14, 16], 2)) { E.baby = false; revSfx('rare'); floats.push({ x, y: 92, text: 'pip pip!', t: 0 }); revGone.push({ map: 'farm', loc: E.loc, spr: 'ev_capuchin_baby_', anim: true, x: x - 5, y: 95, vx: -60, vy: 0, t: 0, life: 3 }); return true; } }
+      const hit = E.m.map((m) => [m, REVS.monkeys.pos(E, m)]).filter(([, p]) => p.show && revInBox(lx, ly, [p.x - 9, p.y - 14, 18, 16], 3)).sort((a, b) => Math.abs(a[1].x - lx) - Math.abs(b[1].x - lx))[0];
+      if (!hit) return false;
+      const [m, p] = hit;
+      if (!p.full) { revSfx('miss'); floats.push({ x: p.x, y: p.y - 14, text: 'empty-handed', t: 0 }); return true; }
+      E.m.splice(E.m.indexOf(m), 1); revSfx('tap'); floats.push({ x: p.x, y: p.y - 14, text: 'dropped it!', t: 0 });
+      for (let k = 0; k < 6; k++) bursts.push({ x: p.x, y: p.y - 6, vx: (Math.random() - 0.5) * 40, vy: -20 - Math.random() * 20, t: 0, c: '#E83A30' });
+      revGone.push({ map: 'farm', loc: E.loc, spr: 'ev_monkey_e', x: p.x - 7, y: p.y - 12, vx: -90, vy: 0, t: 0, life: 2 });
+      if (!E.m.length) revEnd(true); return true;
+    },
+    leave(E) { E.m.forEach((m) => { const p = REVS.monkeys.pos(E, m); if (p.show) revGone.push({ map: 'farm', loc: E.loc, spr: 'ev_monkey_e', x: p.x - 7, y: p.y - 12, vx: -60, vy: 0, t: 0, life: 3 }); }); },
+    done: 'monkeys chased off!', gone: (E) => 'The monkeys went back to the trees at ' + fname(E.loc)
+  },
+  crows: { name: 'Crow flock', short: 'Crows', map: 'farm', cos: 'scarecrow', rareCos: 'magpie', ok: () => revFarms().length > 0,
+    start(E) {
+      const ls = revFarms(); E.loc = ls[Math.floor(Math.random() * ls.length)]; const f = S.farms[E.loc];
+      const free = f.shrubs.map((s, i) => i).filter((i) => !revInBox(f.shrubs[i].x + 9, f.shrubs[i].y + 6, [SCARE_AT[0], SCARE_AT[1], 16, 22], 4));
+      const pick = free.sort((a, b) => (f.shrubs[b].p >= 1) - (f.shrubs[a].p >= 1) || Math.random() - 0.5);
+      E.n = S.prestige < 2 ? 6 : S.prestige < 4 ? 8 : 10; E.c = pick.slice(0, E.n).map((i) => ({ i, t: 5 + Math.random() * 20 }));
+      if (E.rare) E.c[0].mag = true; E.waved = false; E.stay = S.prestige >= 3 ? 3 : 2;
+    },
+    valid: (E) => S.farms[E.loc].unlocked && !S.dormant[E.loc], here: farmHere,
+    cbox: (E, c) => { const s = S.farms[E.loc].shrubs[c.i]; return s ? [s.x + 4, s.y + 1, 10, 9] : [0, 0, 0, 0]; },
+    box: (E) => unionBox([[SCARE_AT[0], SCARE_AT[1], 16, 22]].concat(E.waved ? E.c.map((c) => REVS.crows.cbox(E, c)) : [])),
+    point: (E) => (E.waved ? (E.c[0] ? [REVS.crows.cbox(E, E.c[0])[0] + 5, REVS.crows.cbox(E, E.c[0])[1]] : null) : [SCARE_AT[0] + 8, SCARE_AT[1]]),
+    warn: (E) => (E.rare ? 'Crows, and a magpie, are' : 'Crows are') + ' stripping the ripe bushes at ' + fname(E.loc) + '!',
+    how: (E) => (E.waved ? 'Shoo the crows that stayed (' + E.c.length + ' left)' : 'Wave the scarecrow to scare them off'),
+    tick(E, d) {   /* each crow strips its bush every 40 s or so, then hops to another ripe one; the first go is soon */
+      const f = S.farms[E.loc];
+      E.c.forEach((c) => { if ((c.t -= d) > 0) return; c.t = 40 + Math.random() * 10; const s = f.shrubs[c.i]; if (s && s.p >= 1) s.p = 0;
+        const to = f.shrubs.map((x, i) => i).filter((i) => f.shrubs[i].p >= 1 && !E.c.some((o) => o.i === i) && !revInBox(f.shrubs[i].x + 9, f.shrubs[i].y + 6, [SCARE_AT[0], SCARE_AT[1], 16, 22], 4)); if (to.length) c.i = to[Math.floor(Math.random() * to.length)]; });
+    },
+    draw(E, time) {
+      const f = S.farms[E.loc];
+      E.c.forEach((c, k) => { const s = f.shrubs[c.i]; if (!s) return; revPut(c.mag ? 'ev_magpie_sit' : 'ev_crow_sit', s.x + 4 + (c.mag ? -1 : 0), s.y + 2 - (Math.floor(time * 2 + k) % 2), k % 2 === 1); if (c.mag && Math.floor(time * 1.5) % 3 === 0) fx.drawImage(sprite('sparkle'), s.x + 2, s.y - 2); });
+      for (let i = 0; i < (E.waved ? 0 : 3); i++) { const a = time * 0.7 + i * 2.1; revPut('ev_crow_fly' + (Math.floor(time * 7 + i) % 2), 90 + Math.cos(a) * 54, 92 + Math.sin(a) * 9, Math.sin(a) > 0); }
+      revPut('ev_scarecrow_' + (E.waved && E.t - E.waveT < 2 ? Math.floor(time * 6) % 2 : 0), SCARE_AT[0], SCARE_AT[1]);
+    },
+    top(E) { revCost(E, 60, 103); },
+    click(E, lx, ly) {
+      if (!farmHere(E)) return false;
+      const c = E.c.find((x) => revInBox(lx, ly, REVS.crows.cbox(E, x), 3)), f = S.farms[E.loc];
+      if (c) {
+        if (!E.waved) { SFX.play('nope'); floats.push({ x: lx, y: ly - 4, text: 'wave the scarecrow first', t: 0 }); return true; }
+        const b = REVS.crows.cbox(E, c); E.c.splice(E.c.indexOf(c), 1); revSfx(c.mag ? 'rare' : 'shoo'); floats.push({ x: b[0] + 5, y: b[1] - 2, text: c.mag ? 'the magpie!' : 'shoo!', t: 0 });
+        revGone.push({ map: 'farm', loc: E.loc, spr: c.mag ? 'ev_magpie_fly' : 'ev_crow_fly', anim: true, x: b[0], y: b[1], vx: -40 - Math.random() * 30, vy: -50, t: 0, life: 3 });
+        if (!E.c.length) revEnd(true); return true;
+      }
+      if (revInBox(lx, ly, [SCARE_AT[0], SCARE_AT[1], 16, 22], 2)) {
+        if (E.waved) { floats.push({ x: SCARE_AT[0] + 8, y: SCARE_AT[1], text: 'shoo the ones that stayed', t: 0 }); return true; }
+        E.waved = true; E.waveT = E.t; revSfx('wave');
+        const keep = E.c.filter((x) => x.mag).concat(E.c.filter((x) => !x.mag).sort(() => Math.random() - 0.5)).slice(0, E.stay);
+        E.c.filter((x) => !keep.includes(x)).forEach((x) => { const s = f.shrubs[x.i]; if (s) revGone.push({ map: 'farm', loc: E.loc, spr: 'ev_crow_fly', anim: true, x: s.x + 4, y: s.y, vx: (Math.random() - 0.5) * 80, vy: -60 - Math.random() * 30, t: 0, life: 3 }); });
+        E.c = keep; floats.push({ x: SCARE_AT[0] + 8, y: SCARE_AT[1], text: E.stay + ' stayed', t: 0 }); return true;
+      }
+      return false;
+    },
+    leave(E) { E.c.forEach((x) => { const s = S.farms[E.loc].shrubs[x.i]; if (s) revGone.push({ map: 'farm', loc: E.loc, spr: 'ev_crow_fly', anim: true, x: s.x + 4, y: s.y, vx: -50, vy: -40, t: 0, life: 3 }); }); },
+    done: 'crows gone!', gone: (E) => 'The crows had their fill at ' + fname(E.loc) + ' and flew off'
+  },
+  rats: { name: 'Storehouse rats', short: 'Rats', map: 'mill', cos: 'catflap', rareCos: 'crown', ok: () => racks() >= 3,
+    start(E) { E.tails = [0, 1, 2, 3, 4, 5].sort(() => Math.random() - 0.5).slice(0, 3); E.set = []; E.hop = 5; if (E.rare) E.king = true; },
+    valid: () => true, here: () => scene() === 'mill',
+    kx: (E) => 134 + Math.sin(E.t * 0.5) * 22,
+    box: (E) => (E.king ? [82, 266, 100, 35] : [82, 284, 100, 17]),
+    point: (E) => { const k = E.tails.find((j) => !E.set.includes(j)); return k !== undefined ? [RAT_HOLES[k][0] + 5, RAT_HOLES[k][1] - 1] : E.king ? [REVS.rats.kx(E), 267] : null; },
+    warn: (E) => (E.king ? 'The king rat and his court are' : 'Rats are') + ' in the dried coffee sacks! Dried lots lose weight and won\'t load',
+    how: (E) => 'Trap the holes with a tail (' + E.set.length + '/' + E.tails.length + ')' + (E.king ? ' and the king' : ''),
+    tick(E, d) {
+      S.lots.forEach((l) => { if (l.left <= 0) l.kg *= 1 - 0.02 * d / 60; });   /* the dried lots waiting on the racks lose 2% a minute */
+      if (S.prestige >= 3 && (E.hop -= d) <= 0) {   /* from prestige 3 a tail ducks into another hole now and then */
+        E.hop = 5; const live = E.tails.filter((j) => !E.set.includes(j)), empty = [0, 1, 2, 3, 4, 5].filter((j) => !E.tails.includes(j));
+        if (live.length && empty.length) E.tails[E.tails.indexOf(live[Math.floor(Math.random() * live.length)])] = empty[Math.floor(Math.random() * empty.length)];
+      }
+    },
+    draw(E, time) {
+      RAT_HOLES.forEach(([x, y], j) => { const tail = E.tails.includes(j) && !E.set.includes(j); fx.drawImage(sprite(tail ? 'ev_hole_tail' : 'ev_hole'), x, y); if (E.set.includes(j)) fx.drawImage(sprite('ev_trap'), x, y - 4); });
+      revPut('ev_rat_' + (Math.floor(time * 5) % 2), 14, 284, Math.floor(time * 0.5) % 2 === 1);
+      const u = calm ? 0.3 : (time * 0.35) % 1; revPut('ev_rat_' + (Math.floor(time * 8 + 1) % 2), 42 + u * 30, 304, true);
+      if (E.king) { const kx = REVS.rats.kx(E), k = Math.floor(time * 3) % 3; revPut('ev_rat_king_' + (Math.floor(time * 3) % 2), kx - 11, 268, Math.cos(E.t * 0.5) > 0); fx.drawImage(sprite('sparkle'), Math.round(kx - 8 + k * 6), 262 + (k % 2) * 3); }   /* strutting just above the holes */
+    },
+    top(E) { revCost(E, 148, 252); revTag(44, 272, 'dried lots −2% a min', { fg: '#FFF4E4', size: 10 }); },
+    click(E, lx, ly) {
+      if (scene() !== 'mill') return false;
+      if (E.king) { const kx = REVS.rats.kx(E); if (revInBox(lx, ly, [kx - 11, 267, 22, 15], 3)) { E.king = false; revSfx('rare'); floats.push({ x: kx, y: 266, text: 'the king, trapped!', t: 0 }); if (E.set.length >= E.tails.length) revEnd(true); return true; } }
+      const j = RAT_HOLES.findIndex(([x, y]) => revInBox(lx, ly, [x, y - 2, 10, 9], 3));
+      if (j < 0) return false;
+      if (E.set.includes(j)) return true;
+      if (!E.tails.includes(j)) { revSfx('miss'); floats.push({ x: RAT_HOLES[j][0] + 5, y: RAT_HOLES[j][1] - 4, text: 'empty', t: 0 }); return true; }
+      E.set.push(j); revSfx('trap'); floats.push({ x: RAT_HOLES[j][0] + 5, y: RAT_HOLES[j][1] - 4, text: 'trap set', t: 0 });
+      if (E.set.length >= E.tails.length && !E.king) revEnd(true); return true;
+    },
+    done: 'rats trapped!', gone: () => 'The rats have had their fill of the mill and moved on'
+  },
+  power: { name: 'Power cut', short: 'Power cut', map: 'roast', cos: 'oillamp', rareCos: 'candles', ok: () => roasteryOpen(),
+    start(E) { E.n = S.prestige >= 3 ? 4 : 3; E.order = Array.from({ length: E.n }, (_, k) => k).sort(() => Math.random() - 0.5); E.step = 0; E.open = false; },
+    valid: () => roasteryOpen(), here: () => scene() === 'roast',
+    sw: (E, k) => { const w = 64 / E.n; return [32 + k * w + 1, 140, w - 2, 34]; },
+    box: () => [4, 120, 100, 74],
+    point: (E) => { if (!E.open) return [FUSE_AT[0] + 8, FUSE_AT[1]]; const b = REVS.power.sw(E, E.order[E.step]); return [b[0] + b[2] / 2, b[1]]; },
+    warn: (E) => 'The roastery\'s power is out!' + (E.rare ? ' Candles are lit along the counter.' : '') + ' Roasters run slow and the crack can\'t be caught',
+    how: (E) => (E.open ? 'Flip the switches in the order they blink (' + E.step + '/' + E.n + ')' : 'Tap the fuse box on the wall'),
+    tick(E, d) { S.roastery.roasters.forEach((r) => { r.start += d * 1000 / 3; }); },   /* every roaster at two-thirds speed */
+    draw(E, time) {
+      fx.fillStyle = 'rgba(10,14,40,0.62)'; fx.fillRect(0, 0, W, H);
+      const g = fx.createRadialGradient(14, 155, 1, 14, 155, 30); g.addColorStop(0, 'rgba(255,224,140,0.5)'); g.addColorStop(1, 'rgba(255,224,140,0)'); fx.fillStyle = g; fx.fillRect(0, 115, 60, 80);
+      if (E.rare) [[124, 128], [150, 128], [176, 128]].forEach(([x, y], i) => { const gl = fx.createRadialGradient(x + 2, y + 1, 1, x + 2, y + 1, 16); gl.addColorStop(0, 'rgba(255,214,120,0.5)'); gl.addColorStop(1, 'rgba(255,214,120,0)'); fx.fillStyle = gl; fx.fillRect(x - 16, y - 16, 36, 36); fx.drawImage(sprite('ev_candle_' + (Math.floor(time * 5 + i) % 2)), x, y); });
+      fx.drawImage(sprite(E.rare ? 'ev_fusebox_brass' : 'ev_fusebox'), FUSE_AT[0], FUSE_AT[1]);
+      if (!E.open) return;
+      fx.fillStyle = '#1E140C'; fx.fillRect(26, 122, 76, 70); fx.fillStyle = E.rare ? '#B88428' : '#6E7478'; fx.fillRect(28, 124, 72, 66); fx.fillStyle = '#3A3E42'; fx.fillRect(30, 126, 68, 62);
+      const blink = E.order[Math.floor(time * 1.6) % (E.n + 1)];
+      for (let k = 0; k < E.n; k++) {
+        const [x, y, w, h] = REVS.power.sw(E, k), on = E.order.indexOf(k) < E.step;
+        if (k === blink && !on) { fx.fillStyle = '#F2C04A'; fx.fillRect(x - 1, y - 1, w + 2, h + 2); }
+        fx.fillStyle = '#1E1E22'; fx.fillRect(x, y, w, h); fx.fillStyle = E.rare ? '#F4F0E4' : '#9AA0A4'; fx.fillRect(x + 2, y + 2, w - 4, h - 4);
+        fx.fillStyle = on ? '#5AC85A' : '#E84A3A'; fx.fillRect(x + Math.round(w / 2) - 3, on ? y + 5 : y + h - 15, 6, 10);
+      }
+    },
+    top(E) {
+      if (E.open) for (let k = 0; k < E.n; k++) { const b = REVS.power.sw(E, k), at = E.order.indexOf(k); revTag(b[0] + b[2] / 2, 132, at < E.step ? '✓' : String(at + 1), { fg: at === E.step ? '#3E2A1C' : '#FFF4E4', bg: at === E.step ? '#F2C04A' : '#3E2A1C', size: 12 }); }
+      revCost(E, 146, 112); revTag(146, 126, 'roasters at ⅔ speed', { fg: '#FFF4E4', size: 10 });
+    },
+    click(E, lx, ly) {
+      if (scene() !== 'roast') return false;
+      if (revInBox(lx, ly, [FUSE_AT[0], FUSE_AT[1], 16, 15], 3)) { if (!E.open) { E.open = true; revSfx('open'); } return true; }
+      if (!E.open) return false;
+      for (let k = 0; k < E.n; k++) if (revInBox(lx, ly, REVS.power.sw(E, k), 1)) {
+        if (k !== E.order[E.step]) { E.step = 0; revSfx('wrong'); floats.push({ x: lx, y: ly - 6, text: 'wrong order: start again', t: 0 }); return true; }
+        E.step += 1; revSfx(E.step >= E.n && E.rare ? 'rare' : 'flip', E.step); if (E.step >= E.n) revEnd(true); return true;
+      }
+      return revInBox(lx, ly, [26, 122, 76, 70], 0);
+    },
+    done: 'lights on!', gone: () => 'The power came back on by itself'
+  },
+  fire: { name: 'Roaster fire', short: 'Fire', map: 'roast', cos: 'firebell', rareCos: 'scorch', ok: () => roasteryOpen() && S.roastery.roasters.length > 0,
+    start(E) { const R = S.roastery.roasters, i = Math.floor(Math.random() * Math.min(R.length, BAYS.length)); E.fid = Date.now() + Math.random(); R[i].fid = E.fid; E.bay = i; E.left = 60; E.grab = false; E.spray = 0; E.need = 4; E.burnt = false; },
+    valid: () => roasteryOpen(), here: () => scene() === 'roast',
+    bx: (E) => BAYS[Math.min(E.bay, BAYS.length - 1)],
+    box: (E) => { const x = REVS.fire.bx(E); return [x, BAY_Y, Math.max(EXT_AT[0] + 6, x + 26) - x, 30]; },   /* the roaster and the extinguisher */
+    point: (E) => (E.grab ? [REVS.fire.bx(E) + 13, BAY_Y] : [EXT_AT[0] + 3, EXT_AT[1]]),
+    warn: (E) => (E.rare ? 'Blue flames! ' : '') + 'Roaster ' + (E.bay + 1) + ' is on fire!' + (E.burnt ? '' : ' Its batch burns in ' + Math.ceil(E.left) + ' s'),
+    how: (E) => (E.grab ? 'Spray the burning roaster (' + E.spray + '/' + E.need + ')' : 'Grab the extinguisher by the shelf'),
+    tick(E, d) {
+      const R = S.roastery.roasters, i = R.findIndex((r) => r.fid === E.fid);
+      if (i > -1) { E.bay = i; R[i].start += d * 1000; E.left -= d; if (E.left <= 0) { R.splice(i, 1); E.burnt = true; floats.push({ x: REVS.fire.bx(E) + 13, y: BAY_Y, text: 'batch burnt!', t: 0 }); } }   /* stopped, and lost at 60 s */
+    },
+    draw(E, time) {
+      const x = REVS.fire.bx(E), fl = E.rare ? 'ev_flame_blue_' : 'ev_flame_', dim = E.spray / E.need;
+      for (let k = 0; k < 4; k++) { const u = calm ? k / 4 : (time * 0.45 + k / 4) % 1; fx.globalAlpha = 0.85 * (1 - u) * (1 - dim * 0.6); fx.drawImage(sprite('ev_smoke_dark'), Math.round(x + 4 + Math.sin(u * 6 + k) * 3), Math.round(BAY_Y - 18 - u * 40)); }
+      fx.globalAlpha = 1 - dim * 0.5; revPut(fl + (Math.floor(time * 7) % 2), x + 2, BAY_Y - 12); revPut(fl + (Math.floor(time * 7 + 1) % 2), x + 12, BAY_Y - 7, true); fx.globalAlpha = 1;
+      if (E.spray) fx.drawImage(sprite('ev_foam'), x + 6, BAY_Y + 22);
+      if (!E.grab) fx.drawImage(sprite('ev_extinguisher'), EXT_AT[0], EXT_AT[1]);
+    },
+    top(E, time) {
+      const x = REVS.fire.bx(E) + 14;
+      if (!E.burnt) { ctx.save(); ctx.lineWidth = 4; ctx.strokeStyle = '#3E2A1C'; ctx.beginPath(); ctx.arc(x * 2, 220, 20, 0, 7); ctx.stroke(); ctx.strokeStyle = '#F07A64'; ctx.beginPath(); ctx.arc(x * 2, 220, 20, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * E.left / 60); ctx.stroke(); ctx.restore(); revTag(x, 110, '0:' + String(Math.ceil(E.left)).padStart(2, '0'), { fg: '#FFF4E4', size: 11 }); }
+      else revTag(x, 110, 'batch burnt', { fg: '#FFB4A0', size: 11 });
+      if (E.grab) revTag(EXT_AT[0] + 3, EXT_AT[1] + 4, 'in hand', { fg: '#F2C04A', size: 9 });
+      revCost(E, 150, 104);
+    },
+    click(E, lx, ly) {
+      if (scene() !== 'roast') return false;
+      if (!E.grab && revInBox(lx, ly, [EXT_AT[0], EXT_AT[1], 6, 11], 4)) { E.grab = true; revSfx('grab'); floats.push({ x: EXT_AT[0] + 3, y: EXT_AT[1] - 2, text: 'got it', t: 0 }); return true; }
+      const x = REVS.fire.bx(E);
+      if (revInBox(lx, ly, [x, BAY_Y - 14, 26, 58], 0)) {
+        if (!E.grab) { SFX.play('nope'); floats.push({ x: x + 13, y: BAY_Y - 4, text: 'grab the extinguisher first', t: 0 }); return true; }
+        E.spray += 1; revSfx(E.spray >= E.need && E.rare ? 'rare' : 'spray'); revGone.push({ map: 'roast', spr: 'ev_foam', x: x + 6, y: BAY_Y + 4 + E.spray * 4, vx: 0, vy: 6, t: 0, life: 1, fade: true });
+        if (E.spray >= E.need) { const r = S.roastery.roasters.find((q) => q.fid === E.fid); if (r) delete r.fid; revEnd(true); } return true;
+      }
+      return false;
+    },
+    done: 'fire out!', gone: () => 'The fire in the roaster burnt itself out'
+  },
+  typhoon: { name: 'Typhoon warning', short: 'Typhoon', map: 'farm', special: true, cos: 'shutters', rareCos: null, ok: () => tyRainy().length > 0 && S.rev.tyKey !== S.season.key,
+    start(E) {
+      const ls = tyRainy().length ? tyRainy() : revFarms(); E.loc = ls[Math.floor(Math.random() * ls.length)]; E.rare = false; S.rev.tyKey = S.season.key;
+      const f = S.farms[E.loc], low = f.shrubs.map((s, i) => i).filter((i) => i >= 16 && i < Math.min(32, f.shrubs.length));
+      E.stakes = (low.length >= 2 ? low : f.shrubs.map((s, i) => i)).sort(() => Math.random() - 0.5).slice(0, 2); E.staked = [];
+      E.tarpN = Math.min(4, Math.min(RACK_SHOWN, racks())); E.tarped = []; E.plants = roasteryOpen() ? false : null; E.warnT = 120; E.end = 240;
+    },
+    valid: (E) => S.farms[E.loc].unlocked,
+    mapOf(E) { const d = tyDone(E); return !d.farm ? 'farm' : !d.mill ? 'mill' : 'roast'; },
+    here(E) { const d = tyDone(E), sc = scene(); return (sc === 'farm' && S.loc === E.loc && !d.farm) || (sc === 'mill' && !d.mill) || (sc === 'roast' && !d.roast); },
+    shows: (E, sc) => sc !== 'farm' || S.loc === E.loc,   /* the storm is drawn on the mill, the roastery and the farm it's coming for */
+    storm: (E) => E.t >= E.warnT,
+    box(E) { const sc = scene(), f = S.farms[E.loc]; return sc === 'mill' ? [7, 96, 4 * 46 - 6, 16] : sc === 'roast' ? PLANTS_AT : unionBox(E.stakes.map((i) => shrubBox(f, i))); },
+    point(E) { const sc = scene(), f = S.farms[E.loc]; if (sc === 'mill') { const k = Array.from({ length: E.tarpN }, (_, i) => i).find((i) => !E.tarped.includes(i)); return k === undefined ? null : [rackAt(k).x + 20, rackAt(k).y]; } if (sc === 'roast') return [PLANTS_AT[0] + 13, PLANTS_AT[1]]; const i = E.stakes.find((j) => !E.staked.includes(j)); return i === undefined ? null : [f.shrubs[i].x + 9, f.shrubs[i].y]; },
+    clock: (E) => { const s = Math.max(0, Math.ceil((E.t < E.warnT ? E.warnT : E.end) - E.t)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); },
+    warn: (E) => (E.t < E.warnT ? 'A typhoon hits in ' + REVS.typhoon.clock(E) + '! Batten down every map' : 'The typhoon is here! ' + REVS.typhoon.clock(E) + ' left'),
+    how(E) { const sc = scene(); return (E.t < E.warnT ? 'Typhoon in ' + REVS.typhoon.clock(E) + ': ' : 'Storm: ') + (sc === 'mill' ? 'tarp the racks (' + E.tarped.length + '/' + E.tarpN + ')' : sc === 'roast' ? 'bring in the plants' : 'stake the young bushes (' + E.staked.length + '/' + E.stakes.length + ')'); },
+    tick(E) { const d = tyDone(E); if (d.farm && d.mill && d.roast) revEnd(true); else if (E.t >= E.end) revEnd(false); },
+    draw(E, time) {
+      const sc = scene(), f = S.farms[E.loc]; if (!REVS.typhoon.shows(E, sc)) return;
+      fx.fillStyle = E.t >= E.warnT ? 'rgba(18,28,58,0.45)' : 'rgba(18,28,58,0.3)'; fx.fillRect(0, 0, W, H);
+      if (sc === 'farm') E.staked.forEach((i) => { const s = f.shrubs[i]; if (s) { fx.drawImage(sprite('ev_stake'), s.x + 3, s.y + 9); fx.drawImage(sprite('ev_stake'), s.x + 13, s.y + 9); } });
+      if (sc === 'mill') E.tarped.forEach((i) => { const r = rackAt(i); fx.drawImage(sprite('ev_tarp'), r.x, r.y); fx.drawImage(sprite('ev_tarp'), r.x, r.y + 5); });
+      revRain(time, E.t >= E.warnT ? 120 : 70);
+    },
+    top(E, time) {
+      const sc = scene(), d = tyDone(E), f = S.farms[E.loc]; if (!REVS.typhoon.shows(E, sc)) return;
+      const ty = sc === 'farm' ? 208 : sc === 'mill' ? 132 : 254;   /* the countdown and the three maps' ticks, clear of each map's targets */
+      revTag(96, ty, (E.t < E.warnT ? 'TYPHOON IN ' : 'TYPHOON · ') + REVS.typhoon.clock(E), { fg: '#F2C04A', size: 14 });
+      revTag(50, ty + 16, 'Farm' + (d.farm ? ' ✓' : ''), { fg: d.farm ? '#A8C86A' : '#FFF4E4', size: 11 }); revTag(96, ty + 16, 'Mill' + (d.mill ? ' ✓' : ''), { fg: d.mill ? '#A8C86A' : '#FFF4E4', size: 11 }); if (E.plants !== null) revTag(146, ty + 16, 'Roastery' + (d.roast ? ' ✓' : ''), { fg: d.roast ? '#A8C86A' : '#FFF4E4', size: 11 });
+      if (sc === 'farm' && !d.farm) E.stakes.forEach((i, k) => { if (!E.staked.includes(i) && f.shrubs[i]) revRing(f.shrubs[i].x + 9, f.shrubs[i].y + 14, 6, time + k * 0.4); });
+      if (sc === 'mill' && !d.mill) for (let i = 0; i < E.tarpN; i++) if (!E.tarped.includes(i)) revRing(rackAt(i).x + 20, rackAt(i).y + 6, 7, time + i * 0.3);
+      if (sc === 'roast' && !d.roast) revRing(PLANTS_AT[0] + 13, PLANTS_AT[1] + 11, 12, time);
+    },
+    click(E, lx, ly) {
+      const sc = scene(), f = S.farms[E.loc], d = tyDone(E), fin = (k) => { if (tyDone(E)[k]) { revSfx('done'); floats.push({ x: 96, y: 120, text: { farm: 'farm', mill: 'mill', roast: 'roastery' }[k] + ' battened down', t: 0 }); } };
+      if (sc === 'farm' && S.loc === E.loc && !d.farm) { const i = E.stakes.find((j) => !E.staked.includes(j) && revInBox(lx, ly, shrubBox(f, j), 1)); if (i !== undefined) { E.staked.push(i); revSfx('stake'); fin('farm'); return true; } }
+      if (sc === 'mill' && !d.mill) { const k = Array.from({ length: E.tarpN }, (_, i) => i).find((i) => !E.tarped.includes(i) && revInBox(lx, ly, [rackAt(i).x, rackAt(i).y - 4, 40, 22], 0)); if (k !== undefined) { E.tarped.push(k); revSfx('tarp'); fin('mill'); return true; } }
+      if (sc === 'roast' && !d.roast && revInBox(lx, ly, PLANTS_AT, 2)) { E.plants = true; revSfx('plants'); fin('roast'); return true; }
+      return false;
+    },
+    done: 'battened down!', gone: () => 'The typhoon has passed'
+  }
+});
+REVS.hornets.ok = () => racks() >= 3;   /* mill events once there are 3 racks */
+Object.assign(REV_COSM, {
+  lens: { name: 'Agronomist\'s lens charm', pic: 'charm_evlens', where: 'on your nameplate (Looks)', own: () => !!S.sitems.charm.evlens, give() { S.sitems.charm.evlens = true; }, on: () => S.look.charm === 'evlens', flip() { S.look.charm = S.look.charm === 'evlens' ? '' : 'evlens'; } },
+  seedling: { name: 'Rust-proof seedling', pic: 'ev_bush_silver', where: 'in a pot by the farmhouse on every farm', own: () => S.rev.show.seedling !== undefined, give() { S.rev.show.seedling = true; }, on: () => !!S.rev.show.seedling, flip() { S.rev.show.seedling = !S.rev.show.seedling; } },
+  plush: { name: 'Monkey plush', pic: 'ev_plush', where: 'by the barn on every farm', own: () => S.rev.show.plush !== undefined, give() { S.rev.show.plush = true; }, on: () => !!S.rev.show.plush, flip() { S.rev.show.plush = !S.rev.show.plush; } },
+  capuchin: { name: 'Capuchin plush', pic: 'ev_capuchin', where: 'on the barn roof on every farm', own: () => S.rev.show.capuchin !== undefined, give() { S.rev.show.capuchin = true; }, on: () => !!S.rev.show.capuchin, flip() { S.rev.show.capuchin = !S.rev.show.capuchin; } },
+  scarecrow: { name: 'Patched scarecrow', pic: 'ev_scarecrow_0', where: 'by the fields on every farm', own: () => S.rev.show.scarecrow !== undefined, give() { S.rev.show.scarecrow = true; }, on: () => !!S.rev.show.scarecrow, flip() { S.rev.show.scarecrow = !S.rev.show.scarecrow; } },
+  magpie: { name: 'Magpie\'s nest', pic: 'ev_magpie_sit', where: 'on the scarecrow\'s hat', own: () => S.rev.show.magpie !== undefined, give() { S.rev.show.magpie = true; }, on: () => !!S.rev.show.magpie, flip() { S.rev.show.magpie = !S.rev.show.magpie; } },
+  catflap: { name: 'Cat flap', pic: 'ev_catflap', where: 'in the mill shed', own: () => S.rev.show.catflap !== undefined, give() { S.rev.show.catflap = true; }, on: () => !!S.rev.show.catflap, flip() { S.rev.show.catflap = !S.rev.show.catflap; } },
+  crown: { name: 'The king rat\'s crown', pic: 'ev_crown', where: 'on the mill\'s patio sign', own: () => S.rev.show.crown !== undefined, give() { S.rev.show.crown = true; }, on: () => !!S.rev.show.crown, flip() { S.rev.show.crown = !S.rev.show.crown; } },
+  oillamp: { name: 'Oil lantern', pic: 'ev_lantern_oil', where: 'by the roastery counter', own: () => S.rev.show.oillamp !== undefined, give() { S.rev.show.oillamp = true; }, on: () => !!S.rev.show.oillamp, flip() { S.rev.show.oillamp = !S.rev.show.oillamp; } },
+  candles: { name: 'Café candles', pic: 'ev_candle_0', where: 'on the roastery café tables', own: () => S.rev.show.candles !== undefined, give() { S.rev.show.candles = true; }, on: () => !!S.rev.show.candles, flip() { S.rev.show.candles = !S.rev.show.candles; } },
+  firebell: { name: 'Brass fire bell', pic: 'ev_firebell', where: 'on the roastery wall', own: () => S.rev.show.firebell !== undefined, give() { S.rev.show.firebell = true; }, on: () => !!S.rev.show.firebell, flip() { S.rev.show.firebell = !S.rev.show.firebell; } },
+  scorch: { name: 'Fire roast drum plate', pic: 'ev_scorch', where: 'on your first roaster', own: () => S.rev.show.scorch !== undefined, give() { S.rev.show.scorch = true; }, on: () => !!S.rev.show.scorch, flip() { S.rev.show.scorch = !S.rev.show.scorch; } },
+  shutters: { name: 'Storm shutters', pic: 'ev_shutters', where: 'on the roastery windows', own: () => S.rev.show.shutters !== undefined, give() { S.rev.show.shutters = true; }, on: () => !!S.rev.show.shutters, flip() { S.rev.show.shutters = !S.rev.show.shutters; } }
+});
+/* companions: one in 100 stopped events brings one you don't have yet, to follow your farmer */
+const REV_PETS = { piglet: ['Piglet', 'ev_piglet'], capuchin: ['Capuchin', 'ev_capuchin'], crow: ['Tame crow', 'ev_crow_sit'], millcat: ['Mill cat', 'ev_millcat'], dalmatian: ['Fire-station dalmatian', 'ev_dalmatian'] };
+const pet = { x: 0, y: 0, sc: '', flip: false };
+function drawPet(o, sc) {   /* the companion trots after your farmer, a step behind */
+  const id = S.rev.pet; if (!id || !REV_PETS[id] || !o) return;
+  if (pet.sc !== sc) { pet.sc = sc; pet.x = o.x - 12; pet.y = o.y; }
+  const tx = o.x + (o.flip ? 12 : -12), ty = o.y, dx = tx - pet.x, dy = ty - pet.y; pet.x += dx * 0.06; pet.y += dy * 0.06; if (Math.abs(dx) > 0.5) pet.flip = dx > 0;
+  const s = sprite(REV_PETS[id][1]), hop = Math.hypot(dx, dy) > 2 ? Math.round(Math.abs(Math.sin(Date.now() / 120)) * 2) : 0;
+  revPut(REV_PETS[id][1], pet.x - s.width / 2, pet.y - s.height - hop, pet.flip);
+}
+function revDecor(sc, time) {   /* the keepsakes on each map */
+  const sh = S.rev.show;
+  if (sc === 'farm') {
+    if (sh.seedling) { fx.fillStyle = '#3E2A1C'; fx.fillRect(178, 94, 14, 6); fx.fillStyle = '#B85A30'; fx.fillRect(179, 95, 12, 4); fx.drawImage(sprite('ev_bush_silver'), 176, 74); }
+    if (sh.plush) fx.drawImage(sprite('ev_plush'), 85, 80);
+    if (sh.capuchin) { const s = ART.sprites[storeSprite(S.lv.storage)], y = s.rows.findIndex((r) => /[^.]/.test(r)); if (S.lv.storage >= 4) fx.drawImage(sprite('ev_capuchin'), STORE_AT.x + 24, STORE_AT.y + y - 10); else fx.drawImage(sprite('ev_capuchin'), 84, 68); }
+    if (sh.scarecrow || sh.magpie) { if (sh.scarecrow) fx.drawImage(sprite('ev_scarecrow_0'), 88, 202); else { fx.fillStyle = '#76502A'; fx.fillRect(95, 210, 2, 14); } if (sh.scarecrow) { fx.fillStyle = '#8A6440'; fx.fillRect(93, 213, 2, 2); fx.fillStyle = '#4878C8'; fx.fillRect(99, 214, 2, 1); } if (sh.magpie) fx.drawImage(sprite('ev_magpie_sit'), 90, sh.scarecrow ? 195 : 202); }
+  } else if (sc === 'mill') {
+    if (sh.catflap) fx.drawImage(sprite('ev_catflap'), 142, 35);
+    if (sh.crown) fx.drawImage(sprite('ev_crown'), 107, 47);   /* on top of the patio sign */
+  } else {
+    if (sh.shutters) [[6, 320], [56, 320], [112, 320], [164, 320]].forEach(([x, y]) => { fx.drawImage(sprite('ev_shutters'), x, y); fx.drawImage(sprite('ev_shutters'), x, y + 11); });
+    if (sh.firebell) fx.drawImage(sprite('ev_firebell'), 94, 44);
+    if (sh.scorch && roasterCount() > 0) { fx.fillStyle = '#2A1A12'; fx.fillRect(BAYS[0] + 8, BAY_Y + 19, 10, 3); fx.fillStyle = '#E8602A'; fx.fillRect(BAYS[0] + 8, BAY_Y + 19, 10, 1); }
+    const hr = S.minutes / 60, night = hr >= 18 || hr < 6;
+    if (sh.oillamp) { fx.drawImage(sprite('ev_lantern_oil'), 104, 120); if (night) { const gl = fx.createRadialGradient(108, 126, 1, 108, 126, 16); gl.addColorStop(0, 'rgba(255,200,110,0.5)'); gl.addColorStop(1, 'rgba(255,200,110,0)'); fx.fillStyle = gl; fx.fillRect(92, 110, 32, 32); } }
+    if (sh.candles) [[130, 206], [168, 206], [130, 248], [168, 248], [42, 229]].forEach(([x, y], i) => fx.drawImage(sprite('ev_candle_' + (Math.floor(time * 5 + i) % 2)), x, y));
+  }
+}
 function revSfx(name, n) { if (revH) revH.hit(name, n); }
 function revStart(id, opt) {   /* a random event now; opt.rare forces the rare variant or the usual one (the Test tab) */
   const R = S.rev; if (R.cur) return false;
-  if (!id) { const ids = Object.keys(REVS).filter((k) => REVS[k].ok()); id = ids[Math.floor(Math.random() * ids.length)]; }
-  const D = REVS[id]; if (!D || !D.ok()) return false;
+  if (!id) { const ids = Object.keys(REVS).filter((k) => !REVS[k].special && REVS[k].ok()); id = REVS.typhoon.ok() && Math.random() < 0.15 ? 'typhoon' : ids[Math.floor(Math.random() * ids.length)]; }   /* the typhoon takes a regular event's place, at most once a season */
+  const D = REVS[id]; if (!D || !(D.ok() || (opt && opt.force && D.special))) return false;   /* force: the Test tab's typhoon, out of season */
   const rare = opt && opt.rare !== undefined ? !!opt.rare : Math.random() < REV_RARE * (R.boost > Date.now() ? 2 : 1);
   const E = { id, rare, t: 0, cost: 0, at: Date.now() }; D.start(E); R.cur = E; R.seen = true; revSessEv = true;
   revHere = null; revSyncSound();
@@ -2107,7 +2446,9 @@ function revReward(E) {   /* only cosmetics: a keepsake on the fifth stop, a rar
   L.n += E.rare && L.rare ? 2 : 1; if (E.rare) L.rare += 1;   /* a rare one counts double after the first */
   R.total += 1; R.streak += 1; R.best = Math.max(R.best, R.streak);
   if (E.rare) got.push(revGive(D.rareCos));
-  if (L.n >= REV_COS) got.push(revGive(D.cos));
+  if (L.n >= (D.special ? 1 : REV_COS)) got.push(revGive(D.cos));   /* the typhoon's comes on the first stop: the next may be a month away */
+  if (!S.sitems.title['ev:trouble'] && Object.keys(REVS).every((k) => REVS[k].special || ((R.log[k] || {}).n || 0) >= REV_COS)) { S.sitems.title['ev:trouble'] = true; got.push('the Troubleshooter title'); }
+  if (Math.random() < 0.01) { R.pets = R.pets || {}; const left = Object.keys(REV_PETS).filter((k) => !R.pets[k]); if (left.length) { const k = left[Math.floor(Math.random() * left.length)]; R.pets[k] = true; if (!R.pet) R.pet = k; got.push('a ' + REV_PETS[k][0].toLowerCase() + ' companion'); } }
   if (R.streak === 10) R.boost = Date.now() + 3600e3;
   if (R.streak === 25 && !S.sitems.title['ev:steady']) { S.sitems.title['ev:steady'] = true; got.push('the Steady hands title'); }
   const b = D.box(E), x = b[0] + b[2] / 2, y = b[1] + 4, gifts = got.filter(Boolean);
@@ -2150,13 +2491,14 @@ function revSyncSound() {   /* the event's loop plays until it ends, muffled whe
 document.addEventListener('visibilitychange', () => { if (!document.hidden) revHere = null; });   /* back from another app: loud again if it's on screen */
 function revDraw(sc, time) {   /* in map pixels, under the night tint */
   const E = S.rev.cur;
-  if (E && REVS[E.id].here(E)) REVS[E.id].draw(E, time);
+  const D = E && REVS[E.id]; if (E && (D.shows ? D.shows(E, sc) : D.here(E))) D.draw(E, time);
   revGone.forEach((g) => { if (g.map !== sc || (g.loc && g.loc !== S.loc)) return; if (g.fade) fx.globalAlpha = Math.max(0, 1 - g.t / g.life); revPut(g.anim ? g.spr + (Math.floor(time * 10) % 2) : g.spr, g.x, g.y, false); fx.globalAlpha = 1; });
 }
-function revTop(sc, time) { const E = S.rev.cur; if (E && REVS[E.id].here(E)) REVS[E.id].top(E, time); else revChips = []; }   /* labels at full size, over the night tint */
+function revTop(sc, time) { const E = S.rev.cur, D = E && REVS[E.id]; if (E && (D.shows ? D.shows(E, sc) : D.here(E))) D.top(E, time); else revChips = []; }   /* labels at full size, over the night tint */
 function revClick(lx, ly) { const E = S.rev.cur; return !!E && REVS[E.id].click(E, lx, ly); }
-function revGo() { const E = S.rev.cur; if (!E) return; const m = REVS[E.id].map; if (m === 'farm') S.loc = E.loc; setTab(m, true); revShown = ''; }   /* the guide bar's Go: to the event's map, the sheet put away */
-const revDot = (m) => { const E = (S.rev || {}).cur; return !!E && REVS[E.id].map === m && !revIsHere(); };
+function revGo() { const E = S.rev.cur; if (!E) return; const m = revMap(E); if (m === 'farm') S.loc = E.loc; setTab(m, true); revShown = ''; }   /* the guide bar's Go: to the event's map, the sheet put away */
+const revMap = (E) => (REVS[E.id].mapOf ? REVS[E.id].mapOf(E) : REVS[E.id].map);
+const revDot = (m) => { const E = (S.rev || {}).cur; return !!E && revMap(E) === m && !revIsHere(); };
 const REV_HUD = '#hearts, #hudLevel, .hud-r .clock > *, #hudCoins, #hudCranes, #hudStore, #sfxBtn, #musicBtn, #gearBtn, #goldGo, #crackGo';
 function revCovered(b) {   /* is part of this map box under the HUD, or under the guide bar floating over the map? */
   const r = cv.getBoundingClientRect(), k = r.width / W, L = r.left + b[0] * k, T = r.top + b[1] * k, Rt = L + b[2] * k, B = T + b[3] * k;
@@ -2186,13 +2528,15 @@ function revFlame(x, y) {   /* the streak flame beside your name tag, five or mo
   const rows = ['..o..', '.oo..', '.ooo.', 'ooyoo', 'oyYyo', 'oyYYo', '.ooo.'], col = { o: '#E8602A', y: '#F2A040', Y: '#FFE27A' }, lick = Math.floor(Date.now() / 160) % 2;
   rows.forEach((r, j) => { for (let i = 0; i < 5; i++) { const c = r[lick && j < 2 ? 4 - i : i]; if (c !== '.') { ctx.fillStyle = col[c]; ctx.fillRect(x + i * 2, y + j * 2, 2, 2); } } });
 }
-function revPage() {   /* Ranks › Records: each event, how often you've stopped it, and its keepsakes */
-  const R = S.rev; let h = '<h3>Random events</h3><p class="note">Trouble turns up now and then while you play. Stop it for keepsakes: one after ' + REV_COS + ' stops of the same event, and a rare one for stopping its rare variant. ' + fmt(R.total) + ' stopped · ' + R.streak + ' in a row now · best ' + R.best + (R.boost > Date.now() ? ' · rare events twice as likely for ' + Math.ceil((R.boost - Date.now()) / 60e3) + ' min' : '') + '.</p>';
-  Object.keys(REVS).filter((id) => REVS[id].ok() || (R.log[id] || {}).n).forEach((id) => {
-    const D = REVS[id], L = R.log[id] || { n: 0, rare: 0 }, c = REV_COSM[D.cos], rc = REV_COSM[D.rareCos];
-    const chips = [D.cos, D.rareCos].filter((k) => REV_COSM[k].own()).map((k) => [REV_COSM[k].pic, REV_COSM[k].name, 'revshow:' + k, REV_COSM[k].on() ? 'on' : 'off']);
-    h += row(img(c.pic, 30), D.name, 'Stopped ' + L.n + (L.n === 1 ? ' time' : ' times') + (c.own() ? '' : ' · ' + Math.min(L.n, REV_COS) + '/' + REV_COS + ' for the ' + c.name.toLowerCase()) + (rc.own() ? '' : ' · rare variant: the ' + rc.name.toLowerCase()), '') + doneStrip(chips, chips.length ? 'Tap to show or hide.' : '', '✓ Yours', 'own');
+function revPage() {   /* Ranks › Records: each event, how often you've stopped it, its keepsakes, and your companions */
+  const R = S.rev; let h = '<h3>Random events</h3><p class="note">Trouble turns up now and then while you play. Stop it for keepsakes: one after ' + REV_COS + ' stops of the same event, and a rare one for stopping its rare variant. One stop in 100 brings a companion. ' + fmt(R.total) + ' stopped · ' + R.streak + ' in a row now · best ' + R.best + (R.boost > Date.now() ? ' · rare events twice as likely for ' + Math.ceil((R.boost - Date.now()) / 60e3) + ' min' : '') + '.</p>';
+  Object.keys(REVS).filter((id) => (REVS[id].ok() && !REVS[id].special) || (R.log[id] || {}).n).forEach((id) => {
+    const D = REVS[id], L = R.log[id] || { n: 0, rare: 0 }, c = REV_COSM[D.cos], rc = D.rareCos && REV_COSM[D.rareCos];
+    const chips = [D.cos, D.rareCos].filter((k) => k && REV_COSM[k].own()).map((k) => [REV_COSM[k].pic, REV_COSM[k].name, 'revshow:' + k, REV_COSM[k].on() ? 'on' : 'off']);
+    h += row(img(c.pic, 30), D.name, 'Stopped ' + L.n + (L.n === 1 ? ' time' : ' times') + (c.own() ? '' : D.special ? ' · the ' + c.name.toLowerCase() + ' on the first stop' : ' · ' + Math.min(L.n, REV_COS) + '/' + REV_COS + ' for the ' + c.name.toLowerCase()) + (!rc || rc.own() ? '' : ' · rare variant: the ' + rc.name.toLowerCase()), '') + doneStrip(chips, chips.length ? 'Tap to show or hide.' : '', '✓ Yours', 'own');
   });
+  const pets = Object.keys(REV_PETS).filter((k) => (R.pets || {})[k]);
+  if (pets.length) h += '<h3>Companions</h3>' + doneStrip(pets.map((k) => [REV_PETS[k][1], REV_PETS[k][0], 'revpet:' + k, R.pet === k ? 'on' : 'off']), 'One follows your farmer at a time. Tap to choose, or tap again to leave them at home.', '✓ Yours', 'own');
   return h;
 }
 function nameTag(x, y) {   /* your name tag, in your tier's colour, with stars past the top tier */
@@ -2279,7 +2623,7 @@ function draw(time) {
   if (!f.field) fx.drawImage(sprite('sign'), 134, 168);
   fx.drawImage(sprite(storeSprite(S.lv.storage)), STORE_AT.x, STORE_AT.y);
   if (S.lv.storage > 5) { fx.fillStyle = '#F2C04A'; for (let k = 0; k < S.lv.storage - 5; k++) fx.fillRect(STORE_AT.x + 4 + k * 4, STORE_AT.y + 1, 2, 2); }   /* a gold mark for each level past the barn */
-  revVane();
+  revVane(); revDecor('farm', time);
   if (stored() >= cap() && Math.floor(time * 2) % 2 === 0) fx.drawImage(sprite('bubble_full'), STORE_AT.x + 12, STORE_AT.y - 8);
   const gold = golden && golden.loc === S.loc && f.shrubs[golden.i];
   const things = f.shrubs.map((s) => ({ y: s.y + 22, s })).concat(f.workers.map((w) => ({ y: w.y, w })), [{ y: f.dog.y, dog: f.dog }], f.manager ? [{ y: f.manager.y, mg: f.manager }] : [], [{ y: me.y, me: true }]);
@@ -2323,7 +2667,7 @@ function draw(time) {
       }
     }
   });
-  revDraw('farm', time);
+  drawPet(me, 'farm'); revDraw('farm', time);
   aura.forEach((a) => { fx.globalAlpha = Math.max(0, 1 - a.t / 1.6); fx.fillStyle = { leaf: '#7ED0A8', petal: '#F8B8CC', ember: a.t < 0.5 ? '#FFD070' : '#E8602A', gold: (Math.floor(a.t * 8) % 2) ? '#FFF4B0' : '#F2C04A' }[a.kind]; fx.fillRect(Math.round(a.x), Math.round(a.y), a.kind === 'petal' ? 2 : 1, 1); });
   fx.globalAlpha = 1;
   bursts.forEach((p) => { fx.fillStyle = p.c; fx.fillRect(Math.round(p.x), Math.round(p.y), 1, 1); });
@@ -2480,7 +2824,7 @@ function tickRoast(d) {
     if (repLevel() >= 6) spots.push({ x: 146, y: 110 });
     h.path = [spots[Math.floor(rnd() * spots.length)]]; h.t = 2 + rnd() * 3; h.state = 'idle';
   } else { h.dir = h.y < 80 ? 'up' : h.x < 60 && h.y > 160 ? 'side' : 'up'; h.flip = true; h.work += d; }
-  if (RS.bags.length && !revOn('karen') && (R.guestT -= d) <= 0) { R.guestT = 25 + rnd() * 25; roastGuest(Object.keys(RBUYERS)[Math.floor(rnd() * 3)], false); }   /* window shoppers */
+  if (RS.bags.length && !revOn('karen') && !revStorm('roast') && (R.guestT -= d) <= 0) { R.guestT = 25 + rnd() * 25; roastGuest(Object.keys(RBUYERS)[Math.floor(rnd() * 3)], false); }   /* window shoppers */
   for (let i = R.guests.length - 1; i >= 0; i--) {
     const g = R.guests[i];
     if (step(g, d, 22)) continue;
@@ -2526,7 +2870,7 @@ function drawGuy(o) {
 const moreRacks = () => racks() < RACK_SHOWN && !!S.tabs.upgrades && (S.lv.racks < RACK_COUNT || LOCS.some((l) => S.farms[l].unlocked && (S.farms[l].build.drybeds || 0) < buildMax()));   /* a rack can still be added */
 function drawMill(time) {
   const M = IN.mill, things = [], shown = Math.min(RACK_SHOWN, racks()), bySlot = rackSlots();
-  revLamp(time);
+  revLamp(time); revDecor('mill', time);
   if (moreRacks()) { const r = rackAt(racks()); fx.globalAlpha = 0.3; fx.drawImage(sprite('mill_rack'), r.x, r.y); fx.globalAlpha = 1; fx.fillStyle = '#F2C04A'; fx.fillRect(r.x + 18, r.y + 7, 5, 1); fx.fillRect(r.x + 20, r.y + 5, 1, 5); }   /* the next rack's spot */
   for (let i = 0; i < shown; i++) things.push({ y: rackAt(i).y + 18, rack: i });
   M.hands.concat(M.fore ? [M.fore] : [], [M.me], M.carry).forEach((o) => o && things.push({ y: o.y, o }));
@@ -2554,7 +2898,7 @@ function drawRoast(time) {
   const kg = Object.values(RS.beans).reduce((a, b) => a + b.kg, 0), sacks = kg > 0 ? Math.min(12, Math.max(1, Math.ceil(kg / 15))) : 0;
   for (let k = 0; k < sacks; k++) { const row = Math.floor(k / 3); fx.drawImage(sprite('gsack'), 4 + (k % 3) * 12 + (row % 2) * 6, 182 - row * 7); }
   if (repLevel() >= 6) fx.drawImage(sprite('cup_lab'), 124, 84);
-  drawNoren(); drawProps(time);
+  drawNoren(); drawProps(time); revDecor('roast', time);
   for (let k = 0; k < masterStars(); k++) { fx.fillStyle = '#F2C04A'; fx.fillRect(106 + (k % 5) * 3, 3 + Math.floor(k / 5) * 3, 2, 2); }   /* master roaster stars above the menu board */
   for (let i = 0; i < BAYS.length; i++) {
     if (i >= roasterCount()) continue;
@@ -2598,7 +2942,7 @@ function drawInside(sc, time) {
   fx.imageSmoothingEnabled = false;
   if (b.complete && b.naturalWidth) fx.drawImage(b, 0, 0); else { fx.fillStyle = '#C89A64'; fx.fillRect(0, 0, W, H); }
   if (sc === 'mill') drawMill(time); else drawRoast(time);
-  revDraw(sc, time);
+  drawPet(sc === 'roast' ? IN.roast.me : IN.mill.me, sc); revDraw(sc, time);
   bursts.forEach((p) => { fx.fillStyle = p.c; fx.fillRect(Math.round(p.x), Math.round(p.y), 1, 1); });
   const hr = S.minutes / 60, k = sc === 'roast' ? 0.45 : 1;   /* the roastery is indoors, so night only dims it a little */
   const tint = hr >= 20 || hr < 5 ? 'rgba(30,40,110,' + (0.38 * k).toFixed(2) + ')' : hr >= 17.5 ? 'rgba(240,120,40,' + ((0.08 + (hr - 17.5) * 0.06) * k).toFixed(2) + ')' : hr < 7 ? 'rgba(240,150,170,' + (0.14 * k).toFixed(2) + ')' : null;
@@ -2832,6 +3176,7 @@ function cupAll() {
 }
 function crackRoast(i) {
   const r = S.roastery.roasters[i]; if (!r || r.crack) return;
+  if (revOn('power')) { SFX.play('nope'); floats.push({ x: BAYS[Math.min(i, BAYS.length - 1)] + 13, y: BAY_Y, text: 'no power', t: 0 }); return; }   /* a power cut: no catching the crack */
   r.crack = inCrack(r) ? 1 : 2; r.auto = false; SFX.play(r.crack === 1 ? 'achieve' : 'nope'); if (r.crack === 1) { S.rcos.cracks = (S.rcos.cracks || 0) + 1; task('crack', 1); r.start = Date.now() - r.dur; }   /* a perfect crack finishes the roast on the spot */
   toast(r.crack === 1 ? 'Perfect crack! +15 quality, and the roast is done' + ((r.cw || 0.16) * r.dur / 1000 < 4 ? '. A very tight window, well caught' : '') : roastP(r) < 0.7 ? 'Too early: listen for the crack at about 70%' : 'Too late: the crack has passed');
   if (scene() === 'roast' && i < BAYS.length) floats.push({ x: BAYS[i] + 13, y: BAY_Y - 2, text: r.crack === 1 ? 'perfect!' : roastP(r) < 0.7 ? 'too early' : 'too late', t: 0 });
@@ -2907,7 +3252,7 @@ function staffTick() {
   if (rq) held.add(rq);
   S.contracts.filter((c) => c.boat).forEach((c) => { let need = c.kg - c.have; S.lots.forEach((l) => { if (need > 0 && l.left <= 0 && !held.has(l) && fits(c, l)) { held.add(l); need -= l.kg * 0.2; } }); });
   for (let i = S.lots.length - 1; i >= 0; i--) {
-    const l = S.lots[i]; if (l.left > 0 || held.has(l)) continue;
+    const l = S.lots[i]; if (l.left > 0 || held.has(l) || revOn('rats')) continue;   /* rats in the sacks: nothing loads */
     if (roasteryFeedWants() && canBin(l.v + '.' + l.method)) { toRoastery(i, true); continue; }   /* keeps the roastery's green store topped up when asked */
     const c = S.staff.agent && buyersOn() && S.contracts.find((x) => !x.boat && fits(x, l));
     if (c) deliver(i, c.id, true, 0, agentPay()); else sellLot(i, true, foremanPay());
@@ -3919,7 +4264,7 @@ function renderPanel() {
     h += '<h3>Simulate a bejucoffee.com order</h3><div class="seg">' + Object.keys(COFFEES).map((k) => '<button type="button" data-act="order:' + k + '">' + COFFEES[k].name + '</button>').join('') + '</div>';
     h += '<div class="stamps">' + LOCS.map((l) => '<img src="' + url('stamp_' + l) + '" alt="' + ART.locations[l].name + (S.stamps[l] ? ', stamped' : ', not yet') + '" class="' + (S.stamps[l] ? '' : 'off') + ((S.goldStamps || {})[l] ? ' gold' : '') + '">').join('') + '</div>';
     h += '<h3>Resources</h3><div class="seg"><button type="button" data-act="add:coins">+1,000 coins</button><button type="button" data-act="add:bigcoins">+25,000 coins</button><button type="button" data-act="add:contracts">New contracts</button><button type="button" data-act="add:checkin">Next real day</button><button type="button" data-act="add:drop">Start a drop event</button><button type="button" data-act="add:season">End the season</button><button type="button" data-act="add:stars">+50 season stars</button><button type="button" data-act="add:guide">Restart guide</button><button type="button" data-act="add:points">+2,000 know-how</button><button type="button" data-act="add:cranes">+50 cranes</button><button type="button" data-act="add:vars">All varieties</button><button type="button" data-act="add:xp">+1 level</button><button type="button" data-act="add:cherries">Fill storage</button><button type="button" data-act="add:stamp">Next passport stamp</button><button type="button" data-act="add:sample">Next free sample</button><button type="button" data-act="add:days">+20 check-in days</button></div>';
-    h += '<h3>Random events</h3><div class="seg">' + Object.keys(REVS).filter((k) => REVS[k].ok()).map((k) => '<button type="button" data-act="revtest:' + k + '">' + REVS[k].name + '</button><button type="button" data-act="revtest:' + k + '.rare">' + REVS[k].name + ' (rare)</button>').join('') + '</div>';
+    h += '<h3>Random events</h3><div class="seg">' + Object.keys(REVS).map((k) => '<button type="button" data-act="revtest:' + k + '">' + REVS[k].name + '</button>' + (REVS[k].rareCos ? '<button type="button" data-act="revtest:' + k + '.rare">' + REVS[k].name + ' (rare)</button>' : '')).join('') + '</div>';
     h += '<h3>Time</h3><div class="seg"><button type="button" data-act="away:1">Away 1 h</button><button type="button" data-act="away:4">Away 4 h</button><button type="button" data-act="away:12">Away 12 h</button><button type="button" data-act="day">Next day</button></div>';
     h += '<h3>Game speed</h3><div class="seg">' + [1, 3, 10].map((x) => '<button type="button" data-act="speed:' + x + '" aria-pressed="' + (S.speed === x) + '">×' + x + '</button>').join('') + '</div>';
     h += '<h3>Weather</h3><div class="seg">' + ['auto', 'harvest', 'rainy', 'spring', 'summer', 'autumn', 'winter'].map((x) => '<button type="button" data-act="season:' + x + '" aria-pressed="' + (S.seasonPick === x) + '">' + x + '</button>').join('') + '</div><p class="note">Harvest and rainy apply to the coffee farms; spring to winter apply to Osaka.</p>';
@@ -3951,7 +4296,7 @@ document.addEventListener('click', (e) => {
   setTimeout(() => {   /* sound for the action, once its effect is known */
     const spent = S.coins + S.points + S.cranes < wallet;
     const BUY = { hire: 'hire', up: 'buy', build: 'build', mgr: 'hire', foreman: 'hire', agent: 'hire', var: 'achieve', farm: 'achieve', method: 'achieve', buyhat: 'achieve', master: 'buy', research: 'achieve', tech: 'achieve', buychar: 'achieve', buybskin: 'achieve', boost: 'crane', decor: 'achieve', fxbuy: 'achieve', mktbuy: 'achieve' };
-    const ALWAYS = { pin: 'tick', fx: 'tick', dv: 'tick', dailysub: 'tick', stickersall: 'tick', derbyall: 'tick', hidestickers: 'tick', ranktab: 'tick', ranksub: 'tick', revshow: 'tick', revgo: 'click', millview: 'tick', millsub: 'tick', untab: 'tick', crest: 'tick', skin: 'tick', bg: 'tick', char: 'tick', bskin: 'build', bskinall: 'build', rename: 'tick', nameset: 'tick', mvol: 'tick', uptab: 'tick', shoptab: 'tick', hat: 'tick', rule: 'tick', mv: 'tick', speed: 'tick', season: 'tick', go: 'click', bed: 'click', skip: 'page', plant: 'dig', task: 'coins', weekly: 'crane', order: 'crane', sellraw: 'coins', add: 'xp' };
+    const ALWAYS = { pin: 'tick', fx: 'tick', dv: 'tick', dailysub: 'tick', stickersall: 'tick', derbyall: 'tick', hidestickers: 'tick', ranktab: 'tick', ranksub: 'tick', revshow: 'tick', revgo: 'click', revpet: 'tick', millview: 'tick', millsub: 'tick', untab: 'tick', crest: 'tick', skin: 'tick', bg: 'tick', char: 'tick', bskin: 'build', bskinall: 'build', rename: 'tick', nameset: 'tick', mvol: 'tick', uptab: 'tick', shoptab: 'tick', hat: 'tick', rule: 'tick', mv: 'tick', speed: 'tick', season: 'tick', go: 'click', bed: 'click', skip: 'page', plant: 'dig', task: 'coins', weekly: 'crane', order: 'crane', sellraw: 'coins', add: 'xp' };
     if (BUY[a] && spent) SFX.play(BUY[a]); else if (a === 'decor' && decorOwned) SFX.play('tick'); else if (ALWAYS[a]) SFX.play(ALWAYS[a]);
   }, 0);
   if (a === 'hire') { if (f.workers.length < maxPickers(f) && spend('coins', hireCost())) { addWorker(f); guideStep('hire'); } }   /* the new picker walks onto the farm */
@@ -4015,7 +4360,8 @@ document.addEventListener('click', (e) => {
   else if (a === 'ranksub') S.rankSub = v;
   else if (a === 'revgo') revGo();
   else if (a === 'revshow') { if (REV_COSM[v] && REV_COSM[v].own()) REV_COSM[v].flip(); }
-  else if (a === 'revtest') { if (S.rev.cur) { S.rev.cur = null; revSyncSound(); } const [id, rr] = v.split('.'); if (revStart(id, { rare: rr === 'rare' })) revGo(); }
+  else if (a === 'revtest') { if (S.rev.cur) { S.rev.cur = null; revSyncSound(); } const [id, rr] = v.split('.'); if (revStart(id, { rare: rr === 'rare', force: true })) revGo(); else toast(REVS[id].name + ' can\'t happen yet: ' + ({ hornets: 'it needs 3 racks', rats: 'it needs 3 racks', karen: 'the roastery isn\'t open', power: 'the roastery isn\'t open', fire: 'no roaster is roasting' })[id] || 'not yet'); }
+  else if (a === 'revpet') { if ((S.rev.pets || {})[v]) S.rev.pet = S.rev.pet === v ? '' : v; }
   else if (a === 'tier') { if (+v <= tierAt(S.season.stars)) grantTier(S.season.key, +v); }
   else if (a === 'tierall') { for (let n = 1; n <= tierAt(S.season.stars); n++) grantTier(S.season.key, n, true); SFX.play('achieve'); toast('Season track rewards claimed'); }
   else if (a === 'lookhat') { if (!v || S.hats[v]) S.look.hat = v; }
@@ -4164,7 +4510,7 @@ function refreshHud() {
   { const fl = barLvInfo(), on = !!fl;   /* a farm's level, or the roastery's reputation, beside the name, and a line along the bar to what comes next */
     $('locLv').hidden = $('locLvBar').hidden = !on;
     if (on) { const t = fl.badge; if ($('locLv').textContent !== t) $('locLv').textContent = t; $('locLvBar').firstChild.style.width = fl.pct + '%'; $('locTap').setAttribute('aria-label', fl.text); } else $('locTap').removeAttribute('aria-label'); }
-  { const E = (S.rev || {}).cur, d = E && REVS[E.id].map === 'farm' && E.loc !== S.loc ? (LOCS.indexOf(E.loc) - LOCS.indexOf(S.loc) + LOCS.length) % LOCS.length : 0;   /* the arrow the short way to a farm with trouble */
+  { const E = (S.rev || {}).cur, d = E && revMap(E) === 'farm' && E.loc !== S.loc ? (LOCS.indexOf(E.loc) - LOCS.indexOf(S.loc) + LOCS.length) % LOCS.length : 0;   /* the arrow the short way to a farm with trouble */
     $('nextLoc').classList.toggle('evt', d > 0 && d <= LOCS.length / 2); $('prevLoc').classList.toggle('evt', d > LOCS.length / 2); }
   if (sc === 'mill') { $('locName').textContent = 'Dry mill'; $('locBeds').textContent = S.lots.length + ' / ' + racks() + ' racks in use · ' + fmtKg(stored()) + ' kg of cherries waiting'; }
   if (sc === 'roast') { $('locName').textContent = 'Roastery, Osaka'; $('locBeds').textContent = S.roastery.roasters.length + ' / ' + roasterCount() + ' roasting · ' + S.roastery.bags.length + ' bags on the shelf'; }

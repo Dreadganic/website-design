@@ -12,7 +12,7 @@ const ok = (c, msg) => { console.log((c ? 'PASS ' : 'FAIL ') + msg); if (!c) pro
   await p.goto('file://' + file); await p.waitForTimeout(800);
   const clean = () => p.evaluate(() => { const T = window.__T; for (let i = 0; i < 8; i++) T.closeModal(); document.getElementById('modal').hidden = true; });
   // a farmer past the lessons, at prestige 1 with the roastery open
-  await p.evaluate(() => { const T = window.__T, S = T.S; S.name = S.nameOk = 'Tess'; S.guide = T.GUIDE.length; S.prestige = 1; Object.keys(S.tabs).forEach((k) => { S.tabs[k] = true; }); S.nav = null; S.navSeen = new Proxy({}, { get: () => true }); S.pwalkDone = true; });
+  await p.evaluate(() => { const T = window.__T, S = T.S; S.name = S.nameOk = 'Tess'; S.guide = T.GUIDE.length; S.prestige = 1; S.lv.racks = 3; Object.keys(S.tabs).forEach((k) => { S.tabs[k] = true; }); S.nav = null; S.navSeen = new Proxy({}, { get: () => true }); S.pwalkDone = true; });
   for (let k = 0; k < 3; k++) { await clean(); await p.waitForTimeout(200); }
   await p.mouse.click(5, 300);   /* the first tap starts the sound */
   const E = () => p.evaluate(() => JSON.parse(JSON.stringify(window.__T.S.rev.cur)));
@@ -68,7 +68,7 @@ const ok = (c, msg) => { console.log((c ? 'PASS ' : 'FAIL ') + msg); if (!c) pro
   ok(await p.evaluate(() => { const f = window.__T.S.farms.mogiana; return f.shrubs.every((s, i) => !window.__T.revBlocked(f, i)); }), 'the pickers can go back in');
 
   // hornets: the swarmed rack stops drying, the nest takes 5 taps
-  await p.evaluate(() => { const T = window.__T, S = T.S; S.cherries.caturra = 400; S.lots = []; T.startLot('caturra', 'washed'); T.rackSlots(); S.rev.cur = null; T.revStart('hornets', { rare: false }); T.setTab('mill', true); });
+  await p.evaluate(() => { const T = window.__T, S = T.S; S.cherries.caturra = 400; S.lots = []; T.startLot('caturra', 'washed'); T.rackSlots(); S.rev.cur = null; T.revStart('hornets', { rare: false }); const E = S.rev.cur, k = T.rackSlots().indexOf(S.lots[0]), r = T.rackAt(k); E.swarm = [k]; E.nest = [r.x + 14, r.y + 12]; T.setTab('mill', true); });   /* the nest by the lot's rack */
   await p.waitForTimeout(600); await clean();
   e = await E();
   ok(e && e.id === 'hornets' && e.need === 5 && e.swarm.length >= 1, 'hornets: a nest by rack ' + (e && e.swarm[0]) + ', 5 taps to smoke it out, ' + (e && e.swarm.length) + ' rack(s) swarmed');

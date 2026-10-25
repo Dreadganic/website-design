@@ -746,6 +746,21 @@ spr('hivelamp', {'O': O, 'm': '#5A4630', 'g': '#F8D060', 'G': '#E0A830', 'd': '#
  '..OddO..',
  '...OO...'])
 
+spr('crown', {'O': O, 'g': '#F2C04A', 'G': '#B88428', 'r': '#D84A36', 'w': '#FFF4B0'}, [   # the king rat's crown, kept on the mill blackboard
+ 'O.O.O.O',
+ 'OgOwOgO',
+ 'OgggggO',
+ 'OgrgrGO',
+ 'OOOOOOO'])
+
+spr('scorch', {'O': O, 'k': '#2A1A12', 'K': '#4A2A1A', 'f': '#E8602A', 'y': '#F8B848'}, [   # the fire-roast drum plate, for its chip
+ '.OOOOOOOOOO.',
+ 'OfyffyffyffO',
+ 'OkKkkKkkKkkO',
+ 'OkkKkkKkkKkO',
+ 'OkKkkKkkKkkO',
+ '.OOOOOOOOOO.'])
+
 json.dump(S, open(os.path.join(HERE, 'event-sprites.json'), 'w'), indent=1)
 
 # contact sheet at 4x on the game's cream
