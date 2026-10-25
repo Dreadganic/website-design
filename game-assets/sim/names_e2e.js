@@ -59,13 +59,19 @@ const ok = (c, msg) => { console.log((c ? 'PASS ' : 'FAIL ') + msg); if (!c) pro
   ok(await gone(B) && await holder('Kenji') === await B.evaluate(() => window.__T.NET.acct.player), 'Kenji is free');
 
   // renaming in Settings: a taken name is refused, a free one frees the old
-  await B.evaluate(() => { const T = window.__T; T.S.guide = T.GUIDE.length; for (let i = 0; i < 6; i++) T.closeModal(); });
+  await B.evaluate(() => { const T = window.__T; T.S.guide = T.GUIDE.length; T.S.cranes = 100; for (let i = 0; i < 6; i++) T.closeModal(); });
   await B.click('#gearBtn'); await B.waitForTimeout(400);
   ok(await B.evaluate(() => !!document.querySelector('#panel #nameIn')), 'Settings has the name box');
   await type(B, '#nameIn', 'mika');
   ok(/Another farmer is already called mika/.test(await B.evaluate(() => document.getElementById('toast').innerText)), 'Settings refuses a taken name');
+  ok(await B.evaluate(() => window.__T.S.cranes) === 100, 'a refused name costs nothing');
+  await B.evaluate(() => { window.__T.S.cranes = 30; }); await B.waitForTimeout(1200);
+  await type(B, '#nameIn', 'Ken');
+  ok(await B.evaluate(() => window.__T.S.name) === 'Kenji' && /costs 50 cranes/.test(await B.evaluate(() => document.getElementById('toast').innerText)), 'a new name costs 50 cranes: refused with 30');
+  await B.evaluate(() => { window.__T.S.cranes = 80; }); await B.waitForTimeout(1200);
   await type(B, '#nameIn', 'Ken');
   ok(await B.evaluate(() => window.__T.S.name) === 'Ken' && !(await holder('Kenji')), 'Ken saved, and Kenji is free again');
+  ok(await B.evaluate(() => window.__T.S.cranes) === 30, 'and it took 50 cranes');
 
   // the board shows both, once each
   await A.evaluate(() => { window.__T.NET.lastScore = ''; window.__T.NET.lastKey = ''; }); await B.evaluate(() => { window.__T.NET.lastScore = ''; window.__T.NET.lastKey = ''; });
