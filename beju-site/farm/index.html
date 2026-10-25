@@ -3994,19 +3994,18 @@ function staffTick() {
     const c = S.staff.agent && buyersOn() && S.contracts.find((x) => !x.boat && fits(x, l));
     if (c) deliver(i, c.id, true, 0, agentPay()); else sellLot(i, true, foremanPay());
   }
-  /* when to start a lot: a big lot pays the same drying time as a small one, so the foreman waits for a good-sized lot: a full rack, or a quarter
-     of the store if that's less, so racks fill and a rack upgrade shows.
-     He starts sooner when a buyer is waiting for that coffee (just enough to fill the contract), when half the racks stand empty,
-     or when a rack has sat empty for a minute */
+  /* when to start a lot: a big lot pays the same drying time as a small one, so the foreman fills each rack as full as he can (lots are at
+     most a rack, the coffee with the most waiting goes first), but never leaves a rack empty for want of a full one: a quarter rack will do.
+     He starts sooner when a buyer is waiting for that coffee (enough to fill the contract, if that's less), or when no lot has started for a minute (anything) */
   const ok = Object.keys(METHODS).filter((k) => S.methods[k]), byPay = (a, b) => METHODS[b].mult - METHODS[a].mult;
   const buyer = (v) => S.staff.agent && buyersOn() && S.contracts.find((c) => (!c.v || c.v === v) && c.have < c.kg && (!c.method || S.methods[c.method]) && ok.some((k) => (!c.method || c.method === k) && cupFor(v, k) >= c.minCup));
   let guard = 0;
   const keep = reqWaiting() ? 1 : 0;   /* a request waiting to be started keeps a rack free for you */
   while (S.lots.length < racks() - keep && stored() > 0 && guard++ < 8) {
-    const free = racks() - S.lots.length, idle = S.minutesTotal - (S.millT || 0) > REAL_MIN, full = stored() >= cap() * 0.9, lot = Math.min(rackCap(), cap() / 4);
+    const idle = S.minutesTotal - (S.millT || 0) > REAL_MIN, full = stored() >= cap() * 0.9;
     const pick = Object.keys(S.cherries).filter((v) => S.cherries[v] >= 10).map((v) => ({ v, c: buyer(v) }))
       .sort((a, b) => (!!b.c - !!a.c) || S.cherries[b.v] - S.cherries[a.v])
-      .find(({ v, c }) => full || S.cherries[v] >= (c ? Math.min(lot, Math.max(10, (c.kg - c.have) / 0.2)) : idle || free * 2 >= racks() ? Math.max(10, Math.min(lot, cap() * 0.05)) : Math.max(10, lot)));
+      .find(({ v, c }) => full || S.cherries[v] >= (c ? Math.max(10, Math.min(rackCap() / 4, (c.kg - c.have) / 0.2)) : idle ? 10 : Math.max(10, rackCap() / 4)));   /* a free rack takes any coffee with a quarter rack waiting, biggest first. (Waiting for a full rack, or 5% of the store, left racks empty late on: the store grows faster than a picking of one coffee, and the cherries are split across several) */
     if (!pick) break;
     const own = hasPerk('notebook') && S.staff.rules && S.methods[S.staff.rules[pick.v]] ? S.staff.rules[pick.v] : null;   /* Foreman's ledger: a process per coffee */
     let method = own || (S.staff.rule !== 'best' && S.methods[S.staff.rule] ? S.staff.rule : ok.slice().sort(byPay)[0]);
