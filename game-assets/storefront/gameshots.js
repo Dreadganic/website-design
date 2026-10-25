@@ -6,6 +6,7 @@ const fs = require('fs'), path = require('path');
 const [test, out] = process.argv.slice(2);
 const SP = JSON.parse(fs.readFileSync(path.join(__dirname, 'shop-sprites.json'), 'utf8')), game = JSON.parse(fs.readFileSync(path.join(__dirname, '../sprites.json'), 'utf8')).sprites;
 Object.keys(game).forEach((k) => { if (/^(worker_|bag_)/.test(k) || k === 'sparkle') SP[k] = game[k]; });
+SP.karen = JSON.parse(fs.readFileSync(path.join(__dirname, '../events/event-sprites.json'), 'utf8')).karen;   /* Karen, from the random events */
 let html = fs.readFileSync(test, 'utf8');
 [['  drawHint(sc, time);', '  drawHint(sc, time); if (window.__sfDraw) window.__sfDraw(ctx, sc, time);'],
  ["function guideBar() {\n  const el = $('guide'), arrow = $('garrow');", "function guideBar() {\n  const el = $('guide'), arrow = $('garrow'); if (window.__guide) { el.hidden = false; setHTML(el, window.__guide); arrow.hidden = true; return; }"],
@@ -23,6 +24,7 @@ const SHOTS = [   // [scene, guide line, header line, targets key]
   ['chain', '<span class="gstep">Counter 3:05</span><span class="gtext">Aya wants light ×2: roasting now, 68 s</span>', 'Counter open · 3:05 · ★★★★', 'open'],
   ['walkout', '<span class="gstep">Counter 2:10</span><span class="gtext">A walk-out (1 of 3). Watch their patience bars</span>', 'Counter open · 2:10 · ★★★', 'open'],
   ['regular', '<span class="gstep">Counter 1:30</span><span class="gtext">Kenji is in: medium ×2, his 9th visit</span>', 'Counter open · 1:30 · ★★★★', 'open'],
+  ['karen', '<span class="gstep">Karen</span><span class="gtext">She\'s holding up the queue! Pick the reply that settles her</span>', 'Counter open · 2:40 · ★★★', 'karen'],
   ['cooldown', '<span class="gstep">Counter</span><span class="gtext">Closed: 14 served, +186,400 coins. Opens again in 24:10</span>', 'Reputation 6 · counter opens in 24:10', 'ready']];
 (async () => {
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });

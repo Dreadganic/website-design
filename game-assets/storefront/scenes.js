@@ -53,10 +53,10 @@ function guy(c, t, x, y, look, dir, moving, off) {   /* a customer standing at (
   put(c, 'worker_' + (dir || 'up') + '_' + fr, x - 8, y - 23, { pal: LOOK[look], flip: dir === 'side' && moving === 'left' });
 }
 function bubble(c, x, y, o, t) {   /* an order over a customer's head: the bag in its roast's colour, how many, and their patience along the bottom */
-  const w = o.n > 1 ? 26 : 18, X = (x - w / 2) * Z, Y = y * Z, H = 17 * Z, shake = o.angry && animOn ? Math.round(Math.sin(t * 40) * 2) : 0;
+  const w = o.n > 1 ? 26 : 18, tx = x; x = Math.min(x, 191 - w / 2); const X = (x - w / 2) * Z, Y = y * Z, H = 17 * Z, shake = o.angry && animOn ? Math.round(Math.sin(t * 40) * 2) : 0;
   c.save(); c.translate(shake, 0);
   c.fillStyle = '#3E2A1C'; rr(c, X - 2, Y - 2, w * Z + 4, H + 4, 7); c.fill(); c.fillStyle = o.angry ? '#FFE4DC' : o.regular ? '#FFF6D8' : '#FFFFFF'; rr(c, X, Y, w * Z, H, 6); c.fill();
-  c.fillStyle = '#3E2A1C'; c.beginPath(); c.moveTo((x - 3) * Z, Y + H); c.lineTo((x + 3) * Z, Y + H); c.lineTo(x * Z, Y + H + 8); c.closePath(); c.fill();
+  c.fillStyle = '#3E2A1C'; c.beginPath(); c.moveTo((tx - 3) * Z, Y + H); c.lineTo((tx + 3) * Z, Y + H); c.lineTo(tx * Z, Y + H + 8); c.closePath(); c.fill();   /* the tail still points at them, at the map's edge */
   put(c, 'bag_' + o.roast, x - w / 2 + 2, y + 1.5, {});
   if (o.n > 1) { c.font = '700 14px "Zen Kaku Gothic New", system-ui, sans-serif'; c.fillStyle = '#3E2A1C'; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillText('×' + o.n, (x - w / 2 + 15) * Z, Y + 7 * Z); }
   const p = Math.max(0, Math.min(1, o.patience)), bw = (w - 4) * Z; c.fillStyle = 'rgba(62,42,28,0.25)'; c.fillRect(X + 2 * Z, Y + H - 4 * Z, bw, 2 * Z);
@@ -107,6 +107,17 @@ const SCENES = {
     seated(c, t); mugs(c, 2); put(c, 'sign_open', SIGN_AT[0], SIGN_AT[1]);
     guy(c, t, QUEUE[0][0], QUEUE[0][1], 'kenji', 'up', false); bubble(c, QUEUE[0][0], 143, { roast: 'medium', n: 2, patience: 0.8, regular: true }, t);
     put(c, 'stamp_card', QUEUE[0][0] - 7, 128 - (animOn ? (t * 6) % 6 : 2)); tag(c, 140, 206, 'Kenji · visit 9 of 10', { fg: '#F2C04A', size: 10 }); tag(c, 40, 216, 'mugs: Kenji, Aya', { fg: '#FFF4E4', size: 9 }); } },
+  karen: { label: 'Karen in the queue', draw(c, t) {   /* Karen walks in during service and takes the front of the queue: nobody is served until she's settled, and the others' patience keeps draining */
+    seated(c, t); mugs(c, 0); put(c, 'sign_open', SIGN_AT[0], SIGN_AT[1]);
+    const dr = animOn ? (t * 0.05) % 1 : 0.3;
+    put(c, 'karen', QUEUE[0][0] - 8, QUEUE[0][1] - 24 + (frame(t, 3, 2) ? 0 : -1));
+    [['konbini', 'medium', 3, 0.5], ['cafe', 'light', 2, 0.35]].forEach(([lk, roast, n, p], i) => { guy(c, t, QUEUE[i + 1][0], QUEUE[i + 1][1], lk, 'up', false); bubble(c, QUEUE[i + 1][0], BUB_Y[i + 1], { roast, n, patience: Math.max(0.05, p - dr * 0.4), angry: p - dr * 0.4 < 0.2 }, t); });
+    c.font = '600 13px "Pixelify Sans", monospace'; const msg = 'I waited FOREVER!', w = c.measureText(msg).width + 16, X = 112 * Z - w / 2, Y = 128 * Z;
+    c.fillStyle = '#3E2A1C'; rr(c, X - 2, Y - 2, w + 4, 30, 7); c.fill(); c.fillStyle = '#FFFFFF'; rr(c, X, Y, w, 26, 6); c.fill();
+    c.fillStyle = '#3E2A1C'; c.beginPath(); c.moveTo(X + w - 22, Y + 26); c.lineTo(X + w - 8, Y + 26); c.lineTo(QUEUE[0][0] * Z, 158 * Z); c.closePath(); c.fill();
+    c.fillStyle = '#C8402E'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(msg, X + w / 2, Y + 14);
+    ['Sorry! Yours is next', "We're very busy today", "It's only been a minute"].forEach((r, i) => tag(c, 136, 194 + i * 14, r, { bg: '#F4E6C6', fg: '#3E2A1C', edge: '#6E4624', size: 11 }));
+    tag(c, 60, 236, 'queue held up', { fg: '#FFB4A0', size: 10 }); } },
   cooldown: { label: 'Back soon', draw(c, t) {   /* closed: the summary is in, the sign flips to BACK SOON and counts down */
     seated(c, t); mugs(c, 0); put(c, 'sign_closed', SIGN_AT[0], SIGN_AT[1]); tag(c, SIGN_AT[0] + 10, SIGN_AT[1] - 8, 'opens in 24:10', { fg: '#FFF4E4', size: 10 });
     tag(c, 150, 196, 'served 14 · +186,400 coins', { fg: '#F2C04A', size: 11 }); } }
