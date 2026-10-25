@@ -68,8 +68,23 @@ test("scores: impossible jumps are rejected", async () => {
   assert.equal((await call(score, "POST", s(0, 0, 1200), a)).body.error, "too_soon");
   clock += 30000;
   assert.equal((await call(score, "POST", s(0, 0, 9e6), a)).body.error, "too_fast");
-  assert.equal((await call(score, "POST", s(1, 1, 0), a)).body.error, "prestige_without_level");
+  assert.equal((await call(score, "POST", s(1, 1, 0), a)).body.error, "prestige_too_fast");
+  clock += 16 * 60e3; assert.equal((await call(score, "POST", s(0, 0, 1500), a)).status, 200);
+  clock += 30000; assert.equal((await call(score, "POST", s(1, 1, 0), a)).body.error, "prestige_without_level", "level 2 thirty seconds ago, prestige now: no");
   assert.equal((await call(nameFn, "POST", { name: "www.spam.com" }, a)).body.error, "bad_name");
+});
+
+test("scores: a row that missed a prestige or two catches up once enough time has passed, instead of being stuck", async () => {
+  const a = await newPlayer();
+  const s = (p, sp, pts) => ({ name: "Catcher", prestige: p, seasonP: sp, level: G.levelFor(pts), points: pts });
+  assert.equal((await call(score, "POST", s(0, 0, 1000), a)).status, 200);
+  clock += 20 * 60e3;
+  assert.equal((await call(score, "POST", s(2, 2, 500), a)).body.error, "prestige_jump", "two prestiges in 20 minutes: no");
+  clock += 15 * 60e3;
+  const r = await call(score, "POST", s(2, 2, 500), a);
+  assert.equal(r.status, 200, "two prestiges in 35 minutes, the level never seen: accepted, so the board catches up");
+  clock += 60e3;
+  assert.equal((await call(score, "POST", s(3, 3, 0), a)).body.error, "prestige_too_fast");
 });
 
 test("scores: a real prestige is accepted, but not twice in a few minutes", async () => {

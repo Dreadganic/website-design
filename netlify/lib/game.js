@@ -89,10 +89,10 @@ function checkScore(prev, next, now, fresh) {
   if (dt < RULES.minScoreGapSec) return "too_soon";
   const sameSeason = prev.season === seasonKey(now);
   if (n.prestige < prev.prestige) return "prestige_went_down";
-  if (n.prestige > prev.prestige + 1) return "prestige_jump";
-  if (n.prestige === prev.prestige + 1) {
-    if (prev.level < prestigeNeed(prev.prestige)) return "prestige_without_level";
-    if (now - (prev.prestigeAt || 0) < RULES.minPrestigeGapSec * 1000) return "prestige_too_fast";
+  const steps = n.prestige - prev.prestige;
+  if (steps > 0) {   /* each prestige needs its 15 minutes since the last one the board saw; a row that missed some (a refused or lost score) catches up once enough time has passed, instead of being refused for ever */
+    if (now - (prev.prestigeAt || 0) < steps * RULES.minPrestigeGapSec * 1000) return steps > 1 ? "prestige_jump" : "prestige_too_fast";
+    if (steps === 1 && prev.level < prestigeNeed(prev.prestige) && dt < RULES.minPrestigeGapSec) return "prestige_without_level";   /* the level could have been reached since the last row */
   } else if (n.points > prev.points + RULES.xpPerSecond * dt + RULES.xpBurst) return "too_fast";
   if (sameSeason && n.seasonP > prev.seasonP + (n.prestige - prev.prestige)) return "season_jump";
   const khBase = sameSeason ? prev.seasonKh || 0 : 0;   /* know-how earned this month can only grow as fast as play allows */
