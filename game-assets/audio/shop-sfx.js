@@ -1,4 +1,4 @@
-/* Beju Farm roastery counter sounds (a proposal, not in the game yet), synthesised live on SFX's building blocks like every other game sound.
+/* Beju Farm roastery counter sounds, synthesised live on SFX's building blocks like every other game sound (build.py inlines this after event-sfx.js).
    Usage: ShopSFX.play('open'); ShopSFX.names lists them, ShopSFX.label(name) says what each is for. Follows the game's sound switch and volume. */
 const ShopSFX = (function () {
   'use strict';

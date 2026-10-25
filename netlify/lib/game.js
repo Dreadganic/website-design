@@ -102,6 +102,19 @@ function checkScore(prev, next, now, fresh) {
   return null;
 }
 
+/* The roastery counter on the leaderboard: its rating (1 to 5 stars) and this season's customers, kept to what play allows. The rating moves
+   at most 0.75 a session (6 minutes), and a customer takes at least 20 seconds. Numbers out of reach are trimmed, never a refused score */
+const COUNTER_RULES = { ratingPerSession: 0.75, sessionSec: 360, secPerCustomer: 20, servedBurst: 30 };
+function cleanCounter(prev, c, now, season) {
+  const same = !!prev && prev.cseason === season;
+  if (!c || typeof c !== "object") return { crate: (prev && prev.crate) || 0, cserved: same ? prev.cserved || 0 : 0, cseason: season };   /* an older client: keep what the row had */
+  let rating = Math.round(Math.max(1, Math.min(5, Number(c.rating) || 3)) * 10) / 10, served = Math.max(0, Math.floor(Number(c.served) || 0));
+  const dt = prev ? Math.max(0, (now - prev.at) / 1000) : 0;
+  if (prev && prev.crate) { const move = COUNTER_RULES.ratingPerSession * Math.max(1, dt / COUNTER_RULES.sessionSec); rating = Math.round(Math.max(prev.crate - move, Math.min(prev.crate + move, rating)) * 10) / 10; }
+  served = Math.min(served, (same ? prev.cserved || 0 : 0) + Math.floor(dt / COUNTER_RULES.secPerCustomer) + COUNTER_RULES.servedBurst);
+  return { crate: rating, cserved: served, cseason: season };
+}
+
 /* Names: short, printable, no links, nothing hateful */
 const BLOCK = /(https?:|www\.|\.com|fuck|shit|cunt|nigg|fag|hitler|nazi)/i;   /* keep in step with nameProblem() in the game */
 function cleanName(s) {
@@ -152,10 +165,10 @@ const cleanLook = (l, prestige) => {
   l = l || {};
   const cap = prestige === undefined ? 7 : n(prestige, 7);
   const sid = (x) => String(x || "").replace(/^s_/, ""), now = seasonKey();
-  return { crest: n(l.crest !== undefined ? l.crest : l.plate, cap), skin: cap > 0 ? n(l.skin, 7) : 0, bg: BGS.includes(l.bg) || (/^s_/.test(l.bg || "") && SEASON_IDS.includes(sid(l.bg))) ? l.bg : "none", char: CHARS.includes(l.char) ? l.char : "none",
+  return { crest: prestige === undefined ? n(l.crest !== undefined ? l.crest : l.plate, cap) : cap,   /* the crest is always the highest the prestige has reached */ skin: cap > 0 ? n(l.skin, 7) : 0, bg: BGS.includes(l.bg) || (/^s_/.test(l.bg || "") && SEASON_IDS.includes(sid(l.bg))) ? l.bg : "none", char: CHARS.includes(l.char) ? l.char : "none",
     hat: SEASON_IDS.includes(sid(l.hat)) ? "s_" + sid(l.hat) : "", charm: l.charm === "qgrader" || l.charm === "crack" || l.charm === "founder" ? l.charm : SEASON_IDS.includes(sid(l.charm)) ? sid(l.charm) : "",
     roaster: ROASTER_FINISHES.includes(l.roaster) ? l.roaster : "", pin: TROPHY_ID.test(l.pin || "") ? l.pin : "",
-    title: (/^\d{4}-\d{2}$/.test(l.title || "") && l.title <= now) || /^nbm?:[a-z]{3,16}$|^nbt:(cupper|head|q)$|^rr:(master|crack)$/.test(l.title || "") ? l.title : "" };   /* season titles, and cupping notebook titles */   /* season track cosmetics; a title names a season that has started */
+    title: (/^\d{4}-\d{2}$/.test(l.title || "") && l.title <= now) || /^nbm?:[a-z]{3,16}$|^nbt:(cupper|head|q)$|^rr:(master|crack)$|^ev:(steady|trouble)$|^ct:nbr$/.test(l.title || "") ? l.title : "" };   /* season titles, and cupping notebook titles */   /* season track cosmetics; a title names a season that has started */
 };
 
 /* Trophies: wins the server checks for itself (Cup of Excellence, the Co-op Derby, Harvest Day, season and rookie finishes) and Founding farmer.
@@ -219,7 +232,7 @@ function cleanFarm(f) {
   const dv = {}; if (f.dv && typeof f.dv === "object") Object.keys(f.dv).slice(0, 12).forEach((k) => { if (ID.test(k) && ID.test(f.dv[k] || "")) dv[k] = f.dv[k]; });
   const r = f.rst && typeof f.rst === "object" ? f.rst : null;
   const rst = r ? { room: ID.test(r.room || "") ? r.room : "", fin: ID.test(r.fin || "") ? r.fin : "", noren: ID.test(r.noren || "") ? r.noren : "", label: ID.test(r.label || "") ? r.label : "", apron: ID.test(r.apron || "") ? r.apron : "",
-    props: (Array.isArray(r.props) ? r.props : []).filter((v) => ID.test(v)).slice(0, 8), trim: !!r.trim, n: int(r.n, 0, 4), big: !!r.big, lab: !!r.lab, stars: int(r.stars, 0, 20) } : null;
+    props: (Array.isArray(r.props) ? r.props : []).filter((v) => ID.test(v)).slice(0, 8), trim: !!r.trim, n: int(r.n, 0, 4), big: !!r.big, lab: !!r.lab, stars: int(r.stars, 0, 20), mugs: (Array.isArray(r.mugs) ? r.mugs : []).filter((v) => /^(kenji|aya|tanaka|mika|sora)$/.test(v)).slice(0, 5) } : null;
   return { loc: farms[f.loc] ? f.loc : Object.keys(farms)[0], farms, store: int(f.store, 1, 10), decor: (Array.isArray(f.decor) ? f.decor : []).filter((d) => ID.test(d)).slice(0, 40), spiece: ID.test(f.spiece || "") ? f.spiece : "", perk: !!f.perk,
     fx: (Array.isArray(f.fx) ? f.fx : []).filter((d) => ID.test(d)).slice(0, 3), dv, rst };
 }
@@ -234,4 +247,4 @@ const firstThisMonth = (me, now) => !(me.grants || []).some((g) => g.at && dayJS
 /* passport stamps the server has seen: each coffee stamps the first of its origins not stamped yet, as the game does */
 function addStamps(me, coffees) { me.stamps = me.stamps || []; (coffees || []).forEach((pid) => { const o = (STAMPS[pid] || []).find((x) => !me.stamps.includes(x)); if (o) me.stamps.push(o); }); }
 
-module.exports = { useBlobs, MONTH_BONUS, SUB_BONUS, firstThisMonth, addStamps, SEASON_FIRST, isFounder, TROPHY_ID, trophyRank, trophyId, publicTrophies, addTrophy, cleanFarm, FARM_LOCS, SAMPLE_RULES, SAMPLE_LADDER, dayJST, newSamples, sampleView, savePlayer, json, parse, stores, memoryStore, authed, hash, newId, newToken, XP_AT, levelFor, prestigeNeed, seasonKey, prevSeason, SEASON_JOIN, SEASON_IDS, RULES, checkScore, cleanName, nameKey, genericName, claimName, cleanLook, STAMPS };
+module.exports = { useBlobs, MONTH_BONUS, SUB_BONUS, firstThisMonth, addStamps, SEASON_FIRST, isFounder, TROPHY_ID, trophyRank, trophyId, publicTrophies, addTrophy, cleanFarm, FARM_LOCS, SAMPLE_RULES, SAMPLE_LADDER, dayJST, newSamples, sampleView, savePlayer, json, parse, stores, memoryStore, authed, hash, newId, newToken, XP_AT, levelFor, prestigeNeed, seasonKey, prevSeason, SEASON_JOIN, SEASON_IDS, RULES, checkScore, COUNTER_RULES, cleanCounter, cleanName, nameKey, genericName, claimName, cleanLook, STAMPS };

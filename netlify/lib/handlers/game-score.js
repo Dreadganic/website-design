@@ -1,5 +1,5 @@
-/* POST /.netlify/functions/game-score  { name, prestige, seasonP, seasonKh, seasonStars, level, points, look }  ->  { ok, rank, name } or 422 { error }   (409/422 name errors: pick a name with game-name)
-   GET  /.netlify/functions/game-score?mode=season|rookie|all  ->  { season, top: [...], me? }   (rookie: players in their first season)
+/* POST /.netlify/functions/game-score  { name, prestige, seasonP, seasonKh, seasonStars, level, points, look, counter? { rating, served } }  ->  { ok, rank, name } or 422 { error }   (409/422 name errors: pick a name with game-name)
+   GET  /.netlify/functions/game-score?mode=season|rookie|all|counter  ->  { season, top: [...], me? }   (rookie: players in their first season; counter: this season's customers served at the roastery counter)
    GET  /.netlify/functions/game-score?mode=final&season=YYYY-MM  ->  the closed board of a past season, with the caller's final rank
    The leaderboard. All time ranks by prestige, then level, then points; the season board ranks by season stars, then by who reached that total first (so a bigger farm doesn't win ties).
    The first request of a new season saves the last season's final board as seasons/<key>, before any player's row moves on to the new season.
@@ -22,11 +22,12 @@ const keepRow = (ck, row) => { const c = rowCache.get(ck); if (!c) return; const
 async function boardFor(store, mode, season, ck, now) {
   const rows = await allRows(store, ck, now);
   const named = rows.filter((r) => !G.genericName(r.name));   /* rows from before names had to be chosen ("You") wait until their farm picks one */
+  if (mode === "counter") return named.filter((r) => r.season === season && r.cseason === season && r.cserved > 0).sort((a, b) => b.cserved - a.cserved || (b.crate || 0) - (a.crate || 0));   /* this season's customers served, the rating breaking ties */
   const live = mode === "all" ? named : named.filter((r) => r.season === season && (mode !== "rookie" || r.firstSeason === season));
   return live.sort(mode === "all" ? rankSort("prestige") : seasonSort);
 }
 const pinOf = (r) => { const p = r.look && r.look.pin; return p ? (r.trophies || []).find((t) => t.id === p) || null : null; };   /* the one trophy a player shows beside their name */
-const publicRow = (r, i) => ({ pin: pinOf(r), rank: i + 1, name: r.name, prestige: r.prestige, seasonP: r.seasonP, seasonKh: r.seasonKh || 0, seasonStars: r.seasonStars || 0, level: r.level, points: r.points, look: r.look, rookie: !!r.firstSeason && r.firstSeason === r.season, code: r.code || "" });   /* code: for visiting their farm */
+const publicRow = (r, i) => ({ pin: pinOf(r), rank: i + 1, name: r.name, prestige: r.prestige, seasonP: r.seasonP, seasonKh: r.seasonKh || 0, seasonStars: r.seasonStars || 0, level: r.level, points: r.points, look: r.look, rookie: !!r.firstSeason && r.firstSeason === r.season, crate: r.crate || 0, cserved: r.cseason === r.season ? r.cserved || 0 : 0, code: r.code || "" });   /* code: for visiting their farm */
 
 async function closeSeason(store, season, now, ck) {   /* save last season's final standings once, while every row still holds them */
   const prev = G.prevSeason(season), key = "seasons/" + prev;
@@ -51,7 +52,7 @@ exports.handler = async (event) => {
       if (rk > -1 && rk < 10) await G.addTrophy(store, me, { k: "rookie", s: q.season, r: rk + 1 }, now);
       return G.json(200, { season: q.season, mode: "final", players: done.rows.length, top: done.rows.slice(0, 50).map(publicRow), me: mine > -1 ? Object.assign(publicRow(done.rows[mine], mine), { rookieRank: rk > -1 ? rk + 1 : null }) : null }, { "Cache-Control": me ? "private, no-store" : "public, max-age=300" });
     }
-    const mode = q.mode === "all" ? "all" : q.mode === "rookie" ? "rookie" : "season";
+    const mode = q.mode === "all" ? "all" : q.mode === "rookie" ? "rookie" : q.mode === "counter" ? "counter" : "season";
     const list = await boardFor(store, mode, season, ck, now), me = await G.authed(event, store);
     const mine = me ? list.findIndex((r) => r.id === me.id) : -1;
     return G.json(200, { season, mode, players: list.length, top: list.slice(0, 50).map(publicRow), me: mine > -1 ? Object.assign(publicRow(list[mine], mine), { trophies: list[mine].trophies || [] }) : null }, { "Cache-Control": me ? "private, no-store" : "public, max-age=30" });
@@ -71,7 +72,7 @@ exports.handler = async (event) => {
   if (problem) return G.json(422, { error: problem });
   const row = Object.assign(next, { id: me.id, name, look: G.cleanLook(b.look, next.prestige), season, at: now, prestigeAt: reset || !prev || next.prestige > prev.prestige ? now : prev.prestigeAt,
     starsAt: !prev || prev.season !== season || next.seasonStars > (prev.seasonStars || 0) ? now : prev.starsAt,   /* when they reached this star total, for ties */
-    firstSeason: prev ? prev.firstSeason || "" : season, code: me.farmCode || "" });   /* rows from before rookies existed count as veterans */
+    firstSeason: prev ? prev.firstSeason || "" : season, code: me.farmCode || "" }, G.cleanCounter(reset ? null : prev, b.counter, now, season));   /* rows from before rookies existed count as veterans */
   const founder = G.isFounder(row);
   if (founder) await G.addTrophy(store, me, { k: "founder", s: row.firstSeason }, now);
   if (row.look.charm === "founder" && !founder) row.look.charm = "";   /* the Founding farmer charm is only for the launch season's farmers */

@@ -306,3 +306,29 @@ test("names: farms already on the board keep their names; unnamed rows wait off 
   await call(nameFn, "POST", { name: "Kenji" }, c); clock += 16e3;
   assert.ok((await call(score, "GET", undefined, d, { mode: "all" })).body.top.some((r) => r.name === "Kenji"), "picking a name puts the row back, renamed");
 });
+
+test("scores: the counter's rating and customers ride along, kept to what play allows, with a board of their own", async () => {
+  const a = await newPlayer(), b = await newPlayer();
+  const s = (pts, counter) => Object.assign({ name: "Farmer", prestige: 1, seasonP: 1, seasonKh: pts, level: G.levelFor(pts), points: pts, look: { crest: 0 } }, counter ? { counter } : {});
+  process.env.GAME_WELCOME_UNTIL = "2099-01-01";   /* a new row may arrive at prestige 1 */
+  assert.equal((await call(score, "POST", s(500, { rating: 3.2, served: 12 }), a)).status, 200);
+  assert.equal((await call(score, "POST", s(500, { rating: 9, served: 9999 }), b)).status, 200, "impossible numbers are trimmed, never refused");
+  let row = await store.get("scores/" + b.split(".")[0]);
+  assert.equal(row.crate, 5); assert.equal(row.cserved, G.COUNTER_RULES.servedBurst);
+  clock += 60000;
+  assert.equal((await call(score, "POST", s(900, { rating: 1, served: 15 }), a)).status, 200);
+  row = await store.get("scores/" + a.split(".")[0]);
+  assert.equal(row.crate, 2.5, "the rating moves at most 0.75 a session (3.2 − 0.75, to one decimal)"); assert.equal(row.cserved, 15);
+  assert.equal(row.look.crest, 1, "the crest is the highest the prestige reached, whatever was sent");
+  clock += 60000;
+  assert.equal((await call(score, "POST", s(1200), a)).status, 200, "an older client without the counter");
+  row = await store.get("scores/" + a.split(".")[0]);
+  assert.equal(row.crate, 2.5); assert.equal(row.cserved, 15, "keeps what the row had");
+  const board = await call(score, "GET", undefined, a, { mode: "counter" });
+  assert.deepEqual(board.body.top.map((r) => r.cserved), [30, 15], "ranked by customers served this season");
+  assert.equal(board.body.top[1].crate, 2.5); assert.equal(board.body.me.rank, 2);
+  const season = await call(score, "GET", undefined, a, { mode: "season" });
+  assert.ok(season.body.top.every((r) => typeof r.crate === "number"), "every board's rows carry the rating");
+  assert.equal(G.cleanLook({ title: "ct:nbr" }, 0).title, "ct:nbr", "the Neighbourhood roaster title");
+  assert.equal(G.cleanLook({ title: "ev:steady" }, 0).title, "ev:steady", "and the event titles");
+});

@@ -17,7 +17,7 @@ exports.handler = async (event) => {
     const id = await store.get("codes/" + code), farm = id && await store.get("farms/" + id);
     if (!farm) return G.json(404, { error: "no_farm" });
     const row = (await store.get("scores/" + id)) || {}, owner = (await store.get("players/" + id)) || {};
-    return G.json(200, { code, name: row.name || "Farmer", look: row.look || {}, prestige: row.prestige || 0, level: row.level || 1, farm: farm.farm, cheers: farm.cheers || 0, at: farm.at,
+    return G.json(200, { code, name: row.name || "Farmer", look: row.look || {}, prestige: row.prestige || 0, level: row.level || 1, crate: row.crate || 0, cserved: row.cseason === G.seasonKey() ? row.cserved || 0 : 0, farm: farm.farm, cheers: farm.cheers || 0, at: farm.at,
       trophies: (row.trophies || []).slice(0, 12), sacks: (owner.stamps || []).slice(0, 5) }, { "Cache-Control": "public, max-age=60" });   /* the trophy shelf and origin sacks, from the server's own records */
   }
   const me = await G.authed(event, store);
