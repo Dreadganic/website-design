@@ -160,6 +160,34 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
   await E(() => { const T = window.__T; T.setTab('mill'); T.renderPanel(); }); await g.waitForTimeout(200); await clean();
   ok(await E(() => /leaves one rack free for you/.test(document.getElementById('panel').innerText)), 'the Mill page says so');
 
+  /* a pre-order with nothing on hand: Request asks the foreman, whose next lot of it goes to a roastery bin */
+  const reqSetup = (foreman) => E((foreman) => { const T = window.__T, S = T.S; S.lv.racks = 6; S.staff.foreman = foreman; S.staff.roaster = false; S.methods.natural = true; S.lots = []; S.roastery.beans = {}; S.roastery.bags = []; S.roastery.want = {}; S.cherries = { yellowbourbon: 400, caturra: 3000 };
+    S.counter.sess = null; S.counter.pre = [{ id: 'rq', kind: 'pre', look: 'kissa', who: 'Kissa Mado', key: 'yellowbourbon.natural', profile: 'dark', n: 2, got: 0, state: 'board' }]; S.roastSub = 'counter'; T.setTab('roast'); T.renderPanel(); }, foreman);
+  await setup(7); await reqSetup(false); await g.waitForTimeout(200); await clean();
+  ok(await E(() => !!document.querySelector('[data-act="tab:mill"]') && !document.querySelector('[data-act^="ctreq:"]')), 'no foreman yet: the card sends you to the Mill');
+  await reqSetup(true); await g.waitForTimeout(200); await clean();
+  ok(await E(() => !!document.querySelector('[data-act="ctreq:yellowbourbon.natural"]')), 'with a foreman: a Request button instead');
+  await E(() => { const T = window.__T, S = T.S; S.cherries = { caturra: 99999 }; for (let k = 0; k < 4; k++) { S.minutesTotal += 999; T.staffTick(); } S.cherries.yellowbourbon = 400; T.renderPanel(); }); await g.waitForTimeout(150); await clean();
+  ok(await E(() => window.__T.S.lots.length === window.__T.racks() - 1), 'the foreman has filled all but the rack he keeps free');
+  await g.click('[data-act="ctreq:yellowbourbon.natural"]'); await g.waitForTimeout(200);
+  ok(await E(() => window.__T.S.roastery.want['yellowbourbon.natural'] === true), 'Request asks for it');
+  await E(() => { const T = window.__T; T.renderPanel(); }); await g.waitForTimeout(150);
+  ok(await E(() => /Requested/.test(document.getElementById('panel').innerText)), 'the card says Requested');
+  await E(() => { const T = window.__T, S = T.S; for (let k = 0; k < 4; k++) { S.minutesTotal += 999; T.staffTick(); } });
+  ok(await E(() => window.__T.S.lots.some((l) => l.v === 'yellowbourbon' && l.method === 'natural')), 'the foreman starts a lot of it, in its process');
+  ok(await E(() => window.__T.S.lots.length === window.__T.racks()), 'the request may use the rack he keeps free');
+  await E(() => { const T = window.__T, S = T.S; S.lots.forEach((l) => { if (l.v === 'yellowbourbon') l.left = 0; }); T.act('noop'); T.roasteryTick(); });
+  await E(() => { const T = window.__T; for (let i = 0; i < 3; i++) T.counterTick(0.1); }); await g.waitForTimeout(600);
+  ok(await E(() => !!window.__T.S.roastery.beans['yellowbourbon.natural'] && !window.__T.S.roastery.want['yellowbourbon.natural']), 'once dry it goes to a roastery bin');
+  /* the head roaster asks for the board's coffees himself at reputation 20 */
+  const headReq = (rep) => E((rep) => { const T = window.__T, S = T.S; S.roastery.rep = T.REP_AT(rep); S.staff.roaster = true; S.roasterOff = false; S.staff.foreman = true; S.lots = []; S.roastery.beans = {}; S.roastery.bags = []; S.roastery.want = {}; S.roastery.roasters = [];
+    S.counter.pre = [{ id: 'hq', kind: 'pre', look: 'kissa', who: 'Kissa Mado', key: 'yellowbourbon.natural', profile: 'dark', n: 2, got: 0, state: 'board' }]; T.headRoasterTick(false); return S.roastery.want['yellowbourbon.natural'] || null; }, rep);
+  ok((await headReq(19)) === null, 'below reputation 20 the head roaster leaves it to you');
+  ok((await headReq(20)) === 'head', 'at 20 he requests the board\'s coffee from the foreman');
+  await E(() => { const T = window.__T, S = T.S; S.counter.pre = []; T.headRoasterTick(false); });
+  ok(await E(() => !window.__T.S.roastery.want['yellowbourbon.natural']), 'and lets it go once the board no longer needs it');
+  await E(() => { const S = window.__T.S; S.staff.roaster = false; S.roastery.want = {}; });
+
   /* regulars from four stars; ten visits put a mug on the table; all five give the title */
   await setup(7); await E(() => { const T = window.__T, S = T.S; T.counterTick(0.1); S.counter.rating = 4.5; S.counter.regs = { kenji: { n: 9 }, aya: { n: 10 }, tanaka: { n: 10 }, mika: { n: 10 }, sora: { n: 10 } }; T.ctOpenNow(); });
   const reg = await E(() => { const T = window.__T, s = T.S.counter.sess; for (let k = 0; k < 80 && !s.q.some((c) => c.reg); k++) { s.q = s.q.filter((c) => c.reg); T.ctWalkIn(); } return s.q.find((c) => c.reg) || null; });

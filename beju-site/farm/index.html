@@ -2217,7 +2217,10 @@ function nbCheck() {   /* titles for a finished coffee, a finished process and s
 const REGULARS = ['Kenji at Kissa Hoshi, Kyoto', 'Aya at Little Crane Café, Osaka', 'Mr Tanaka at Kumo Roasters, Kobe', 'Mika at the Hanami coffee stand, Nara', 'Sora at Blue Door Café, Tokyo'];
 const reqLot = (l) => !!S.request && l.v === S.request.v && l.method === S.request.m;
 const reqWaiting = () => !!S.request && !S.lots.some(reqLot) && racks() > 1;
-const ctRack = () => ctOn() && racks() > 1;   /* once the counter is unlocked, the foreman always leaves you a rack for a lot of your own, say for a pre-order */   /* the foreman leaves a rack free until you start the requested lot (a one-rack mill would stand still) */
+const ctRack = () => ctOn() && racks() > 1;
+/* a roastery request the foreman still has to start a lot for: no lot of it on the racks yet, and its process unlocked */
+const wantLot = (k) => { const [v, m] = k.split('.'); return !!(S.roastery.want || {})[k] && !!S.methods[m] && !S.roastery.beans[k] && !S.lots.some((l) => l.v + '.' + l.method === k); };
+const wantV = (v) => { const k = Object.keys(S.roastery.want || {}).find((x) => x.split('.')[0] === v && wantLot(x)); return k ? k.split('.')[1] : null; };   /* once the counter is unlocked, the foreman always leaves you a rack for a lot of your own, say for a pre-order */   /* the foreman leaves a rack free until you start the requested lot (a one-rack mill would stand still) */
 function newRequest() {
   const ms = Object.keys(METHODS).filter((k) => S.methods[k]), pairs = [];
   VAR_ORDER.filter((v) => S.vars[v]).forEach((v) => ms.forEach((m) => pairs.push([v, m, nbCount(v, m)])));
@@ -2249,7 +2252,7 @@ const REP_T = [0, 0, 80, 200, 340, 500, 680, 880, 1100, 1600, 2300, 3200, 4300, 
 const REP_AT = (l) => REP_T[l];   /* reputation comes per bag, so levels follow how often you roast, not how big the drum is */
 const masterStars = () => Math.max(0, Math.min(10, Math.floor(((S.roastery.rep || 0) - REP_AT(20)) / 2000)));   /* past reputation 20: a star on the sign, and +1% bag price, every 2,000 reputation */
 const repLevel = () => { let l = 1; while (l < 20 && (S.roastery.rep || 0) >= REP_AT(l + 1)) l++; return l; };
-const REP_PERKS = { 2: 'Cooling tray: roasts take 20% less time', 3: 'Bigger drum: 80 kg a roast', 4: 'A second roaster', 6: 'Cupping lab: +5 roast quality', 7: 'Bigger drum: 160 kg a roast', 8: 'Repeat roast: a bin can start its next roast by itself', 10: 'House blends: blend two bags under a Beju name. A head roaster to hire (Farm › Staff)', 12: 'Bigger drum: 320 kg a roast', 15: 'A third roaster, and your head roaster blends spare bags into house blends', 20: 'The Master roaster title' };
+const REP_PERKS = { 2: 'Cooling tray: roasts take 20% less time', 3: 'Bigger drum: 80 kg a roast', 4: 'A second roaster', 6: 'Cupping lab: +5 roast quality', 7: 'Bigger drum: 160 kg a roast', 8: 'Repeat roast: a bin can start its next roast by itself', 10: 'House blends: blend two bags under a Beju name. A head roaster to hire (Farm › Staff)', 12: 'Bigger drum: 320 kg a roast', 15: 'A third roaster, and your head roaster blends spare bags into house blends', 20: 'The Master roaster title, and your head roaster requests the counter\'s coffees from the foreman' };
 const roastCap = () => { const l = repLevel(); return l >= 12 ? 320 : l >= 7 ? 160 : l >= 3 ? 80 : 40; };
 const roasterCount = () => { const l = repLevel(); return (l >= 15 ? 3 : l >= 4 ? 2 : 1) + (estOn('osaka', 2) ? 1 : 0); };   /* the Osaka machiya adds one */
 const roastTime = (p) => ROASTS[p].time * (repLevel() >= 2 ? 0.8 : 1);
@@ -2409,7 +2412,7 @@ const bestBuyer = (b) => buyerKeys().reduce((x, k) => (bagPrice(b, k) > bagPrice
 const fmtShort = (n) => (n >= 1e6 ? (n / 1e6).toFixed(1).replace(/\.0$/, '') + 'M' : n >= 1e4 ? Math.round(n / 1e3) + 'k' : fmt(n));
 function requestTickRoast() {   /* a requested coffee goes to its bin as soon as a lot of it is dry */
   const R = S.roastery; if (!R.want || !roasteryOpen()) return;
-  Object.keys(R.want).forEach((k) => { const i = S.lots.findIndex((l) => l.left <= 0 && !reqLot(l) && l.v + '.' + l.method === k); if (i > -1) { delete R.want[k]; toRoastery(i, true); toast(beanName(k) + ' is in its roastery bin'); } });
+  Object.keys(R.want).forEach((k) => { const i = S.lots.findIndex((l) => l.left <= 0 && !reqLot(l) && l.v + '.' + l.method === k); if (i > -1) { const by = R.want[k]; delete R.want[k]; toRoastery(i, true); if (by !== 'head') toast(beanName(k) + ' is in its roastery bin'); } });
 }
 function roastReqModal() {
   const opts = {}; S.lots.forEach((l) => { const k = l.v + '.' + l.method; if (!reqLot(l)) { opts[k] = opts[k] || { dry: 0, drying: 0 }; opts[k][l.left <= 0 ? 'dry' : 'drying'] += 1; } });
@@ -2462,6 +2465,8 @@ function headRoasterTick(away) {   /* starts the best roast on free roasters (le
     R.roasters[R.roasters.length - 1].auto = true; n += 1;
   }
   R.roasters.forEach((r) => { if (r.auto && !r.crack && !r.tried && (away || inCrack(r))) { r.tried = true; if (rnd() < roasterCatch()) r.crack = 1; } });   /* his catch adds quality but doesn't hurry the roast */
+  if (repLevel() >= 20 && S.staff.foreman && ctOn()) (S.counter.pre || []).forEach((p) => { if ((p.state === 'board' || p.state === 'queue') && p.n > p.got && !R.beans[p.key] && !(R.want || {})[p.key] && canBin(p.key) && R.bags.filter((b) => ctMatch(p, b)).length < p.n - p.got) { R.want = R.want || {}; R.want[p.key] = 'head'; } });
+  if (R.want) Object.keys(R.want).forEach((k) => { if (R.want[k] === 'head' && !(S.counter.pre || []).some((p) => p.key === k && (p.state === 'board' || p.state === 'queue') && p.n > p.got)) delete R.want[k]; });   /* and lets go of his requests once the board no longer needs them; at reputation 20 he asks the foreman for the counter's coffees himself */
   if (repLevel() >= HEAD_BLEND_REP && (away || Date.now() - (R.blendAt || 0) > 20000)) { R.blendAt = Date.now(); let nb, g = 0; while (g++ < (away ? 50 : 1) && (nb = headBlend())) if (!away && scene() === 'roast') floats.push({ x: 130, y: 58, text: nb.blend, t: 0 }); }   /* a blend every 20 s or so while you play; while you're away, every spare pair */
   return n;
 }
@@ -2511,12 +2516,16 @@ function ctAction(o, live) {   /* the button on an order card: Serve, Roast, To 
   if (st.bin && st.bin.kg >= 0.5) return btn('Roast', ROASTS[o.profile].name.toLowerCase(), 'ctroast:' + o.key + '|' + o.profile, free);
   if (!o.key) { const k = Object.keys(R.beans).find((x) => R.beans[x].kg >= 0.5); return k ? btn('Roast', ROASTS[o.profile].name.toLowerCase(), 'ctroast:' + k + '|' + o.profile, free) : btn('Bins', 'empty', 'noop', false); }
   if (st.lot > -1) return btn('To bin', 'dry lot', 'ctbin:' + st.lot, canBin(o.key), 'blue');
-  return btn('Mill', st.drying ? 'drying' : 'start a lot', 'tab:mill', true, 'blue');
+  const R2 = S.roastery.want || {};
+  if (R2[o.key]) return btn('Requested', st.drying ? 'drying' : (S.cherries[o.key.split('.')[0]] || 0) >= 10 ? 'lot next' : 'needs cherries', 'noop', false);
+  if (!S.staff.foreman) return btn('Mill', st.drying ? 'drying' : 'start a lot', 'tab:mill', true, 'blue');   /* with no foreman yet, it's yours to start */
+  return btn('Request', st.drying ? 'from the drying lot' : 'from the foreman', 'ctreq:' + o.key, canBin(o.key), 'blue');
 }
 function ctStockText(o) {
   const st = ctStock(o), bits = [];
   if (st.shelf) bits.push(st.shelf + ' on the shelf'); if (st.roasting) bits.push(st.roasting + ' roasting'); if (st.bin) bits.push(fmtKg(st.bin.kg) + ' kg in a bin'); else if (st.lot > -1) bits.push('a dry lot in the mill'); else if (st.drying) bits.push('drying in the mill');
-  return bits.length ? bits.join(' · ') : o.key ? 'none yet: start a lot in the Mill' : 'any coffee you have';
+  if (o.key && (S.roastery.want || {})[o.key] && !st.bin) bits.push(S.roastery.want[o.key] === 'head' ? 'requested by your head roaster' : 'requested from the foreman');
+  return bits.length ? bits.join(' · ') : o.key ? (S.staff.foreman ? 'none yet: request it from the foreman' : 'none yet: start a lot in the Mill') : 'any coffee you have';
 }
 function ctEst(o) {   /* roughly what an order pays at today's cup score */
   const R = S.roastery, b = R.bags.find((x) => ctMatch(o, x)) || R.bags.find((x) => !x.blend && (!o.key || x.key === o.key)); if (b) return o.n * ctPrice(o, b);
@@ -4725,17 +4734,17 @@ function staffTick() {
   const ok = Object.keys(METHODS).filter((k) => S.methods[k]), byPay = (a, b) => METHODS[b].mult - METHODS[a].mult;
   const buyer = (v) => S.staff.agent && buyersOn() && S.contracts.find((c) => (!c.v || c.v === v) && c.have < c.kg && (!c.method || S.methods[c.method]) && ok.some((k) => (!c.method || c.method === k) && cupFor(v, k) >= c.minCup));
   let guard = 0;
-  const keep = reqWaiting() || ctRack() ? 1 : 0;   /* a request waiting to be started keeps a rack free for you, and so does the counter once it's unlocked (one rack either way) */
+  const keep = reqWaiting() || (ctRack() && !Object.keys(S.roastery.want || {}).some(wantLot)) ? 1 : 0;   /* a request waiting to be started keeps a rack free for you, and so does the counter once it's unlocked (one rack either way) */
   while (S.lots.length < racks() - keep && stored() > 0 && guard++ < 8) {
     const idle = S.minutesTotal - (S.millT || 0) > REAL_MIN, full = stored() >= cap() * 0.9;
     const pick = Object.keys(S.cherries).filter((v) => S.cherries[v] >= 10).map((v) => ({ v, c: buyer(v) }))
-      .sort((a, b) => (!!b.c - !!a.c) || (!!ctBoardV(b.v) - !!ctBoardV(a.v)) || S.cherries[b.v] - S.cherries[a.v])
-      .find(({ v, c }) => full || S.cherries[v] >= (c ? Math.max(10, Math.min(rackCap() / 4, (c.kg - c.have) / 0.2)) : idle ? 10 : Math.max(10, rackCap() / 4)));   /* a free rack takes any coffee with a quarter rack waiting, biggest first. (Waiting for a full rack, or 5% of the store, left racks empty late on: the store grows faster than a picking of one coffee, and the cherries are split across several) */
+      .sort((a, b) => (!!wantV(b.v) - !!wantV(a.v)) || (!!b.c - !!a.c) || (!!ctBoardV(b.v) - !!ctBoardV(a.v)) || S.cherries[b.v] - S.cherries[a.v])
+      .find(({ v, c }) => full || !!wantV(v) || S.cherries[v] >= (c ? Math.max(10, Math.min(rackCap() / 4, (c.kg - c.have) / 0.2)) : idle ? 10 : Math.max(10, rackCap() / 4)));   /* a free rack takes any coffee with a quarter rack waiting, biggest first. (Waiting for a full rack, or 5% of the store, left racks empty late on: the store grows faster than a picking of one coffee, and the cherries are split across several) */
     if (!pick) break;
     const own = hasPerk('notebook') && S.staff.rules && S.methods[S.staff.rules[pick.v]] ? S.staff.rules[pick.v] : null;   /* Foreman's ledger: a process per coffee */
     let method = own || (S.staff.rule !== 'best' && S.methods[S.staff.rule] ? S.staff.rule : ok.slice().sort(byPay)[0]);
     if (pick.c) method = pick.c.method || ok.filter((k) => cupFor(pick.v, k) >= pick.c.minCup).sort(byPay)[0] || method;
-    else { const bm = ctBoardV(pick.v); if (bm && S.methods[bm]) method = bm; }   /* the counter's pre-order, in its own process */
+    else { const bm = wantV(pick.v) || ctBoardV(pick.v); if (bm && S.methods[bm]) method = bm; }   /* a roastery request, or the counter's pre-order, in its own process */   /* the counter's pre-order, in its own process */
     if (!startLot(pick.v, method, true)) break;
   }
 }
@@ -5798,6 +5807,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'ctserve') { const [id, nr] = v.split('|'); ctServe(id, nr === 'near'); }
   else if (a === 'ctroast') { const [k, p] = v.split('|'); startRoast(k, p); }
   else if (a === 'ctbin') toRoastery(+v);
+  else if (a === 'ctreq') { const R = S.roastery; R.want = R.want || {}; if (!R.want[v] && canBin(v)) { R.want[v] = true; requestTickRoast(); tapNote('Requested from the foreman', 'Requested ' + beanName(v) + ' from the foreman: his next lot of it goes to a roastery bin'); } else if (!canBin(v)) toast('All ' + ROAST_BINS + ' roastery bins are full. Roast or sell one first'); }
   else if (a === 'roastgo') { closeModal(); setTab('roast'); }
   else if (a === 'toroast') toRoastery(+v);
   else if (a === 'roastfeed') S.roastery.feed = +v || 0;
