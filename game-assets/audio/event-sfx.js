@@ -2,7 +2,7 @@
    Each event has four parts:
      start  a sting that plays wherever you are (any map, any tab, sheet open or not), so you notice the trouble
      loop   the trouble's own voice, repeating until the event is cleared; on another map, or under the sheet, it plays
-            quieter and muffled, as if from the next room, so you know it's still going without it nagging
+            at 70% and muffled, as if from the next room, so you know it's still going without it nagging
      hits   one sound for each thing you tap while stopping it
      clear  the resolve, as the loop fades out
    A rare variant adds a shimmer to the start, its own voice to the loop and its own sound when tapped.
@@ -12,6 +12,7 @@ const EventSFX = (function () {
   'use strict';
   const R = (a, b) => a + Math.random() * (b - a), pick = (a) => a[Math.floor(Math.random() * a.length)];
   let K = null, bus = null, muff = null, cur = null;
+  const AWAY = 0.7;   /* the loop's volume on another map or under the sheet, muffled */
 
   function kit() {   /* the loop gets its own bus, so it can be muffled and faded without touching other sounds */
     if (K) return K;
@@ -259,13 +260,13 @@ const EventSFX = (function () {
     let here = E.everywhere || opt.here !== false, alive = true, timer = 0, tickT = 0, muted = !SFX.isEnabled();
     if (!muted) { E.start(t0, K.out, rare); if (rare) { shimmer(t0 + 0.15, K.out); if (E.rareStart) E.rareStart(t0 + 0.9, K.out); } }   /* the sting: full volume, wherever you are */
     bus.gain.cancelScheduledValues(t0); bus.gain.setValueAtTime(0.0001, t0); if (!muted) bus.gain.setTargetAtTime(1, t0 + 0.9, 0.35);
-    const setHere = (on, fast) => { const now = ac.currentTime, k = fast ? 0.01 : 0.18; muff.frequency.setTargetAtTime(on ? 16000 : 1000, now, k); if (alive && !muted) bus.gain.setTargetAtTime(on ? 1 : 0.3, now, k); };
+    const setHere = (on, fast) => { const now = ac.currentTime, k = fast ? 0.01 : 0.18; muff.frequency.setTargetAtTime(on ? 16000 : 1000, now, k); if (alive && !muted) bus.gain.setTargetAtTime(on ? 1 : AWAY, now, k); };
     setHere(here, true);
     const beds = E.beds ? E.beds(bus, rare) : [];
     const tick = () => {
       if (!alive) return;
       const off = !SFX.isEnabled();
-      if (off !== muted) { muted = off; bus.gain.setTargetAtTime(off ? 0.0001 : here ? 1 : 0.3, ac.currentTime, 0.1); }   /* follows the sound switch */
+      if (off !== muted) { muted = off; bus.gain.setTargetAtTime(off ? 0.0001 : here ? 1 : AWAY, ac.currentTime, 0.1); }   /* follows the sound switch */
       if (!off) E.call(ac.currentTime + 0.03, bus, rare);
       timer = setTimeout(tick, R(E.every[0], E.every[1]) * 1000);
     };

@@ -631,7 +631,7 @@ const SFX = (function () {
    Each event has four parts:
      start  a sting that plays wherever you are (any map, any tab, sheet open or not), so you notice the trouble
      loop   the trouble's own voice, repeating until the event is cleared; on another map, or under the sheet, it plays
-            quieter and muffled, as if from the next room, so you know it's still going without it nagging
+            at 70% and muffled, as if from the next room, so you know it's still going without it nagging
      hits   one sound for each thing you tap while stopping it
      clear  the resolve, as the loop fades out
    A rare variant adds a shimmer to the start, its own voice to the loop and its own sound when tapped.
@@ -641,6 +641,7 @@ const EventSFX = (function () {
   'use strict';
   const R = (a, b) => a + Math.random() * (b - a), pick = (a) => a[Math.floor(Math.random() * a.length)];
   let K = null, bus = null, muff = null, cur = null;
+  const AWAY = 0.7;   /* the loop's volume on another map or under the sheet, muffled */
 
   function kit() {   /* the loop gets its own bus, so it can be muffled and faded without touching other sounds */
     if (K) return K;
@@ -888,13 +889,13 @@ const EventSFX = (function () {
     let here = E.everywhere || opt.here !== false, alive = true, timer = 0, tickT = 0, muted = !SFX.isEnabled();
     if (!muted) { E.start(t0, K.out, rare); if (rare) { shimmer(t0 + 0.15, K.out); if (E.rareStart) E.rareStart(t0 + 0.9, K.out); } }   /* the sting: full volume, wherever you are */
     bus.gain.cancelScheduledValues(t0); bus.gain.setValueAtTime(0.0001, t0); if (!muted) bus.gain.setTargetAtTime(1, t0 + 0.9, 0.35);
-    const setHere = (on, fast) => { const now = ac.currentTime, k = fast ? 0.01 : 0.18; muff.frequency.setTargetAtTime(on ? 16000 : 1000, now, k); if (alive && !muted) bus.gain.setTargetAtTime(on ? 1 : 0.3, now, k); };
+    const setHere = (on, fast) => { const now = ac.currentTime, k = fast ? 0.01 : 0.18; muff.frequency.setTargetAtTime(on ? 16000 : 1000, now, k); if (alive && !muted) bus.gain.setTargetAtTime(on ? 1 : AWAY, now, k); };
     setHere(here, true);
     const beds = E.beds ? E.beds(bus, rare) : [];
     const tick = () => {
       if (!alive) return;
       const off = !SFX.isEnabled();
-      if (off !== muted) { muted = off; bus.gain.setTargetAtTime(off ? 0.0001 : here ? 1 : 0.3, ac.currentTime, 0.1); }   /* follows the sound switch */
+      if (off !== muted) { muted = off; bus.gain.setTargetAtTime(off ? 0.0001 : here ? 1 : AWAY, ac.currentTime, 0.1); }   /* follows the sound switch */
       if (!off) E.call(ac.currentTime + 0.03, bus, rare);
       timer = setTimeout(tick, R(E.every[0], E.every[1]) * 1000);
     };
@@ -3005,7 +3006,7 @@ function tick(dt) {
    a Karen at the roastery counter. Each costs a little income until you stop it with a few taps, and pays only in cosmetics:
    the fifth stop of an event brings its keepsake, and its rare variant (1 in 20) a rare one. Events wait while you're away,
    never start during the lessons or over a window, and give up after 10 minutes of play. Their sounds are in event-sfx.js */
-const REV_FIRST = 180, REV_GAP = 900, REV_ROLL = 60, REV_CHANCE = 0.1, REV_MAX = 600, REV_RARE = 1 / 20, REV_COS = 5, REV_SHARE = 0.12;   /* seconds of play: none in a session's first 3 minutes, then 15 or more between events (about 25 on average) */
+const REV_FIRST = 180, REV_GAP = 900, REV_ROLL = 60, REV_CHANCE = 0.25, REV_MAX = 600, REV_RARE = 1 / 20, REV_COS = 5, REV_SHARE = 0.12;   /* seconds of play: none in a session's first 3 minutes, then 15 or more between events (about 19 on average) */
 const REV_BEDS = [[10, 110, 80, 42], [104, 110, 80, 42], [10, 158, 80, 42], [104, 158, 80, 42]];   /* each field's patch of ground, in shrub order */
 const PIG_OFF = [[6, 26], [32, 10], [56, 28], [60, 2], [8, 4], [34, 30]];   /* where the pigs root about in a field */
 const KAREN_Q = [   /* her complaint, the reply that settles her, and two that don't */
