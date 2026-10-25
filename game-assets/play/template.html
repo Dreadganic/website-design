@@ -2395,13 +2395,18 @@ Object.assign(REV_COSM, {
 });
 /* companions: one in 100 stopped events brings one you don't have yet, to follow your farmer */
 const REV_PETS = { piglet: ['Piglet', 'ev_piglet'], capuchin: ['Capuchin', 'ev_capuchin'], crow: ['Tame crow', 'ev_crow_sit'], millcat: ['Mill cat', 'ev_millcat'], dalmatian: ['Fire-station dalmatian', 'ev_dalmatian'] };
-const pet = { x: 0, y: 0, sc: '', flip: false };
-function drawPet(o, sc) {   /* the companion trots after your farmer, a step behind */
-  const id = S.rev.pet; if (!id || !REV_PETS[id] || !o) return;
-  if (pet.sc !== sc) { pet.sc = sc; pet.x = o.x - 12; pet.y = o.y; }
-  const tx = o.x + (o.flip ? 12 : -12), ty = o.y, dx = tx - pet.x, dy = ty - pet.y; pet.x += dx * 0.06; pet.y += dy * 0.06; if (Math.abs(dx) > 0.5) pet.flip = dx > 0;
-  const s = sprite(REV_PETS[id][1]), hop = Math.hypot(dx, dy) > 2 ? Math.round(Math.abs(Math.sin(Date.now() / 120)) * 2) : 0;
-  revPut(REV_PETS[id][1], pet.x - s.width / 2, pet.y - s.height - hop, pet.flip);
+const petTrail = { sc: '', pts: [] }, PET_GAP = 13;
+const petsOut = () => Object.keys(REV_PETS).filter((k) => (S.rev.pets || {})[k] && !(S.rev.petHide || {})[k]);
+function drawPet(o, sc) {   /* your companions follow your farmer in a train, each one walking in the footsteps of the one ahead */
+  const ids = petsOut(); if (!ids.length || !o) return;
+  const T = petTrail; if (T.sc !== sc) { T.sc = sc; T.pts = [{ x: o.x, y: o.y }]; }
+  const last = T.pts[0]; if (Math.hypot(o.x - last.x, o.y - last.y) >= 1) { T.pts.unshift({ x: o.x, y: o.y }); if (T.pts.length > 400) T.pts.length = 400; }
+  const at = (d) => {   /* the point d pixels back along the farmer's path */
+    for (let i = 1; i < T.pts.length; i++) { const a = T.pts[i - 1], b = T.pts[i], l = Math.hypot(a.x - b.x, a.y - b.y); if (d <= l) { const u = l ? d / l : 0; return { x: a.x + (b.x - a.x) * u, y: a.y + (b.y - a.y) * u, flip: a.x > b.x }; } d -= l; }
+    const e = T.pts[T.pts.length - 1]; return { x: e.x - d, y: e.y, flip: true };
+  };
+  const moving = o.moving || (o.path && o.path.length > 0), hop = moving ? Math.round(Math.abs(Math.sin(Date.now() / 120)) * 2) : 0;
+  ids.forEach((id, k) => { const p = at((k + 1) * PET_GAP), sp = sprite(REV_PETS[id][1]); revPut(REV_PETS[id][1], p.x - sp.width / 2, p.y - sp.height - (k % 2 ? 2 - hop : hop), p.flip); });
 }
 function revDecor(sc, time) {   /* the keepsakes on each map */
   const sh = S.rev.show;
@@ -2448,7 +2453,7 @@ function revReward(E) {   /* only cosmetics: a keepsake on the fifth stop, a rar
   if (E.rare) got.push(revGive(D.rareCos));
   if (L.n >= (D.special ? 1 : REV_COS)) got.push(revGive(D.cos));   /* the typhoon's comes on the first stop: the next may be a month away */
   if (!S.sitems.title['ev:trouble'] && Object.keys(REVS).every((k) => REVS[k].special || ((R.log[k] || {}).n || 0) >= REV_COS)) { S.sitems.title['ev:trouble'] = true; got.push('the Troubleshooter title'); }
-  if (Math.random() < 0.01) { R.pets = R.pets || {}; const left = Object.keys(REV_PETS).filter((k) => !R.pets[k]); if (left.length) { const k = left[Math.floor(Math.random() * left.length)]; R.pets[k] = true; if (!R.pet) R.pet = k; got.push('a ' + REV_PETS[k][0].toLowerCase() + ' companion'); } }
+  if (Math.random() < 0.01) { R.pets = R.pets || {}; const left = Object.keys(REV_PETS).filter((k) => !R.pets[k]); if (left.length) { const k = left[Math.floor(Math.random() * left.length)]; R.pets[k] = true; got.push('a ' + REV_PETS[k][0].toLowerCase() + ' companion'); } }
   if (R.streak === 10) R.boost = Date.now() + 3600e3;
   if (R.streak === 25 && !S.sitems.title['ev:steady']) { S.sitems.title['ev:steady'] = true; got.push('the Steady hands title'); }
   const b = D.box(E), x = b[0] + b[2] / 2, y = b[1] + 4, gifts = got.filter(Boolean);
@@ -2536,7 +2541,7 @@ function revPage() {   /* Ranks › Records: each event, how often you've stoppe
     h += row(img(c.pic, 30), D.name, 'Stopped ' + L.n + (L.n === 1 ? ' time' : ' times') + (c.own() ? '' : D.special ? ' · the ' + c.name.toLowerCase() + ' on the first stop' : ' · ' + Math.min(L.n, REV_COS) + '/' + REV_COS + ' for the ' + c.name.toLowerCase()) + (!rc || rc.own() ? '' : ' · rare variant: the ' + rc.name.toLowerCase()), '') + doneStrip(chips, chips.length ? 'Tap to show or hide.' : '', '✓ Yours', 'own');
   });
   const pets = Object.keys(REV_PETS).filter((k) => (R.pets || {})[k]);
-  if (pets.length) h += '<h3>Companions</h3>' + doneStrip(pets.map((k) => [REV_PETS[k][1], REV_PETS[k][0], 'revpet:' + k, R.pet === k ? 'on' : 'off']), 'One follows your farmer at a time. Tap to choose, or tap again to leave them at home.', '✓ Yours', 'own');
+  if (pets.length) h += '<h3>Companions</h3>' + doneStrip(pets.map((k) => [REV_PETS[k][1], REV_PETS[k][0], 'revpet:' + k, (R.petHide || {})[k] ? 'off' : 'on']), 'They follow your farmer in a line. Tap one to leave it at home, or to bring it back.', '✓ Yours', 'own');
   return h;
 }
 function nameTag(x, y) {   /* your name tag, in your tier's colour, with stars past the top tier */
@@ -4361,7 +4366,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'revgo') revGo();
   else if (a === 'revshow') { if (REV_COSM[v] && REV_COSM[v].own()) REV_COSM[v].flip(); }
   else if (a === 'revtest') { if (S.rev.cur) { S.rev.cur = null; revSyncSound(); } const [id, rr] = v.split('.'); if (revStart(id, { rare: rr === 'rare', force: true })) revGo(); else toast(REVS[id].name + ' can\'t happen yet: ' + ({ hornets: 'it needs 3 racks', rats: 'it needs 3 racks', karen: 'the roastery isn\'t open', power: 'the roastery isn\'t open', fire: 'no roaster is roasting' })[id] || 'not yet'); }
-  else if (a === 'revpet') { if ((S.rev.pets || {})[v]) S.rev.pet = S.rev.pet === v ? '' : v; }
+  else if (a === 'revpet') { if ((S.rev.pets || {})[v]) { S.rev.petHide = S.rev.petHide || {}; S.rev.petHide[v] = !S.rev.petHide[v]; } }
   else if (a === 'tier') { if (+v <= tierAt(S.season.stars)) grantTier(S.season.key, +v); }
   else if (a === 'tierall') { for (let n = 1; n <= tierAt(S.season.stars); n++) grantTier(S.season.key, n, true); SFX.play('achieve'); toast('Season track rewards claimed'); }
   else if (a === 'lookhat') { if (!v || S.hats[v]) S.look.hat = v; }

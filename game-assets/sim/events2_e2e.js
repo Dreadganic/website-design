@@ -142,7 +142,13 @@ const ok = (c, msg) => { console.log((c ? 'PASS ' : 'FAIL ') + msg); if (!c) pro
 
   // a companion: one stop in 100
   await p.evaluate(() => { const T = window.__T, r = Math.random; Math.random = () => 0.005; T.S.rev.cur = null; T.revStart('rust', { rare: false }); T.revEnd(true); Math.random = r; });
-  ok(await p.evaluate(() => !!window.__T.S.rev.pet && Object.keys(window.__T.S.rev.pets).length === 1), 'one stop in 100 brings a companion: ' + await p.evaluate(() => window.__T.S.rev.pet));
+  ok(await p.evaluate(() => Object.keys(window.__T.S.rev.pets || {}).length === 1), 'one stop in 100 brings a companion: ' + await p.evaluate(() => Object.keys(window.__T.S.rev.pets).join()));
+  await p.evaluate(() => { const S = window.__T.S; S.rev.pets = { piglet: true, capuchin: true, crow: true, millcat: true, dalmatian: true }; window.__T.setTab('farm', true); });
+  await p.waitForTimeout(6000); await shot('pets-train');
+  await p.evaluate(() => { window.__T.S.rankSub = 'records'; window.__T.setTab('ranks'); }); await p.waitForTimeout(500);
+  await p.evaluate(() => document.querySelector('[data-act="revpet:crow"]').click()); await p.waitForTimeout(200);
+  ok(await p.evaluate(() => window.__T.S.rev.petHide.crow === true), 'with five, they all follow in a line, and a chip leaves one at home');
+  await p.evaluate(() => { document.querySelector('[data-act="revpet:crow"]').click(); window.__T.setTab('farm', true); });
 
   // every keepsake on its map
   await p.evaluate(() => { const S = window.__T.S; ['seedling', 'plush', 'capuchin', 'scarecrow', 'magpie', 'catflap', 'crown', 'oillamp', 'candles', 'firebell', 'scorch', 'shutters'].forEach((k) => { S.rev.show[k] = true; }); S.minutes = 20 * 60; S.lv.storage = 5; window.__T.setTab('farm', true); });
