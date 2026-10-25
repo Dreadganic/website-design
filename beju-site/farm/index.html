@@ -2212,7 +2212,8 @@ function nbCheck() {   /* titles for a finished coffee, a finished process and s
 /* buyer requests: a named regular asks for one hand-cupped lot of a pair, usually one you haven't tried. Staff never cup, so only you can fill them */
 const REGULARS = ['Kenji at Kissa Hoshi, Kyoto', 'Aya at Little Crane Café, Osaka', 'Mr Tanaka at Kumo Roasters, Kobe', 'Mika at the Hanami coffee stand, Nara', 'Sora at Blue Door Café, Tokyo'];
 const reqLot = (l) => !!S.request && l.v === S.request.v && l.method === S.request.m;
-const reqWaiting = () => !!S.request && !S.lots.some(reqLot) && racks() > 1;   /* the foreman leaves a rack free until you start the requested lot (a one-rack mill would stand still) */
+const reqWaiting = () => !!S.request && !S.lots.some(reqLot) && racks() > 1;
+const ctRack = () => ctOn() && racks() > 1;   /* once the counter is unlocked, the foreman always leaves you a rack for a lot of your own, say for a pre-order */   /* the foreman leaves a rack free until you start the requested lot (a one-rack mill would stand still) */
 function newRequest() {
   const ms = Object.keys(METHODS).filter((k) => S.methods[k]), pairs = [];
   VAR_ORDER.filter((v) => S.vars[v]).forEach((v) => ms.forEach((m) => pairs.push([v, m, nbCount(v, m)])));
@@ -4708,7 +4709,7 @@ function staffTick() {
   const ok = Object.keys(METHODS).filter((k) => S.methods[k]), byPay = (a, b) => METHODS[b].mult - METHODS[a].mult;
   const buyer = (v) => S.staff.agent && buyersOn() && S.contracts.find((c) => (!c.v || c.v === v) && c.have < c.kg && (!c.method || S.methods[c.method]) && ok.some((k) => (!c.method || c.method === k) && cupFor(v, k) >= c.minCup));
   let guard = 0;
-  const keep = reqWaiting() ? 1 : 0;   /* a request waiting to be started keeps a rack free for you */
+  const keep = reqWaiting() || ctRack() ? 1 : 0;   /* a request waiting to be started keeps a rack free for you, and so does the counter once it's unlocked (one rack either way) */
   while (S.lots.length < racks() - keep && stored() > 0 && guard++ < 8) {
     const idle = S.minutesTotal - (S.millT || 0) > REAL_MIN, full = stored() >= cap() * 0.9;
     const pick = Object.keys(S.cherries).filter((v) => S.cherries[v] >= 10).map((v) => ({ v, c: buyer(v) }))
@@ -5341,6 +5342,7 @@ function renderPanel() {
     } else if (buyersOn()) h += '<h3>Buyers waiting · ' + S.contracts.length + (S.staff.agent ? ' <button type="button" class="linkbtn" data-act="buyersopen">fold</button>' : '') + '</h3>' + help('buyers', 'Contracts pay about twice the roastery. Swipe to see them all.', 'Contracts pay about twice the roastery, as each delivery arrives. Swipe to see them all; lots that fit are tagged.') + '<div class="ccards">' + (S.contracts.length ? S.contracts.map(contractCard).join('') : '<p class="note">No buyers right now. New ones arrive shortly.</p>') + '</div>';
     h += requestCard();
     h += '<h3>Drying racks ' + S.lots.length + ' / ' + racks() + ' · ' + fmt(rackCap()) + ' kg each</h3>';
+    if (S.staff.foreman && ctRack()) h += '<p class="note">The foreman leaves one rack free for you, for a lot of your own.</p>';
     /* with many racks the lots become a grid of small tiles, with one-tap Cup all and Sell all, so nothing needs scrolling */
     const view = S.millView || (racks() >= 4 ? 'grid' : 'list'), toCup = S.lots.filter((l) => !l.cupped).length, dry = S.lots.filter((l) => l.left <= 0).length;
     if (S.lots.length > 1) h += '<div class="rackbar">' + (hasPerk('cupall') ? btn('Cup all', toCup ? toCup + ' lot' + (toCup > 1 ? 's' : '') + ' · +' + Math.round((CUP_PAY - 1) * 100) + '% pay' : 'all cupped', 'cupall', toCup > 0, 'gold') : btn('Cup all', 'prestige 2 perk', 'noop', false, 'gold')) + btn('Sell all dry', dry ? dry + ' lot' + (dry > 1 ? 's' : '') + (buyersOn() ? ' · buyers first' : '') : 'none dry yet', 'sellall', dry > 0, 'green') + '<div class="seg rackview">' + [['grid', 'Grid'], ['list', 'List']].map(([k, t]) => '<button type="button" data-act="millview:' + k + '" aria-pressed="' + (view === k) + '">' + t + '</button>').join('') + '</div></div>';

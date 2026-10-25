@@ -151,6 +151,15 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
   await setup(7); await E(() => { const T = window.__T, S = T.S; S.staff.foreman = true; S.methods.natural = true; S.methods.washed = true; S.lots = []; S.cherries = { caturra: 2000, yellowbourbon: 300 }; S.roastery.beans = {}; S.counter.pre = [{ id: 'fx', kind: 'pre', look: 'kissa', who: 'Kissa Mado', key: 'yellowbourbon.natural', profile: 'dark', n: 2, got: 0, state: 'board' }]; T.staffTick(); });
   ok(await E(() => window.__T.S.lots.some((l) => l.v === 'yellowbourbon' && l.method === 'natural')), 'the foreman starts the board\'s coffee in its process');
 
+  /* once the counter is unlocked the foreman always leaves one rack for you; before, he fills them all */
+  const fill = (rep) => E((rep) => { const T = window.__T, S = T.S; S.roastery.rep = T.REP_AT(rep); S.lv.racks = 6; S.staff.foreman = true; S.request = null; S.lots = []; S.counter.pre = []; S.cherries = { caturra: 99999 }; S.roastery.beans = {}; for (let k = 0; k < 6; k++) { S.minutesTotal += 999; T.staffTick(); } return [S.lots.length, T.racks()]; }, rep);
+  await setup(7); const [n7, r7] = await fill(7); ok(r7 > 1 && n7 === r7 - 1, 'counter unlocked: the foreman leaves one rack free (' + n7 + ' of ' + r7 + ')');
+  await setup(4); const [n4, r4] = await fill(4); ok(n4 === r4, 'counter locked: he fills every rack (' + n4 + ' of ' + r4 + ')');
+  await setup(7); const [nq, rq] = await E(() => { const T = window.__T, S = T.S; S.lv.racks = 6; S.staff.foreman = true; S.lots = []; S.counter.pre = []; S.cherries = { caturra: 99999 }; S.request = { v: 'geisha', m: 'washed', who: 'Kenji at Kissa Hoshi, Kyoto' }; for (let k = 0; k < 6; k++) { S.minutesTotal += 999; T.staffTick(); } S.request = null; return [S.lots.length, T.racks()]; });
+  ok(nq === rq - 1, 'a lot request and the counter share the one free rack (' + nq + ' of ' + rq + ')');
+  await E(() => { const T = window.__T; T.setTab('mill'); T.renderPanel(); }); await g.waitForTimeout(200); await clean();
+  ok(await E(() => /leaves one rack free for you/.test(document.getElementById('panel').innerText)), 'the Mill page says so');
+
   /* regulars from four stars; ten visits put a mug on the table; all five give the title */
   await setup(7); await E(() => { const T = window.__T, S = T.S; T.counterTick(0.1); S.counter.rating = 4.5; S.counter.regs = { kenji: { n: 9 }, aya: { n: 10 }, tanaka: { n: 10 }, mika: { n: 10 }, sora: { n: 10 } }; T.ctOpenNow(); });
   const reg = await E(() => { const T = window.__T, s = T.S.counter.sess; for (let k = 0; k < 80 && !s.q.some((c) => c.reg); k++) { s.q = s.q.filter((c) => c.reg); T.ctWalkIn(); } return s.q.find((c) => c.reg) || null; });
