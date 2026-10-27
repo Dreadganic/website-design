@@ -18,3 +18,7 @@
 /farm/*
   X-Robots-Tag: noindex, nofollow
   Cache-Control: public, max-age=300
+/__forms.html
+  X-Robots-Tag: noindex, nofollow
+/__forms
+  X-Robots-Tag: noindex, nofollow
