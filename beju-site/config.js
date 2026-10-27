@@ -18,6 +18,6 @@ window.BEJU_CONFIG = {
 
   // Instagram direct-message link for "Order by message"
   instagramDM: "https://ig.me/m/bejucoffeeroasters",
-  // Form endpoint that accepts a JSON POST and emails you (e.g. Formspree: "https://formspree.io/f/xxxxxxx"). Used by the contact form and the wholesale/training enquiry form. Empty = forms ask people to use Instagram.
+  // Form endpoint that accepts a JSON POST and emails you (e.g. Formspree: "https://formspree.io/f/xxxxxxx"). Used by the wholesale/training enquiry form (the contact form uses Netlify Forms). Empty = that form asks people to use Instagram.
   contactEndpoint: ""
 };

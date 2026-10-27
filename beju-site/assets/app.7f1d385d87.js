@@ -2075,14 +2075,13 @@
     e.preventDefault();
     var msg = $("#contactMsg"), ok = ["#c-name", "#c-email", "#c-msg"].every(function (s) { return $(s).value.trim(); });
     if (!ok) { msg.className = "note"; msg.textContent = tr("Add your name, email and a message so we can reply."); return; }
-    if (!CHECKOUT.contactEndpoint) {
-      msg.className = "note"; msg.textContent = tr(PATHMODE ? "The contact form is not connected yet. Please message us on Instagram." : "Preview only: nothing was sent. When connected, this message goes to your inbox.");
-      return;
-    }
-    var body = { topic: $("#c-topic").value, name: $("#c-name").value, email: $("#c-email").value, message: $("#c-msg").value, language: lang };
-    fetch(CHECKOUT.contactEndpoint, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(body) })
+    // Netlify Forms: URL-encoded POST; submissions are emailed to hello@bejucoffee.com
+    var btn = $("#contactForm button[type=submit]");
+    if (btn) btn.disabled = true;
+    fetch("/", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams(new FormData($("#contactForm"))).toString() })
       .then(function (r) { if (!r.ok) throw new Error(r.status); msg.className = "success"; msg.textContent = tr("Thank you. Your message has been sent."); $("#contactForm").reset(); })
-      .catch(function () { msg.className = "note"; msg.textContent = tr("Sorry, the message could not be sent. Please try Instagram instead."); });
+      .catch(function () { msg.className = "note"; msg.textContent = tr("Sorry, the message could not be sent. Please try Instagram instead."); })
+      .then(function () { if (btn) btn.disabled = false; });
   });
 
   /* ---------- Init ---------- */

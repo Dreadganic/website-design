@@ -62,7 +62,10 @@
   <div class="wrap">
     <div class="view-head"><h1>Interested in working together?</h1><p>Fill out some info and we will be in touch shortly. We cannot wait to hear from you.</p></div>
     <div class="contactgrid">
-    <form class="formgrid" id="contactForm" novalidate="">
+    <form class="formgrid" id="contactForm" name="contact" method="POST" data-netlify="true" netlify-honeypot="bot-field" novalidate="">
+      <input type="hidden" name="form-name" value="contact">
+      <input type="hidden" name="subject" value="New message from the Beju website">
+      <p hidden><label>Leave this empty: <input name="bot-field" tabindex="-1" autocomplete="off"></label></p>
       <div class="field"><label for="c-topic">What is this about?</label>
         <select id="c-topic" name="topic"><option value="Order question">Order question</option><option value="Commercial coffee">Commercial coffee</option><option value="Barista training">Barista training</option><option value="Something else">Something else</option></select></div>
       <div class="two">
@@ -71,7 +74,7 @@
       </div>
       <div class="field"><label for="c-msg">Message</label><textarea id="c-msg" name="message" required=""></textarea></div>
       <div><button class="btn primary" type="submit">Send message</button></div>
-      <p class="note" id="contactMsg" role="status">Preview only. This form is not connected to your inbox yet.</p>
+      <p class="note" id="contactMsg" role="status"></p>
     </form>
     <aside class="contactside">
       <h2>Other ways to reach us</h2>
@@ -106,7 +109,7 @@
 <aside id="drawer" role="dialog" aria-modal="true" aria-label="Your cart" hidden=""></aside>
 <div id="toast" role="status" hidden=""></div>
 
-<script src="/assets/app.997092180a.js" defer></script>
+<script src="/assets/app.7f1d385d87.js" defer></script>
 
 
 </body></html>
