@@ -1,0 +1,14 @@
+{
+  "extraKnownMarketplaces": {
+    "robonuggets": { "source": { "source": "github", "repo": "robonuggets/ribbon" } },
+    "claude-kit": { "source": { "source": "github", "repo": "JohnnyVizz/claude-kit" } },
+    "claude-code-mods": { "source": { "source": "github", "repo": "karanb192/claude-code-mods" } },
+    "claude-reflect-marketplace": { "source": { "source": "github", "repo": "BayramAnnakov/claude-reflect" } }
+  },
+  "enabledPlugins": {
+    "ribbon@robonuggets": true,
+    "savvy-progress@claude-kit": true,
+    "cache-tax@claude-code-mods": true,
+    "reflect-mod@claude-reflect-marketplace": true
+  }
+}
