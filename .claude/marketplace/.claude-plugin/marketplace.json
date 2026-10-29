@@ -1,0 +1,11 @@
+{
+  "name": "website-design-extras",
+  "owner": { "name": "dreadganic" },
+  "plugins": [
+    {
+      "name": "cache-tax",
+      "source": { "source": "github", "repo": "karanb192/cache-tax" },
+      "description": "Keeps the prompt cache warm during breaks and warns before a cold send."
+    }
+  ]
+}
