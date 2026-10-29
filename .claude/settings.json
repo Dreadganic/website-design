@@ -2,15 +2,13 @@
   "extraKnownMarketplaces": {
     "robonuggets": { "source": { "source": "github", "repo": "robonuggets/ribbon" } },
     "claude-kit": { "source": { "source": "github", "repo": "JohnnyVizz/claude-kit" } },
-    "terminal-browser": { "source": { "source": "github", "repo": "zenbu-labs/terminal-browser" } },
-    "claude-reflect-marketplace": { "source": { "source": "github", "repo": "BayramAnnakov/claude-reflect" } },
-    "website-design-extras": { "source": { "source": "directory", "path": "./.claude/marketplace" } }
+    "claude-code-mods": { "source": { "source": "github", "repo": "karanb192/claude-code-mods" } },
+    "claude-reflect-marketplace": { "source": { "source": "github", "repo": "BayramAnnakov/claude-reflect" } }
   },
   "enabledPlugins": {
     "ribbon@robonuggets": true,
     "savvy-progress@claude-kit": true,
-    "cache-tax@website-design-extras": true,
-    "terminal-browser@terminal-browser": true,
-    "claude-reflect@claude-reflect-marketplace": true
+    "cache-tax@claude-code-mods": true,
+    "reflect-mod@claude-reflect-marketplace": true
   }
 }
