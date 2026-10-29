@@ -191,7 +191,7 @@ test("seasons: the rookie board lists only players in their first season, and fi
   const a = await newPlayer("Rookie");
   await call(score, "POST", { name: "Rookie", prestige: 0, seasonP: 0, seasonKh: 100, seasonStars: 5, level: G.levelFor(100), points: 100 }, a);
   await store.set("scores/veteran", { id: "veteran", name: "Old hand", prestige: 6, seasonP: 0, seasonKh: 9e6, seasonStars: 50, level: 40, points: 1e7, look: {}, season: G.seasonKey(clock), at: clock });
-  clock += 16e3;   /* a row written by another function instance shows once this one's row cache is 15 s old */
+  clock += 61e3;   /* a row written by another function instance shows once the shared board snapshot is a minute old */
   const rook = await call(score, "GET", undefined, a, { mode: "rookie" }), all = await call(score, "GET", undefined, a, { mode: "season" });
   assert.deepEqual(rook.body.top.map((r) => r.name), ["Rookie"]); assert.equal(rook.body.top[0].rookie, true);
   assert.deepEqual(all.body.top.map((r) => r.name), ["Old hand", "Rookie"]);
@@ -300,10 +300,10 @@ test("names: farms already on the board keep their names; unnamed rows wait off 
   assert.equal((await call(score, "POST", { name: "Beju", prestige: 1, seasonP: 0, level: 1, points: 0 }, a)).status, 200);
   assert.equal((await call(score, "POST", { name: "beju", prestige: 0, seasonP: 0, level: 1, points: 0 }, b)).body.error, "name_taken", "the other one is asked to pick a name");
   assert.equal((await call(score, "POST", { name: "You", prestige: 0, seasonP: 0, level: 1, points: 0 }, c)).body.error, "generic_name");
-  clock += 16e3;
+  clock += 61e3;
   const top = (await call(score, "GET", undefined, d, { mode: "all" })).body.top.map((r) => r.name);
   assert.ok(top.includes("Beju") && !top.includes("You"), "the farm still called You is off the board for now");
-  await call(nameFn, "POST", { name: "Kenji" }, c); clock += 16e3;
+  await call(nameFn, "POST", { name: "Kenji" }, c); clock += 61e3;
   assert.ok((await call(score, "GET", undefined, d, { mode: "all" })).body.top.some((r) => r.name === "Kenji"), "picking a name puts the row back, renamed");
 });
 

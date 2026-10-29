@@ -153,7 +153,7 @@ async function claimName(store, me, raw, now) {   /* -> { name } or { error }; a
   Object.assign(me, { name, nameKey: key, renames });
   await savePlayer(store, me);
   const row = await store.get("scores/" + me.id);
-  if (row && row.name !== name) { row.name = name; await store.set("scores/" + me.id, row); }   /* the board shows the new name straight away */
+  if (row && row.name !== name) { row.name = name; await store.set("scores/" + me.id, row); await store.del("board/rows"); }   /* the board shows the new name straight away */
   return { name };
 }
 /* A look is a crest (nameplate and border, capped at the tier the player's prestige has reached), an outfit (any of the 8 once they have prestiged, since each prestige picks one) and a background. Old clients sent plate/border. */
@@ -187,7 +187,7 @@ async function addTrophy(store, me, t, now) {   /* once per trophy; saves the pl
   me.trophies.push(Object.assign({ id, at: now || Date.now() }, t));
   await savePlayer(store, me);
   const row = await store.get("scores/" + me.id);
-  if (row) { row.trophies = publicTrophies(me.trophies); await store.set("scores/" + me.id, row); }
+  if (row) { row.trophies = publicTrophies(me.trophies); await store.set("scores/" + me.id, row); await store.del("board/rows"); }
   return true;
 }
 

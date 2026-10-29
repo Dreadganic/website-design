@@ -6086,21 +6086,23 @@ async function online() {
 addEventListener('online', () => { if (API && NET.status !== 'online') { onlineTries = 0; online(); } });
 async function cloudSync(force) {
   if (!API || !NET.acct || NET.status !== 'online' || NET.hold) return;
-  if (!force && Date.now() - NET.lastSync < 60000) return;
+  if (!force && (document.hidden || Date.now() - NET.lastSync < 180000)) return;   /* usage: a save every 3 minutes while the tab is in view; leaving the tab saves once */
   NET.lastSync = Date.now(); save();
-  const data = JSON.parse(JSON.stringify(S, (k, v) => (k === 'target' || k === 'claim' || k === 'path') ? undefined : v));
+  const txt = JSON.stringify(S, (k, v) => (k === 'target' || k === 'claim' || k === 'path') ? undefined : v);
+  if (force && Date.now() - (NET.forcedAt || 0) < 20e3) return; if (force) NET.forcedAt = Date.now();   /* flicking between tabs doesn't save each time */
+  const data = JSON.parse(txt);
   const r = await api('game-save', 'PUT', { base: NET.ver, data }).catch(() => null);
   if (r && r.status === 200) { NET.ver = r.data.version; NET.acct.ver = NET.ver; keepAcct(); }
   else if (r && r.status === 409) { NET.ver = r.data.version; newerSave(r.data.data, r.data.at); }   /* another device saved in between: ask, never overwrite */
 }
 async function submitScore() {
-  if (!API || !NET.acct || NET.status !== 'online' || NET.hold) return;   /* held while a newer save waits for a choice, so an old device can't post old progress */
+  if (!API || !NET.acct || NET.status !== 'online' || NET.hold || document.hidden) return;   /* held while a newer save waits for a choice, so an old device can't post old progress */
   if (S.nameOk !== S.name) { if (Date.now() - (NET.nameAt || 0) > 60e3) nameSync(); return; }   /* the board waits for a name of your own */
   seasonTick();   /* never send last season's stars into a new season */
   const body = { name: S.name, prestige: S.prestige, seasonP: S.season.prestige, seasonKh: Math.floor(S.season.kh || 0), seasonStars: S.season.stars, level: level(), points: Math.floor(S.xp), look: S.look }; if (ctOn()) body.counter = { rating: Math.round(S.counter.rating * 10) / 10, served: S.counter.sServed };   /* the counter's stars and this season's customers ride along at the know-how pace */
   const sig = JSON.stringify(body) + (S.farmCode || '');   /* a new farm code resends the row, so the board links to the farm */
   const key = JSON.stringify([S.name, S.prestige, S.season.prestige, S.season.stars, S.look, S.farmCode || '', !!S.resetPending]);
-  if (sig === NET.lastScore || (key === NET.lastKey && Date.now() - (NET.scoreAt || 0) < 120e3)) return;   /* know-how alone moves your row every 2 minutes; prestige, stars, looks and names go straight away */
+  if (sig === NET.lastScore || (key === NET.lastKey && Date.now() - (NET.scoreAt || 0) < 300e3)) return;   /* know-how alone moves your row every 5 minutes; prestige, stars, looks and names go straight away */
   if (S.resetPending) body.reset = true;   /* the farm started again: the server lets the row start again too */
   NET.scoreAt = Date.now();
   const r = await api('game-score', 'POST', body).catch(() => null);
@@ -6238,9 +6240,9 @@ function hvAdd(unit, v, m) {   /* one more towards Harvest Day */
 }
 let hvAt = 0, hvPostAt = 0;
 async function harvestSync(force) {
-  if (!API || !NET.acct || NET.status !== 'online' || !hvShow()) return;
+  if (!API || !NET.acct || NET.status !== 'online' || !hvShow() || (document.hidden && !force)) return;
   const now = Date.now();
-  if (force || now - hvAt > 120e3) {
+  if (force || now - hvAt > (hvLive() ? 120e3 : 600e3)) {
     hvAt = now; const r = await api('game-harvest').catch(() => null);
     if (r && r.status === 200) {
       NET.hv = r.data.day; const mine = r.data.mine || { n: 0, claimed: false };
@@ -6249,7 +6251,7 @@ async function harvestSync(force) {
       if (hvLive() && S.hv.told !== NET.hv.id) { S.hv.told = NET.hv.id; toast('Harvest Day is on: ' + NET.hv.text.toLowerCase() + ', together with every farmer'); }
     }
   }
-  if (hvLive() && S.hv && S.hv.n > S.hv.sent && now - hvPostAt > 60e3) {
+  if (hvLive() && S.hv && S.hv.n > S.hv.sent && now - hvPostAt > 120e3) {
     hvPostAt = now; const r = await api('game-harvest', 'POST', { id: S.hv.id, n: S.hv.n }).catch(() => null);
     if (r && r.status === 200) { S.hv.sent = r.data.mine; NET.hv.total = r.data.total; NET.hv.reached = r.data.reached; NET.hv.half = NET.hv.half || r.data.total >= (NET.hv.target || 1) / 2; }
   }
@@ -6296,15 +6298,15 @@ function coopTake(v) {   /* a fresh view from the server: line up this week's ta
 }
 let coopAt = 0, coopPostAt = 0;
 async function coopSync(force) {
-  if (!coopOK() || !NET.acct || NET.status !== 'online') return;
+  if (!coopOK() || !NET.acct || NET.status !== 'online' || (document.hidden && !force)) return;
   const now = Date.now(), dc = S.dw ? JSON.stringify(S.dw.c) : '';
-  if (NET.coop && S.cw && (S.cw.kg > S.cw.sent + 0.5 || (S.dw && dc !== S.dw.sent)) && (force || now - coopPostAt > 60e3)) {
+  if (NET.coop && S.cw && (S.cw.kg > S.cw.sent + 0.5 || (S.dw && dc !== S.dw.sent)) && (force || now - coopPostAt > 120e3)) {
     coopPostAt = now; coopAt = now;
     const r = await api('game-coop', 'POST', { act: 'sync', week: S.cw.wk, kg: Math.floor(S.cw.kg), est: coopEst(), derby: S.dw ? S.dw.c : null }).catch(() => null);
     if (r && r.status === 200) { if (S.dw) S.dw.sent = dc; coopTake(r.data.coop); }
     return;
   }
-  if (force || now - coopAt > (tab === 'orders' ? 60e3 : 300e3)) { coopAt = now; const r = await api('game-coop').catch(() => null); if (r && r.status === 200) coopTake(r.data.coop); }
+  if (force || now - coopAt > (tab === 'orders' ? 120e3 : 900e3)) { coopAt = now; const r = await api('game-coop').catch(() => null); if (r && r.status === 200) coopTake(r.data.coop); }
 }
 async function coopAct(body) {
   if (!body) return;
@@ -6435,9 +6437,9 @@ function farmSnapshot() {
   return { loc: S.showLoc && S.farms[S.showLoc].unlocked ? S.showLoc : S.loc, farms, store: S.lv.storage, decor: Object.keys(S.decor).filter((k) => S.decor[k]), spiece: spieceOn() || '', perk: hasPerk('goldsign'), fx: fxOn(), dv: S.dv, rst };
 }
 async function visitSync(force) {
-  if (!API || !NET.acct || NET.status !== 'online' || NET.hold) return;
+  if (!API || !NET.acct || NET.status !== 'online' || NET.hold || document.hidden) return;
   const snap = farmSnapshot(), sig = JSON.stringify(snap);
-  if (!force && (sig === NET.farmSig || Date.now() - (NET.farmAt || 0) < 5 * 60000)) return;
+  if (!force && (sig === NET.farmSig || Date.now() - (NET.farmAt || 0) < 10 * 60000)) return;
   NET.farmAt = Date.now();
   const r = await api('game-visit', 'PUT', { farm: snap }).catch(() => null);
   if (r && r.status === 200) { NET.farmSig = sig; S.farmCode = r.data.code; S.farmCheers = r.data.cheers; submitScore(); }
@@ -6515,7 +6517,7 @@ async function cheersFarm(code) {
   if (r && r.status === 200) { S.cheered = S.cheered || {}; S.cheered[code] = dayKey(new Date()); if (NET.visit && NET.visit.code === code) NET.visit.cheers = r.data.cheers; star('cheers'); SFX.play('achieve'); toast('Cheers sent!'); showVisit(); }
   else { SFX.play('nope'); toast(r && r.data.error === 'already_today' ? 'You cheered this farm today' : r && r.data.error === 'enough_today' ? 'That\'s enough Cheers for today' : 'Could not send Cheers'); if (r && r.data.error === 'already_today') { S.cheered = S.cheered || {}; S.cheered[code] = dayKey(new Date()); showVisit(); } }
 }
-setInterval(() => { cloudSync(); submitScore(); visitSync(); if (API && NET.acct && NET.status === 'online' && Date.now() - (NET.trophiesAt || 0) > 600000) { NET.trophiesAt = Date.now(); liveBoard('all'); } }, 30000);   /* the trophy list comes with your board row */
+setInterval(() => { if (document.hidden) return; cloudSync(); submitScore(); visitSync(); if (API && NET.acct && NET.status === 'online' && Date.now() - (NET.trophiesAt || 0) > 1800000) { NET.trophiesAt = Date.now(); liveBoard('all'); } }, 30000);   /* the trophy list comes with your board row */
 
 /* ---------- start: offline earnings, intro, loop ---------- */
 let behind = 0;   /* ms of farm time still to play through */

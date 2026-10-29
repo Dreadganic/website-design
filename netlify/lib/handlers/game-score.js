@@ -4,17 +4,20 @@
    The leaderboard. All time ranks by prestige, then level, then points; the season board ranks by season stars, then by who reached that total first (so a bigger farm doesn't win ties).
    The first request of a new season saves the last season's final board as seasons/<key>, before any player's row moves on to the new season.
    Each submission must be possible since the last one, except that a player who started their farm again (reset: true) may start their row again too.
-   Every row is read once per ROWS_MS by each function instance, not once per request, so a busy board stays cheap. */
+   Every row is read at most once a minute (a shared snapshot, board/rows), then kept per instance for ROWS_MS, so a busy board stays cheap. */
 const G = require("../game");
 
 const rankSort = (key) => (a, b) => b[key] - a[key] || b.level - a.level || b.points - a.points;
 const seasonSort = (a, b) => (b.seasonStars || 0) - (a.seasonStars || 0) || (a.starsAt || Infinity) - (b.starsAt || Infinity) || (b.seasonKh || 0) - (a.seasonKh || 0);
-const ROWS_MS = 15e3, rowCache = new Map(), LIVE = {};   /* keyed by store, so tests with their own stores never share rows */
+const ROWS_MS = 30e3, SNAP_MS = 60e3, SNAP = "board/rows", rowCache = new Map(), LIVE = {};   /* keyed by store, so tests with their own stores never share rows */
 async function allRows(store, ck, now) {
   const c = rowCache.get(ck);
   if (c && now - c.at < ROWS_MS) return c.rows;
+  const snap = await store.get(SNAP);   /* one shared copy of every row, rebuilt by whichever instance finds it old: a board read is one Blobs read, not one per player */
+  if (snap && now - snap.at < SNAP_MS && Array.isArray(snap.rows)) { rowCache.set(ck, { at: now, rows: snap.rows.slice() }); return rowCache.get(ck).rows; }
   const keys = await store.list("scores/");
   const rows = (await Promise.all(keys.map((k) => store.get(k)))).filter(Boolean);
+  await store.set(SNAP, { at: now, rows }).catch(() => {});
   rowCache.set(ck, { at: now, rows });
   return rows;
 }

@@ -17,4 +17,4 @@
   X-Robots-Tag: noindex
 /farm/*
   X-Robots-Tag: noindex, nofollow
-  Cache-Control: public, max-age=300
+  Cache-Control: public, max-age=1800, stale-while-revalidate=86400

@@ -3,6 +3,8 @@
 [build]
   publish = "beju-site"
   functions = "netlify/functions"
+  # Only build when the site or the functions changed: work in game-assets/, docs and tests does not cost a deploy.
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- beju-site netlify/functions netlify/lib netlify.toml package.json package-lock.json"
 
 [functions]
   node_bundler = "esbuild"
