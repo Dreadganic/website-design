@@ -2073,16 +2073,15 @@ def scene_kona():
         put(x, 263, "#7A726A")
         if rnd.random() < 0.4:
             put(x, 264, lush[3])
-    # the drying patio: a timber deck with raised beds (the game sets the lots on them)
+    # the co-op dock: a timber deck where the boat's order cards are pinned up (the game draws them), with a rope rail
     for y in range(265, 307):
         for x in range(73, 192):
             board = (y - 265) % 4
             put(x, y, WOOD[4] if x == 73 or y in (265, 306) or board == 3 else WOOD[1] if board == 0 else WOOD[2] if (x * 3 + y) % 17 else WOOD[3])
-    for k in range(3):
-        for row in range(2):
-            x0, y0 = 77 + k * 38, 268 + row * 18
-            R(x0 + 1, y0 + 14, 2, 3, WOOD[4]); R(x0 + 31, y0 + 14, 2, 3, WOOD[4])
-            shadow_ellipse(x0 + 17, y0 + 16, 16, 1.5, 40)
+    for x in range(76, 190, 12):   # rail posts along the front, a rope between them
+        R(x, 302, 2, 5, WOOD[4]); put(x, 301, WOOD[1])
+    for x in range(76, 190):
+        put(x, 303 + int(abs(math.sin((x - 76) / 12 * math.pi)) * 1.5), "#C8B080")
     k_ti(70, 268, True); k_ti(70, 300, False)
     # the cove: sand curving round clear water, waves, an outrigger canoe and the pier
     for y in range(265, H):

@@ -1602,11 +1602,11 @@ const METHODS = {
 /* Kona Ridge's fruits, for co-fermenting in its tanks (the island's code is further down). Each makes a co-ferment process that only
    Kona can run: hidden from every list of processes, but a lot, bin or bag of it reads and pays like any other */
 const KONA_P = 6, konaOpen = () => S.prestige >= KONA_P || !!(S.kona && S.kona.test);
-const KFR = {
-  mango: { name: 'Mango', lv: 1, grow: 12, kg: 20, ferm: 8, win: 90, bonus: 2, vents: 1, col: '#F08A30', note: 'Sweet and forgiving: the starter' },
-  pineapple: { name: 'Pineapple', lv: 8, grow: 8, kg: 20, ferm: 5, win: 45, bonus: 2.5, vents: 2, col: '#F2C04A', note: 'Pressure builds fast: two vents a tank' },
-  lemon: { name: 'Lemon', lv: 15, grow: 6, kg: 20, ferm: 6, win: 30, bonus: 1.5, vents: 1, col: '#F2D838', note: '+3 cup on Geisha and the Bourbons; turns sour fast if you\'re late' },
-  coconut: { name: 'Coconut', lv: 25, grow: 15, kg: 16, ferm: 10, win: 120, bonus: 1.5, vents: 0, col: '#E8DCC8', note: 'Creamy body: the lot comes out 20% heavier, and never needs venting' }
+const KFR = {   /* grow and ferment in seconds, kg of fruit a harvest (a tank takes 1 kg per 10 kg of cherries), the gold window in seconds */
+  mango: { name: 'Mango', lv: 1, grow: 90, kg: 10, ferm: 60, win: 15, bonus: 2, vents: 1, col: '#F08A30', note: 'Sweet and forgiving: the starter' },
+  pineapple: { name: 'Pineapple', lv: 8, grow: 70, kg: 10, ferm: 45, win: 8, bonus: 2.5, vents: 2, col: '#F2C04A', note: 'Pressure builds fast: two vents a tank' },
+  lemon: { name: 'Lemon', lv: 15, grow: 60, kg: 10, ferm: 50, win: 6, bonus: 1.5, vents: 1, col: '#F2D838', note: '+3 cup on Geisha and the Bourbons; turns sour fast if you\'re late' },
+  coconut: { name: 'Coconut', lv: 25, grow: 120, kg: 8, ferm: 90, win: 20, bonus: 1.5, vents: 0, col: '#E8DCC8', note: 'Creamy body: the lot comes out 20% heavier, and never needs venting' }
 };
 const KFR_ORDER = Object.keys(KFR);
 const kBonus = (fr, v) => (fr === 'lemon' && ['geisha', 'yellowbourbon', 'pinkbourbon'].includes(v) ? 3 : KFR[fr].bonus);
@@ -3363,51 +3363,56 @@ function insideClick(lx, ly) {
 /* ---------- Kona Ridge: the co-fermentation island. From prestige 6 the trader's boat reaches a volcanic island with no mill.
    Coffee and fruit grow side by side on plots whose soil wears down; fertiliser is volcanic ash (piles the volcano puffs onto
    the ash field) mixed with compost from the mainland mills' pulp. Cherries ferment in tanks with one fruit: vent the pressure
-   when it peaks and pull the tank in its gold window. Dry lots sell to the island co-op for shells, the island shop's money,
-   or ship to the roastery as co-ferment bags. Plots, tanks and the patio run on the real clock, so time away counts, and the
-   island keeps everything through prestige. Its sounds are in kona-sfx.js ---------- */
+   when it peaks and pull the tank in its gold window. The loop is quick, about a tank a minute: a pulled lot goes straight to
+   the co-op boat at the dock, filling the best of its order cards for shells (the island shop's money), or sells loose, or
+   ships to the roastery as co-ferment bags. The boat sails every 5 minutes with new orders, sooner once all are filled.
+   Plots, tanks and the boat run on the real clock, so time away counts, and the island keeps everything through prestige.
+   Its sounds are in kona-sfx.js ---------- */
 const kSfx = (n) => { if (typeof KonaSFX !== 'undefined') KonaSFX.play(n); };
 const KPLOT = (i) => ({ x: 6 + (i % 4) * 46, y: i < 4 ? 116 : 162 });   /* a plot's corner: 42 x 46, its bed along the bottom */
 const KPLOT_LV = [1, 1, 1, 1, 3, 6, 10, 14];   /* plots 5 to 8 open with the island's level */
 const KTANK_X = (i) => 5 + i * 30, KTANK_Y = 222, KTANKS_MAX = 6;
-const KMAT = (i) => ({ x: 77 + (i % 3) * 38, y: 268 + Math.floor(i / 3) * 18 }), KMATS = 6;   /* the patio sits right, clear of the corner buttons */
+const KCARD_W = 27, KCARD_H = 33, KCARD = (j, n) => ({ x: Math.round(76 + j * 29 + (4 - n) * 14.5), y: 271 });   /* the co-op boat's order cards on the dock deck, clear of the corner buttons */
+const KBOAT_MS = 5 * 60e3;
 const KSHED = { x: 144, y: 66, w: 46, h: 46 }, KASH = { x0: 8, x1: 126, y0: 70, y1: 100 }, KCRATER = { x: 96, y: 12 };
-const KVENT_MS = 20e3;   /* a vent stays in the red this long */
+const KVENT_MS = 8e3;   /* a vent stays in the red this long: one quick tap */
 const KSHOP = [
   { id: 'tarps', name: 'Ash tarps', cost: 60, lv: 2, text: 'Eruptions no longer cover the fruit trees' },
   { id: 'tank3', name: 'Third tank', cost: 200, lv: 5, text: 'One more fermentation tank' },
   { id: 'spreader', name: 'Fertiliser spreader', cost: 300, lv: 8, text: 'One bag feeds every plot in its row' },
   { id: 'copper', name: 'Copper valve', cost: 400, lv: 10, text: 'Each tank vents itself once' },
-  { id: 'tank4', name: 'Fourth tank', cost: 600, lv: 12, text: 'One more tank' },
-  { id: 'big', name: 'Bigger tanks', cost: 800, lv: 15, text: 'Every tank holds 300 kg' },
-  { id: 'trap', name: 'Ash trap', cost: 900, lv: 18, text: 'Gathers a third of the ash while you\'re away' },
-  { id: 'keeper', name: 'Tank keeper', cost: 1000, lv: 20, text: 'Loads, vents and pulls the tanks, and sends dry lots on' },
-  { id: 'copperfin', name: 'Copper tank finish', cost: 1200, lv: 22, text: 'Hammered copper tanks (pick a finish in the Log)' },
-  { id: 'tank56', name: 'Fifth and sixth tanks', cost: 1500, lv: 28, text: 'Two more tanks' },
-  { id: 'patio2', name: 'Second patio', cost: 2500, lv: 35, text: 'Pulled lots dry in half the time' },
-  { id: 'nene', name: 'Nēnē goose', cost: 1500, lv: 40, text: 'A companion that follows your farmer' },
-  { id: 'title', name: '"Fermentation master"', cost: 2000, lv: 45, text: 'A title for your nameplate (Looks)' }
+  { id: 'tank4', name: 'Fourth tank', cost: 900, lv: 12, text: 'One more tank' },
+  { id: 'big', name: 'Bigger tanks', cost: 1200, lv: 15, text: 'Every tank holds 150 kg' },
+  { id: 'trap', name: 'Ash trap', cost: 1400, lv: 18, text: 'Gathers a third of the ash while you\'re away' },
+  { id: 'keeper', name: 'Tank keeper', cost: 2000, lv: 20, text: 'Loads, vents and pulls the tanks, aiming at the boat\'s orders' },
+  { id: 'copperfin', name: 'Copper tank finish', cost: 1800, lv: 22, text: 'Hammered copper tanks (pick a finish in the Log)' },
+  { id: 'tank56', name: 'Fifth and sixth tanks', cost: 2500, lv: 28, text: 'Two more tanks' },
+  { id: 'boat4', name: 'Bigger boat', cost: 3000, lv: 35, text: 'The co-op boat brings four order cards' },
+  { id: 'nene', name: 'Nēnē goose', cost: 2500, lv: 40, text: 'A companion that follows your farmer' },
+  { id: 'title', name: '"Fermentation master"', cost: 4000, lv: 45, text: 'A title for your nameplate (Looks)' }
 ];
 const KFIN = { steel: ['Stainless steel', null], copper: ['Hammered copper', { '#F2F6F8': '#FFD8B0', '#D4DCE2': '#E8A070', '#B4C0C8': '#C87848', '#8E9CA6': '#A05A34', '#6A7882': '#7A4024' }], gold: ['Golden', { '#F2F6F8': '#FFF4B0', '#D4DCE2': '#F8DC70', '#B4C0C8': '#E8B830', '#8E9CA6': '#B88A20', '#6A7882': '#8A6414' }] };
 const kOwnFin = (f) => f === 'steel' || (f === 'copper' && !!S.kona.shop.copperfin) || (f === 'gold' && S.kona.log.golden > 0);
 const kPlots = () => KPLOT_LV.filter((l) => S.kona.lv >= l).length;
 const kTanks = () => 2 + (S.kona.shop.tank3 ? 1 : 0) + (S.kona.shop.tank4 ? 1 : 0) + (S.kona.shop.tank56 ? 2 : 0);
-const kCap = () => (S.kona.shop.big ? 300 : 200);
-const kNeed = (l) => 20 + 8 * l;   /* island xp from level l to l + 1: about 20 hours of island play to level 50 */
-const kGrow = (pl) => (pl.k === 'coffee' ? 120 / VAR[pl.v].speed : KFR[pl.k].grow * 60);   /* seconds from planting, or the last harvest, to ripe */
+const kCap = () => (S.kona.shop.big ? 150 : 100);
+const kNeed = (l) => 40 + 20 * l;   /* island xp from level l to l + 1: pineapple about 20 minutes in, coconut about 3 hours, level 50 about 11 hours of play */
+const kGrow = (pl) => (pl.k === 'coffee' ? 30 / VAR[pl.v].speed : KFR[pl.k].grow);   /* seconds from planting, or the last harvest, to ripe */
 const kYield = (f) => (f >= 60 ? 1 : f >= 20 ? 0.5 + (f - 20) / 80 : f >= 10 ? 0.5 : 0);   /* fertility: full above 60, half at 20, nothing ripens under 10 */
 const kVentAt = (tk, j) => tk.dur * (j + 1) / (tk.n + 1);   /* ms into the ferment when vent j comes due */
 const kVentDue = (tk) => tk.vj < tk.n && Date.now() - tk.at >= kVentAt(tk, tk.vj);
 const kQual = (tk) => tk.end || (Date.now() - tk.at >= tk.dur ? 'gold' : 'early');
-const kDry = (l) => Date.now() - l.at >= l.dry;
-const kShells = (l) => Math.round((8 + 0.25 * l.kg) * (1 + S.kona.lv / 25) * (l.q === 'gold' ? 1.3 : l.q === 'late' ? 0.7 : 1));
+const kLoose = (l) => Math.max(1, Math.round((4 + l.kg * 0.15) * (1 + S.kona.lv / 25) * (l.q === 'gold' ? 1.3 : l.q === 'late' ? 0.6 : 1)));   /* a lot no order wants */
+const kFits = (c, l) => !c.done && c.fr === l.fr && (!c.v || c.v === l.v) && (!c.gold || l.q === 'gold');
+const kVname = (v) => ART.varieties[v].replace('Yellow ', 'Y.').replace('Pink ', 'P.').replace('Ethiopian ', '').split(' ')[0];
+const kCardText = (c) => KFR[c.fr].name + ' co-ferment' + (c.v ? ' on ' + ART.varieties[c.v] : ', any coffee') + (c.gold ? ', pulled in the gold window' : '');
 const kFruitOk = (fr) => S.kona.lv >= KFR[fr].lv;
 const kQName = { gold: 'gold window', early: 'pulled early', half: 'stopped by itself', late: 'over-fermented' };
-let kPiles = [], kPuff = null, kPuffT = 25, kEarly = null, kAlarm = 0;
+let kPiles = [], kPuff = null, kPuffT = 8, kEarly = null, kAlarm = 0;
 function konaFresh() {
   const best = VAR_ORDER.filter((v) => S.vars[v]).sort((a, b) => VAR[b].value - VAR[a].value)[0] || 'caturra';
-  return { lv: 1, xp: 0, shells: 0, ash: 0, compost: 6, bags: 2, fin: 'steel', shop: {}, log: { perfect: {}, erupt: 0, golden: 0 }, cherries: {}, fruit: { mango: 0, pineapple: 0, lemon: 0, coconut: 0 }, tanks: [], patio: [], trap: 0, last: Date.now(), seen: false,
-    plots: Array.from({ length: 8 }, (_, i) => ({ k: i < 4 ? (i % 2 ? 'mango' : 'coffee') : '', v: best, p: i < 4 ? (i % 2 ? 0.55 : 0.92) : 0, f: 100, ash: false })) };
+  return { lv: 1, xp: 0, shells: 0, ash: 0, compost: 10, bags: 3, fin: 'steel', shop: {}, log: { perfect: {}, erupt: 0, golden: 0 }, cherries: {}, fruit: { mango: 0, pineapple: 0, lemon: 0, coconut: 0 }, tanks: [], boat: null, spare: 'coop', trap: 0, last: Date.now(), seen: false,
+    plots: Array.from({ length: 8 }, (_, i) => ({ k: i < 4 ? (i % 2 ? 'mango' : 'coffee') : '', v: best, p: i < 4 ? (i % 2 ? 0.8 : 0.9) : 0, f: 100, ash: false })) };   /* a ripe crop to start, so the first tank goes in within the first half minute */
 }
 const konaHere = () => scene() === 'kona' && !document.hidden;
 function goKona() { if (!konaOpen()) return; S.isle = true; S.farmSub = 'fields'; setTab('farm', true); }
@@ -3428,6 +3433,9 @@ function konaTick() {
   const K = S.kona, now = Date.now(), dt = Math.max(0, Math.min(12 * 3600, (now - (K.last || now)) / 1000)); K.last = now;
   if (dt <= 0) return;
   const here = konaHere() && dt < 3;   /* a long gap is time away, even if the island is on screen when the page comes back */
+  if (!K.boat || now >= K.boat.at) kNewBoat();
+  if (K.patio) { K.patio.forEach((l) => kDeliver(l, true)); delete K.patio; }   /* saves from before the boat: lots on the old patio go to it */
+  if (K.shop.patio2) { delete K.shop.patio2; K.shells += 2500; }
   K.plots.forEach((pl, i) => { if (!pl.k || pl.ash || i >= kPlots() || pl.p >= 1 || pl.f < 10) return; pl.p = Math.min(1, pl.p + dt / kGrow(pl)); });
   K.tanks.forEach((tk) => {
     if (!tk) return; const t = now - tk.at;
@@ -3440,14 +3448,14 @@ function konaTick() {
     if (K.tanks.some((tk) => tk && kVentDue(tk)) && now - kAlarm > 6000) { kAlarm = now; kSfx('alarm'); }
     kPuffT -= dt; if (kPuffT <= 0) kPuffNow(Math.random() < 1 / 8);
     if (K.trap >= 1) { const n = Math.floor(K.trap); K.trap -= n; K.ash += n; floats.push({ x: KSHED.x + 23, y: KSHED.y + 4, text: '+' + n + ' ash from the trap', t: 0 }); }
-  } else if (K.shop.trap) K.trap = Math.min(40, (K.trap || 0) + dt * 0.021);   /* a third of what the field gets: about 4.75 ash a puff, a puff every 75 seconds */
-  kPiles = kPiles.filter((p) => (p.t += dt) < 45);
+  } else if (K.shop.trap) K.trap = Math.min(40, (K.trap || 0) + dt * 0.035);   /* a third of what the field gets: about 3.4 ash a puff, a puff every 32 seconds */
+  kPiles = kPiles.filter((p) => (p.t += dt) < 30);
   if (kPuff && (kPuff.t += dt) > (kPuff.big ? 7 : 4.5)) kPuff = null;
   if (K.shop.keeper) kKeeper();
 }
 function kPuffNow(big) {
-  const K = S.kona; kPuffT = 60 + Math.random() * 30; kPuff = { t: 0, big };
-  const n = big ? 10 : 3 + Math.floor(Math.random() * 3);
+  const K = S.kona; kPuffT = 25 + Math.random() * 15; kPuff = { t: 0, big };
+  const n = big ? 8 : 2 + Math.floor(Math.random() * 3);
   for (let j = 0; j < n; j++) kPiles.push({ x: KASH.x0 + Math.random() * (KASH.x1 - KASH.x0 - 12), y: KASH.y0 + Math.random() * (KASH.y1 - KASH.y0), t: -1.2 - Math.random() * 0.9, big: Math.random() < 0.3 });
   kSfx(big ? 'erupt' : 'puff');
   if (!big) return;
@@ -3457,21 +3465,20 @@ function kPuffNow(big) {
   }
   floats.push({ x: KCRATER.x, y: KCRATER.y + 26, text: 'eruption! ash everywhere', t: 0 });
 }
-function kKeeper() {   /* the tank keeper: loads, vents (above) and pulls, and sends dry lots on */
+function kKeeper() {   /* the tank keeper: vents (above), pulls in the window and loads for the boat's orders */
   const K = S.kona;
-  K.tanks.forEach((tk, i) => { if (tk && Date.now() - tk.at >= tk.dur && K.patio.length < KMATS) kPull(i, true); });
-  for (let i = 0; i < kTanks(); i++) if (!K.tanks[i]) { const fr = kBestFruit(); if (!fr || !kLoad(i, fr, true)) break; }
-  K.patio.slice().forEach((l) => { if (!kDry(l)) return; const j = K.patio.indexOf(l); if (!kShip(j, true)) kSell(j, true); });
+  K.tanks.forEach((tk, i) => { if (tk && Date.now() - tk.at >= tk.dur) kPull(i, true); });
+  for (let i = 0; i < kTanks(); i++) if (!K.tanks[i]) { const p = kSmartPick(); if (!p || !kLoad(i, p.fr, true, p.v)) break; }
 }
 /* plots */
 function kHarvest(i) {
   const K = S.kona, pl = K.plots[i], f = kYield(pl.f), at = KPLOT(i);
   if (pl.k === 'coffee') {
-    const kg = Math.round(25 * VAR[pl.v].kg / 3 * f * 10) / 10; K.cherries[pl.v] = (K.cherries[pl.v] || 0) + kg; pl.f = Math.max(0, pl.f - 8);
-    SFX.play('harvest'); floats.push({ x: at.x + 21, y: at.y + 10, text: '+' + fmtKg(kg) + ' kg ' + ART.varieties[pl.v], t: 0 }); kXp(2);
+    const kg = Math.round(25 * VAR[pl.v].kg / 3 * f * 10) / 10; K.cherries[pl.v] = (K.cherries[pl.v] || 0) + kg; pl.f = Math.max(0, pl.f - 3);
+    SFX.play('harvest'); floats.push({ x: at.x + 21, y: at.y + 10, text: '+' + fmtKg(kg) + ' kg ' + ART.varieties[pl.v], t: 0 }); kXp(1);
   } else {
-    const kg = Math.round(KFR[pl.k].kg * f); K.fruit[pl.k] = Math.min(200, (K.fruit[pl.k] || 0) + kg); pl.f = Math.max(0, pl.f - 12);
-    kSfx('fruit'); floats.push({ x: at.x + 21, y: at.y + 8, text: '+' + kg + ' kg ' + KFR[pl.k].name.toLowerCase(), t: 0 }); kXp(3);
+    const kg = Math.round(KFR[pl.k].kg * f); K.fruit[pl.k] = Math.min(100, (K.fruit[pl.k] || 0) + kg); pl.f = Math.max(0, pl.f - 5);
+    kSfx('fruit'); floats.push({ x: at.x + 21, y: at.y + 8, text: '+' + kg + ' kg ' + KFR[pl.k].name.toLowerCase(), t: 0 }); kXp(2);
     if (pl.k === 'pineapple' && Math.random() < 1 / 50) { K.log.golden += 1; K.shells += 50; SFX.play('achieve'); toast('A golden pineapple! +50 shells' + (K.log.golden === 1 ? ', and the golden tank finish (Kona › Log)' : '')); }
   }
   for (let k = 0; k < 7; k++) bursts.push({ x: at.x + 21, y: at.y + 18, vx: (rnd() - 0.5) * 60, vy: -30 - rnd() * 40, t: 0, c: pl.k === 'coffee' ? (k % 2 ? '#E83A30' : '#3E8036') : (k % 2 ? KFR[pl.k].col : '#3E8036') });
@@ -3481,7 +3488,7 @@ function kFeed(i) {   /* a bag on a plot, or with the spreader on its whole row 
   const K = S.kona; if (K.bags < 1) return false;
   K.bags -= 1; const row = K.shop.spreader ? [0, 1, 2, 3].map((c) => (i < 4 ? c : c + 4)).filter((j) => j < kPlots()) : [i];
   row.forEach((j) => { K.plots[j].f = Math.min(100, K.plots[j].f + 40); });
-  kSfx('feed'); kXp(2); const at = KPLOT(i); floats.push({ x: at.x + 21, y: at.y + 20, text: row.length > 1 ? 'row fed +40' : 'fed +40', t: 0 });
+  kSfx('feed'); kXp(1); const at = KPLOT(i); floats.push({ x: at.x + 21, y: at.y + 20, text: row.length > 1 ? 'row fed +40' : 'fed +40', t: 0 });
   for (let k = 0; k < 10; k++) bursts.push({ x: at.x + 21, y: at.y + 32, vx: (rnd() - 0.5) * 50, vy: -20 - rnd() * 20, t: 0, c: k % 2 ? '#A89A86' : '#5E3822' });
   return true;
 }
@@ -3492,61 +3499,84 @@ function kPlant(i, what) {
 }
 function kMix() {
   const K = S.kona;
-  if (K.ash < 3 || K.compost < 1) { SFX.play('knock'); floats.push({ x: KSHED.x + 23, y: KSHED.y + 10, text: K.ash < 3 ? 'needs 3 ash' : 'needs compost from the mills', t: 0 }); return false; }
-  K.ash -= 3; K.compost -= 1; K.bags += 1; kSfx('mix'); kXp(1); floats.push({ x: KSHED.x + 23, y: KSHED.y + 10, text: '+1 fertiliser', t: 0 }); return true;
+  if (K.ash < 2 || K.compost < 1) { SFX.play('knock'); floats.push({ x: KSHED.x + 23, y: KSHED.y + 10, text: K.ash < 2 ? 'needs 2 ash' : 'needs compost from the mills', t: 0 }); return false; }
+  K.ash -= 2; K.compost -= 1; K.bags += 1; kSfx('mix'); kXp(1); floats.push({ x: KSHED.x + 23, y: KSHED.y + 10, text: '+1 fertiliser', t: 0 }); return true;
 }
 /* tanks */
-function kBestFruit() {   /* the fruit to load: the best bonus there's enough of */
-  const K = S.kona, v = kBigV(); if (!v) return null;
-  const need = Math.min(kCap(), K.cherries[v]) / 10;
-  return KFR_ORDER.filter((fr) => kFruitOk(fr) && (K.fruit[fr] || 0) >= Math.min(need, 4)).sort((a, b) => kBonus(b, v) - kBonus(a, v))[0] || null;
+function kSmartPick() {   /* what to load: the best-paying order there's fruit and cherries for, else the fruit with the best bonus */
+  const K = S.kona, B = K.boat, cards = B ? B.cards.filter((c) => !c.done).sort((a, b) => b.pay - a.pay) : [];
+  for (const c of cards) { const v = c.v || kBigV(); if (v && (K.cherries[v] || 0) >= 30 && kFruitOk(c.fr) && (K.fruit[c.fr] || 0) >= 3) return { fr: c.fr, v, card: c }; }
+  const v = kBigV(); if (!v) return null;
+  const fr = KFR_ORDER.filter((x) => kFruitOk(x) && (K.fruit[x] || 0) >= 3).sort((a, b) => kBonus(b, v) - kBonus(a, v))[0];
+  return fr ? { fr, v } : null;
 }
-const kBigV = () => { const c = S.kona.cherries; return Object.keys(c).filter((v) => c[v] >= 40).sort((a, b) => c[b] - c[a])[0] || null; };   /* the coffee with the most cherries, at least 40 kg */
-function kLoad(i, fr, quiet) {
-  const K = S.kona, v = kBigV(); if (K.tanks[i] || i >= kTanks() || !v || !KFR[fr] || !kFruitOk(fr)) return false;
-  const kg = Math.floor(Math.min(kCap(), K.cherries[v], (K.fruit[fr] || 0) * 10)); if (kg < 40) return false;
+const kBigV = () => { const c = S.kona.cherries; return Object.keys(c).filter((v) => c[v] >= 30).sort((a, b) => c[b] - c[a])[0] || null; };   /* the coffee with the most cherries, at least 30 kg */
+function kLoad(i, fr, quiet, want) {
+  const K = S.kona, v = want && (K.cherries[want] || 0) >= 30 ? want : kBigV(); if (K.tanks[i] || i >= kTanks() || !v || !KFR[fr] || !kFruitOk(fr)) return false;
+  const kg = Math.floor(Math.min(kCap(), K.cherries[v], (K.fruit[fr] || 0) * 10)); if (kg < 30) return false;
   K.cherries[v] -= kg; if (K.cherries[v] < 0.5) delete K.cherries[v]; K.fruit[fr] -= kg / 10;
-  const F = KFR[fr]; K.tanks[i] = { v, fr, kg, at: Date.now(), dur: F.ferm * 60e3, win: F.win * 1e3, n: F.vents, vj: 0, miss: 0 };
-  if (!quiet) { kSfx('load'); floats.push({ x: KTANK_X(i) + 13, y: KTANK_Y - 4, text: fmt(kg) + ' kg + ' + F.name.toLowerCase(), t: 0 }); }
+  const F = KFR[fr]; K.tanks[i] = { v, fr, kg, at: Date.now(), dur: F.ferm * 1e3, win: F.win * 1e3, n: F.vents, vj: 0, miss: 0 };
+  if (!quiet) { kSfx('load'); floats.push({ x: KTANK_X(i) + 13, y: KTANK_Y - 4, text: fmt(kg) + ' kg ' + kVname(v) + ' + ' + F.name.toLowerCase(), t: 0 }); }
   return true;
 }
 function kVent(i) { const tk = S.kona.tanks[i]; if (!tk || !kVentDue(tk)) return false; tk.vj += 1; kSfx('vent'); kXp(2); floats.push({ x: KTANK_X(i) + 13, y: KTANK_Y - 4, text: 'vented', t: 0 }); for (let k = 0; k < 10; k++) bursts.push({ x: KTANK_X(i) + 13, y: KTANK_Y, vx: (rnd() - 0.5) * 40, vy: -40 - rnd() * 30, t: 0, c: '#F2F6F8' }); return true; }
-function kPull(i, quiet) {
+function kPull(i, quiet) {   /* the lot goes straight to the boat */
   const K = S.kona, tk = K.tanks[i]; if (!tk) return false;
-  if (K.patio.length >= KMATS) { if (!quiet) { SFX.play('knock'); floats.push({ x: KTANK_X(i) + 13, y: KTANK_Y - 4, text: 'the patio is full', t: 0 }); } return false; }
   const q = kQual(tk), b = kBonus(tk.fr, tk.v), adj = (q === 'gold' ? b : q === 'late' ? -2 : b / 2) - 0.5 * tk.miss;
-  K.patio.push({ v: tk.v, fr: tk.fr, kg: Math.round(tk.kg * 0.2 * (tk.fr === 'coconut' ? 1.2 : 1) * 10) / 10, adj, pay: q === 'gold' ? 1.15 : q === 'late' ? 0.7 : 1, q, at: Date.now(), dry: (K.shop.patio2 ? 90 : 180) * 1e3 });
+  const lot = { v: tk.v, fr: tk.fr, kg: Math.round(tk.kg * 0.2 * (tk.fr === 'coconut' ? 1.2 : 1) * 10) / 10, adj, pay: q === 'gold' ? 1.15 : q === 'late' ? 0.7 : 1, q };
   K.tanks[i] = null;
   if (q === 'gold') { const k = tk.v + '.' + tk.fr; K.log.perfect[k] = (K.log.perfect[k] || 0) + 1; task('ktank', 1); }
   K.stats = K.stats || {}; K.stats.tanks = (K.stats.tanks || 0) + 1;
-  kXp(q === 'gold' ? 15 : 8);
+  kXp(q === 'gold' ? 6 : 3);
   if (!quiet) { kSfx(q === 'late' ? 'sour' : 'pull'); floats.push({ x: KTANK_X(i) + 13, y: KTANK_Y - 4, text: q === 'gold' ? 'perfect! +' + b + ' cup' : kQName[q], t: 0 }); }
+  kDeliver(lot, quiet, i);
   return true;
 }
-/* the patio: dry lots go to the island co-op for shells, or to a roastery bin as co-ferment bags */
-function kSell(j, quiet) {
-  const K = S.kona, l = K.patio[j]; if (!l || !kDry(l)) return false;
-  const n = kShells(l); K.shells += n; K.patio.splice(j, 1); kXp(5);
-  if (!quiet) { kSfx('shells'); tapNote('+' + n + ' shells', 'The island co-op bought your ' + KFR[l.fr].name.toLowerCase() + ' co-ferment: +' + n + ' shells'); }
-  return true;
+/* the co-op boat: three order cards (four with the bigger boat), easy to hard, paying shells and island xp on the spot */
+function kNewBoat() {
+  const K = S.kona, lv = K.lv, open = K.plots.slice(0, kPlots()), frs = KFR_ORDER.filter(kFruitOk), vs = VAR_ORDER.filter((v) => S.vars[v]);
+  const planted = [...new Set(open.filter((p) => p.k === 'coffee').map((p) => p.v))], growing = frs.filter((fr) => open.some((p) => p.k === fr));
+  const pick = (a) => a[Math.floor(Math.random() * a.length)], sc = 1 + lv / 25;
+  const mk = (tier) => {   /* 0 any coffee, 1 gold pull, 2 on a coffee, 3 on a coffee and gold */
+    const fr = pick(growing.length && Math.random() < 0.75 ? growing : frs), v = tier >= 2 ? (planted.length && Math.random() < 0.7 ? pick(planted) : pick(vs)) : null;
+    return { fr, v, gold: tier % 2 === 1, pay: Math.round([12, 25, 40, 60][tier] * sc * (KFR[fr].lv >= 15 ? 1.2 : 1)), xp: [6, 10, 14, 18][tier], done: false };
+  };
+  const tiers = [0, 1, lv >= 10 && Math.random() < 0.4 ? 3 : 2]; if (K.shop.boat4) tiers.push(lv >= 10 ? 3 : 2);
+  K.boat = { at: Date.now() + KBOAT_MS, cards: tiers.map(mk) };
 }
-function kShip(j, quiet) {
-  const K = S.kona, l = K.patio[j], key = l && l.v + '.cof_' + l.fr; if (!l || !kDry(l)) return false;
+function kDeliver(lot, quiet, from) {   /* a pulled lot fills the best card it fits; otherwise it sells loose, or ships to Osaka if you've chosen that */
+  const K = S.kona, B = K.boat; if (!B) kNewBoat();
+  const cards = K.boat.cards, j = cards.reduce((best, c, k) => (kFits(c, lot) && (best < 0 || c.pay > cards[best].pay) ? k : best), -1);
+  const at = from !== undefined ? { x: KTANK_X(from) + 13, y: KTANK_Y - 16 } : { x: 133, y: 262 };
+  if (j > -1) {
+    const c = cards[j]; c.done = true; K.shells += c.pay; kXp(c.xp); K.stats = K.stats || {}; K.stats.orders = (K.stats.orders || 0) + 1;
+    if (!quiet) { kSfx('shells'); const p = KCARD(j, cards.length); floats.push({ x: p.x + 13, y: p.y - 2, text: '+' + c.pay + ' shells', t: -0.2 }); for (let k = 0; k < 10; k++) bursts.push({ x: p.x + 13, y: p.y + 10, vx: (rnd() - 0.5) * 60, vy: -30 - rnd() * 30, t: 0, c: k % 2 ? '#FFF0E4' : '#F2A8A0' }); }
+    if (cards.every((x) => x.done)) { const bonus = 15 + K.lv; K.shells += bonus; kXp(10); K.boat.at = Math.min(K.boat.at, Date.now() + 2500); K.boat.full = true; if (!quiet) { SFX.play('achieve'); floats.push({ x: 133, y: 258, text: 'full boat! +' + bonus + ' shells', t: -0.6 }); } }
+    return 'order';
+  }
+  if (K.spare === 'osaka' && kShip(lot, true)) { if (!quiet) { SFX.play('stamp'); floats.push({ x: at.x, y: at.y, text: 'no order: to Osaka', t: -0.2 }); } return 'osaka'; }
+  const n = kLoose(lot); K.shells += n; kXp(2);
+  if (!quiet) { kSfx('shells'); floats.push({ x: at.x, y: at.y, text: '+' + n + ' shells (no order)', t: -0.2 }); }
+  return 'coop';
+}
+function kShip(lot, quiet) {   /* a lot into a roastery bin as co-ferment green coffee */
+  const key = lot.v + '.cof_' + lot.fr;
   if (!roasteryOpen() || !canBin(key)) { if (!quiet) { SFX.play('nope'); toast('All ' + ROAST_BINS + ' roastery bins are full. Roast or sell one first'); } return false; }
-  const r = saleFor(l.v, 'cof_' + l.fr, l.kg, { raked: l.adj }), R = S.roastery, b = R.beans[key] = R.beans[key] || { kg: 0, coins: 0, pts: 0, cup: 0 };
-  b.cup = (b.cup * b.kg + r.cup * l.kg) / (b.kg + l.kg); b.kg += l.kg; b.coins += r.coins * l.pay; b.pts += r.points;
-  K.patio.splice(j, 1); kXp(5);
-  if (!quiet) { SFX.play('stamp'); tapNote('+' + fmtKg(l.kg) + ' kg to a bin', fmtKg(l.kg) + ' kg of ' + beanName(key) + ' shipped to the roastery'); }
+  const r = saleFor(lot.v, 'cof_' + lot.fr, lot.kg, { raked: lot.adj }), R = S.roastery, b = R.beans[key] = R.beans[key] || { kg: 0, coins: 0, pts: 0, cup: 0 };
+  b.cup = (b.cup * b.kg + r.cup * lot.kg) / (b.kg + lot.kg); b.kg += lot.kg; b.coins += r.coins * lot.pay; b.pts += r.points; kXp(2);
   return true;
 }
-function kLotCard(j) {
-  const K = S.kona, l = K.patio[j]; if (!l) return '';
-  const key = l.v + '.cof_' + l.fr, can = roasteryOpen() && canBin(key), r = saleFor(l.v, 'cof_' + l.fr, l.kg, { raked: l.adj });
-  return '<h2>' + KFR[l.fr].name + ' co-ferment</h2><p class="note">' + fmtKg(l.kg) + ' kg of ' + ART.varieties[l.v] + ', ' + kQName[l.q] + ', cup ' + r.cup.toFixed(1) + '.</p>' +
-    row(img('k_i_shell', 28), 'Sell to the island co-op', '+' + kShells(l) + ' shells for the island shop', btn('Sell', '+' + kShells(l), 'k_sell:' + j, true, 'green')) +
-    row(img('k_i_' + l.fr, 28), 'Ship to the roastery', can ? 'Into a bin as ' + beanName(key) + ': its bags carry the fruit\'s name and sell high' : roasteryOpen() ? 'Every roastery bin is full' : 'The roastery isn\'t open yet', btn('Ship', 'to Osaka', 'k_ship:' + j, can, 'blue')) +
-    '<button class="btn" data-act="close">Close</button>';
+function kCardInfo(j) {
+  const K = S.kona, c = K.boat && K.boat.cards[j]; if (!c) return '';
+  const v = c.v || kBigV(), how = [];
+  if (!K.plots.slice(0, kPlots()).some((p) => p.k === c.fr)) how.push('plant a ' + KFR[c.fr].name.toLowerCase() + ' tree');
+  if (c.v && !K.plots.slice(0, kPlots()).some((p) => p.k === 'coffee' && p.v === c.v) && (K.cherries[c.v] || 0) < 30) how.push('plant ' + ART.varieties[c.v] + ' in a coffee plot');
+  how.push('load a tank with ' + KFR[c.fr].name.toLowerCase() + (c.v ? ' and ' + ART.varieties[c.v] : ''));
+  how.push(c.gold ? 'pull it in the gold window (the tank flashes PULL)' : 'pull it when it\'s ready');
+  return '<h2>' + (c.done ? 'Filled: ' : '') + kCardText(c) + '</h2><p class="note">Pays <b>' + c.pay + ' shells</b> and ' + c.xp + ' island xp. ' + (c.done ? 'Done for this boat.' : 'To fill it: ' + how.join(', then ') + '. The lot fills this card by itself.') + '</p>' +
+    '<p class="note">The boat sails in ' + kClock(K.boat.at - Date.now()) + ' with new orders, or as soon as every card is filled, with a bonus.</p><button class="btn" data-act="close">Close</button>';
 }
+const kClock = (ms) => { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
 /* the map */
 function konaClick(lx, ly) {
   const K = S.kona; kWalk(lx, ly);
@@ -3567,11 +3597,9 @@ function konaClick(lx, ly) {
     if (i >= kTanks()) { SFX.play('knock'); floats.push({ x: x + 13, y: KTANK_Y + 10, text: 'more tanks in the island shop', t: 0 }); return; }
     const tk = K.tanks[i];
     if (!tk) {
-      const v = kBigV(), ok = KFR_ORDER.filter((fr) => kFruitOk(fr) && (K.fruit[fr] || 0) >= 4);
-      if (!v) { SFX.play('knock'); floats.push({ x: x + 13, y: KTANK_Y - 4, text: 'needs 40 kg of cherries', t: 0 }); return; }
-      if (!ok.length) { SFX.play('knock'); floats.push({ x: x + 13, y: KTANK_Y - 4, text: 'needs fruit', t: 0 }); return; }
-      if (ok.length === 1) kLoad(i, ok[0]); else showModal(kLoadCard(i));
-      return;
+      const p = kSmartPick();
+      if (!p) { SFX.play('knock'); floats.push({ x: x + 13, y: KTANK_Y - 4, text: !kBigV() ? 'needs 30 kg of cherries' : 'needs fruit', t: 0 }); return; }
+      kLoad(i, p.fr, false, p.v); return;   /* one tap: it loads for the best order it can */
     }
     if (kVentDue(tk)) { kVent(i); return; }
     const t = Date.now() - tk.at;
@@ -3582,11 +3610,9 @@ function konaClick(lx, ly) {
     }
     SFX.play('brush'); floats.push({ x: x + 13, y: KTANK_Y - 4, text: 'fermenting ' + Math.floor(t / tk.dur * 100) + '%', t: 0 }); return;
   }
-  for (let j = 0; j < KMATS; j++) {
-    const m = KMAT(j); if (lx < m.x || lx >= m.x + 34 || ly < m.y - 2 || ly >= m.y + 18) continue;
-    const l = K.patio[j]; if (!l) { floats.push({ x: m.x + 17, y: m.y, text: 'pull a tank to dry it here', t: 0 }); return; }
-    if (!kDry(l)) { SFX.play('brush'); floats.push({ x: m.x + 17, y: m.y, text: 'drying ' + Math.floor((Date.now() - l.at) / l.dry * 100) + '%', t: 0 }); return; }
-    showModal(kLotCard(j)); return;
+  const B = K.boat; if (B) for (let j = 0; j < B.cards.length; j++) {
+    const p = KCARD(j, B.cards.length); if (lx < p.x - 1 || lx >= p.x + KCARD_W + 1 || ly < p.y - 4 || ly >= p.y + KCARD_H + 2) continue;
+    SFX.play('page'); showModal(kCardInfo(j)); return;
   }
   if (ly > 270 && lx < 70) { SFX.play('knock'); floats.push({ x: 40, y: 290, text: 'the boat to Osaka', t: 0 }); }
 }
@@ -3642,12 +3668,16 @@ function drawKona(time) {
     if (kVentDue(tk)) { fx.fillStyle = Math.floor(time * 6) % 2 ? '#FF4030' : '#FFD070'; fx.fillRect(x + 12, KTANK_Y, 2, 3); for (let k = 0; k < 3; k++) { const ph = (time * 2 + k / 3) % 1; fx.fillStyle = 'rgba(255,255,255,' + (0.7 - ph * 0.7).toFixed(2) + ')'; fx.fillRect(Math.round(x + 13 + Math.sin(time * 5 + k) * 2), Math.round(KTANK_Y - 2 - ph * 10), 2, 2); } }
     const pr = tk.vj < tk.n ? Math.min(1, t / kVentAt(tk, tk.vj)) : 0.2; fx.fillStyle = '#2A1E14'; fx.fillRect(x + 19, KTANK_Y + 12, 2, 14); fx.fillStyle = pr >= 1 ? '#FF4030' : pr > 0.7 ? '#F2C04A' : '#7EB84C'; fx.fillRect(x + 19, KTANK_Y + 26 - Math.round(14 * pr), 2, Math.round(14 * pr));   /* the pressure gauge */
   }
-  /* the patio */
-  for (let j = 0; j < KMATS; j++) {
-    const m = KMAT(j), l = K.patio[j]; if (!l) continue;
-    fx.drawImage(sprite('k_mat'), m.x, m.y); fx.drawImage(sprite('k_i_' + l.fr), m.x + 12, m.y + 2);
-    const u = Math.min(1, (Date.now() - l.at) / l.dry); fx.fillStyle = '#2A1E14'; fx.fillRect(m.x + 2, m.y + 14, 30, 2); fx.fillStyle = u >= 1 ? '#F2C04A' : '#7EB84C'; fx.fillRect(m.x + 2, m.y + 14, Math.round(30 * u), 2);
-  }
+  /* the co-op boat's order cards on the dock */
+  const B = K.boat;
+  if (B) B.cards.forEach((c, j) => {
+    const p = KCARD(j, B.cards.length);
+    fx.fillStyle = 'rgba(42,42,8,0.3)'; fx.fillRect(p.x + 1, p.y + KCARD_H, KCARD_W, 2);
+    fx.fillStyle = '#3E2A1C'; fx.fillRect(p.x, p.y, KCARD_W, KCARD_H); fx.fillStyle = c.done ? '#CFE6B8' : '#FFF4DE'; fx.fillRect(p.x + 1, p.y + 1, KCARD_W - 2, KCARD_H - 2);
+    fx.drawImage(sprite('k_i_' + c.fr), p.x + 8, p.y + 3); fx.drawImage(sprite('k_i_shell'), p.x + 2, p.y + 22);
+    if (c.gold) { fx.fillStyle = '#E8B830'; [[2, 0], [1, 1], [2, 1], [3, 1], [0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [1, 3], [3, 3]].forEach(([a, b2]) => fx.fillRect(p.x + 20 + a, p.y + 3 + b2, 1, 1)); }
+    if (c.done) { fx.fillStyle = '#3E8036'; [[0, 3], [1, 4], [2, 5], [3, 4], [4, 3], [5, 2], [6, 1], [7, 0]].forEach(([a, b2]) => fx.fillRect(p.x + 16 + a, p.y + 22 + b2, 2, 2)); }
+  });
   drawGuy(me); drawPet(me, 'kona');
   bursts.forEach((p) => { fx.fillStyle = p.c; fx.fillRect(Math.round(p.x), Math.round(p.y), 1, 1); });
   const hr = S.minutes / 60, tint = hr >= 20 || hr < 5 ? 'rgba(30,40,110,0.34)' : hr >= 17.5 ? 'rgba(240,120,40,' + (0.08 + (hr - 17.5) * 0.06).toFixed(2) + ')' : hr < 7 ? 'rgba(240,150,170,0.14)' : null;
@@ -3657,15 +3687,20 @@ function drawKona(time) {
   ctx.font = '700 13px "Pixelify Sans", monospace';
   const tag = (tx, x, y, bg, fg) => { const w = ctx.measureText(tx).width + 10; ctx.fillStyle = bg; ctx.fillRect(x * 2 - w / 2, y * 2 - 14, w, 18); ctx.fillStyle = fg; ctx.fillText(tx, x * 2, y * 2); };
   K.tanks.forEach((tk, i) => { if (!tk || i >= kTanks()) return; const x = KTANK_X(i) + 13, t = Date.now() - tk.at; if (kVentDue(tk)) { if (Math.floor(time * 4) % 2) tag('VENT!', x, KTANK_Y - 6, '#3E2A1C', '#FF6A50'); } else if (tk.end === 'late') tag('SOUR', x, KTANK_Y - 6, '#3E2A1C', '#C8B060'); else if (t >= tk.dur || tk.end) tag('PULL', x, KTANK_Y - 6, '#3E2A1C', '#F2C04A'); });
-  K.patio.forEach((l, j) => { if (kDry(l)) { const m = KMAT(j); tag('DRY', m.x + 17, m.y - 1, '#3E2A1C', '#F2C04A'); } });
+  if (B) {
+    ctx.font = '700 10px "Pixelify Sans", monospace';
+    B.cards.forEach((c, j) => { const p = KCARD(j, B.cards.length); ctx.fillStyle = '#3E2A1C'; ctx.fillText(c.v ? kVname(c.v) : 'any', (p.x + KCARD_W / 2) * 2, (p.y + 19) * 2); if (!c.done) ctx.fillText(String(c.pay), (p.x + 18) * 2, (p.y + 30) * 2); });
+    ctx.font = '700 13px "Pixelify Sans", monospace';
+    tag(B.full ? 'FULL BOAT!' : 'BOAT ' + kClock(B.at - Date.now()), 133, 268, '#3E2A1C', B.full ? '#F2C04A' : '#FFF4DE');
+  }
   for (let i = kPlots(); i < 8; i++) { const at = KPLOT(i); ctx.fillStyle = 'rgba(255,244,222,0.85)'; ctx.fillText('LV ' + KPLOT_LV[i], (at.x + 21) * 2, (at.y + 38) * 2); }
-  if (K.ash >= 3 && K.compost >= 1 && K.bags < 4) tag('MIX', KSHED.x + 23, KSHED.y + 2, '#3E2A1C', '#FFF4DE');
+  if (K.ash >= 2 && K.compost >= 1 && K.bags < 4) tag('MIX', KSHED.x + 23, KSHED.y + 2, '#3E2A1C', '#FFF4DE');
   drawHint('kona', time);
   drawFloats();
 }
 function kPlantCard(i) {
   const K = S.kona, vs = VAR_ORDER.filter((v) => S.vars[v]);
-  return '<h2>Plant plot ' + (i + 1) + '</h2><p class="note">Coffee makes the cherries for the tanks; fruit goes in with them. A coffee plot ripens every 2 minutes or so, a fruit tree every 6 to 15.</p>' +
+  return '<h2>Plant plot ' + (i + 1) + '</h2><p class="note">Coffee makes the cherries for the tanks; fruit goes in with them. A coffee plot ripens about every 30 seconds, a fruit tree every 1 to 2 minutes.</p>' +
     '<h3>Coffee</h3>' + vs.map((v) => row(img('bush_' + v + '_ripe', 28), ART.varieties[v], (VAR[v].kg * 25 / 3).toFixed(0) + ' kg a harvest' + (['geisha', 'yellowbourbon', 'pinkbourbon'].includes(v) ? ' · lemon loves it' : ''), btn('Plant', '', 'k_plant:' + i + '.' + v, true, 'green'))).join('') +
     '<h3>Fruit</h3>' + KFR_ORDER.map((fr) => row(img('k_i_' + fr, 28), KFR[fr].name, kFruitOk(fr) ? KFR[fr].note + ' · +' + KFR[fr].bonus + ' cup' : 'Opens at island level ' + KFR[fr].lv, btn('Plant', '', 'k_plant:' + i + '.' + fr, kFruitOk(fr), 'green'))).join('') +
     '<button class="btn" data-act="close">Close</button>';
@@ -3673,7 +3708,8 @@ function kPlantCard(i) {
 function kLoadCard(i) {
   const K = S.kona, v = kBigV(), kg = Math.min(kCap(), K.cherries[v] || 0);
   return '<h2>Load tank ' + (i + 1) + '</h2><p class="note">' + fmt(kg) + ' kg of ' + ART.varieties[v] + ' and 1 kg of fruit for every 10 kg. Pick the fruit:</p>' +
-    KFR_ORDER.filter((fr) => kFruitOk(fr)).map((fr) => { const have = K.fruit[fr] || 0, n = Math.floor(Math.min(kg, have * 10)); return row(img('k_i_' + fr, 28), KFR[fr].name + ' · +' + kBonus(fr, v) + ' cup', fmt(have) + ' kg of fruit · ' + KFR[fr].ferm + ' min, gold window ' + KFR[fr].win + ' s' + (KFR[fr].vents ? ', ' + KFR[fr].vents + ' vent' + (KFR[fr].vents > 1 ? 's' : '') : ', no venting'), btn('Load', n >= 40 ? fmt(n) + ' kg' : 'not enough', 'k_load:' + i + '.' + fr, n >= 40, 'green')); }).join('') +
+    KFR_ORDER.filter((fr) => kFruitOk(fr)).map((fr) => { const have = K.fruit[fr] || 0, n = Math.floor(Math.min(kg, have * 10)), ord = K.boat && K.boat.cards.filter((c) => !c.done && c.fr === fr && (!c.v || c.v === v)).sort((a, b) => b.pay - a.pay)[0];
+      return row(img('k_i_' + fr, 28), KFR[fr].name + ' · +' + kBonus(fr, v) + ' cup', fmt(have) + ' kg of fruit · ' + KFR[fr].ferm + ' s, gold window ' + KFR[fr].win + ' s' + (KFR[fr].vents ? ', ' + KFR[fr].vents + ' vent' + (KFR[fr].vents > 1 ? 's' : '') : ', no venting') + (ord ? ' · fills a ' + ord.pay + '-shell order' + (ord.gold ? ' if pulled in the window' : '') : ''), btn('Load', n >= 30 ? fmt(n) + ' kg' : 'not enough', 'k_load:' + i + '.' + fr, n >= 30, 'green')); }).join('') +
     '<button class="btn" data-act="close">Close</button>';
 }
 /* the Farm tab while you're on the island */
@@ -3683,16 +3719,17 @@ function konaPanel() {
   const res = '<div style="display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center;margin:6px 0">' + [['k_i_shell', fmt(K.shells) + ' shells'], ['k_i_ash', fmt(K.ash) + ' ash'], ['k_i_compost', fmt(Math.floor(K.compost)) + ' compost'], ['k_i_bag', fmt(K.bags) + ' fertiliser']].map(([i, t]) => '<span style="display:inline-flex;align-items:center;gap:4px">' + img(i, 18) + '<b>' + t + '</b></span>').join('') + '</div>';
   if (sub === 'island') {
     h += '<h2>Kona Ridge · level ' + K.lv + '</h2><div class="bar"><i style="width:' + (K.lv >= 50 ? 100 : Math.round(K.xp / kNeed(K.lv) * 100)) + '%"></i></div>' + res;
-    h += help('kona', 'Grow coffee and fruit, ferment them together in the tanks, and dry the lots on the patio.', 'Coffee plots make cherries and fruit trees make fruit. Every harvest wears the soil down: fertiliser (3 ash and 1 compost, mixed at the shed) brings it back. The volcano puffs ash onto the field every minute or so; tap the piles before they blow away. Compost comes from your mainland mills: 100 kg of cherries milled makes 1. Load a tank with cherries and one fruit, vent it when the gauge goes red, and pull it in its gold window. A dry lot sells to the island co-op for shells, or ships to the roastery as co-ferment bags.');
+    h += help('kona', 'Pick coffee and fruit, ferment them together in a tank, and pull it: the lot fills an order on the co-op boat for shells.', 'Coffee plots make cherries about every 30 seconds and fruit trees make fruit every minute or two. Tap an empty tank and it loads for the best order it can (or pick the fruit yourself with Load below). Vent it when the gauge goes red, and pull it when it flashes PULL, in its gold window, for the full fruit bonus. The pulled lot goes straight to the co-op boat at the dock: it fills the best order card it fits and pays its shells at once. A lot no order wants sells loose for a few shells, or ships to the roastery as co-ferment bags if you choose that below. The boat sails every 5 minutes with new cards, or as soon as you fill them all, with a bonus. Harvests wear the soil down: fertiliser (2 ash and 1 compost, mixed at the shed) brings it back. Ash comes from the volcano\'s puffs: tap the piles before they blow away. Compost comes from your mainland mills: 100 kg of cherries milled makes 1.');
+    { const B = K.boat; if (B) h += '<h3>Co-op boat · ' + (B.full ? 'all filled, sailing' : 'sails in ' + kClock(B.at - Date.now())) + '</h3>' + B.cards.map((c, j) => row(img('k_i_' + c.fr, 28), (c.done ? '✓ ' : '') + kCardText(c), c.done ? 'Filled: +' + c.pay + ' shells' : 'Pays ' + c.pay + ' shells', btn('How', '', 'k_card:' + j, true, 'blue'))).join('') +
+      '<p class="note">Lots no order wants:</p><div class="seg">' + [['coop', 'Sell loose for shells'], ['osaka', 'Ship to the roastery']].map(([k, t]) => '<button type="button" data-act="k_spare:' + k + '" aria-pressed="' + ((K.spare || 'coop') === k) + '">' + t + '</button>').join('') + '</div>'; }
     h += '<p class="note"><b>In store:</b> ' + (Object.keys(K.cherries).filter((v) => K.cherries[v] >= 1).map((v) => fmtKg(K.cherries[v]) + ' kg ' + ART.varieties[v]).join(' · ') || 'no cherries') + ' · ' + (KFR_ORDER.filter((fr) => (K.fruit[fr] || 0) >= 1).map((fr) => fmt(K.fruit[fr]) + ' kg ' + KFR[fr].name.toLowerCase()).join(' · ') || 'no fruit') + '</p>';
-    h += '<div class="seg">' + btn('Mix fertiliser', '3 ash + 1 compost', 'k_mix', K.ash >= 3 && K.compost >= 1, 'green') + '</div>';
+    h += '<div class="seg">' + btn('Mix fertiliser', '2 ash + 1 compost', 'k_mix', K.ash >= 2 && K.compost >= 1, 'green') + '</div>';
     h += '<h3>Plots ' + kPlots() + ' / 8</h3>' + K.plots.slice(0, kPlots()).map((pl, i) => row(img(pl.k === 'coffee' ? 'bush_' + pl.v + '_ripe' : pl.k ? 'k_i_' + pl.k : 'k_i_compost', 28), 'Plot ' + (i + 1) + ': ' + (pl.k === 'coffee' ? ART.varieties[pl.v] : pl.k ? KFR[pl.k].name : 'empty'),
       pl.k ? (pl.ash ? 'covered in ash: tap it on the map' : pl.p >= 1 ? 'ripe' : 'growing ' + Math.floor(pl.p * 100) + '%') + ' · soil ' + Math.round(pl.f) + '%' : 'plant something', btn(pl.k ? 'Replant' : 'Plant', '', 'k_plantcard:' + i, true, 'blue') + (pl.k && pl.f < 100 ? btn('Feed', '+40', 'k_feed:' + i, K.bags > 0, 'green') : ''))).join('');
     h += '<h3>Tanks ' + K.tanks.filter(Boolean).length + ' / ' + kTanks() + '</h3>' + Array.from({ length: kTanks() }, (_, i) => { const tk = K.tanks[i]; if (!tk) return row(img('k_i_tank', 28), 'Tank ' + (i + 1), 'empty · holds ' + kCap() + ' kg', btn('Load', '', 'k_loadcard:' + i, !!kBigV(), 'green')); const t = Date.now() - tk.at, vent = kVentDue(tk);
       return row(img('k_i_' + tk.fr, 28), 'Tank ' + (i + 1) + ': ' + KFR[tk.fr].name + ' + ' + ART.varieties[tk.v], fmt(tk.kg) + ' kg · ' + (vent ? 'vent it now!' : tk.end ? kQName[tk.end] : t >= tk.dur ? 'in its gold window' : 'fermenting ' + Math.floor(t / tk.dur * 100) + '%') + (tk.miss ? ' · ' + tk.miss + ' missed vent' + (tk.miss > 1 ? 's' : '') : ''), vent ? btn('Vent', '', 'k_vent:' + i, true, 'red') : btn('Pull', t >= tk.dur || tk.end ? kQName[kQual(tk)] : 'early', 'k_pull:' + i, t >= tk.dur * 0.5 || !!tk.end, t >= tk.dur || tk.end ? 'gold' : '')); }).join('');
-    if (K.patio.length) h += '<h3>Patio ' + K.patio.length + ' / ' + KMATS + '</h3>' + K.patio.map((l, j) => row(img('k_i_' + l.fr, 28), KFR[l.fr].name + ' co-ferment · ' + ART.varieties[l.v], fmtKg(l.kg) + ' kg · ' + kQName[l.q] + ' · ' + (kDry(l) ? 'dry' : 'drying ' + Math.floor((Date.now() - l.at) / l.dry * 100) + '%'), kDry(l) ? btn('Sell', '+' + kShells(l) + ' shells', 'k_sell:' + j, true, 'green') + btn('Ship', 'to Osaka', 'k_ship:' + j, roasteryOpen() && canBin(l.v + '.cof_' + l.fr), 'blue') : '')).join('');
   } else if (sub === 'shop') {
-    h += '<h2>Island shop</h2>' + res + '<p class="note">Shells come from the island co-op, for the lots you sell there.</p>';
+    h += '<h2>Island shop</h2>' + res + '<p class="note">Shells come from the co-op boat at the dock: every pulled tank fills one of its order cards, or sells loose.</p>';
     h += KSHOP.map((it) => { const own = !!K.shop[it.id]; return row(img(it.id === 'nene' ? 'k_nene' : it.id.startsWith('tank') || it.id === 'big' || it.id === 'copper' || it.id === 'copperfin' || it.id === 'keeper' ? 'k_i_tank' : it.id === 'trap' || it.id === 'tarps' ? 'k_i_ash' : it.id === 'spreader' ? 'k_i_bag' : 'k_i_shell', 28), it.name, it.text + (K.lv < it.lv ? ' · island level ' + it.lv : ''), own ? btn('Owned', '', 'noop', false) : btn(fmt(it.cost), 'shells', 'k_buy:' + it.id, K.lv >= it.lv && K.shells >= it.cost, 'green')); }).join('');
   } else {
     const vs = VAR_ORDER.filter((v) => S.vars[v]), fr = KFR_ORDER.filter(kFruitOk), got = vs.reduce((a, v) => a + fr.filter((f) => K.log.perfect[v + '.' + f]).length, 0);
@@ -3717,8 +3754,8 @@ function konaAct(a, v) {   /* the island's buttons */
   else if (a === 'k_load') { closeModal(); kLoad(+x, y); }
   else if (a === 'k_vent') kVent(+v);
   else if (a === 'k_pull') kPull(+v);
-  else if (a === 'k_sell') { closeModal(); kSell(+v); }
-  else if (a === 'k_ship') { closeModal(); kShip(+v); }
+  else if (a === 'k_card') showModal(kCardInfo(+v));
+  else if (a === 'k_spare') { K.spare = v === 'osaka' ? 'osaka' : 'coop'; SFX.play('tick'); }
   else if (a === 'k_fin') { if (kOwnFin(v)) { K.fin = v; SFX.play('tick'); } }
   else if (a === 'k_buy') {
     const it = KSHOP.find((s) => s.id === v); if (!it || K.shop[v] || K.lv < it.lv || K.shells < it.cost) return;
@@ -3731,14 +3768,13 @@ function konaAct(a, v) {   /* the island's buttons */
 }
 function konaIntro() {
   const K = S.kona; if (!K || K.seen || !konaHere() || !$('modal').hidden) return;
-  K.seen = true; showModal(coachCard('Kona Ridge', 'The trader\'s boat brought you to Kona Ridge, a volcanic island with no mill. Here coffee ferments in tanks with fruit you grow beside it. Pick the coffee and the mangoes, load a tank, vent it when the gauge goes red and pull it in its gold window. The ash the volcano puffs out, mixed with compost from your mills, keeps the soil fed.'));
+  K.seen = true; showModal(coachCard('Kona Ridge', 'The trader\'s boat brought you to Kona Ridge, a volcanic island with no mill. Here coffee ferments in tanks with fruit you grow beside it. Pick the coffee and the mangoes, tap a tank to load it, vent it when the gauge goes red and pull it when it flashes. Each lot goes to the co-op boat at the dock and fills one of its orders for shells.'));
 }
 const konaInfo = () => { const K = S.kona; return K ? { lv: K.lv, badge: 'Lv ' + K.lv, pct: K.lv >= 50 ? 100 : Math.round(K.xp / kNeed(K.lv) * 100), text: 'Kona Ridge level ' + K.lv + (K.lv < 50 ? ': ' + (kNeed(K.lv) - K.xp) + ' island xp to level ' + (K.lv + 1) : '') } : null; };
-function konaHint() {   /* the map arrow: a vent first, then a tank to pull, then a dry lot */
+function konaHint() {   /* the map arrow: a vent first, then a tank to pull */
   const K = S.kona; if (!K) return null;
   let i = K.tanks.findIndex((tk, j) => tk && j < kTanks() && kVentDue(tk)); if (i > -1) return [KTANK_X(i) + 13, KTANK_Y - 2];
   i = K.tanks.findIndex((tk, j) => tk && j < kTanks() && (tk.end || Date.now() - tk.at >= tk.dur)); if (i > -1) return [KTANK_X(i) + 13, KTANK_Y - 2];
-  i = K.patio.findIndex(kDry); if (i > -1) { const m = KMAT(i); return [m.x + 17, m.y]; }
   return null;
 }
 /* ---------- player actions ---------- */

@@ -1,5 +1,5 @@
 /* Kona Ridge on every phone size: once the island is on screen (scrolled to, where the map is taller than the window), every
-   spot you tap (ash piles anywhere on the field, the shed, all eight plots, all six tanks and their labels, all six patio mats)
+   spot you tap (ash piles anywhere on the field, the shed, all eight plots, all six tanks and their labels, the co-op boat's order cards, three or four)
    sits clear of the HUD, the corner buttons and the guide bar.
    node kona_layout.js <test.html from mktest.py> [shots dir] */
 const { chromium } = require('/opt/node-tools/node_modules/playwright');
@@ -22,7 +22,7 @@ const SIZES = [[320, 568], [360, 640], [375, 667], [390, 844], [414, 896], [430,
       out.push(['shed', T.KSHED.x + 23, T.KSHED.y + 24]);
       for (let i = 0; i < 8; i++) { const a = T.KPLOT(i); out.push(['plot ' + (i + 1), a.x + 21, a.y + 30]); out.push(['plot ' + (i + 1) + ' top', a.x + 21, a.y + 14]); }
       for (let i = 0; i < 6; i++) { out.push(['tank ' + (i + 1), T.KTANK_X(i) + 13, T.KTANK_Y + 20]); out.push(['tank ' + (i + 1) + ' label', T.KTANK_X(i) + 13, T.KTANK_Y - 8]); }
-      for (let i = 0; i < 6; i++) { const m = T.KMAT(i); out.push(['mat ' + (i + 1), m.x + 17, m.y + 8]); }
+      for (const n of [3, 4]) for (let j = 0; j < n; j++) { const c = T.KCARD(j, n); out.push(['order card ' + (j + 1) + ' of ' + n, c.x + 13, c.y + 16]); out.push(['order card ' + (j + 1) + ' of ' + n + ' top', c.x + 13, c.y + 3]); }
       return out;
     });
     for (const [label, x, y] of spots) {
