@@ -2,11 +2,11 @@
    feed tired soil, mix fertiliser, load empty tanks, vent on red, pull in the gold window), and reports when the first shells
    came, shells and island level each minute, and the first shop item it could afford.
    node kona_pace.js <test.html from mktest.py> [minutes] */
-const { chromium } = require('/opt/node-tools/node_modules/playwright');
+const { chromium } = require(process.env.PW_MODULE || '/opt/node-tools/node_modules/playwright');
 const path = require('path');
 const file = path.resolve(process.argv[2]), mins = +(process.argv[3] || 6);
 (async () => {
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const b = await chromium.launch({ executablePath: process.env.PW_CHROMIUM || '/opt/pw-browsers/chromium' });
   const g = await b.newPage({ viewport: { width: 390, height: 844 } }); const errs = []; g.on('pageerror', (e) => errs.push(e.message));
   await g.goto('file://' + file); await g.waitForTimeout(800);
   await g.evaluate(() => { const T = window.__T, S = T.S; S.name = S.nameOk = 'Tess'; S.guide = T.GUIDE.length; S.prestige = 6; S.pwalkDone = true; Object.keys(S.tabs).forEach((k) => { S.tabs[k] = true; }); T.goKona(); T.konaTick(); S.kona.seen = true; for (let i = 0; i < 8; i++) T.closeModal(); });
