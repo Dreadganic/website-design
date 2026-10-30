@@ -7,6 +7,7 @@ const G = require("../game");
 const CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";   /* no 0/O, 1/I/L, so codes read aloud cleanly */
 const newCode = () => Array.from({ length: 6 }, () => CODE_CHARS[require("crypto").randomInt(CODE_CHARS.length)]).join("");
 const CHEERS_PER_DAY = 30;   /* how many farms one visitor can cheer in a day */
+const POSTCARDS = ["lovely", "bloom", "roast", "coffee", "farm", "wow"];   /* T2.4: the six preset compliments; a postcard rides a Cheers, so the same limits apply */
 
 exports.handler = async (event) => {
   const deps = exports.__deps;
@@ -18,7 +19,7 @@ exports.handler = async (event) => {
     if (!farm) return G.json(404, { error: "no_farm" });
     const row = (await store.get("scores/" + id)) || {}, owner = (await store.get("players/" + id)) || {};
     return G.json(200, { code, name: row.name || "Farmer", look: row.look || {}, prestige: row.prestige || 0, level: row.level || 1, crate: row.crate || 0, cserved: row.cseason === G.seasonKey() ? row.cserved || 0 : 0, farm: farm.farm, cheers: farm.cheers || 0, at: farm.at,
-      trophies: (row.trophies || []).slice(0, 12), sacks: (owner.stamps || []).slice(0, 5) }, { "Cache-Control": "public, max-age=60" });   /* the trophy shelf and origin sacks, from the server's own records */
+      trophies: (row.trophies || []).slice(0, 12), sacks: (owner.stamps || []).slice(0, 5), cards: ((await store.get("cards/" + id)) || { items: [] }).items.slice(-5) }, { "Cache-Control": "public, max-age=60" });   /* the trophy shelf, origin sacks and the postcards on the host's keepsake shelf */
   }
   const me = await G.authed(event, store);
   if (!me) return G.json(401, { error: "sign_in" });
@@ -46,9 +47,16 @@ exports.handler = async (event) => {
     if (mine.n >= CHEERS_PER_DAY) return G.json(429, { error: "enough_today" });
     const farm = await store.get("farms/" + id);
     if (!farm) return G.json(404, { error: "no_farm" });
+    const b = G.parse(event) || {}, pc = POSTCARDS.includes(b.pc) ? b.pc : null;   /* T2.4: a postcard rides the Cheers */
+    if (pc) {
+      const ck = "cards/" + id, cards = (await store.get(ck)) || { items: [] };
+      const srow = (await store.get("scores/" + me.id)) || {};
+      cards.items = cards.items.concat([{ name: srow.name || "A farmer", pc, at: now }]).slice(-5);   /* the host's keepsake shelf: the last five */
+      await store.set(ck, cards);
+    }
     seen.by.push(me.id); mine.n += 1; farm.cheers = (farm.cheers || 0) + 1;
     await store.set(seenKey, seen); await store.set(mineKey, mine); await store.set("farms/" + id, farm);
-    return G.json(200, { cheers: farm.cheers });
+    return G.json(200, { cheers: farm.cheers, pc });
   }
   return G.json(405, { error: "method_not_allowed" });
 };

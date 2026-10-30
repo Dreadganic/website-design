@@ -55,19 +55,32 @@ async function weekOf(store, coop, wk, now) {   /* this week's order, made on fi
   }
   return w;
 }
+async function careView(store, coop, me, now) {   /* T2.3: deliver the care packages waiting for me; a season star rides the first arrival of the day */
+  let got = [], stars = 0;
+  for (const d of [G.dayJST(now - 864e5), G.dayJST(now)]) {   /* yesterday's too: a package mailed late JST arrives at the mate's next check-in */
+    const key = "coops/" + coop.id + "/care/" + d, c = await store.get(key);
+    if (!c || !((c.inbox || {})[me.id] || []).length) continue;
+    got = got.concat(c.inbox[me.id].map((p) => ({ name: p.name, key: p.key, profile: p.profile, cup: p.cup }))); c.inbox[me.id] = [];
+    if (!(c.star || {})[me.id]) { c.star[me.id] = true; stars += 1; }
+    await store.set(key, c);
+  }
+  const today = (await store.get("coops/" + coop.id + "/care/" + G.dayJST(now))) || {};
+  return { got, stars, sent: !!(today.sent || {})[me.id] };
+}
 async function view(store, coop, me, now) {
   if (!coop) return null;
   await prune(store, coop, now);
   const wk = C.weekKey(now), w = await weekOf(store, coop, wk, now), day = G.dayJST(now);
   const help = (await store.get("coops/" + coop.id + "/help/" + day)) || { pairs: [], inbox: {} };
   const feed = (await store.get("coops/" + coop.id + "/feed")) || { items: [] };
+  const care = await careView(store, coop, me, now);
   const rows = await Promise.all(coop.members.map((m) => scoreRow(store, m)));
   const total = Object.values(w.shares).reduce((a, b) => a + b, 0);
   return {
     id: coop.id, name: coop.name, code: coop.code, league: coop.league || 1,
     members: coop.members.map((m, i) => ({ you: m === me.id, name: rows[i].name || "Farmer", look: rows[i].look || {}, prestige: rows[i].prestige || 0, level: rows[i].level || 1, share: Math.round(w.shares[m] || 0), away: m !== me.id && awayFor(coop, m, rows[i], now) >= C.COOP_AWAY_DAYS * C.DAY, helped: help.pairs.includes(me.id + ">" + m), code: rows[i].code || "" })),
     order: { week: wk, ends: C.weekStart(wk) + 7 * C.DAY, process: w.process, target: w.target, total: Math.round(total), tiers: C.COOP_TIERS.map(([f, cr]) => ({ at: Math.round(w.target * f), cranes: cr })), claimed: w.claimed[me.id] || [] },
-    feed: feed.items.slice(-12), helpsIn: help.inbox[me.id] || 0,
+    feed: feed.items.slice(-12), helpsIn: help.inbox[me.id] || 0, care,
     derby: await D.derbyView(store, coop, me, now)
   };
 }
@@ -154,6 +167,20 @@ exports.handler = async (event) => {
     h.from = h.from || {}; h.from[b.to] = (h.from[b.to] || []).concat([(await scoreRow(store, me.id)).name || "Farmer"]).slice(-7);
     await store.set(key, h);
     return G.json(200, { coop: await view(store, coop, me, now) });
+  }
+  if (act === "care") {   /* T2.3: mail a mate one bag of your roast. One a day; the bag's value is rebuilt by the mate's own game, so nothing client-declared is trusted */
+    b.to = Number.isInteger(b.i) ? coop.members[b.i] : null;
+    if (!b.to || b.to === me.id) return G.json(422, { error: "bad_mate" });
+    const key = String(b.key || ""), profile = String(b.profile || ""), cup = Math.max(0, Math.min(100, Math.round((Number(b.cup) || 0) * 10) / 10));
+    if (!/^[a-z0-9]{2,20}\.[a-z]{3,14}$/.test(key)) return G.json(422, { error: "bad_coffee" });
+    if (!/^[a-z]{4,8}$/.test(profile)) return G.json(422, { error: "bad_coffee" });
+    const cKey = "coops/" + coop.id + "/care/" + G.dayJST(now), c = (await store.get(cKey)) || { sent: {}, inbox: {}, star: {} };
+    if (c.sent[me.id]) return G.json(422, { error: "already_today" });
+    c.sent[me.id] = b.to;
+    c.inbox[b.to] = (c.inbox[b.to] || []).concat([{ from: me.id, name: (await scoreRow(store, me.id)).name || "Farmer", key, profile, cup }]).slice(-3);
+    const first = !c.star[me.id]; if (first) c.star[me.id] = true;   /* both sides +1 season star, once a day */
+    await store.set(cKey, c);
+    return G.json(200, { coop: await view(store, coop, me, now), star: first, to: (await scoreRow(store, b.to)).name || "Farmer" });
   }
   if (act === "takehelp") {
     const key = "coops/" + coop.id + "/help/" + G.dayJST(now), h = (await store.get(key)) || { pairs: [], inbox: {} };

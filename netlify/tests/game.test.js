@@ -222,6 +222,22 @@ test("visits: a farm snapshot gets a code, anyone can look, and Cheers come once
   assert.equal((await call(visit, "GET", undefined, undefined, { code: "ZZZZZZ" })).status, 404);
 });
 
+test("visits: a postcard rides a Cheers, unknown cards are dropped, and the host's keepsake shelf keeps the last five", async () => {
+  const a = await newPlayer("Ana"), b = await newPlayer("Ben");
+  const farm = { loc: "huila", store: 6, decor: ["bench"], spiece: "momiji", farms: { mogiana: { u: 1, b: [5, 5, 5, 5, 5, 5], f: true, s: "fazenda", e: 3, h: 2, beds: ["caturra", "geisha"] }, huila: { u: 1, b: [3, 99], e: 9 }, toba: { u: 0 } } };
+  const code = (await call(visit, "PUT", { farm }, a)).body.code;
+  await call(score, "POST", { name: "Ana", prestige: 0, seasonP: 0, level: 1, points: 0 }, a);
+  await call(score, "POST", { name: "Ben", prestige: 0, seasonP: 0, level: 1, points: 0 }, b);
+  assert.equal((await call(visit, "POST", { pc: "<script>" }, b, { code })).body.pc, null, "unknown cards are dropped");
+  clock += 86400e3;
+  assert.equal((await call(visit, "POST", { pc: "lovely" }, b, { code })).body.pc, "lovely");
+  for (let i = 0; i < 5; i++) { clock += 86400e3; assert.equal((await call(visit, "POST", { pc: "wow" }, b, { code })).status, 200); }
+  const seen = await call(visit, "GET", undefined, undefined, { code });
+  assert.equal(seen.body.cards.length, 5, "the keepsake shelf keeps the last five");
+  assert.deepEqual(seen.body.cards.map((c) => c.pc), ["wow", "wow", "wow", "wow", "wow"], "the oldest card falls off at five");
+  assert.equal(seen.body.cards[0].name, "Ben");
+});
+
 test("scores: a farm started again may start its row again, and nobody else can lower it", async () => {
   const a = await newPlayer();
   const s = (p, pts, extra) => Object.assign({ name: "Farmer", prestige: p, seasonP: 0, seasonKh: pts, level: G.levelFor(pts), points: pts }, extra || {});

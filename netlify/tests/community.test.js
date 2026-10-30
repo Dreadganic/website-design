@@ -190,6 +190,29 @@ test("co-ops: stickers only from the list, helps once a day per mate, and the he
   assert.equal((await call(coop, "POST", { act: "help", i: benAt }, a)).status, 200, "again the next day");
 });
 
+test("co-ops: care packages mail one bag a day, arrive at the mate's next check-in, and both sides earn a star", async () => {
+  const a = await newPlayer("Ana"), b = await newPlayer("Ben");
+  const made = (await call(coop, "POST", { act: "create", name: "Pergola" }, a)).body.coop;
+  await call(coop, "POST", { act: "join", code: made.code }, b);
+  const v = (await call(coop, "GET", undefined, a)).body.coop, benAt = v.members.findIndex((m) => m.name === "Ben"), meAt = v.members.findIndex((m) => m.you);
+  assert.equal((await call(coop, "POST", { act: "care", i: meAt, key: "geisha.washed", profile: "medium", cup: 88 }, a)).body.error, "bad_mate", "no mailing yourself");
+  assert.equal((await call(coop, "POST", { act: "care", i: benAt, key: "Geisha Washed!", profile: "medium", cup: 88 }, a)).body.error, "bad_coffee");
+  assert.equal((await call(coop, "POST", { act: "care", i: benAt, key: "geisha.washed", profile: "Spaces!!", cup: 88 }, a)).body.error, "bad_coffee");
+  const sent = await call(coop, "POST", { act: "care", i: benAt, key: "geisha.washed", profile: "medium", cup: 88.4 }, a);
+  assert.equal(sent.status, 200); assert.equal(sent.body.star, true, "the sender's first care package today earns a star"); assert.equal(sent.body.to, "Ben");
+  assert.equal((await call(coop, "POST", { act: "care", i: benAt, key: "geisha.washed", profile: "medium", cup: 90 }, a)).body.error, "already_today", "one a day");
+  assert.equal((await call(coop, "GET", undefined, a)).body.coop.care.sent, true, "and the button knows");
+  const got = (await call(coop, "GET", undefined, b)).body.coop.care;
+  assert.equal(got.got.length, 1); assert.equal(got.got[0].name, "Ana"); assert.equal(got.got[0].key, "geisha.washed"); assert.equal(got.got[0].profile, "medium"); assert.equal(got.got[0].cup, 88.4, "the cup score keeps a decimal");
+  assert.equal(got.stars, 1, "the receiver's star rides the first delivery of the day"); assert.equal(got.sent, false);
+  assert.deepEqual((await call(coop, "GET", undefined, b)).body.coop.care.got, [], "delivered once");
+  clock += C.DAY;
+  const back = (await call(coop, "GET", undefined, b)).body.coop, anaAt = back.members.findIndex((m) => m.name === "Ana");
+  assert.equal((await call(coop, "POST", { act: "care", i: anaAt, key: "caturra.honey", profile: "light", cup: 0 }, b)).status, 200, "again the next day");
+  assert.equal((await call(coop, "GET", undefined, b)).body.coop.care.sent, true);
+  assert.equal(((await call(coop, "GET", undefined, a)).body.coop.care.got.map((p) => p.name)).join(), "Ben", "Ana finds Ben's package at her next check-in");
+});
+
 test("derby: from 4 co-ops as one group without leagues; leagues and moves from 20", async () => {
   const lead = [];
   const addCoop = async (i) => { const a = await newPlayer("L" + i), b = await newPlayer("M" + i), made = (await call(coop, "POST", { act: "create", name: "Coop " + i }, a)).body.coop; await call(coop, "POST", { act: "join", code: made.code }, b); lead.push(a); };
