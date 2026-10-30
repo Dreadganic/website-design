@@ -32,6 +32,7 @@ node game-assets/sim/online_e2e.js /tmp/test.html /tmp/online                 # 
 node game-assets/sim/names_e2e.js /tmp/test.html /tmp/names                   # the name window, unique names, renames and the offline copy (24 checks)
 node game-assets/sim/returning_e2e.js /tmp/test.html /tmp/returning          # a save closed 2 minutes, 8 hours and 3 days ago starts a running farm, welcome-back card, every tab (17 checks; every other suite loads a save written that moment)
 node game-assets/sim/notes_e2e.js /tmp/t_fn.html /tmp/notes                   # co-op order size and Claim, every Claim button, the request rack, the Shop lock, the farm bar, farms and the menu (needs API '/fn/', as for community_e2e.js)
+node game-assets/sim/realbag_e2e.js /tmp/test.html /tmp/realbag              # real-bag cards on unlocks: copy, link, once a save, beacon, hidden before launch (15 checks; makes an orders-live copy)
 node game-assets/sim/events_e2e.js /tmp/test.html /tmp/events                 # random events: when they start, harm, real taps, keepsakes, letting go, reload mid-event, catching up, sound (40 checks)
 node game-assets/sim/events2_e2e.js /tmp/test.html /tmp/events2                # the other seven events, the companion train and keepsakes (40 checks)
 node game-assets/sim/events_layout.js /tmp/test.html /tmp/evlayout              # every spot an event can use, on six phone sizes, clear of the interface once it's brought into view
