@@ -4122,6 +4122,7 @@ function prestige() {
   LOCS.forEach((l) => { if (FARM_LEVEL[l] && S.farms[l].unlocked && !(hasPerk('awake') && AWAKE.includes(l))) S.dormant[l] = wakeLevel(l, S.prestige); });
   setTimeout(() => checkSamples(), 300);
   if (S.prestige === KONA_P && !S.kona) setTimeout(() => showModal(coachCard('Kona Ridge', 'The trader\'s boat reaches a new island now: Kona Ridge, where coffee ferments in tanks with fruit. Tap the farm arrow past Osaka to sail there.')), 600);
+  if (S.prestige === 5 && !S.practiceTip) setTimeout(() => { S.practiceTip = true; showModal(coachCard('Coffee is a practice', 'The farm is grown: every field, building and hand is in place. From here Beju is a rhythm, not a race — the seasons, the Counter, the Cup of Excellence, and soon an island of your own. A little play every day goes furthest.')); }, 600);
   const asleep = Object.keys(S.dormant);
   showModal('<i class="psum" hidden></i>' + avatar(S.look, 64) + '<h2>Prestige ' + S.prestige + '</h2>' + plate(S.name, S.look.crest, starsFor(S.prestige)) + '<p class="note">' + (S.prestige < TIERS.length ? 'New crest: <b>' + TIERS[t] + '</b>. Its nameplate and border are yours and already on.' : 'You are past the top tier: every prestige adds a star to your name.') + '</p>' + (perkAt(S.prestige) ? '<p class="rule"><b>New perk: ' + perkAt(S.prestige).name + '.</b> ' + perkAt(S.prestige).text + (PERK_LV[perkAt(S.prestige).id] ? ' It switches on at level ' + PERK_LV[perkAt(S.prestige).id] + '.' : '') + '</p>' : '') + (BUILD_CAPS[S.prestige] ? '<p class="rule"><b>Bigger farms:</b> buildings now go up to level ' + BUILD_CAPS[S.prestige] + '.</p>' : '') + skinPicker() +
     (asleep.length ? '<p class="note">' + asleep.map((l) => ART.locations[l].name.split(',')[0] + ' wakes at level ' + S.dormant[l]).join(', ') + '. ' + (() => { const o = LOCS.filter((l) => S.farms[l].unlocked && !S.dormant[l]).map(fname); return listAnd(o) + (o.length === 1 ? ' stays' : ' stay') + ' open.'; })() + '</p>' : '') + (kept ? '<p class="note">Your spare know-how became <b>' + kept + ' level' + (kept > 1 ? 's' : '') + ' of cupping research</b>: +' + S.research + '% know-how from every sale, for good.</p>' : '') + '<button class="btn green" data-act="close">Back to the farm</button>');
@@ -5865,7 +5866,14 @@ function loop(t) {
 requestAnimationFrame(loop);
 if (needsName()) askName();
 online();
-document.addEventListener('visibilitychange', () => { if (document.hidden) { save(); cloudSync(true); } });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    save(); cloudSync(true);
+    /* the tab title becomes the return promise: what the farm does while you're away */
+    const ripe = LOCS.reduce((n, l) => { const f = S.farms[l]; return n + (f.unlocked && !S.dormant[l] ? f.shrubs.reduce((m, s) => m + (s.p < 1 ? 1 : 0), 0) : 0); }, 0);
+    document.title = (ripe ? ripe + ' bush' + (ripe === 1 ? '' : 'es') + ' ripening · ' : '') + 'away up to ' + awayCap() + ' h';
+  } else document.title = 'Beju Farm';
+});
 let soundReady = false;
 function audioStart() {   /* browsers only allow sound after a tap, so everything starts on the first one */
   if (soundReady) return; soundReady = true;
