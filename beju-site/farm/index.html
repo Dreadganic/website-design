@@ -6634,7 +6634,7 @@ function refreshAll() { seasonTick(); refreshHud(); renderTabs(); renderPanel();
 const API = /(^|\.)bejucoffee\.com$|\.netlify\.app$|^localhost$/.test(location.hostname) ? '/.netlify/functions/' : '';
 const ORDERS_LIVE = false;   /* build.py --launch turns this on, as launch/apply.py wires the shop's side: until then orders and samples don't reach the farm */
 const ordersLive = () => ORDERS_LIVE && !!API, preLaunch = () => (API ? 'Beta' : 'Practice copy') + ': ';
-const NET = { acct: null, ver: 0, board: {}, boardAt: {}, status: API ? 'connecting' : 'offline', lastSync: 0, lastScore: '' };
+const NET = { acct: null, ver: 0, board: {}, boardAt: {}, status: API ? 'connecting' : 'offline', lastSync: 0, lastScore: '', savedAt: 0, touchedAt: 0 };
 try { NET.acct = JSON.parse(localStorage.getItem('beju-farm-account') || 'null'); } catch (e) { /* storage blocked */ }
 async function api(path, method, body, acct) {   /* acct: another farm's account, for moving a farm in from another device */
   const a = acct || NET.acct;
@@ -6679,14 +6679,17 @@ addEventListener('online', () => { if (API && NET.status !== 'online') { onlineT
 async function cloudSync(force) {
   if (!API || !NET.acct || NET.status !== 'online' || NET.hold) return;
   if (!force && (document.hidden || Date.now() - NET.lastSync < 180000)) return;   /* usage: a save every 3 minutes while the tab is in view; leaving the tab saves once */
-  NET.lastSync = Date.now(); save();
+  if (NET.savedAt > NET.touchedAt && Date.now() - NET.savedAt < 1800000) return;   /* nobody has touched the farm since the server took a copy: an idle open tab uploads every 30 minutes, not every 3. The farm ticks on its own, so the save never reads the same twice; another device catches up from S.last */
+  const at = Date.now();   /* a tap while the upload is on its way still counts as unsaved */
+  NET.lastSync = at; save();
   const txt = JSON.stringify(S, (k, v) => (k === 'target' || k === 'claim' || k === 'path') ? undefined : v);
   if (force && Date.now() - (NET.forcedAt || 0) < 20e3) return; if (force) NET.forcedAt = Date.now();   /* flicking between tabs doesn't save each time */
   const data = JSON.parse(txt);
   const r = await api('game-save', 'PUT', { base: NET.ver, data }).catch(() => null);
-  if (r && r.status === 200) { NET.ver = r.data.version; NET.acct.ver = NET.ver; keepAcct(); }
+  if (r && r.status === 200) { NET.savedAt = at; NET.ver = r.data.version; NET.acct.ver = NET.ver; keepAcct(); }   /* only a copy the server took counts: a failed upload tries again next time */
   else if (r && r.status === 409) { NET.ver = r.data.version; newerSave(r.data.data, r.data.at); }   /* another device saved in between: ask, never overwrite */
 }
+['pointerdown', 'keydown', 'click'].forEach((t) => addEventListener(t, () => { NET.touchedAt = Date.now(); }, true));   /* click too: screen readers and voice control tap without a pointer */
 async function submitScore() {
   if (!API || !NET.acct || NET.status !== 'online' || NET.hold || document.hidden) return;   /* held while a newer save waits for a choice, so an old device can't post old progress */
   if (S.nameOk !== S.name) { if (Date.now() - (NET.nameAt || 0) > 60e3) nameSync(); return; }   /* the board waits for a name of your own */
