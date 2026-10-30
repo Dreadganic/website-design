@@ -5877,26 +5877,29 @@ const BEACON = (() => {
   let fid = "";
   try { fid = localStorage.getItem("beju-anon-id") || ""; if (!/^[a-f0-9]{16}$/.test(fid)) { fid = ""; for (let i = 0; i < 16; i++) fid += "0123456789abcdef"[Math.floor(Math.random() * 16)]; localStorage.setItem("beju-anon-id", fid); } } catch (e) {}
   const q = [], startedAt = Date.now(), sid = Math.random().toString(16).slice(2, 10);
-  let fails = 0, dead = false;
+  let fails = 0, dead = false, sent = 0;
   const ev = (e, f) => { if (dead || q.length > 200) return; q.push(Object.assign({ e, ts: Date.now(), fid, sid }, f && typeof f === "object" ? f : {})); };
   const flush = (unloading) => {
     if (dead || !q.length) return;
+    if (!unloading && sent >= 8) return;   /* Netlify pushes stay minimal: a few batched sends a session, the rest rides out with the exit */
     const body = JSON.stringify({ batch: q.splice(0, 50) });
-    try { if (unloading && navigator.sendBeacon && navigator.sendBeacon("/.netlify/functions/game-beacon", body)) return; } catch (e) {}
-    fetch("/.netlify/functions/game-beacon", { method: "POST", headers: { "Content-Type": "text/plain" }, body, keepalive: unloading }).then((r) => { if (!r.ok) throw 0; fails = 0; }).catch(() => { if (++fails >= 2) dead = true; });
+    try { if (unloading && navigator.sendBeacon && navigator.sendBeacon("/.netlify/functions/game-beacon", body)) { sent += 1; return; } } catch (e) {}
+    fetch("/.netlify/functions/game-beacon", { method: "POST", headers: { "Content-Type": "text/plain" }, body, keepalive: unloading }).then((r) => { if (!r.ok) throw 0; fails = 0; sent += 1; }).catch(() => { if (++fails >= 2) dead = true; });
   };
-  setInterval(() => flush(false), 30000);
+  setInterval(() => flush(false), 120000);   /* slow drip, same spirit as the sync cuts: events wait for the batch */
   window.addEventListener("pagehide", () => flush(true));
   document.addEventListener("click", (e) => { const a = e.target && e.target.closest ? e.target.closest('a[href*="bejucoffee.com"]') : null; if (a) ev("order_click", { t: (a.textContent || "").slice(0, 30) }); }, true);
   return { ev, flush, startedAt };
 })();
 BEACON.ev("session_start", { p: S.prestige, lvl: level(), gap: Math.min(2592000000, Date.now() - (S.last || Date.now())) });
+window.addEventListener("pagehide", () => {   /* session length rides the real exit only — tab switches and phone locks send nothing */
+  if (Date.now() - BEACON.startedAt > 20000) BEACON.ev("session_end", { len: Math.round((Date.now() - BEACON.startedAt) / 1000), p: S.prestige, lvl: level() });
+  BEACON.flush(true);
+});
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('/farm/sw.js').catch(() => {});   /* installs the game and keeps it playable offline (sw.js, manifest in the build wrapper) */
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     save(); cloudSync(true);
-    if (Date.now() - BEACON.startedAt > 20000) BEACON.ev("session_end", { len: Math.round((Date.now() - BEACON.startedAt) / 1000), p: S.prestige, lvl: level() });
-    BEACON.flush(true);
     /* the tab title becomes the return promise: what the farm does while you're away */
     const ripe = LOCS.reduce((n, l) => { const f = S.farms[l]; return n + (f.unlocked && !S.dormant[l] ? f.shrubs.reduce((m, s) => m + (s.p < 1 ? 1 : 0), 0) : 0); }, 0);
     document.title = (ripe ? ripe + ' bush' + (ripe === 1 ? '' : 'es') + ' ripening · ' : '') + 'away up to ' + awayCap() + ' h';
