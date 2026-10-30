@@ -1,0 +1,31 @@
+<!doctype html><meta charset="utf-8"><title>Moods and regulars — design note (T2.1 + T2.2)</title>
+<style>body{max-width:720px;margin:40px auto;font:16px/1.6 Georgia,serif;color:#2A2118;padding:0 16px}h1,h2{font-family:Avenir,Helvetica,sans-serif}code{background:#F2EDE4;padding:1px 5px;border-radius:4px}li{margin:6px 0}</style>
+<h1>Moods and regulars</h1>
+<p><i>Phase 2 · T2.1 weekly buyer mood board + T2.2 regulars with memory · shipped together because the second hooks into the first.</i></p>
+
+<h2>What they fix</h2>
+<p>The deep analysis named two problems: variety and process are <b>solved choices</b> (there is always one optimal coffee, so the choice stops being a choice), and the counter's regulars have <b>no memory</b> — ten visits and a mug, then nothing. Both fixes below cost <b>zero Netlify function traffic</b>: the board is a pure function of the calendar, and the memories live in the save.</p>
+
+<h2>T2.1 · The weekly mood board</h2>
+<ul>
+<li>Each of the three buyers and the five regulars publicly fancies one coffee per week: a variety × base-process key from <code>VAR × washed/natural/honey</code> (27 slots), paying <b>+15–25%</b> coins when sold or served to the fancier.</li>
+<li><b>Deterministic:</b> FNV-1a over <code>ISOweek|who|salt</code> (UTC-anchored, <code>moodWeek()</code>). Same board on every device and for every co-op mate, no server, no drift. The game's own seeded <code>rnd</code> is never consumed.</li>
+<li>Pay lands in one point, <code>bagPrice</code>, so it flows everywhere consistently: buyer shelf, Sell all, <code>bestBuyer</code> routing, and the counter (pre-orders, walk-ins, regulars). Reputation is untouched — <code>ctRep</code> never reads <code>bagPrice</code> — so pacing and prestige math are unaffected.</li>
+<li>Shown as a card on the Daily tab (first view of the week fires <code>mood_view</code>, once per save per week) and as a one-line strip on the counter page.</li>
+<li>Design intent: the +15–25% bonus only pays on an exact bean match, so the optimal roast <i>changes every Monday</i>. The solved choice becomes a weekly decision: what to plant, what to process, what to keep on the shelf.</li>
+</ul>
+
+<h2>T2.2 · Regulars with memory</h2>
+<ul>
+<li>A regular's order now follows <b>this week's mood</b> when the farm can make that coffee (<code>ctRegWant</code>): "Aya only wants washed this week" is literally true. Otherwise she orders a favourite from what's on hand, as before.</li>
+<li>Visits (serves) now tell a story: a <b>3-line story at 5, 15 and 40 visits</b> per regular — 15 stories, told by the regular in their own voice, as a modal (<code>reg_story</code> beacon event with <code>reg</code> + milestone).</li>
+<li>The mug still lands at 10 visits (unchanged), and the Neighbourhood roaster title still needs all five at 10. The 40th visit gifts the <b>Counter confidant</b> title.</li>
+<li>The Regulars strip now shows the arc: visits, next story milestone, mug.</li>
+</ul>
+
+<h2>Acceptance</h2>
+<ul>
+<li><code>mood_view</code> and <code>reg_story</code> whitelisted in the beacon handler; game-stats picks them up generically.</li>
+<li><code>counter_e2e.js</code>: 10 new checks (board render, event firing + once-a-week guard, pay band, premium ratio, mood line, weekly-want stickiness, 5-visit story + event, 40-visit title, Looks equipping) — <b>89 passed, 0 failed</b>.</li>
+<li>Netlify tests 53/53, <code>kona_e2e</code> 55/55, build deterministic. <code>online_e2e</code>: only the pre-existing rename-sanitizer failure on main (not this feature).</li>
+</ul>

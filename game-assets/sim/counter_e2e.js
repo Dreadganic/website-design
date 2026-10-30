@@ -224,6 +224,30 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
   ok(await E(() => !document.querySelector('[data-act^="crest:"]')), 'no crest picker in Looks');
   ok(await E(() => !!document.querySelector('.crestl.now')), 'the ladder marks your crest');
 
+  /* T2.1 weekly moods: the board, the event, the pay; T2.2 regulars: weekly want, stories, title */
+  await setup(7); await E(() => { const T = window.__T, S = T.S; S.buyers = true; T.setTab('orders'); T.renderPanel(); }); await g.waitForTimeout(300); await clean();
+  ok(await E(() => /This week's moods/.test(document.getElementById('panel').innerText)), 'the mood board on the Daily tab');
+  ok(await E(() => { const e = window.__T.BEACON.last(); return e && e.e === 'mood_view' && window.__T.S.moodSeen === window.__T.moodWeek(); }), 'mood_view fires the first time the board is shown');
+  const q0 = await E(() => window.__T.BEACON.qlen());
+  await E(() => { const T = window.__T; T.setTab('farm'); T.setTab('orders'); T.renderPanel(); });
+  ok((await E(() => window.__T.BEACON.qlen())) === q0, 'mood_view once a week, not on every visit');
+  ok(await E(() => { const a = window.__T.moodOf('cafe'); return a.key === window.__T.moodKey('cafe') && a.mult >= 1.15 && a.mult <= 1.25; }), 'mood pay stays in the +15–25% band');
+  ok(await E(() => { const T = window.__T, k = T.moodKey('cafe'); const b = { key: k, profile: 'light', coins: 20000, q: 80, cup: 85 }; const c = Object.assign({}, b, { key: k === 'caturra.washed' ? 'caturra.natural' : 'caturra.washed' }); return Math.abs(T.bagPrice(b, 'cafe') / T.bagPrice(c, 'cafe') - T.moodMult('cafe')) < 0.001; }), 'the moody buyer pays the premium for its coffee');
+  ok(await E(() => { const T = window.__T, S = T.S; T.counterTick(0.1); S.roastSub = 'counter'; T.setTab('roast'); T.renderPanel(); return /This week's moods/.test(document.getElementById('panel').innerText); }), 'the mood line on the counter page');
+  ok(await E(() => { const T = window.__T, pool = ['caturra.washed', 'catuai.honey', 'castillo.natural'], mk = T.moodKey('aya'); const R1 = { n: 0 }, k1 = T.ctRegWant('aya', R1, pool)[0];
+    if (R1.wk !== T.moodWeek()) return false;
+    if (pool.includes(mk) ? k1 !== mk : !pool.includes(k1)) return false;
+    const R2 = { n: 0, key: 'catuai.honey', profile: 'medium', wk: T.moodWeek() };
+    return T.ctRegWant('aya', R2, pool)[0] === 'catuai.honey'; }), 'the weekly want sticks all week and follows the mood when available');
+  const story = await E(() => { const T = window.__T, S = T.S; (T.modalQueue || []).length = 0; for (let i = 0; i < 8; i++) T.closeModal(); document.getElementById('modal').hidden = true;
+    S.counter.regs = { kenji: { n: 5 } }; T.ctRegMilestone('kenji'); const e = T.BEACON.last(); const R2 = S.counter.regs.kenji, modal = document.getElementById('modal');
+    return { ok: !!(R2.st || []).includes(5) && e.e === 'reg_story' && e.reg === 'kenji' && e.m === 5 && !modal.hidden && /Kenji · 5 visits/.test(modal.innerText),
+      diag: JSON.stringify({ st: R2.st, ev: e.e, reg: e.reg, m: e.m, hid: modal.hidden, text: (modal.innerText || '').slice(0, 120) }) }; });
+  ok(story.ok, 'the 5-visit story shows and queues as reg_story: ' + story.diag);
+  ok(await E(() => { const T = window.__T, S = T.S; for (let i = 0; i < 8; i++) T.closeModal(); document.getElementById('modal').hidden = true; S.counter.regs.mika = { n: 40 }; T.ctRegMilestone('mika'); return S.sitems.title['ct:conf'] === true && S.counter.regs.mika.st.includes(40); }), 'the 40th visit gifts the Counter confidant title');
+  await E(() => { const T = window.__T; T.setTab('looks'); T.renderPanel(); }); await g.waitForTimeout(200);
+  ok(await E(() => /Counter confidant/.test(document.getElementById('panel').innerText)), 'the new title equips in Looks');
+
   console.log(pass + ' passed, ' + fail + ' failed' + (errs.length ? ' · page errors: ' + errs.slice(0, 4).join(' | ') : ''));
   if (fail || errs.length) process.exitCode = 1;
   await b.close();

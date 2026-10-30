@@ -2243,7 +2243,7 @@ const titleText = (k) => { if (!k) return ''; const [a, b] = k.split(':');
   if (a === 'nbt') { const t = NB_TOTALS.find((x) => x[1] === b); return t ? t[2] : ''; }
   if (a === 'rr') return b === 'crack' ? 'Crack master' : 'Master roaster';
   if (a === 'ev') return b === 'steady' ? 'Steady hands' : b === 'trouble' ? 'Troubleshooter' : '';
-  if (a === 'ct') return b === 'nbr' ? 'Neighbourhood roaster' : '';
+  if (a === 'ct') return b === 'nbr' ? 'Neighbourhood roaster' : b === 'conf' ? 'Counter confidant' : '';
   if (a === 'kona') return b === 'master' ? 'Fermentation master' : '';
   return ART.seasons[String(+k.slice(5))] ? theme(k).title + ' ' + k.slice(0, 4) : ''; };
 /* the cupping notebook: every coffee and process pair you sell earns stars at 1, 25 and 250 lots; each star adds +0.5 cup score to that pair */
@@ -2317,8 +2317,30 @@ const roasterCount = () => { const l = repLevel(); return (l >= 15 ? 3 : l >= 4 
 const roastTime = (p) => ROASTS[p].time * (repLevel() >= 2 ? 0.8 : 1);
 const BLEND_NAMES = ['Casablanca Blend', 'Osaka Morning', 'Kissaten Dark', 'Sakura Light', 'Crane House Blend', 'Kyoto Evening', 'Beju Breakfast', 'Momiji Roast'];
 const beanName = (key) => { const [v, m] = key.split('.'); return ART.varieties[v] + ' ' + METHODS[m].name.toLowerCase(); };
+/* T2.1 weekly buyer moods: each buyer and counter regular publicly fancies one coffee this week, paying +15–25% extra for it.
+   Seeded by the ISO week (UTC-anchored), so every device — and every co-op mate — sees the same board with no server call.
+   Coins only: reputation pacing is untouched (ctRep never reads bagPrice). */
+const MOOD_PROCS = ['washed', 'natural', 'honey'];
+const MOOD_KEYS = (() => { const a = []; Object.keys(VAR).forEach((v) => MOOD_PROCS.forEach((m) => a.push(v + '.' + m))); return a; })();
+const moodWeek = () => {   /* ISO week string; the board turns over at the same moment worldwide */
+  const d = new Date(), dn = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())), day = dn.getUTCDay() || 7;
+  dn.setUTCDate(dn.getUTCDate() + 4 - day);
+  const wk = Math.ceil((dn - new Date(Date.UTC(dn.getUTCFullYear(), 0, 1))) / 864e5 + 1) / 7;
+  return dn.getUTCFullYear() + '-W' + (wk < 10 ? '0' : '') + Math.ceil(wk);
+};
+const moodOf = (who) => {   /* who: a buyer kind or a regular key; FNV-1a over week + id stays stable within the week and fresh across weeks */
+  let h = 2166136261; const s = moodWeek() + '|' + who + '|beju-mood';
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+  return { key: MOOD_KEYS[h % MOOD_KEYS.length], mult: 1.15 + (Math.floor(h / 7) % 11) / 100 };
+};
+const moodKey = (who) => moodOf(who).key, moodMult = (who) => moodOf(who).mult, moodPct = (who) => Math.round((moodMult(who) - 1) * 100);
+function moodCard() {   /* T2.1: the week's board, on the Daily tab */
+  const rows = buyerKeys().map((k) => row(img('i_cherry', 26), RBUYERS[k].name, 'pays +' + moodPct(k) + '% for ' + beanName(moodKey(k)) + ' this week', '')).join('');
+  const regs = Object.keys(CT_REGS).map((r) => row('<img src="' + url('worker_down_0', { shirt: CT_REGS[r][1], hat: CT_REGS[r][2] }) + '" alt="" style="width:26px">', CT_REGS[r][0], 'wants ' + beanName(moodKey(r)) + ' this week', '')).join('');
+  return '<h2>This week\'s moods</h2>' + help('moods', 'A new coffee is in fashion every week.', 'Each buyer and regular fancies one coffee for the week, fresh every Monday at the same moment worldwide. Sell it to the buyer, or serve it to the regular, for +15–25% extra coins. Everyone sees the same board.') + rows + regs;
+}
 const bagName = (b) => (b.seasonal ? b.seasonal + ' · ' : '') + (b.blend || beanName(b.key)) + (b.blend ? '' : ' · ' + ROASTS[b.profile].name.toLowerCase());
-const bagPrice = (b, k) => { const rb = RBUYERS[k], want = b.blend || !rb.wants || b.profile === rb.wants; return Math.round(b.coins * (want ? rb.mult * (b.blend ? 1.1 : 1) : 1) * (0.7 + b.q / 200) * (1 + shopCharm()) * (b.seasonal && b.skey === S.season.key ? 1.2 : 1) * (1 + 0.01 * masterStars()) * (b.pc && estOn('osaka', 3) ? 1.1 : 1) * revBagMult()); };
+const bagPrice = (b, k) => { const rb = RBUYERS[k], want = b.blend || !rb.wants || b.profile === rb.wants; return Math.round(b.coins * (want ? rb.mult * (b.blend ? 1.1 : 1) : 1) * (0.7 + b.q / 200) * (1 + shopCharm()) * (b.seasonal && b.skey === S.season.key ? 1.2 : 1) * (1 + 0.01 * masterStars()) * (b.pc && estOn('osaka', 3) ? 1.1 : 1) * revBagMult() * (b.key === moodKey(k) ? moodMult(k) : 1)); };
 /* how many roasts' worth of green coffee the foreman keeps waiting in the roastery (0 = off); on by default, so you never race him for lots */
 const feedRoasts = () => (S.roastery.feed === true ? 2 : S.roastery.feed === undefined ? 4 : +S.roastery.feed || 0);
 const roasteryFeedWants = () => roasteryOpen() && feedRoasts() > 0 && Object.values(S.roastery.beans).reduce((a, b) => a + b.kg, 0) < roastCap() * roasterCount() * feedRoasts();
@@ -2601,6 +2623,7 @@ function counterPanel() {
     : ctWait() ? '<b>Closed · opens in ' + clockTxt(ctWait() / 1000) + '</b><span>' + (C.tally ? 'Last time: ' + C.tally.served + ' served, ' + C.tally.out + ' walk-out' + (C.tally.out === 1 ? '' : 's') + ', +' + fmt(C.tally.coins) + ' coins, +' + fmt(C.tally.rep) + ' reputation · rating ' + C.tally.r0.toFixed(1) + ' → ' + C.tally.r1.toFixed(1) : 'The board for the next session is below.') + '</span>'
     : '<b>Counter ready</b><span>Rating ' + r.toFixed(1) + ' · ' + (C.pre || []).length + ' pre-orders on the board</span>';
   h += '<div class="ctstat' + (s ? ' open' : ctWait() ? ' shut' : '') + '"><div>' + head + '</div>' + ctStarRow(r) + '</div>';
+  if (!s) h += '<p class="rule"><b>This week\'s moods:</b> ' + buyerKeys().map((k) => BUYER_SHORT[k] + ' +' + moodPct(k) + '% for ' + beanName(moodKey(k))).join(' · ') + '. The full board is on the Daily tab.</p>';
   if (!s) h += btn(ctWait() ? 'Opens in ' + clockTxt(ctWait() / 1000) : 'Open the counter', ctBlockEv() ? 'after the trouble in the roastery' : '6 minutes', 'ctopen', ctCanOpen(), 'green big');
   if (!s && !ctBlockEv()) h += btn(ctQuickReady() ? 'Serve one walk-in' : (CT().quick || 0) > Date.now() ? 'Next walk-in in ' + clockTxt(((CT().quick || 0) - Date.now()) / 1000) : 'Serve one walk-in', ctQuickReady() ? 'one bag from the shelf, walk-in pay' : S.roastery.bags.some((b) => !b.blend) ? 'one an hour, between sessions' : 'needs a bag on the shelf', 'ctquick', ctQuickReady(), '');
   if (s) {
@@ -2614,7 +2637,8 @@ function counterPanel() {
     h += board.map((p) => { const e = ctEst(p); return row(ctAv(p), p.who + ' · ' + ROASTS[p.profile].name.toLowerCase() + ' ×' + (p.n - p.got), beanName(p.key) + (e ? ' · ~' + fmtShort(e) : '') + '<br>' + ctStockText(p), ctAction(p, false)); }).join('');
   }
   h += help('counter', 'Pre-orders pay 2× a buyer, walk-ins 1.6×, regulars 2.2×, times the cup score.', 'Pre-orders pay 2× the best buyer\'s price, walk-ins 1.6× and regulars 2.2×, times the cup score (×1 at 85, ×1.4 at 90). A wrong roast still pays ×0.6. Each customer served adds 0.03 stars, a walk-out takes 0.2, and three walk-outs close early. Sell all keeps the bags the board needs.' + (S.staff.roaster ? ' Your head roaster roasts for the board while it\'s open.' : ''));
-  h += '<h3>Regulars</h3><div class="ctregs">' + Object.keys(CT_REGS).map((k) => { const n = (C.regs[k] || {}).n || 0; return '<span><img src="' + url('worker_down_0', { shirt: CT_REGS[k][1], hat: CT_REGS[k][2] }) + '" alt="">' + CT_REGS[k][0] + '<small>' + Math.min(10, n) + '/10' + (n >= 10 ? ' · mug' : '') + '</small></span>'; }).join('') + '</div>' + (r < 4 ? '<p class="note">Regulars start coming at four stars.</p>' : '');
+  h += '<h3>Regulars</h3><div class="ctregs">' + Object.keys(CT_REGS).map((k) => { const n = (C.regs[k] || {}).n || 0, nxt = [5, 15, 40].find((m) => m > n);
+    return '<span><img src="' + url('worker_down_0', { shirt: CT_REGS[k][1], hat: CT_REGS[k][2] }) + '" alt="">' + CT_REGS[k][0] + '<small>' + n + ' visit' + (n === 1 ? '' : 's') + (nxt ? ' · story at ' + nxt : ' · story complete') + (n >= 10 ? ' · mug' : '') + '</small></span>'; }).join('') + '</div>' + (r < 4 ? '<p class="note">Regulars start coming at four stars.</p>' : '');
   return h;
 }
 function roasteryPanel() {   /* the reputation sits in the bar over the roastery (repInfo) */
@@ -4189,6 +4213,33 @@ const CT_KIND = { pre: { mult: 2, pat: 240 }, walk: { mult: 1.6, pat: 90 }, reg:
 const CT_REGS = { kenji: ['Kenji', ['#2C3A80', '#202C64', '#141C44'], ['#1E1E22', '#141418', '#0A0A0C']], aya: ['Aya', ['#C8A8E8', '#A888C8', '#7E64A0'], ['#F8F4EC', '#D8D0BC', '#A89C84']],
   tanaka: ['Mr Tanaka', ['#8A8E96', '#6A6E76', '#4A4E56'], ['#6A4A2C', '#4E3420', '#2E1E14']], mika: ['Mika', ['#F8D870', '#D8B048', '#A88428'], ['#D84A36', '#A8302A', '#7A1E1C']], sora: ['Sora', ['#6CB86A', '#4A9848', '#2E6A2E'], ['#4A8AB8', '#306898', '#1E4A70']] };
 const CT_SHOPS = { cafe: ['Café Hoshi', 'Café Mori', 'Café Kumo', 'Café Ame'], kissa: ['Kissa Mado', 'Kissa Tsuki', 'Kissa Yoru'], konbini: ['Konbini Kita', 'Ekimae Konbini', 'Hoshi Mart'], guest: ['Lakeside Inn', 'Toba Guesthouse'] };
+/* T2.2 regulars with memory: their story unfolds at 5, 15 and 40 visits (the mug still comes at 10); the 40th visit gifts the Counter confidant title */
+const REG_STORIES = {
+  kenji: [
+    ['Kenji first came in out of the rain, ordered light, and said nothing for ten minutes.', 'Now he nods at the roaster before he even sits down.', '"The street smells right again," he says. From Kenji, high praise.'],
+    ['Kenji brought his own cup today — a chipped thing he swears makes coffee taste honest.', 'He talks more now: his daughter in Sendai, the factory whistle, the proper way to store beans.', '"You roast like someone listening," he says. From Kenji, that is a speech.'],
+    ['Kenji arrives early to help flip the chairs down before opening, unasked.', 'He leaves a small wrapped gift by the register: a hand-thrown cup, glazed indigo like his jacket.', '"For the shop," he says. "Not for sale."']],
+  aya: [
+    ['Aya found the counter on her lunch break and ordered in a rush, half apologetic.', 'She photographs every cup before the first sip, always the same angle.', '"My followers ask where this is," she laughs. "I told them it\'s a secret."'],
+    ['Aya brings a sketchbook now — she draws the roastery more than she drinks.', 'Today she asks real questions: why honey process, why this roast, why that farm.', '"I want to get it right," she says, "when I write about you."'],
+    ['Aya\'s article is out: a whole page, the counter photographed in morning light.', 'She reads it aloud, then goes quiet. "I didn\'t write the best part."', 'The best part, she says, is how the place smells like someone\'s care.']],
+  tanaka: [
+    ['Mr Tanaka inspects the counter like a health inspector, orders medium, and pays in exact coins.', 'He returns the next day. And the day after that.', '"Consistency," he says, "is the only luxury."'],
+    ['Tanaka has started bringing people: a nephew, a business contact, once the whole darts club.', 'He watches you serve them all and says nothing at all.', 'The nod he gives on the way out is the whole review.'],
+    ['Tanaka books the long table for the afternoon — "a private tasting, my treat."', 'He has brought six cups, numbered, and a notebook of his own.', 'At the end he closes it. "I ran a factory for thirty years," he says. "This is better run."']],
+  mika: [
+    ['Mika breezed in asking for something "sweet but not boring," and hummed at the first sip.', 'She\'s a fisherman\'s daughter from up the coast, loud in the best way.', '"Roast something fun," she says. So you do.'],
+    ['Mika brings her little brother, who orders "the brown one" and means all of them.', 'She rates your roasts out of ten, out loud, to the whole room.', 'Today a natural got a nine and a half — then she argued herself up to ten.'],
+    ['Mika\'s boat comes in with the morning catch — and a crate on deck that is not fish, but fruit.', '"For the tanks," she grins. "That Kona place needs more friends."', 'The mug she leaves behind has a cartoon fish wearing a roaster\'s hat.']],
+  sora: [
+    ['Sora cycled forty minutes past three other cafés to be here, and says so, proudly.', 'A gardener by trade; her hands always smell faintly of soil.', '"Growing things and roasting things," she says, "are the same hobby at different speeds."'],
+    ['Sora brings cuttings in jam jars and swaps them for cortados.', 'She asks after each plot by name — the estate, the Kona terrace, the patio beds.', '"You farm coffee," she decides. "You don\'t just make it."'],
+    ['Sora arrives with dirt under her nails and a seedling wrapped in newspaper: a young coffee plant, hers.', '"Grown from your cherries, in my own garden," she says.', 'She plants it in a pot by the counter, where the morning sun lands.']]
+};
+function storyModal(r, mi) {   /* the milestone story, told by the regular themselves */
+  SFX.play('achieve');
+  showModal('<div style="text-align:center"><img src="' + url('worker_down_0', { shirt: CT_REGS[r][1], hat: CT_REGS[r][2] }) + '" alt="" style="width:64px"><h3>' + CT_REGS[r][0] + ' · ' + [5, 15, 40][mi] + ' visits</h3>' + REG_STORIES[r][mi].map((l) => '<p>' + l + '</p>').join('') + '<button class="btn green" data-act="close">See you tomorrow</button></div>');
+}
 const ctLook = (c) => (c.reg ? { shirt: CT_REGS[c.reg][1], hat: CT_REGS[c.reg][2] } : GUEST_LOOK[c.look] || GUEST_LOOK.cafe);
 const ctOn = () => roasteryOpen() && repLevel() >= CT_REP;
 const CT = () => S.counter;
@@ -4224,8 +4275,7 @@ const ctPool = () => {   /* coffees the counter may ask for: what's in a bin, on
 };
 const ctReady = (k) => !!S.roastery.beans[k] || S.roastery.bags.some((b) => b.key === k) || S.lots.some((l) => l.v + '.' + l.method === k);
 const ctProfile = (kind, k) => (RBUYERS[kind] && RBUYERS[kind].wants) || bestRoast(...k.split('.'));
-function ctBoard() {   /* the next session's pre-orders: 3 (2 at a poor rating, 4 at five stars), never more coffees than the four bins, at least one already on hand */
-  const C = CT(), pool = ctPool(); if (!pool.length) { C.pre = []; return; }
+function ctBoard() {   /* the next session's pre-orders: 3 (2 at a poor rating, 4 at five stars), never more coffees than the four bins, at least one already on hand */  const C = CT(), pool = ctPool(); if (!pool.length) { C.pre = []; return; }
   const n = C.rating <= 1.5 ? 2 : C.rating >= 4.75 ? 4 : 3, lv = repLevel(), lo = lv >= 15 ? 4 : lv >= 12 ? 3 : 2, kinds = buyerKeys();
   const ready = pool.filter(ctReady), used = [];
   C.pre = []; for (let i = 0; i < n; i++) {
@@ -4250,6 +4300,19 @@ function ctNeeds() {   /* what's wanted and not on the shelf, for the head roast
 }
 const ctBoardV = (v) => { const C = S.counter; if (!C || !ctOn()) return null; const p = (C.pre || []).find((x) => (x.state === 'board' || x.state === 'queue') && x.key.split('.')[0] === v && x.n > x.got && !S.roastery.beans[x.key] && !S.lots.some((l) => l.v + '.' + l.method === x.key)); return p ? p.key.split('.')[1] : null; };   /* the foreman fills a coffee the board needs first, in its process */
 const ctWantBean = (k) => { const C = S.counter; return !!C && ctOn() && (C.pre || []).some((x) => (x.state === 'board' || x.state === 'queue') && x.key === k && x.n > x.got) && !S.roastery.beans[k]; };
+const ctRegWant = (r, R, pool) => {   /* T2.2: a regular's weekly fancy — their mood coffee when you can make it, else a favourite from what's around */
+  if (!R.key || !pool.includes(R.key) || R.wk !== moodWeek()) { const mk = moodKey(r); R.key = pool.includes(mk) ? mk : pickOf(pool); R.profile = bestRoast(...R.key.split('.')); R.wk = moodWeek(); }
+  return [R.key, R.profile];
+};
+function ctRegMilestone(r) {   /* T2.2: a story at 5, 15 and 40 visits; the mug still lands at 10; the 40th gifts the Counter confidant title */
+  const C = CT(), R2 = C.regs[r]; if (!R2) return;
+  if (R2.n === 10) { SFX.play('achieve'); toast(CT_REGS[r][0] + '\'s mug goes on the long table'); }
+  if ([5, 15, 40].includes(R2.n) && !(R2.st || []).includes(R2.n)) {
+    (R2.st = R2.st || []).push(R2.n); BEACON.ev('reg_story', { reg: r, m: R2.n, p: S.prestige, lvl: level() }); storyModal(r, [5, 15, 40].indexOf(R2.n));
+    if (R2.n === 40 && !S.sitems.title['ct:conf']) { S.sitems.title['ct:conf'] = true; toast('Counter confidant — a title from ' + CT_REGS[r][0] + ' (Looks)'); }
+  }
+  if (!S.sitems.title['ct:nbr'] && Object.keys(CT_REGS).every((x) => ((C.regs[x] || {}).n || 0) >= 10)) { S.sitems.title['ct:nbr'] = true; toast('All five regulars: the Neighbourhood roaster title is yours (Looks)'); }
+};
 function ctOpenNow() {
   const C = CT(); if (!ctCanOpen()) return false;
   if (!C.pre || !C.pre.length) ctBoard();
@@ -4272,7 +4335,7 @@ function ctWalkIn() {   /* a walk-in: one bag of any coffee at a roast, or a nam
     const free = Object.keys(CT_REGS).filter((r) => !s.q.some((c) => c.reg === r) && !(s.regs || []).includes(r));
     if (free.length && rnd() < 0.2) {
       const r = pickOf(free), R = C.regs[r] = C.regs[r] || { n: 0 };
-      if (!R.key || !pool.includes(R.key)) { R.key = pickOf(pool); R.profile = bestRoast(...R.key.split('.')); }
+      ctRegWant(r, R, pool);   /* T2.2: their fancy follows this week's mood board when you can make it */
       (s.regs = s.regs || []).push(r); ctArrive({ id: 'r' + (s.n = (s.n || 0) + 1), kind: 'reg', reg: r, who: CT_REGS[r][0], key: R.key, profile: R.profile, n: 2, got: 0 }); return;
     }
   }
@@ -4307,9 +4370,7 @@ function ctServe(id, near) {   /* serve what's on the shelf: matching bags first
   if (c.got >= c.n) {
     const r0 = C.rating; C.rating = Math.round(Math.min(5, C.rating + CT_SERVE) * 100) / 100; s.served += 1; C.served = (C.served || 0) + 1; ctSeason(); C.sServed += 1; task('serve', 1); ctStarSfx(r0);
     if (c.kind === 'pre') { const p = C.pre.find((x) => x.id === c.id); if (p) p.state = 'done'; task('preorder', 1); }
-    if (c.reg) { const R2 = C.regs[c.reg]; R2.n = (R2.n || 0) + 1; task('regulars', 1);
-      if (R2.n === 10) { SFX.play('achieve'); toast(CT_REGS[c.reg][0] + '\'s mug goes on the long table'); }
-      if (!S.sitems.title['ct:nbr'] && Object.keys(CT_REGS).every((r) => ((C.regs[r] || {}).n || 0) >= 10)) { S.sitems.title['ct:nbr'] = true; toast('All five regulars: the Neighbourhood roaster title is yours (Looks)'); } }
+    if (c.reg) { const R2 = C.regs[c.reg]; R2.n = (R2.n || 0) + 1; task('regulars', 1); ctRegMilestone(c.reg); }
     ctLeave(c, true);
   } else if (c.kind === 'pre') { const p = C.pre.find((x) => x.id === c.id); if (p) p.got = c.got; }
   return true;
@@ -6068,6 +6129,10 @@ function renderPanel() {
     if (coopTab) h += '<div class="seg subtabs">' + [['today', 'Today'], ['coop', NET.coop ? NET.coop.name : 'Co-op']].map(([k, t]) => '<button type="button" data-act="dailysub:' + k + '" aria-pressed="' + (dsub === k) + '">' + t + (k === 'coop' && NET.coop && (NET.coop.order.tiers.some((x, i) => NET.coop.order.total >= x.at && !NET.coop.order.claimed.includes(i)) || (NET.coop.derby && NET.coop.derby.last && NET.coop.derby.last.canClaim)) ? ' <i class="dot" aria-label="something to claim"></i>' : '') + '</button>').join('') + '</div>';
     if (dsub === 'coop') h += coopCard();
     else {
+    if (buyersOn()) {   /* T2.1: the week's public mood board — the same on every device, no server call */
+      if (S.moodSeen !== moodWeek()) { S.moodSeen = moodWeek(); BEACON.ev('mood_view', { p: S.prestige, lvl: level() }); }
+      h += moodCard();
+    }
     h += harvestCard();
     h += '<h2>Daily brew check-in</h2><p class="note">' + S.checkin.streak + '-day streak · ' + S.checkin.freezes + ' streak freeze' + (S.checkin.freezes === 1 ? '' : 's') + '. Open the game once a day to keep it going.</p>';
     const plus = (rl) => (/^\d/.test(rl) ? '+' + rl : rl), goBtn = (K, t, rl) => { const d = K[t.id] || {}; return d.est ? btn('Go', plus(rl), 'estgo:' + d.est, true, 'blue') : btn('Go', plus(rl), 'taskgo:' + (d.go || 'farm'), true, 'blue'); };
@@ -7097,7 +7162,7 @@ const BEACON = (() => {
   setInterval(() => flush(false), 120000);   /* slow drip, same spirit as the sync cuts: events wait for the batch */
   window.addEventListener("pagehide", () => flush(true));
   document.addEventListener("click", (e) => { const a = e.target && e.target.closest ? e.target.closest('a[href*="bejucoffee.com"]') : null; if (a) ev("order_click", { t: (a.textContent || "").slice(0, 30) }); }, true);
-  return { ev, flush, startedAt };
+  return { ev, flush, startedAt, qlen: () => q.length, last: () => q[q.length - 1] };   /* qlen/last: read-only, for the sim tests */
 })();
 BEACON.ev("session_start", { p: S.prestige, lvl: level(), gap: Math.min(2592000000, Date.now() - (S.last || Date.now())) });
 window.addEventListener("pagehide", () => {   /* session length rides the real exit only — tab switches and phone locks send nothing */
