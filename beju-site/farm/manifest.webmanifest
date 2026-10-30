@@ -1,0 +1,17 @@
+{
+  "name": "Beju Farm",
+  "short_name": "Beju Farm",
+  "description": "Grow, process and roast coffee on your own farm.",
+  "id": "/farm/",
+  "start_url": "/farm/",
+  "scope": "/farm/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#E8E1D5",
+  "theme_color": "#3A2A1C",
+  "icons": [
+    { "src": "/android-chrome-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/app-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/app-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -31,7 +31,7 @@ if "--site" in sys.argv:   # a full page for bejucoffee.com/farm/, kept out of s
     title = t[:t.index("</title>") + 8] if t.startswith("<title>") else ""
     t = t[len(title):].replace('<meta charset="utf-8">\n', '', 1)   # the page's head below has its own
     t = ('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">'
-         + ('' if "--launch" in sys.argv else '<meta name="robots" content="noindex, nofollow">') + title + '<meta name="theme-color" content="#3A2A1C"><link rel="icon" href="/favicon.svg">'
+         + ('' if "--launch" in sys.argv else '<meta name="robots" content="noindex, nofollow">') + title + '<meta name="theme-color" content="#3A2A1C"><link rel="icon" href="/favicon.svg"><link rel="manifest" href="/farm/manifest.webmanifest"><link rel="apple-touch-icon" href="/apple-touch-icon.png">'
          '</head><body style="margin:0">' + t + '</body></html>')
 open(sys.argv[1], "w").write(t)
 print(sys.argv[1], len(t) // 1024, "KB")
