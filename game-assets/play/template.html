@@ -472,6 +472,29 @@ const ART = __ART__;
 const BGS = __BGS__;
 (function () {
 'use strict';
+/* ---------- anonymous usage beacon: tiny events for the roadmap's retention metrics (see netlify/lib/handlers/game-beacon.js).
+   No account names, no save data, no PII: fid is a random id from its own storage slot, events are whitelisted server-side,
+   and two failed sends switch the whole thing off for the session. It is set up first, before any game code: the welcome-back
+   payout (away), the Daily board and the Shop log events while the page is still starting, and a const used before this line
+   throws and stops the whole game. ---------- */
+const BEACON = (() => {
+  let fid = "";
+  try { fid = localStorage.getItem("beju-anon-id") || ""; if (!/^[a-f0-9]{16}$/.test(fid)) { fid = ""; for (let i = 0; i < 16; i++) fid += "0123456789abcdef"[Math.floor(Math.random() * 16)]; localStorage.setItem("beju-anon-id", fid); } } catch (e) {}
+  const q = [], startedAt = Date.now(), sid = Math.random().toString(16).slice(2, 10);
+  let fails = 0, dead = false, sent = 0;
+  const ev = (e, f) => { if (dead || q.length > 200) return; q.push(Object.assign({ e, ts: Date.now(), fid, sid }, f && typeof f === "object" ? f : {})); };
+  const flush = (unloading) => {
+    if (dead || !q.length) return;
+    if (!unloading && sent >= 8) return;   /* Netlify pushes stay minimal: a few batched sends a session, the rest rides out with the exit */
+    const body = JSON.stringify({ batch: q.splice(0, 50) });
+    try { if (unloading && navigator.sendBeacon && navigator.sendBeacon("/.netlify/functions/game-beacon", body)) { sent += 1; return; } } catch (e) {}
+    fetch("/.netlify/functions/game-beacon", { method: "POST", headers: { "Content-Type": "text/plain" }, body, keepalive: unloading }).then((r) => { if (!r.ok) throw 0; fails = 0; sent += 1; }).catch(() => { if (++fails >= 2) dead = true; });
+  };
+  setInterval(() => flush(false), 120000);   /* slow drip, same spirit as the sync cuts: events wait for the batch */
+  window.addEventListener("pagehide", () => flush(true));
+  document.addEventListener("click", (e) => { const a = e.target && e.target.closest ? e.target.closest('a[href*="bejucoffee.com"]') : null; if (a) ev("order_click", { t: (a.textContent || "").slice(0, 30) }); }, true);
+  return { ev, flush, startedAt, qlen: () => q.length, last: () => q[q.length - 1] };   /* qlen/last: read-only, for the sim tests */
+})();
 const W = 192, H = 352, LANE_X = 97, HOME = { x: 150, y: 80 }, DROP = { x: 120, y: 106 }, STORE_AT = { x: 98, y: 68 };
 const LOCS = ['mogiana', 'huila', 'gedeo', 'toba', 'turrialba', 'osaka'];
 const START = 'mogiana';
@@ -5976,27 +5999,6 @@ function loop(t) {
 requestAnimationFrame(loop);
 if (needsName()) askName();
 online();
-/* ---------- anonymous usage beacon: tiny events for the roadmap's retention metrics (see netlify/lib/handlers/game-beacon.js).
-   No account names, no save data, no PII: fid is a random id from its own storage slot, events are whitelisted server-side,
-   and two failed sends switch the whole thing off for the session. ---------- */
-const BEACON = (() => {
-  let fid = "";
-  try { fid = localStorage.getItem("beju-anon-id") || ""; if (!/^[a-f0-9]{16}$/.test(fid)) { fid = ""; for (let i = 0; i < 16; i++) fid += "0123456789abcdef"[Math.floor(Math.random() * 16)]; localStorage.setItem("beju-anon-id", fid); } } catch (e) {}
-  const q = [], startedAt = Date.now(), sid = Math.random().toString(16).slice(2, 10);
-  let fails = 0, dead = false, sent = 0;
-  const ev = (e, f) => { if (dead || q.length > 200) return; q.push(Object.assign({ e, ts: Date.now(), fid, sid }, f && typeof f === "object" ? f : {})); };
-  const flush = (unloading) => {
-    if (dead || !q.length) return;
-    if (!unloading && sent >= 8) return;   /* Netlify pushes stay minimal: a few batched sends a session, the rest rides out with the exit */
-    const body = JSON.stringify({ batch: q.splice(0, 50) });
-    try { if (unloading && navigator.sendBeacon && navigator.sendBeacon("/.netlify/functions/game-beacon", body)) { sent += 1; return; } } catch (e) {}
-    fetch("/.netlify/functions/game-beacon", { method: "POST", headers: { "Content-Type": "text/plain" }, body, keepalive: unloading }).then((r) => { if (!r.ok) throw 0; fails = 0; sent += 1; }).catch(() => { if (++fails >= 2) dead = true; });
-  };
-  setInterval(() => flush(false), 120000);   /* slow drip, same spirit as the sync cuts: events wait for the batch */
-  window.addEventListener("pagehide", () => flush(true));
-  document.addEventListener("click", (e) => { const a = e.target && e.target.closest ? e.target.closest('a[href*="bejucoffee.com"]') : null; if (a) ev("order_click", { t: (a.textContent || "").slice(0, 30) }); }, true);
-  return { ev, flush, startedAt, qlen: () => q.length, last: () => q[q.length - 1] };   /* qlen/last: read-only, for the sim tests */
-})();
 BEACON.ev("session_start", { p: S.prestige, lvl: level(), gap: Math.min(2592000000, Date.now() - (S.last || Date.now())) });
 window.addEventListener("pagehide", () => {   /* session length rides the real exit only — tab switches and phone locks send nothing */
   if (Date.now() - BEACON.startedAt > 20000) BEACON.ev("session_end", { len: Math.round((Date.now() - BEACON.startedAt) / 1000), p: S.prestige, lvl: level() });
