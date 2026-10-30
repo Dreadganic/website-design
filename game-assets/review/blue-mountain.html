@@ -1,0 +1,104 @@
+<!doctype html><meta charset="utf-8"><title>Blue Mountain — design doc (T2.6)</title>
+<style>body{max-width:720px;margin:40px auto;font:16px/1.6 Georgia,serif;color:#2A2118;padding:0 16px}h1,h2,h3{font-family:Avenir,Helvetica,sans-serif}code{background:#F2EDE4;padding:1px 5px;border-radius:4px}li{margin:6px 0}table{border-collapse:collapse;font:14px/1.4 Avenir,Helvetica,sans-serif;width:100%;margin:8px 0}td,th{border-bottom:1px solid #E4DCCD;padding:4px 6px;text-align:left;vertical-align:top}.ask{background:#F7F1E6;border-left:4px solid #C9A86A;padding:8px 14px;margin:14px 0}</style>
+<h1>Blue Mountain</h1>
+<p><i>Phase 2 · T2.6 · design only. Nothing gets built until you sign this off <b>and</b> four weeks of beacon data plus the Kona playtest numbers are in (that's T3.1). Every number below is a starting proposal for the bot to pace, the way Kona's were.</i></p>
+
+<p><b>In one line:</b> misty high terraces where the ripe cherries only show when the fog lifts, beans graded by size into wooden barrels, and a clock slow enough that the island is a twice-a-day ritual, not a session.</p>
+
+<h2>Why this island, and what it has to prove</h2>
+<p>The roadmap's rule for islands: <b>one new verb, one new conversion, one rhythm change, and it imports mainland state.</b> Kona passed: ferment timing is the verb, fruit × coffee the conversion, a 30-second loop the rhythm, and mill pulp becomes its compost. Blue Mountain has to pass the same test without repeating any of Kona's answers, and keep the anti-goal: <b>no new currency</b>. If it can't, the roadmap says no fourth island gets built after it.</p>
+<table>
+<tr><th></th><th>Kona Ridge (P6, live)</th><th>Blue Mountain (proposed)</th></tr>
+<tr><td>New verb</td><td>Vent and pull a ferment at the right second</td><td><b>Pick in the fog window</b>: wait for the mist to lift, or pick blind</td></tr>
+<tr><td>New conversion</td><td>Fruit × coffee → co-ferment</td><td><b>Bean size → grade</b>: No. 1, No. 2, No. 3, Peaberry, into barrels</td></tr>
+<tr><td>Rhythm</td><td>30-second loop, sessions</td><td><b>Slow clock</b>: hours to ripen and rest, best visited morning and evening</td></tr>
+<tr><td>Imports</td><td>Mill pulp → compost</td><td><b>Your sorters and shade trees</b> (below)</td></tr>
+<tr><td>Exports</td><td>Co-ferment lots → Osaka bins</td><td>Certified barrels → Osaka bins, the top cup in the game</td></tr>
+<tr><td>Money</td><td>Shells (island only)</td><td><b>None.</b> Progress is a certification level; upgrades open by level</td></tr>
+</table>
+
+<h2>The real place (so the game can stay honest)</h2>
+<ul>
+<li>Jamaica's Blue Mountains: steep slopes roughly 900 to 1,700 m up, cool and wrapped in cloud most days. The mist and the cool slow the cherries down, which is the whole flavour story.</li>
+<li>Mostly <b>Typica</b>, washed. The beans rest in parchment before hulling.</li>
+<li>Graded by <b>screen size</b>: No. 1 (screen 17–18), No. 2 (16–17), No. 3 (15–16), plus Peaberry. It famously ships in <b>wooden barrels</b>, not sacks.</li>
+<li>Japan has long been its biggest buyer. That's a natural tie to a roaster in Osaka. A real-bag card (T1.3) would need Beju to actually sell one, which is your business call (below).</li>
+</ul>
+
+<h2>The loop</h2>
+<h3>1 · Pick in the fog (the verb)</h3>
+<ul>
+<li>Six terraces down a slope, four open at the start. Mist drifts across them. When it lifts off a terrace (a <b>window</b> of about 10–20 s), the ripe cherries show red and every tap picks a ripe one.</li>
+<li>In the fog you can still pick by feel, but about 40% of blind picks come out underripe. They still count, but they grade lower (they come out small).</li>
+<li>Ripe cherries hang for 12 h, then turn to floats that sell for little. Nothing is lost beyond that, so there's no punishment for a missed day.</li>
+<li><b>The decision:</b> wait for the window and get a clean pick, or pick blind now and accept a lower grade. Golden-hour windows (a long clear spell, once or twice a day on the farm clock) are worth planning a visit around, but never required.</li>
+</ul>
+<h3>2 · Rest, hull and grade (the conversion)</h3>
+<ul>
+<li>Picked cherries wash at once, then <b>rest in parchment for 8 h</b> on the slow clock. This is the island's "come back later".</li>
+<li>Hulling tips a tray of beans onto the <b>grading screens</b>: a short tap game. Beans of mixed sizes fall, and you flick each into No. 1, No. 2, No. 3 or Peaberry. Correct grades fill barrels; a wrong one lowers that barrel's certification.</li>
+<li>A <b>barrel</b> (scaled to 70 kg of clean beans) ships when full. Only one grade goes in a barrel: that's the decision this step adds, whether to ship a No. 2 barrel now or hold out for a No. 1.</li>
+</ul>
+<h3>3 · The slow clock (the rhythm)</h3>
+<ul>
+<li>Terraces ripen over about 6 real hours, and parchment rests 8 h. The ideal visit is two short checks a day (a window pick and a grade), each 2–4 minutes. This is the opposite of Kona's 30-second loop on purpose: Kona is a snack, Blue Mountain is a ritual.</li>
+<li>It is the island version of what Rosa says at P5: <i>"From here, coffee is a practice."</i> It also fits the 30–90 s visits that quick serve (T1.2) was built for.</li>
+<li>Away time is capped like the mainland's: the island never asks you to log in, it just waits.</li>
+</ul>
+<h3>4 · What it imports from the mainland</h3>
+<ul>
+<li><b>Sorters</b> (<code>BUILD.sorter</code>; on the mainland each farm's sorter finds its own peaberry lots, and the island would add up every farm's levels): each level auto-grades a share of each tray and raises the chance a tray holds peaberries. A mainland grader is literally a better grader here.</li>
+<li><b>Shade trees</b> (<code>BUILD.shade</code>, already "counting every farm"): their cup bonus carries over as the base cup of Blue Mountain lots, so the mainland's quiet late-game building finally shows up somewhere you feel it.</li>
+<li>Both read state the player already built. Nothing on the mainland changes, the same way Kona's compost only reads mill lots.</li>
+</ul>
+<h3>5 · What it exports</h3>
+<ul>
+<li>Certified barrels ship to the Osaka roastery bins as new process keys (like Kona's <code>cof_*</code>): <code>bm_1</code>, <code>bm_2</code>, <code>bm_3</code>, <code>bm_pb</code>. No. 1 is the top cup in the game (about 89 vs Strawberry's 88), so it carries the highest bag price. It flows through <code>bagPrice</code>, so the mood board (T2.1) and the Counter price it like any other bag.</li>
+<li>A regular can come to crave it: one more weekly mood (T2.1) and one story line (T2.2). That's a cross-link, not a new system.</li>
+</ul>
+
+<h2>Progress without a currency</h2>
+<ul>
+<li>Shipped barrels earn <b>certification</b> (levels 1–30, more for higher grades). Each level opens something directly: terraces 5 and 6, a bigger tray, a third screen helper, the barrel stencil set, golden-hour forecasts, the title <i>"Blue Mountain grader"</i>.</li>
+<li><b>No shop and no island money.</b> Kona proved an island shop works, and also that it was paced at about 6 h of play instead of the planned 20 h. Opening by level keeps the pace in one number the bot can tune, and keeps the anti-goal literally true.</li>
+</ul>
+
+<h2>Starting numbers (for the bot to pace)</h2>
+<table>
+<tr><th>Thing</th><th>Proposal</th><th>Aim</th></tr>
+<tr><td>Fog window</td><td>10–20 s clear every 40–90 s per terrace</td><td>50–80% of picks made in a window: the choice is real, not solved</td></tr>
+<tr><td>Blind pick</td><td>40% underripe</td><td>Blind picking is a fair trade, not a trap</td></tr>
+<tr><td>Ripen / hang / rest</td><td>6 h / 12 h / 8 h</td><td>Two visits a day get ~90% of the yield; one visit ~60%</td></tr>
+<tr><td>Barrel</td><td>70 kg clean (~5 trays)</td><td>First barrel in the first session, then 2–3 a day</td></tr>
+<tr><td>Certification</td><td>30 levels</td><td>Level 30 in about 4 weeks of two-visit days, slower than Kona on purpose</td></tr>
+<tr><td>Bag price</td><td>No. 1 ×2.4, No. 2 ×1.9, No. 3 ×1.4, PB ×2.6</td><td>Worth a slot in the bins without making mainland roasting pointless</td></tr>
+</table>
+
+<h2>How we'll know it worked (the events come first)</h2>
+<p>Following the event-first rule, these go into the beacon whitelist with the build: <code>bm_open</code>, <code>bm_pick</code> (<code>fog: 0/1</code>), <code>bm_barrel</code> (<code>grade</code>), <code>bm_visit</code> (minutes since the last one).</p>
+<ul>
+<li><b>Ritual:</b> players who opened the island make ≥0.5 more sessions a day than before, mostly 2–4 minutes long.</li>
+<li><b>Decision health:</b> the share of window picks stays between 50% and 80%. Above that, fog is just a delay. Below it, blind picking is solved.</li>
+<li><b>No cannibalising:</b> Kona sessions don't drop more than 15% for players who have both.</li>
+<li><b>Retention:</b> D7 and D30 of players at the unlock prestige vs the four weeks before.</li>
+</ul>
+
+<h2>Where it sits</h2>
+<p>Your original note put it at <b>prestige 5</b>, and I'd keep it there. P5 is where the game turns from adventure to ritual (Rosa's practice card, T1.1), and a slow-clock island <i>is</i> that turn in playable form. Kona follows at P6 as the fast counterweight. The practice card's "soon an island of your own" becomes "your island is ready."</p>
+<p>The alternative is P7, which keeps P5 quiet and gives Kona the stage first. Pick P7 if the beacon shows P5–P6 players are already busy (COE, estates, Kona). The doc works either way; only the gate constant moves.</p>
+
+<h2>Building it (once it's signed off)</h2>
+<ul>
+<li><b>Reuse Kona's scaffolding</b>: the <code>S.isle</code> travel, its panel pattern (Island / Log), its arrival card, its layout check on six phone sizes, and a <code>bluemtn_e2e.js</code> modelled on <code>kona_e2e.js</code>.</li>
+<li><b>New</b>: the fog layer (one scrolling mist sprite with per-terrace alpha), six terrace beds, the grading tray, barrel art and stencils, and a quiet misty theme for the music.</li>
+<li>Size: L, as on the roadmap. About the scope of Kona's first build, minus the shop and the boat.</li>
+<li>Pacing is bot-run before anyone plays it, against the aims in the table above.</li>
+</ul>
+
+<div class="ask"><b>Decisions I need from you</b>
+<ol>
+<li><b>Prestige 5 or 7?</b> (I recommend 5.)</li>
+<li><b>No island money:</b> OK to open everything by certification level instead of a shop?</li>
+<li><b>A real Jamaica Blue Mountain bag?</b> If Beju would sell one, the barrel card links it (T1.3) and the island ends on a real coffee. If not, the island still works, it just doesn't end in an order.</li>
+<li><b>Art:</b> fog, terraces and barrels are new art. Same pipeline as Kona's?</li>
+</ol></div>
