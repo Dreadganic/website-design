@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="robots" content="noindex, nofollow"><title>Beju Farm</title><meta name="theme-color" content="#3A2A1C"><link rel="icon" href="/favicon.svg"></head><body style="margin:0">
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="robots" content="noindex, nofollow"><title>Beju Farm</title><meta name="theme-color" content="#3A2A1C"><link rel="icon" href="/favicon.svg"><link rel="manifest" href="/farm/manifest.webmanifest"><link rel="apple-touch-icon" href="/apple-touch-icon.png"></head><body style="margin:0">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2484,7 +2484,7 @@ function toRoastery(i, quiet) {   /* a dry lot goes to the roastery's green stor
   const green = l.kg * 0.2, r = saleFor(l.v, l.method, green, l), key = l.v + '.' + l.method, R = S.roastery;
   const b = R.beans[key] = R.beans[key] || { kg: 0, coins: 0, pts: 0, cup: 0 };
   b.cup = (b.cup * b.kg + r.cup * green) / (b.kg + green); b.kg += green; b.coins += r.coins * (l.aged && estOn('turrialba', 3) ? 1.15 : 1); b.pts += r.points; if (l.carry) b.np = (b.np || 0) + r.points * l.carry;
-  millSold(i, 'to roastery'); S.lots.splice(i, 1); nbAdd(l.v, l.method, 1); S.stats.lotsSold += 1; task('sell', 1);
+  millSold(i, 'to roastery'); S.lots.splice(i, 1); nbAdd(l.v, l.method, 1); S.stats.lotsSold += 1; if (S.stats.lotsSold === 1) BEACON.ev("first_sale", { p: S.prestige, lvl: level() }); task('sell', 1);
   if (!quiet) { SFX.play('stamp'); tapNote('+' + fmtKg(green) + ' kg to a bin', fmtKg(green) + ' kg of green ' + beanName(key) + ' sent to the roastery'); }
 }
 function startRoast(key, profile, quiet) {
@@ -4238,6 +4238,7 @@ function ctOpenNow() {
   if (!C.pre || !C.pre.length) ctBoard();
   const arr = C.pre.map(() => 8 + rnd() * 102).sort((a, b) => a - b);
   C.sess = { t: 0, q: [], arr, walkT: 15 + rnd() * 10, served: 0, out: 0, coins: 0, rep: 0, r0: C.rating, karen: false, karenT: 60, last: false };
+  BEACON.ev("counter_open", { p: S.prestige, lvl: level() });
   C.pre.forEach((p) => { p.state = 'board'; p.got = 0; });
   IN.roast.guests.forEach((g) => { g.seat = undefined; g.state = 'out'; g.path = [{ x: DOOR.x, y: g.y }, { x: DOOR.x, y: DOOR.y }]; });   /* window shoppers step out */
   shopSfx('open'); if (scene() === 'roast') mapFocus();
@@ -4311,6 +4312,7 @@ function ctClose(why, quiet) {   /* the tally, the sign to BACK SOON, the next b
   C.sess = null; C.next = Date.now() + CT_GAP;
   if (!quiet) {
     C.tally = { served: s.served, out: s.out, coins: s.coins, rep: s.rep, r0: s.r0, r1: C.rating, at: Date.now() };
+    BEACON.ev("counter_close", { served: s.served, out: s.out, coins: s.coins, rep: s.rep });
     if (!s.out && s.served) { star('counter'); task('clean', 1); }
     if (C.rating >= 4.95) task('fivestar', 1);
     shopSfx('close'); toast((why ? why + '. ' : 'The counter is closed. ') + 'Served ' + s.served + ', +' + fmt(s.coins) + ' coins, +' + fmt(s.rep) + ' reputation');
@@ -4958,7 +4960,7 @@ function konaAct(a, v) {   /* the island's buttons */
 }
 function konaIntro() {
   const K = S.kona; if (!K || K.seen || !konaHere() || !$('modal').hidden) return;
-  K.seen = true; showModal(coachCard('Kona Ridge', 'The trader\'s boat brought you to Kona Ridge, a volcanic island with no mill. Here coffee ferments in tanks with fruit you grow beside it. Pick the coffee and the mangoes, tap a tank to load it, vent it when the gauge goes red and pull it when it flashes. Each lot goes to the co-op boat at the dock and fills one of its orders for shells.'));
+  K.seen = true; BEACON.ev("kona_open", { p: S.prestige, lvl: level() }); showModal(coachCard('Kona Ridge', 'The trader\'s boat brought you to Kona Ridge, a volcanic island with no mill. Here coffee ferments in tanks with fruit you grow beside it. Pick the coffee and the mangoes, tap a tank to load it, vent it when the gauge goes red and pull it when it flashes. Each lot goes to the co-op boat at the dock and fills one of its orders for shells.'));
 }
 const konaInfo = () => { const K = S.kona; return K ? { lv: K.lv, badge: 'Lv ' + K.lv, pct: K.lv >= 50 ? 100 : Math.round(K.xp / kNeed(K.lv) * 100), text: 'Kona Ridge level ' + K.lv + (K.lv < 50 ? ': ' + (kNeed(K.lv) - K.xp) + ' island xp to level ' + (K.lv + 1) : '') } : null; };
 function konaHint() {   /* the map arrow: a vent first, then a tank to pull */
@@ -4992,7 +4994,7 @@ cv.addEventListener('click', (e) => {
     SFX.play('harvest');
     floats.push({ x: s.x + 9, y: s.y, text: '+' + fmtKg(kg) + ' kg', t: 0 });
     for (let i = 0; i < 7; i++) bursts.push({ x: s.x + 9, y: s.y + 8, vx: (rnd() - 0.5) * 60, vy: -30 - rnd() * 40, t: 0, c: i % 2 ? '#E83A30' : '#3E8036' });
-    if (S.intro === 0) { S.intro = 1; }
+    if (S.intro === 0) { S.intro = 1; BEACON.ev("first_pick", { p: S.prestige, lvl: level() }); }
     return;
   }
   if (!f.field && lx > 104 && lx < 182 && ly > 160 && ly < 200) { S.farmSub = 'upgrades'; setTab('farm'); toast('Clear the fourth field in Farm › Upgrades'); return; }
@@ -5304,6 +5306,7 @@ function prestige() {
   if (level() < prestigeNeed()) return;
   if (ctOpen()) ctClose('', true);   /* the counter closes with no penalty */
   S.prestige += 1; S.season.prestige += 1; star('prestige'); if (S.pwalk) S.pwalk = 3;
+  BEACON.ev(S.prestige === 1 ? "first_prestige" : "prestige", { p: S.prestige, min: Math.round(S.minutesTotal) });
   const t = tierOf(S.prestige);
   S.look.crest = t;   /* the new crest goes on straight away */
   if (SKINS.some((sk, i) => !S.skins[i])) S.skinPicks += 1;   /* and the player picks one new outfit */
@@ -5360,6 +5363,7 @@ function sackPour() {   /* sacks from a night away empty into the store as it fr
   if (!Object.keys(b).length) S.sacks = null;
 }
 function away(hours) {
+  BEACON.ev("away_collect", { h: Math.min(24, Math.round(hours * 10) / 10) });
   const mins = hours * 60, before = stored(), byFarm = [];
   let kg = 0;
   LOCS.forEach((l) => {
@@ -5397,7 +5401,7 @@ const TEST_TOOLS = /[?&]tools\b/.test(location.search);   /* build.py --launch t
 const TABS = [['farm', 'Farm', 'i_worker'], ['mill', 'Mill', 'green_sack'], ['roast', 'Roast', 'roaster_0'], ['unlock', 'Unlock', 'i_points'], ['orders', 'Daily', 'i_cherry'], ['ranks', 'Ranks', 'i_trophy'], ['looks', 'Looks', 'i_worker'], ['shop', 'Shop', 'i_crane']];   /* Settings is the gear on the farm */
 function setTab(t, mapOnly) { if (t === 'upgrades') { S.farmSub = S.upTab === 'build' || S.upTab === 'staff' ? S.upTab : 'upgrades'; t = 'farm'; }   /* Build lives inside the Farm tab now */
   if (tabLocked(t) && !TAB_OPEN[t]()) { SFX.play('nope'); toast(TABS.find((x) => x[0] === t)[1] + ' opens when you ' + TAB_HINT[t]); return; }   /* every way in waits for the tab to open, not just its button (one that opened since the last check goes through) */
-  if (t !== tab) { SFX.play('click'); $('panel').scrollTop = 0; }
+  if (t !== tab) { SFX.play('click'); $('panel').scrollTop = 0; if (t === 'shop') BEACON.ev("shop_view", { p: S.prestige, lvl: level() }); else if (Math.random() < 0.1) BEACON.ev("tab_open", { t }); }
   if (!mapOnly) fullSheet(true);   /* every menu opens full screen; drag its handle or pull down for half */
   if (S.newTab === t) S.newTab = null; guideStep('tab:' + t); tab = t; if (MAP_TABS.includes(t)) mapTab = t; showSheet(!mapOnly); refreshHud(); }   /* mapOnly: just the scene, the sheet put away */
 let sheetOpen = false;
@@ -6381,7 +6385,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'coopnew') showModal('<h2>Start a co-op</h2><p class="note">Name it after your farms, a place or a coffee. Up to 8 farmers can join with its invite code.</p><input id="coopName" maxlength="24" placeholder="Las Nubes" style="width:100%;font:inherit;padding:8px;border:2px solid var(--edge);border-radius:8px"><button class="btn green" data-act="coopmake">Start it</button><button class="btn" data-act="close">Cancel</button>');
   else if (a === 'coopmake') { const n = ($('coopName') || {}).value || ''; closeModal(); coopAct({ act: 'create', name: n }); }
   else if (a === 'coopcode') showModal('<h2>Join with a code</h2><p class="note">Ask a co-op member for their six-letter invite code.</p><input id="coopCode" maxlength="6" placeholder="ABC234" style="width:100%;font:inherit;padding:8px;border:2px solid var(--edge);border-radius:8px;text-transform:uppercase"><button class="btn green" data-act="coopjoin">Join</button><button class="btn" data-act="close">Cancel</button>');
-  else if (a === 'coopjoin') { const c = (($('coopCode') || {}).value || '').toUpperCase().trim(); closeModal(); coopAct({ act: 'join', code: c }); }
+  else if (a === 'coopjoin') { const c = (($('coopCode') || {}).value || '').toUpperCase().trim(); closeModal(); coopAct({ act: 'join', code: c }); if (c) BEACON.ev("coop_join"); }
   else if (a === 'coopleaveask') showModal('<h2>Leave ' + (NET.coop ? NET.coop.name : 'the co-op') + '?</h2><p class="note">Your share of this week\'s order stays with them. You can join another co-op straight away.</p><button class="btn" data-act="coop:leave">Leave</button><button class="btn green" data-act="close">Stay</button>');
   else if (a === 'shopwait') { closeModal(); S.shopTab = v; setTab('shop'); }
   else if (a === 'pwalkend') { closeModal(); S.pwalk = 0; S.pwalkDone = true; }
@@ -6910,7 +6914,7 @@ function coeStep(v) {   /* the steps of an entry: coffee, process, roast, then t
   if (v.startsWith('v.')) { coeRun.v = v.slice(2); showModal('<h2>Choose a process</h2><p class="note">' + b.weather.note + '</p><div class="coe-pick">' + b.methods.map((x) => '<button type="button" class="btn" data-act="coe:m.' + x + '"><img src="' + url(METHODS[x].art) + '" alt="">' + METHODS[x].name + '</button>').join('') + '</div><button class="btn" data-act="close">Cancel</button>', true); return; }
   if (v.startsWith('m.')) { coeRun.m = v.slice(2); showModal('<h2>Choose a roast</h2><p class="note">' + ART.varieties[coeRun.v] + ', ' + METHODS[coeRun.m].name.toLowerCase() + '. Which roast brings out the best in it?</p><div class="coe-pick">' + COE_ROAST.map((x) => '<button type="button" class="btn" data-act="coe:p.' + x + '">' + x.charAt(0).toUpperCase() + x.slice(1) + '</button>').join('') + '</div><button class="btn" data-act="close">Cancel</button>', true); return; }
   if (v.startsWith('p.')) { coeRun.profile = v.slice(2); coeRoast(); return; }
-  if (v === 'crack') { coeCrack(); return; }
+  if (v === 'crack') { coeCrack(); BEACON.ev("coe_play"); return; }
 }
 async function coeRoast() {
   const r = await api('game-coe', 'POST', { act: 'start', v: coeRun.v, m: coeRun.m, profile: coeRun.profile }).catch(() => null);
@@ -7056,6 +7060,33 @@ function loop(t) {
 requestAnimationFrame(loop);
 if (needsName()) askName();
 online();
+/* ---------- anonymous usage beacon: tiny events for the roadmap's retention metrics (see netlify/lib/handlers/game-beacon.js).
+   No account names, no save data, no PII: fid is a random id from its own storage slot, events are whitelisted server-side,
+   and two failed sends switch the whole thing off for the session. ---------- */
+const BEACON = (() => {
+  let fid = "";
+  try { fid = localStorage.getItem("beju-anon-id") || ""; if (!/^[a-f0-9]{16}$/.test(fid)) { fid = ""; for (let i = 0; i < 16; i++) fid += "0123456789abcdef"[Math.floor(Math.random() * 16)]; localStorage.setItem("beju-anon-id", fid); } } catch (e) {}
+  const q = [], startedAt = Date.now(), sid = Math.random().toString(16).slice(2, 10);
+  let fails = 0, dead = false, sent = 0;
+  const ev = (e, f) => { if (dead || q.length > 200) return; q.push(Object.assign({ e, ts: Date.now(), fid, sid }, f && typeof f === "object" ? f : {})); };
+  const flush = (unloading) => {
+    if (dead || !q.length) return;
+    if (!unloading && sent >= 8) return;   /* Netlify pushes stay minimal: a few batched sends a session, the rest rides out with the exit */
+    const body = JSON.stringify({ batch: q.splice(0, 50) });
+    try { if (unloading && navigator.sendBeacon && navigator.sendBeacon("/.netlify/functions/game-beacon", body)) { sent += 1; return; } } catch (e) {}
+    fetch("/.netlify/functions/game-beacon", { method: "POST", headers: { "Content-Type": "text/plain" }, body, keepalive: unloading }).then((r) => { if (!r.ok) throw 0; fails = 0; sent += 1; }).catch(() => { if (++fails >= 2) dead = true; });
+  };
+  setInterval(() => flush(false), 120000);   /* slow drip, same spirit as the sync cuts: events wait for the batch */
+  window.addEventListener("pagehide", () => flush(true));
+  document.addEventListener("click", (e) => { const a = e.target && e.target.closest ? e.target.closest('a[href*="bejucoffee.com"]') : null; if (a) ev("order_click", { t: (a.textContent || "").slice(0, 30) }); }, true);
+  return { ev, flush, startedAt };
+})();
+BEACON.ev("session_start", { p: S.prestige, lvl: level(), gap: Math.min(2592000000, Date.now() - (S.last || Date.now())) });
+window.addEventListener("pagehide", () => {   /* session length rides the real exit only — tab switches and phone locks send nothing */
+  if (Date.now() - BEACON.startedAt > 20000) BEACON.ev("session_end", { len: Math.round((Date.now() - BEACON.startedAt) / 1000), p: S.prestige, lvl: level() });
+  BEACON.flush(true);
+});
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('/farm/sw.js').catch(() => {});   /* installs the game and keeps it playable offline (sw.js, manifest in the build wrapper) */
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     save(); cloudSync(true);
