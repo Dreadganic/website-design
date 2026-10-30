@@ -16,6 +16,7 @@ const STYLE = {
   toba:      { tempo: 0.88, lead: 'flute',      comp: 'hasapi', perc: 'gong',     about: 'A bamboo flute floats over the plucked hasapi lute, with a far-off gong every two bars.' },
   turrialba: { tempo: 0.82, lead: 'mallet',     comp: 'mallet', perc: null,       about: 'Soft marimba mallets roll the long notes, swaying between 6/8 and 3/4.' },
   osaka:     { tempo: 0.9,  lead: 'shakuhachi', comp: 'koto',   perc: 'taiko',    about: 'A breathy shakuhachi over rolled koto chords and strings, with taiko heard from across the valley.' },
+  kona:      { tempo: 0.84, lead: 'steel',      comp: 'uke',    perc: 'ipu',      swing: 0.18, about: 'A sliding steel guitar sings over a soft ukulele strum, with the knock of an ipu gourd and a shaker, a little swung.' },
   roastery:  { tempo: 0.86, lead: 'vibes',      comp: 'jazz',   perc: 'brush',    walk: true, swing: 0.32, about: 'Vibraphone over Rhodes shells, a walking upright bass and brushes, swung lazily like a kissaten record.' }
 };
 
@@ -27,6 +28,7 @@ const COMP = {
   hasapi(o, c, s0, part) { const pat = part === 16 ? [0, 2, 3, 2, 1, 2, 3, 2] : [0, 2, 3, 2]; pat.forEach((k, i) => o.push({ s: s0 + i * 2, d: 2, m: c.tones[k] + 12, inst: 'hasapi', vel: i % 2 ? 0.5 : 0.7 })); },
   mallet(o, c, s0, part) { const pat = part === 12 ? [0, 2, 1, 2, 3, 2] : [0, 2, 1]; pat.forEach((k, i) => o.push({ s: s0 + i * 2, d: 2, m: c.tones[k], inst: 'mallet', vel: i ? 0.45 : 0.6 })); },
   jazz(o, c, s0, part) { const v = [c.tones[1], c.tones[3], c.tones[0] + 14]; (part === 16 ? [0, 10] : [0]).forEach((k, i) => o.push({ s: s0 + k, d: k ? 4 : 6, ms: v, inst: 'rhodes', vel: i ? 0.45 : 0.6 })); },
+  uke(o, c, s0, part) { (part === 16 ? [[0, 0], [4, 0], [6, 1], [10, 1], [12, 0], [14, 1]] : [[0, 0], [4, 1], [6, 1]]).forEach(([k, up], i) => o.push({ s: s0 + k, d: 2, ms: c.tones.slice(0, 3).map((t) => t + 12).concat([c.tones[0] + 24]), inst: 'uke', vel: up ? 0.4 : i ? 0.55 : 0.7, up: !!up })); },
   koto(o, c, s0, part) { for (let h = 0; h < part; h += 8) o.push({ s: s0 + h, d: 6, ms: [c.tones[0], c.tones[1], c.tones[2], c.tones[0] + 12], inst: 'koto', vel: 0.6, roll: 0.07 }); }
 };
 const PERC = {
@@ -35,6 +37,7 @@ const PERC = {
   handdrum(o, t0) { o.push({ s: t0, kind: 'drum', vel: 0.7 }); o.push({ s: t0 + 6, kind: 'drum', vel: 0.45 }); },
   gong(o, t0, B, bar) { if (bar % 2 === 0) o.push({ s: t0, kind: 'gong', vel: 0.6 }); },
   brush(o, t0) { [4, 12].forEach((k) => o.push({ s: t0 + k, kind: 'swish', vel: 0.6 })); [0, 4, 6, 8, 12, 14].forEach((k) => o.push({ s: t0 + k, kind: 'ride', vel: k % 4 ? 0.35 : 0.55 })); for (let i = 0; i < 3; i++) o.push({ s: t0 + Math.floor(Math.random() * 16), kind: 'vinyl', vel: 0.5 }); },
+  ipu(o, t0, B) { o.push({ s: t0, kind: 'drum', vel: 0.55 }); o.push({ s: t0 + 6, kind: 'drum', vel: 0.3 }); o.push({ s: t0 + 8, kind: 'drum', vel: 0.4 }); for (let k = 2; k < B; k += 4) o.push({ s: t0 + k, kind: 'shaker', vel: 0.35 }); },
   taiko(o, t0, B, bar) { o.push({ s: t0, kind: 'taiko', vel: 0.8 }); if (bar % 4 === 3) [10, 12, 14].forEach((k, i) => o.push({ s: t0 + k, kind: 'taiko', vel: 0.3 + i * 0.12 })); }
 };
 function build(song) {
@@ -125,7 +128,7 @@ function ksBuffer(m, bright, secs) {   /* plucked string by Karplus-Strong: a bu
   let peak = 0; for (let i = 0; i < len; i++) peak = Math.max(peak, Math.abs(d[i])); for (let i = 0; i < len; i++) d[i] /= peak || 1;
   return (ks[key] = buf);
 }
-const PLUCK = { guitar: [0.35, 2.4, 0.12], krar: [0.75, 2.2, 0.12], hasapi: [0.6, 1.8, 0.11], koto: [0.8, 2.8, 0.13] };
+const PLUCK = { guitar: [0.35, 2.4, 0.12], steel: [0.55, 3.2, 0.12], uke: [0.5, 1.1, 0.09], krar: [0.75, 2.2, 0.12], hasapi: [0.6, 1.8, 0.11], koto: [0.8, 2.8, 0.13] };
 function pluck(t, m, vel, pan, kind, bend) {
   const [bright, secs, gain] = PLUCK[kind], src = ac.createBufferSource(), g = out(pan), lp = ac.createBiquadFilter();
   src.buffer = ksBuffer(Math.round(m), bright, secs); lp.type = 'lowpass'; lp.frequency.value = kind === 'guitar' ? 2200 : 4200;
@@ -181,6 +184,7 @@ function lead(e, t, st) {
     case 'flute': return blown(t, e.m, dur, v, 0.12, { breath: 0.5, vib: 10 });
     case 'shakuhachi': return blown(t, e.m, dur, v, 0.12, { breath: 0.9, bend: 90, vib: 18, vibRate: 4.2, attack: 0.14 });
     case 'krar': return pluck(t, e.m, v, 0.12, 'krar', 60);
+    case 'steel': return pluck(t, e.m, v, 0.12, 'steel', 150);   /* every note slides up into place, like a bar on the strings */
     case 'mallet': { if (e.d >= 4) for (let k = 0; k < e.d; k++) mallet(t + k * st, e.m, v * (k ? 0.55 : 1), 0.12); else mallet(t, e.m, v, 0.12); return; }
   }
 }

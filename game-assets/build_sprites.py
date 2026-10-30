@@ -1833,47 +1833,188 @@ def scene_roastery(room="brick"):
         put(x, 196 + F, "#E8C890")
 
 
+def k_flower(x, y, c, centre="#F2D838"):   # a hibiscus or plumeria: four petals round a centre
+    for dx, dy in ((0, -1), (-1, 0), (1, 0), (0, 1)):
+        put(x + dx, y + dy, c)
+    put(x, y, centre)
+
+
+def k_fern(x, y, seed, ramp=LUSH):   # a tree-fern clump: fronds fanning out low
+    rnd = random.Random(seed)
+    for k in range(6):
+        a = math.pi * (0.95 + 1.1 * k / 5) + rnd.uniform(-0.15, 0.15)
+        for t in range(6):
+            put(x + math.cos(a) * t, y + math.sin(a) * t * 0.6, ramp[3] if t < 2 else ramp[2] if t % 2 else ramp[1])
+
+
+def k_ti(x, y, red):   # a ti plant: a spike of long leaves, red or green
+    cs = ["#C8304A", "#8A1E36", "#E8607A"] if red else ["#7EB84C", "#4E8634", "#A8D068"]
+    for k in range(5):
+        a = math.pi * (1.15 + 0.7 * k / 4)
+        for t in range(5):
+            put(x + math.cos(a) * t, y + math.sin(a) * t, cs[1] if t == 0 else cs[0] if t < 4 else cs[2])
+    put(x, y + 1, WOOD[4]); put(x, y + 2, WOOD[4])
+
+
+def k_rock(x, y, r, dark=False):   # a lump of lava rock with a lit top
+    c = ["#5E5652", "#463F3C", "#2E2826"] if dark else ["#8A807A", "#6A605A", "#463F3C"]
+    shadow_ellipse(x + 1, y + r * 0.7, r + 1, r * 0.4, 50)
+    for yy in range(int(y - r), int(y + r * 0.7) + 1):
+        for xx in range(int(x - r), int(x + r) + 1):
+            d = ((xx + 0.5 - x) / r) ** 2 + ((yy + 0.5 - y) / (r * 0.8)) ** 2
+            if d <= 1:
+                put(xx, yy, c[0] if yy < y - r * 0.3 and xx < x else c[2] if d > 0.7 else c[1])
+
+
+def k_bed(i, x0, y0):   # each plot's bed has its own build, so the groves don't read as tiles
+    by = y0 + 26
+    rnd = random.Random(300 + i)
+    SOILS = [SOIL, ["#6A4A3A", "#5A3C2E", "#4A3024", "#3A241A", "#2A1A12"], ["#8E4A30", "#7A3C26", "#64301E", "#4E2416", "#3A1A10"]]
+    soil = SOILS[i % 3]
+    def soil_px(x, y):
+        return soil[3] if (x * 3 + y * 5 + i) % 7 else soil[2] if (x + y) % 3 else soil[4]
+    if i == 0:   # a rounded lava-rock ring
+        for y in range(by, by + 18):
+            for x in range(x0, x0 + 42):
+                d = ((x + 0.5 - x0 - 21) / 21) ** 2 + ((y + 0.5 - by - 9) / 9) ** 2
+                if d <= 1:
+                    put(x, y, "#3A322E" if d > 0.72 else soil_px(x, y))
+        for k in range(14):
+            a = k / 14 * math.tau
+            k_rock(x0 + 21 + math.cos(a) * 19, by + 9 + math.sin(a) * 8, 1.6, True)
+    elif i == 1:   # a timber-framed bed with coconut-husk mulch
+        R(x0 + 1, by, 40, 18, WOOD[4]); R(x0 + 2, by + 1, 38, 16, WOOD[2])
+        for y in range(by + 3, by + 16):
+            for x in range(x0 + 4, x0 + 38):
+                put(x, y, "#8A5A32" if (x + y * 2) % 4 == 0 else "#6A4428" if (x * 7 + y) % 5 else "#A8784A")
+        for cx in (x0 + 1, x0 + 39):
+            R(cx, by - 1, 2, 20, WOOD[3])
+    elif i == 2:   # two stepped terraces held by stacked stone
+        for t in range(2):
+            ty = by + t * 9
+            R(x0 + 2 + t * 3, ty, 38 - t * 6, 9, soil[3])
+            for x in range(x0 + 2 + t * 3, x0 + 40 - t * 3, 3):
+                put(x, ty + 8, STONE[2]); put(x + 1, ty + 8, STONE[3]); put(x, ty + 7, STONE[1])
+            for x in range(x0 + 3 + t * 3, x0 + 39 - t * 3):
+                for y in range(ty + 1, ty + 7):
+                    put(x, y, soil_px(x, y))
+    elif i == 3:   # a mounded bed edged with red cinder and ti plants at the corners
+        for y in range(by + 1, by + 18):
+            for x in range(x0 + 2, x0 + 40):
+                d = abs(x + 0.5 - x0 - 21) / 19
+                if (y - by) > 2 + d * d * 6:
+                    put(x, y, soil_px(x, y) if (y - by) < 15 else "#B85A3A")
+        for x in range(x0 + 2, x0 + 40, 2):
+            put(x, by + 17, "#C8603A")
+        k_ti(x0 + 2, by + 4, True); k_ti(x0 + 40, by + 4, True)
+    elif i == 4:   # a sunken pit ringed with smooth beach stones
+        for y in range(by, by + 18):
+            for x in range(x0 + 1, x0 + 41):
+                d = ((x + 0.5 - x0 - 21) / 20) ** 2 + ((y + 0.5 - by - 9) / 9) ** 2
+                if d <= 1:
+                    put(x, y, "#2A1A12" if d > 0.8 else soil_px(x, y))
+        for k in range(18):
+            a = k / 18 * math.tau
+            ellipse(x0 + 21 + math.cos(a) * 20, by + 9 + math.sin(a) * 9, 1.8, 1.3, "#D8D0C0" if k % 2 else "#B8B0A0")
+    elif i == 5:   # a bamboo-edged bed
+        for y in range(by + 2, by + 16):
+            for x in range(x0 + 3, x0 + 39):
+                put(x, y, soil_px(x, y))
+        for x in range(x0 + 1, x0 + 41):
+            for yy in (by, by + 1, by + 16, by + 17):
+                put(x, yy, "#C8B060" if x % 6 else "#8A7838")
+        for y in range(by, by + 18):
+            for xx in (x0 + 1, x0 + 2, x0 + 39, x0 + 40):
+                put(xx, y, "#B8A050" if y % 6 else "#8A7838")
+    elif i == 6:   # a free-form bed of crumbled lava with a border of ferns
+        pts = [(x0 + 21 + math.cos(k / 10 * math.tau) * (18 + rnd.uniform(-3, 2)), by + 9 + math.sin(k / 10 * math.tau) * (8 + rnd.uniform(-2, 1))) for k in range(10)]
+        for y in range(by, by + 18):
+            for x in range(x0, x0 + 42):
+                inside = False
+                for k in range(10):   # point in polygon
+                    (ax, ay), (bx, by2) = pts[k], pts[(k + 1) % 10]
+                    if (ay > y) != (by2 > y) and x < (bx - ax) * (y - ay) / (by2 - ay + 1e-9) + ax:
+                        inside = not inside
+                if inside:
+                    put(x, y, "#4A403A" if (x + y) % 4 == 0 else soil_px(x, y))
+        for k in (0, 3, 6, 8):
+            k_fern(int(pts[k][0]), int(pts[k][1]), 400 + k)
+    else:   # a raised stone planter, mortared, with a flower box end
+        R(x0 + 1, by, 40, 18, STONE[3])
+        for y in range(by, by + 18):
+            for x in range(x0 + 1, x0 + 41):
+                if y in (by, by + 17) or x in (x0 + 1, x0 + 40):
+                    put(x, y, STONE[1] if (x // 4 + y // 3) % 2 else STONE[2])
+        for y in range(by + 2, by + 16):
+            for x in range(x0 + 3, x0 + 39):
+                put(x, y, soil_px(x, y))
+        for k in range(4):
+            k_flower(x0 + 6 + k * 10, by + 16, "#F08AA8" if k % 2 else "#FFF4E8")
+
+
 def scene_kona():
-    """Kona Ridge, the co-fermentation island: the volcano and its crater at the top, the ash field and the fertiliser shed,
-    two rows of grove plots (coffee and fruit, planted in the game), the tank house, the drying patio on the right and the
-    jetty bottom left, under the corner buttons, with the sea along the bottom under the guide bar.
-    The game draws the moving parts on top (KPLOT, KTANK_*, KMAT, KSHED and KASH in template.html use the same spots)."""
+    """Kona Ridge, the co-fermentation island: the volcano at the top, the lava field and the fertiliser shed, two rows of
+    grove plots each built its own way along a black-stone path, an open timber tank house, raised drying beds on the right,
+    and a sandy cove with a pier bottom left, under the corner buttons. The game draws the moving parts on top
+    (KPLOT, KTANK_*, KMAT, KSHED and KASH in template.html use the same spots)."""
     lush, ash = GRASS["lush"], DIRT["volcanic"]
     new_scene(lush[2])
     rnd = random.Random(61)
-    for y in range(H):
+    nz = noise(62)
+    for y in range(H):   # grass in soft patches of light and shade, not one flat green
         for x in range(W):
-            if rnd.random() < 0.09:
-                put(x, y, rnd.choice(lush[1:4]))
-    BAS = ["#6A5E58", "#564B46", "#443B37", "#342D2A", "#262120"]
-    for y in range(0, 64):   # the volcano: a dark cone, cooled lava runs and a glowing crater
-        half = 18 + y * 1.9
+            v = nz(x, y)
+            base = lush[1] if v > 1.6 else lush[3] if v < 0.5 else lush[2]
+            put(x, y, rnd.choice(lush[1:4]) if rnd.random() < 0.12 else base)
+    for _ in range(260):   # tufts
+        x, y = rnd.randrange(W), rnd.randrange(66, 266)
+        put(x, y, lush[0]); put(x + 1, y - 1, lush[1])
+    # the volcano: a lumpy cone with ridges, a lit flank, green lower slopes and a steaming vent
+    BAS = ["#7A6E66", "#625650", "#4C4240", "#3A3230", "#2A2422"]
+    for y in range(0, 66):
         for x in range(W):
-            d = abs(x + 0.5 - 96)
-            if d <= half:
-                k = 1 + int(((x - 96) / max(1, half) + 1) * 1.6) + (1 if rnd.random() < 0.12 else 0)
-                put(x, y, BAS[min(4, k)])
-            elif d <= half + 3 and y > 6:
-                put(x, y, ash[3])
-    for (lx, n) in [(70, 40), (118, 34), (92, 50)]:
+            half = 16 + y * 1.75 + math.sin(x * 0.21 + y * 0.05) * 3 + math.sin(x * 0.07) * 4
+            d = x + 0.5 - 96
+            if abs(d) <= half:
+                ridge = math.sin(d * 0.35 + y * 0.08) * 0.5
+                lit = -d / max(1, half) + ridge
+                k = 2 - int(lit * 1.8) + (1 if rnd.random() < 0.1 else 0)
+                c = BAS[max(0, min(4, k))]
+                if y > 42 and rnd.random() < (y - 42) / 30:   # the lower slopes green over
+                    c = rnd.choice([lush[3], lush[4], LEAF[3]])
+                put(x, y, c)
+    for (lx, n, w) in [(66, 44, 1), (122, 36, 1), (92, 52, 2), (80, 30, 1)]:   # cooled lava runs
         x = lx
-        for y in range(10, 10 + n):
-            x += rnd.choice([-1, 0, 0, 1]) * 0.6
-            put(x, y, "#2A2220"); put(x + 1, y, "#3A302C")
-    ellipse(96, 12, 16, 7, "#2A2220"); ellipse(96, 12, 13, 5, "#7A2A18"); ellipse(96, 12, 10, 3.6, "#C8481E"); ellipse(96, 11.5, 6, 2, "#F2A040")
-    for x in range(W):
-        put(x, 63, ash[4]); put(x, 64, ash[3])
-    palm(12, 30, 11, 62, LUSH); palm(180, 34, 10, 63, LUSH)
-    for y in range(65, 112):   # the ash field, raked into rows
+        for y in range(9, 9 + n):
+            x += rnd.choice([-1, 0, 0, 1]) * 0.7
+            for k in range(w + 1):
+                put(x + k, y, "#221C1A")
+            put(x + w + 1, y, "#4A3A32")
+    ellipse(96, 12, 17, 7, "#221C1A"); ellipse(96, 12, 14, 5.2, "#6A2414"); ellipse(96, 12, 11, 3.8, "#C8481E"); ellipse(96, 11.5, 7, 2.2, "#F2A040"); ellipse(95, 11, 3, 1, "#FFE08A")
+    for (vx, vy) in [(132, 38), (58, 46)]:   # little fumaroles with yellow sulphur
+        ellipse(vx, vy, 3, 1.5, "#2A2422"); put(vx - 1, vy - 2, "#E8D040"); put(vx + 2, vy - 1, "#E8D040")
+    for x in range(0, W, 7):
+        k_fern(x + rnd.randint(0, 4), 62 + rnd.randint(-2, 2), x)
+    palm(12, 34, 11, 62, LUSH); palm(182, 36, 10, 63, LUSH)
+    # the lava field: an irregular black-cinder patch with cooled cracks, not a box
+    for y in range(66, 112):
         for x in range(2, 140):
-            edge = y in (65, 111) or x in (2, 139)
-            put(x, y, ash[4] if edge else ash[2] if (y - 65) % 6 == 0 else rnd.choice([ash[1]] * 9 + [ash[0], ash[2]]))
-    for _ in range(60):
-        put(rnd.randrange(4, 138), rnd.randrange(67, 110), "#3A322C")
-    shadow_ellipse(167, 112, 22, 3, 60)   # the fertiliser shed: a lean-to with sacks and a mixing tub
+            edge = 4 + math.sin(y * 0.4) * 2 + math.sin(x * 0.3) * 1.5
+            if x - 2 < edge * (1 if y < 104 else 2) or 139 - x < edge or y - 66 < 2 + math.sin(x * 0.2) or 111 - y < 2 + math.sin(x * 0.25) * 1.5:
+                continue
+            put(x, y, rnd.choice([ash[1]] * 6 + [ash[2]] * 3 + [ash[0]]))
+    for _ in range(9):   # cracks
+        x, y = rnd.uniform(10, 130), rnd.uniform(70, 106)
+        for t in range(rnd.randint(6, 14)):
+            x += rnd.uniform(0.4, 1.2); y += rnd.uniform(-0.8, 0.8)
+            put(x, y, "#2A2422")
+    for (rx, ry, r) in [(6, 72, 3), (136, 74, 2.5), (8, 104, 2.5), (134, 106, 3), (70, 108, 2)]:
+        k_rock(rx, ry, r, True)
+    # the fertiliser shed: a lean-to with a red tin roof, sacks, a tub and a fruit crate
+    shadow_ellipse(167, 112, 22, 3, 60)
     for y in range(66, 78):
         for x in range(144, 190):
-            put(x, y, TIN[4] if y in (66, 77) or x in (144, 189) else TIN[1] if (x - 144) % 6 < 2 else TIN[2] if (x - 144) % 6 < 4 else TIN[3])
+            put(x, y, "#5A1E18" if y in (66, 77) or x in (144, 189) else "#C8402C" if (x - 144) % 6 < 2 else "#A8342A" if (x - 144) % 6 < 4 else "#8A2A22")
     for y in range(78, 110):
         for x in range(146, 188):
             plank = (y - 78) % 5
@@ -1882,49 +2023,97 @@ def scene_kona():
     for (sx, sy) in [(152, 94), (164, 94), (158, 88)]:
         jute_sack(sx, sy, 11, 8, "#6A5E58")
     ellipse(178, 100, 6, 4, OUT); ellipse(178, 100, 5, 3, "#8A9CAA"); ellipse(178, 99, 3.6, 1.6, "#5E5244")
-    for y0 in (116, 162):   # the groves: two rows of four raised beds with stone edges
+    R(140, 104, 8, 6, WOOD[4]); R(141, 105, 6, 4, WOOD[2])
+    for (fx_, fy_, c) in [(142, 104, "#F08A30"), (144, 104, "#F2D838"), (143, 103, "#F08A30")]:
+        put(fx_, fy_, c)
+    # the black-stone path: down from the shed, between the rows and on to the tank house
+    def path_px(x, y):
+        put(x, y, "#4A423E" if (x // 3 + y // 2) % 2 else "#3A3330")
+        if (x * 7 + y * 3) % 11 == 0:
+            put(x, y, "#6A605A")
+    for y in range(112, 116):
+        for x in range(0, W):
+            if rnd.random() < 0.85:
+                path_px(x, y)
+    for y in range(158, 164):
+        for x in range(0, W):
+            if abs(math.sin(x * 0.12) * 1.5) + 0.5 < 3 and rnd.random() < 0.9:
+                path_px(x, y)
+    for y in range(206, 212):
+        for x in range(0, W):
+            if rnd.random() < 0.85:
+                path_px(x, y)
+    for i in range(4):   # gaps between the plots, so the path runs up and down too
+        gx = 2 + i * 46 if i else 1
+    # the groves: each plot's bed built its own way, with plants, rocks and flowers in the grass between
+    for r, y0 in enumerate((116, 162)):
         for i in range(4):
-            x0 = 6 + i * 46
-            shadow_ellipse(x0 + 21, y0 + 44, 21, 2, 50)
-            for y in range(y0 + 26, y0 + 44):
-                for x in range(x0, x0 + 42):
-                    edge = y in (y0 + 26, y0 + 43) or x in (x0, x0 + 41)
-                    put(x, y, STONE[3] if edge else STONE[1] if y == y0 + 27 else SOIL[3] if (x + y) % 5 else SOIL[2])
-    for y in range(212, 220):   # the tank house: a tin eave and a concrete floor
+            k_bed(r * 4 + i, 6 + i * 46, y0)
+    for (fx_, fy_) in [(4, 120), (49, 124), (95, 121), (141, 125), (187, 120), (3, 168), (50, 170), (96, 166), (142, 171), (188, 168)]:
+        k_flower(fx_, fy_, rnd.choice(["#E8384A", "#F08AA8", "#FFF4E8", "#F2C04A"]))
+    for (tx, ty, red) in [(48, 152, True), (94, 156, False), (140, 150, True), (48, 198, False), (140, 200, True), (94, 202, True)]:
+        k_ti(tx, ty, red)
+    for (rx, ry) in [(3, 150), (188, 154), (3, 198), (189, 200)]:
+        k_rock(rx, ry, 2.2)
+    # the tank house: open-sided, a thatched eave on timber posts, a stone floor with grass at its edges
+    for y in range(212, 222):
         for x in range(W):
-            put(x, y, TIN[4] if y in (212, 219) else TIN[1] if x % 6 < 2 else TIN[2] if x % 6 < 4 else TIN[3])
-    for y in range(220, 264):
+            edge = y == 221 or (y == 220 and x % 4 == 0)
+            put(x, y, THATCH[5] if edge else THATCH[(x * 3 + y * 7) % 4 + 1] if (x + y) % 3 else THATCH[0])
+    for x in range(0, W, 3):
+        put(x, 222, THATCH[4])
+    for y in range(223, 264):
         for x in range(W):
-            seam = x % 30 == 3 or (y - 220) % 22 == 0
-            put(x, y, CONCRETE[3] if seam else CONCRETE[1] if (x * 7 + y * 3) % 13 else CONCRETE[2])
+            seam = (x // 10 + (y - 223) // 6) % 2 == 0 and (x % 10 == 0 or (y - 223) % 6 == 0)
+            put(x, y, "#9C948A" if seam else "#B8B0A4" if (x * 7 + y * 3) % 13 else "#A8A094")
+    for k in range(7):   # the posts between the tanks
+        px_ = 2 + k * 30
+        R(px_, 220, 3, 44, WOOD[4]); R(px_ + 1, 220, 1, 44, WOOD[2])
     for x in range(W):
-        put(x, 263, CONCRETE[3]); put(x, 264, ash[4])
-    for k in range(6):
-        x0 = 6 + k * 30
-        R(x0 + 3, 260, 20, 2, CONCRETE[3]); R(x0 + 4, 260, 18, 1, "#5E6A70")
-    for y in range(265, H):   # the sea and its black-sand shore along the bottom and the left
+        put(x, 263, "#7A726A")
+        if rnd.random() < 0.4:
+            put(x, 264, lush[3])
+    # the drying patio: a timber deck with raised beds (the game sets the lots on them)
+    for y in range(265, 307):
+        for x in range(73, 192):
+            board = (y - 265) % 4
+            put(x, y, WOOD[4] if x == 73 or y in (265, 306) or board == 3 else WOOD[1] if board == 0 else WOOD[2] if (x * 3 + y) % 17 else WOOD[3])
+    for k in range(3):
+        for row in range(2):
+            x0, y0 = 77 + k * 38, 268 + row * 18
+            R(x0 + 1, y0 + 14, 2, 3, WOOD[4]); R(x0 + 31, y0 + 14, 2, 3, WOOD[4])
+            shadow_ellipse(x0 + 17, y0 + 16, 16, 1.5, 40)
+    k_ti(70, 268, True); k_ti(70, 300, False)
+    # the cove: sand curving round clear water, waves, an outrigger canoe and the pier
+    for y in range(265, H):
         for x in range(W):
-            shore = 300 + int(math.sin(x * 0.15) * 3) if x >= 72 else 270 + int(math.sin(y * 0.2) * 2) + (x - 72) * 0
-            if x < 70:
-                d = 70 - x
-                put(x, y, WATER[3] if d > 40 or y > 330 else WATER[2] if d > 22 else WATER[1] if d > 6 else WATER[0]) if y > 272 else put(x, y, "#2A2420" if (x + y) % 3 else "#3E3430")
-            elif y > 310:
-                d = y - 310
-                put(x, y, WATER[3] if d > 20 else WATER[2] if d > 10 else WATER[1] if d > 3 else WATER[0])
-            elif y > 306 or x < 74:
-                put(x, y, "#2A2420" if (x + y) % 3 else "#3E3430")
-    for y in range(266, 306):   # the drying patio on the right
-        for x in range(74, 192):
-            seam = (x - 74) % 38 == 2 or (y - 266) % 18 == 0
-            put(x, y, CONCRETE[3] if seam else "#D8CCB4" if (x * 5 + y) % 11 else "#C8BCA2")
-    for _ in range(14):
-        x, y = rnd.randrange(4, 60), rnd.randrange(280, 350)
+            if 73 <= x and y <= 306:
+                continue
+            sand = 270 + (x - 30) ** 2 * 0.012 if x < 73 else 312 + math.sin(x * 0.18) * 2
+            cx = x < 73 and (x - 8) ** 2 / 900 + (y - 340) ** 2 / 3600 < 1 or x >= 73 and y > sand + 4
+            if x < 73 and y < 274:
+                put(x, y, lush[3] if rnd.random() < 0.5 else lush[2])
+            elif cx or (x < 73 and x < 66 - (y - 274) * 0.1 and y > 286):
+                d = min(abs(x - 66 + (y - 274) * 0.1) if x < 73 else 99, y - sand if x >= 73 else 99)
+                put(x, y, WATER[3] if d > 18 else WATER[2] if d > 9 else WATER[1] if d > 3 else WATER[0])
+            else:
+                put(x, y, "#F2E2B4" if (x + y) % 5 else "#E2CC94")
+    for _ in range(18):
+        x, y = rnd.randrange(4, 60), rnd.randrange(292, 350)
         for k in range(rnd.randint(2, 5)):
             put(x + k, y, "#E4F6F8")
-    jetty(26, 270, 340)
-    shadow_ellipse(48, 316, 10, 3, 50)   # the trader's boat at the jetty
-    fill(40, 300, 16, 24, OUT); fill(41, 302, 14, 20, "#D8402C"); fill(42, 304, 12, 16, WOOD[1]); fill(44, 308, 8, 6, "#F2E8D4")
-    palm(182, 300, 9, 64, LUSH)
+    for x in range(80, 190, 9):
+        put(x, 318 + int(math.sin(x) * 2), "#E4F6F8"); put(x + 1, 318 + int(math.sin(x) * 2), "#E4F6F8")
+    jetty(28, 282, 344)
+    shadow_ellipse(50, 318, 10, 3, 50)   # the trader's boat
+    fill(42, 302, 16, 24, OUT); fill(43, 304, 14, 20, "#D8402C"); fill(44, 306, 12, 16, WOOD[1]); fill(46, 310, 8, 6, "#F2E8D4")
+    fill(8, 300, 4, 18, OUT); fill(9, 301, 2, 16, "#C8603A")   # an outrigger canoe on the sand
+    for y in range(304, 314, 4):
+        put(12, y, WOOD[4]); put(13, y, WOOD[4]); put(14, y, WOOD[4])
+    fill(15, 302, 2, 14, WOOD[3])
+    palm(182, 314, 9, 64, LUSH); palm(6, 282, 8, 65, LUSH)
+    for (fx_, fy_) in [(20, 280), (64, 290), (186, 300)]:
+        k_flower(fx_, fy_, "#E8384A")
 
 
 scene_kona(); img.save(os.path.join(HERE, "bg", "kona.png")); rendered[("kona", "")] = img.copy()

@@ -5837,7 +5837,7 @@ function audioStart() {   /* browsers only allow sound after a tap, so everythin
   SFX.unlock(); Cozy.init(SFX.context()); syncMusic();
 }
 document.addEventListener('pointerdown', audioStart, true);
-const trackFor = () => (scene() === 'roast' ? 'roastery' : scene() === 'kona' ? 'toba' : S.loc);   /* every farm plays its own theme, open or not; the roastery has its own kissaten jazz */
+const trackFor = () => (scene() === 'roast' ? 'roastery' : scene() === 'kona' ? 'kona' : S.loc);   /* every farm plays its own theme, open or not; the roastery has its own kissaten jazz */
 function syncMusic() {
   Cozy.setVolume(S.musicVol); Cozy.setEnabled(S.music);
   const hr = S.minutes / 60; Cozy.setNight(hr >= 19 || hr < 6);
