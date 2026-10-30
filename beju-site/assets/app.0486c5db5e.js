@@ -231,6 +231,13 @@
     instagram: CFG.instagramDM || "https://ig.me/m/bejucoffeeroasters",
     contactEndpoint: CFG.contactEndpoint || ""
   };
+  /* Forms go to Netlify Forms (registered in /__forms.html), or as JSON to contactEndpoint if one is set. */
+  function sendForm(name, data) {
+    if (CHECKOUT.contactEndpoint) return fetch(CHECKOUT.contactEndpoint, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(data) });
+    var body = new URLSearchParams({ "form-name": name });
+    Object.keys(data).forEach(function (k) { body.append(k, data[k] == null ? "" : data[k]); });
+    return fetch("/", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: body.toString() });
+  }
   function payLink(pid, freq) { return (freq && freq !== "once" && CHECKOUT.paymentLinks[pid + "_" + freq]) || CHECKOUT.paymentLinks[pid] || CHECKOUT.storeLinks[pid] || ""; }
   var GRINDS = ["Whole bean", "Espresso", "Moka pot", "Filter (V60, drip)", "French press"];
   var FREQS = [{ id: "once", label: "Once" }, { id: "2w", label: "Every 2 weeks" }, { id: "1m", label: "Every month" }];
@@ -1805,6 +1812,7 @@
     { id: "cafestarter", t: ["Café Starter Package", "カフェ開業パッケージ"], d: ["3 days", "3日間"], g: ["1–2 people", "1〜2名"], l: ["Everything above, plus a roasting introduction", "Menu, recipes and costings", "Equipment and grinder advice"], lj: ["上記すべて+焙煎の入門", "メニュー・レシピ・原価計算", "機材とグラインダーの選び方"] }
   ];
   var wsType = "wholesale";
+  var HONEYPOT = '<p hidden><label>Leave this empty <input name="bot-field" tabindex="-1" autocomplete="off"></label></p>';
   function wsField(id, label, input) { return '<div class="field"><label for="' + id + '">' + label + "</label>" + input + "</div>"; }
   function wsSelect(id, opts) { return '<select id="' + id + '">' + opts.map(function (o) { return '<option value="' + esc(o[0]) + '">' + esc(T(o[0], o[1])) + "</option>"; }).join("") + "</select>"; }
   /* ---------- Legal notice: 特定商取引法に基づく表記 (seller details come from config.js) ---------- */
@@ -1881,7 +1889,7 @@
       wsField("ws-exp", T("Experience", "経験"), wsSelect("ws-exp", [["New to coffee", "初心者"], ["Home brewer", "自宅で淹れている"], ["Working barista", "現役バリスタ"], ["Opening a café", "カフェ開業予定"]])) + "</div>" +
       '<div class="two">' + wsField("ws-people", T("Number of people", "人数"), wsSelect("ws-people", [["1", "1名"], ["2", "2名"], ["3–4", "3〜4名"], ["5 or more", "5名以上"]])) +
       wsField("ws-dates", T("Preferred dates", "希望日程"), '<input type="text" id="ws-dates" placeholder="' + T("e.g. weekday mornings in November", "例: 11月の平日午前") + '">') + "</div></div>" +
-      wsField("ws-msg", T("Anything else we should know?", "その他ご要望"), '<textarea id="ws-msg"></textarea>') +
+      wsField("ws-msg", T("Anything else we should know?", "その他ご要望"), '<textarea id="ws-msg"></textarea>') + HONEYPOT +
       '<div><button class="btn primary" type="submit">' + T("Send enquiry", "送信する") + '</button></div><p class="note" id="wsMsg" role="status"></p></form></section>';
     walk(el);
   }
@@ -1893,11 +1901,9 @@
     if (missing.length) { msg.className = "note"; msg.textContent = T("Please fill in the fields marked *.", "* の項目をご入力ください。"); $(missing[0]).focus(); return; }
     var data = { type: type, language: lang, name: $("#ws-name").value, email: $("#ws-email").value, message: $("#ws-msg").value };
     $$(".wsgroup[data-for='" + type + "'] [id]").forEach(function (f) { if (f.value !== undefined) data[f.id.replace("ws-", "")] = f.value; });
-    if (!CHECKOUT.contactEndpoint) {
-      msg.className = "note"; msg.textContent = PATHMODE ? T("The enquiry form is not connected yet. Please message us on Instagram.", "フォームはまだ接続されていません。Instagramからご連絡ください。") : T("Preview only: nothing was sent. When connected, this enquiry goes to your inbox with all the details.", "プレビューです。送信はされていません。接続後は、入力内容がすべて受信箱に届きます。");
-      return;
-    }
-    fetch(CHECKOUT.contactEndpoint, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(data) })
+    data.subject = (type === "training" ? "Training enquiry from " : "Wholesale enquiry from ") + (data.biz || data.name);
+    data["bot-field"] = ($('#wsForm [name="bot-field"]') || {}).value || "";
+    sendForm("wholesale", data)
       .then(function (r) { if (!r.ok) throw new Error(r.status); msg.className = "success"; msg.textContent = T("Thank you. We will reply within two working days.", "ありがとうございます。2営業日以内にご連絡します。"); $("#wsForm").reset(); })
       .catch(function () { msg.className = "note"; msg.textContent = T("Sorry, the enquiry could not be sent. Please try Instagram instead.", "送信できませんでした。お手数ですがInstagramからご連絡ください。"); });
   }
@@ -2075,12 +2081,9 @@
     e.preventDefault();
     var msg = $("#contactMsg"), ok = ["#c-name", "#c-email", "#c-msg"].every(function (s) { return $(s).value.trim(); });
     if (!ok) { msg.className = "note"; msg.textContent = tr("Add your name, email and a message so we can reply."); return; }
-    if (!CHECKOUT.contactEndpoint) {
-      msg.className = "note"; msg.textContent = tr(PATHMODE ? "The contact form is not connected yet. Please message us on Instagram." : "Preview only: nothing was sent. When connected, this message goes to your inbox.");
-      return;
-    }
-    var body = { topic: $("#c-topic").value, name: $("#c-name").value, email: $("#c-email").value, message: $("#c-msg").value, language: lang };
-    fetch(CHECKOUT.contactEndpoint, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(body) })
+    var body = { topic: $("#c-topic").value, name: $("#c-name").value, email: $("#c-email").value, message: $("#c-msg").value, language: lang, subject: "Contact form: " + $("#c-topic").value + " from " + $("#c-name").value };
+    body["bot-field"] = ($('#contactForm [name="bot-field"]') || {}).value || "";
+    sendForm("contact", body)
       .then(function (r) { if (!r.ok) throw new Error(r.status); msg.className = "success"; msg.textContent = tr("Thank you. Your message has been sent."); $("#contactForm").reset(); })
       .catch(function () { msg.className = "note"; msg.textContent = tr("Sorry, the message could not be sent. Please try Instagram instead."); });
   });
