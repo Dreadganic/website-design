@@ -1833,6 +1833,102 @@ def scene_roastery(room="brick"):
         put(x, 196 + F, "#E8C890")
 
 
+def scene_kona():
+    """Kona Ridge, the co-fermentation island: the volcano and its crater at the top, the ash field and the fertiliser shed,
+    two rows of grove plots (coffee and fruit, planted in the game), the tank house, the drying patio on the right and the
+    jetty bottom left, under the corner buttons, with the sea along the bottom under the guide bar.
+    The game draws the moving parts on top (KPLOT, KTANK_*, KMAT, KSHED and KASH in template.html use the same spots)."""
+    lush, ash = GRASS["lush"], DIRT["volcanic"]
+    new_scene(lush[2])
+    rnd = random.Random(61)
+    for y in range(H):
+        for x in range(W):
+            if rnd.random() < 0.09:
+                put(x, y, rnd.choice(lush[1:4]))
+    BAS = ["#6A5E58", "#564B46", "#443B37", "#342D2A", "#262120"]
+    for y in range(0, 64):   # the volcano: a dark cone, cooled lava runs and a glowing crater
+        half = 18 + y * 1.9
+        for x in range(W):
+            d = abs(x + 0.5 - 96)
+            if d <= half:
+                k = 1 + int(((x - 96) / max(1, half) + 1) * 1.6) + (1 if rnd.random() < 0.12 else 0)
+                put(x, y, BAS[min(4, k)])
+            elif d <= half + 3 and y > 6:
+                put(x, y, ash[3])
+    for (lx, n) in [(70, 40), (118, 34), (92, 50)]:
+        x = lx
+        for y in range(10, 10 + n):
+            x += rnd.choice([-1, 0, 0, 1]) * 0.6
+            put(x, y, "#2A2220"); put(x + 1, y, "#3A302C")
+    ellipse(96, 12, 16, 7, "#2A2220"); ellipse(96, 12, 13, 5, "#7A2A18"); ellipse(96, 12, 10, 3.6, "#C8481E"); ellipse(96, 11.5, 6, 2, "#F2A040")
+    for x in range(W):
+        put(x, 63, ash[4]); put(x, 64, ash[3])
+    palm(12, 30, 11, 62, LUSH); palm(180, 34, 10, 63, LUSH)
+    for y in range(65, 112):   # the ash field, raked into rows
+        for x in range(2, 140):
+            edge = y in (65, 111) or x in (2, 139)
+            put(x, y, ash[4] if edge else ash[2] if (y - 65) % 6 == 0 else rnd.choice([ash[1]] * 9 + [ash[0], ash[2]]))
+    for _ in range(60):
+        put(rnd.randrange(4, 138), rnd.randrange(67, 110), "#3A322C")
+    shadow_ellipse(167, 112, 22, 3, 60)   # the fertiliser shed: a lean-to with sacks and a mixing tub
+    for y in range(66, 78):
+        for x in range(144, 190):
+            put(x, y, TIN[4] if y in (66, 77) or x in (144, 189) else TIN[1] if (x - 144) % 6 < 2 else TIN[2] if (x - 144) % 6 < 4 else TIN[3])
+    for y in range(78, 110):
+        for x in range(146, 188):
+            plank = (y - 78) % 5
+            put(x, y, WOOD[4] if x in (146, 187) or plank == 4 else WOOD[1] if plank == 0 else WOOD[2] if (x * 5 + y) % 23 else WOOD[3])
+    fill(150, 84, 34, 22, "#3A2A1C")
+    for (sx, sy) in [(152, 94), (164, 94), (158, 88)]:
+        jute_sack(sx, sy, 11, 8, "#6A5E58")
+    ellipse(178, 100, 6, 4, OUT); ellipse(178, 100, 5, 3, "#8A9CAA"); ellipse(178, 99, 3.6, 1.6, "#5E5244")
+    for y0 in (116, 162):   # the groves: two rows of four raised beds with stone edges
+        for i in range(4):
+            x0 = 6 + i * 46
+            shadow_ellipse(x0 + 21, y0 + 44, 21, 2, 50)
+            for y in range(y0 + 26, y0 + 44):
+                for x in range(x0, x0 + 42):
+                    edge = y in (y0 + 26, y0 + 43) or x in (x0, x0 + 41)
+                    put(x, y, STONE[3] if edge else STONE[1] if y == y0 + 27 else SOIL[3] if (x + y) % 5 else SOIL[2])
+    for y in range(212, 220):   # the tank house: a tin eave and a concrete floor
+        for x in range(W):
+            put(x, y, TIN[4] if y in (212, 219) else TIN[1] if x % 6 < 2 else TIN[2] if x % 6 < 4 else TIN[3])
+    for y in range(220, 264):
+        for x in range(W):
+            seam = x % 30 == 3 or (y - 220) % 22 == 0
+            put(x, y, CONCRETE[3] if seam else CONCRETE[1] if (x * 7 + y * 3) % 13 else CONCRETE[2])
+    for x in range(W):
+        put(x, 263, CONCRETE[3]); put(x, 264, ash[4])
+    for k in range(6):
+        x0 = 6 + k * 30
+        R(x0 + 3, 260, 20, 2, CONCRETE[3]); R(x0 + 4, 260, 18, 1, "#5E6A70")
+    for y in range(265, H):   # the sea and its black-sand shore along the bottom and the left
+        for x in range(W):
+            shore = 300 + int(math.sin(x * 0.15) * 3) if x >= 72 else 270 + int(math.sin(y * 0.2) * 2) + (x - 72) * 0
+            if x < 70:
+                d = 70 - x
+                put(x, y, WATER[3] if d > 40 or y > 330 else WATER[2] if d > 22 else WATER[1] if d > 6 else WATER[0]) if y > 272 else put(x, y, "#2A2420" if (x + y) % 3 else "#3E3430")
+            elif y > 310:
+                d = y - 310
+                put(x, y, WATER[3] if d > 20 else WATER[2] if d > 10 else WATER[1] if d > 3 else WATER[0])
+            elif y > 306 or x < 74:
+                put(x, y, "#2A2420" if (x + y) % 3 else "#3E3430")
+    for y in range(266, 306):   # the drying patio on the right
+        for x in range(74, 192):
+            seam = (x - 74) % 38 == 2 or (y - 266) % 18 == 0
+            put(x, y, CONCRETE[3] if seam else "#D8CCB4" if (x * 5 + y) % 11 else "#C8BCA2")
+    for _ in range(14):
+        x, y = rnd.randrange(4, 60), rnd.randrange(280, 350)
+        for k in range(rnd.randint(2, 5)):
+            put(x + k, y, "#E4F6F8")
+    jetty(26, 270, 340)
+    shadow_ellipse(48, 316, 10, 3, 50)   # the trader's boat at the jetty
+    fill(40, 300, 16, 24, OUT); fill(41, 302, 14, 20, "#D8402C"); fill(42, 304, 12, 16, WOOD[1]); fill(44, 308, 8, 6, "#F2E8D4")
+    palm(182, 300, 9, 64, LUSH)
+
+
+scene_kona(); img.save(os.path.join(HERE, "bg", "kona.png")); rendered[("kona", "")] = img.copy()
+
 scene_mill(); img.save(os.path.join(HERE, "bg", "mill.png")); rendered[("mill", "")] = img.copy()
 for _room in ROOMS:
     scene_roastery(_room); img.save(os.path.join(HERE, "bg", "roastery.png" if _room == "brick" else "roastery-%s.png" % _room)); rendered[("roastery", _room)] = img.copy()
@@ -3392,6 +3488,173 @@ for cid, (name, home, cost, sp, hp, hands, feet, tail, tcol, tcol2) in CHARS.ite
         add_grid("chr_%s_side_%d" % (cid, f), _tail(sd + SIDE_BODY + SIDE_LEGS[f], tail), pal)
     CHAR_INFO[cid] = {"name": name, "from": home, "cost": cost, "aura": None}
 
+
+
+# ---------------- Kona Ridge: fruit trees, tanks, ash, the patio mats and the island's icons ----------------
+KFRUIT = {   # fruit: (canopy ramp, fruit colours [light, main, dark])
+    "mango": (["#8CC05A", "#62A244", "#448838", "#2E6C2E", "#1E5024", "#143618"], ["#FFD070", "#F08A30", "#B8401C"]),
+    "lemon": (["#B4D270", "#8EBC54", "#6CA442", "#4E8634", "#346626", "#22481A"], ["#FFF6A0", "#F2D838", "#B89A18"]),
+}
+
+
+def k_tree(fruit, stage):
+    ramp, fc = KFRUIT[fruit]
+    def draw(p):
+        for x in range(5, 19):
+            p(x, 29, "#2A2A0850")
+        top = 14 if stage else 20
+        for y in range(top, 29):
+            p(11, y, WOOD[4]); p(12, y, WOOD[2]); p(13, y, WOOD[4])
+        r = 6 if stage == 0 else 10
+        cluster(12, 14 if stage else 18, r, r * 0.9, ramp, 70 + stage + len(fruit), blobs=6 + r, br=(r * 0.36, r * 0.55), target=p, speck=False)
+        if stage:
+            rnd = random.Random(len(fruit) * 7 + stage)
+            for _ in range(5 if stage == 2 else 4):
+                x, y = rnd.randint(5, 18), rnd.randint(9, 20)
+                if stage == 1:
+                    p(x, y, "#FFF4E8"); p(x + 1, y, "#F8D8E0")   # blossom
+                else:
+                    p(x, y, fc[1]); p(x + 1, y, fc[1]); p(x, y + 1, fc[2]); p(x + 1, y + 1, fc[1]); p(x, y - 1, fc[0])
+    return draw
+
+
+def k_pineapple(stage):
+    def draw(p):
+        for x in range(4, 20):
+            p(x, 29, "#2A2A0850")
+        n = 5 if stage == 0 else 9
+        for k in range(n):   # spiky leaves from a rosette
+            a = math.pi * (0.1 + 0.8 * k / (n - 1))
+            L = 7 if stage == 0 else 11
+            for t in range(L):
+                x, y = 12 - math.cos(a) * t, 28 - math.sin(a) * t * 0.9
+                p(x, y, "#3E7A4A" if t < L - 2 else "#5A9C5E"); p(x, y + 1, "#2A5A36")
+        if stage == 1:
+            ellipse_p(p, 12, 16, 2.5, 3, "#C84A6A")   # the flower head
+        if stage == 2:
+            for y in range(10, 20):
+                for x in range(9, 16):
+                    if ((x + 0.5 - 12.5) / 3.6) ** 2 + ((y + 0.5 - 15) / 5.2) ** 2 <= 1:
+                        p(x, y, "#F2C04A" if (x + y) % 3 else "#B8862A")
+            for x in (10, 12, 14):
+                p(x, 8, "#3E7A4A"); p(x, 9, "#5A9C5E")
+            p(12, 7, "#3E7A4A")
+    return draw
+
+
+def k_coconut(stage):
+    def draw(p):
+        for x in range(4, 22):
+            p(x, 29, "#2A2A0850")
+        top = 8 if stage else 18
+        for k, y in enumerate(range(top, 29)):
+            sway = int(math.sin(k * 0.25))
+            p(11 + sway, y, WOOD[4]); p(12 + sway, y, WOOD[1] if k % 3 else WOOD[3]); p(13 + sway, y, WOOD[4])
+        L = 6 if stage == 0 else 11
+        for k in range(7):
+            a = k / 7 * math.tau
+            for t in range(L):
+                droop = (t / L) ** 2 * 4
+                x, y = 12 + math.cos(a) * t, top + math.sin(a) * t * 0.6 + droop
+                p(x, y, LUSH[3]); p(x, y - 1, LUSH[1] if t < L * 0.7 else LUSH[2])
+        if stage:
+            for (cx, cy) in ((10, top + 2), (14, top + 2), (12, top + 3)):
+                c = ("#7A9A3A", "#5E7A2C") if stage == 1 else ("#8A5A32", "#5E3A1E")
+                p(cx, cy, c[0]); p(cx + 1, cy, c[1]); p(cx, cy + 1, c[1]); p(cx + 1, cy + 1, c[1])
+    return draw
+
+
+def ellipse_p(p, cx, cy, rx, ry, c):
+    for y in range(int(cy - ry), int(cy + ry) + 1):
+        for x in range(int(cx - rx), int(cx + rx) + 1):
+            if ((x + 0.5 - cx) / rx) ** 2 + ((y + 0.5 - cy) / ry) ** 2 <= 1:
+                p(x, y, c)
+
+
+for _st in range(3):
+    for _f in KFRUIT:
+        add_layer("k_%s_%d" % (_f, _st), 24, 30, k_tree(_f, _st))
+    add_layer("k_pineapple_%d" % _st, 24, 30, k_pineapple(_st))
+    add_layer("k_coconut_%d" % _st, 24, 30, k_coconut(_st))
+
+
+def k_tank(p):   # a stainless fermentation tank: lid and valve on top, a window, a cone and a tap at the bottom
+    for x in range(3, 24):
+        p(x, 41, "#2A2A0860")
+    STEEL = ["#F2F6F8", "#D4DCE2", "#B4C0C8", "#8E9CA6", "#6A7882"]
+    for y in range(6, 34):
+        for x in range(2, 24):
+            edge = x in (2, 23)
+            k = 4 if edge else 0 if x == 5 else 1 if x < 9 else 2 if x < 17 else 3
+            p(x, y, OUT if edge else STEEL[k])
+    for x in range(2, 24):
+        p(x, 6, OUT); p(x, 33, OUT)
+    for y in range(34, 39):   # the cone and the stand
+        for x in range(4 + (y - 34), 22 - (y - 34)):
+            p(x, y, STEEL[3] if x > 13 else STEEL[2])
+    for (lx, ly) in ((4, 34), (21, 34)):
+        for y in range(ly, ly + 7):
+            p(lx, y, OUT)
+    for x in range(6, 20):   # the lid
+        p(x, 3, OUT); p(x, 4, STEEL[1]); p(x, 5, STEEL[3])
+    p(12, 0, OUT); p(13, 0, OUT); p(12, 1, "#C8302C"); p(13, 1, "#C8302C"); p(12, 2, OUT); p(13, 2, OUT)   # the valve
+    for y in range(10, 28):   # the sight window, filled in the game
+        p(9, y, OUT); p(16, y, OUT)
+    for x in range(9, 17):
+        p(x, 9, OUT); p(x, 28, OUT)
+    for y in range(10, 28):
+        for x in range(10, 16):
+            p(x, y, "#3A4248")
+    p(13, 39, OUT); p(13, 40, "#C8A040"); p(14, 39, OUT)   # the tap
+
+
+add_layer("k_tank", 26, 42, k_tank)
+
+
+def k_pile(big):
+    def draw(p):
+        w = 12 if big else 9
+        for x in range(w):
+            h = int(round((1 - ((x + 0.5 - w / 2) / (w / 2)) ** 2) * (5 if big else 4)))
+            for y in range(h):
+                p(x, 6 - y, "#A89A86" if y == h - 1 else "#8E806C" if x < w / 2 else "#766856")
+            p(x, 7, "#2A2A0850")
+    return draw
+
+
+add_layer("k_pile_0", 9, 8, k_pile(False)); add_layer("k_pile_1", 12, 8, k_pile(True))
+
+
+def k_mat(p):   # a raised drying mat of fermented cherries
+    rnd = random.Random(88)
+    for y in range(16):
+        for x in range(34):
+            if x in (0, 33) or y in (0, 13):
+                p(x, y, WOOD[4])
+            elif y > 13:
+                if x in (2, 3, 30, 31):
+                    p(x, y, WOOD[3])
+            else:
+                p(x, y, rnd.choice(["#7A2A20", "#5E1E18", "#8A3A26", "#6A4A2A", "#4A2A1A"]))
+
+
+add_layer("k_mat", 34, 16, k_mat)
+KICONS = {
+    "k_i_mango": ([".....gg...", "....g.....", "..ooooo...", ".oyyyyro..", "oyyyyrrro.", "oyyyrrrro.", "oyyrrrrro.", ".orrrrro..", "..ooooo...", ".........."], {"o": OUT, "y": "#FFD070", "r": "#F08A30", "g": "#3E8036"}),
+    "k_i_pineapple": (["...g.g....", "....g.....", "...ggg....", "...oooo...", "..oyBybo..", "..obyByo..", "..oyBybo..", "..obyByo..", "...oooo...", ".........."], {"o": OUT, "y": "#F2C04A", "B": "#B8862A", "b": "#D8A040", "g": "#3E7A4A"}),
+    "k_i_lemon": ([".........g", "...oooog..", "..oyyyyo..", ".oyyyyyyo.", "oyyyyyyyyo", ".oyyyyyyo.", "..oyyyyo..", "...oooo...", "..........", ".........."], {"o": OUT, "y": "#F2D838", "g": "#3E8036"}),
+    "k_i_coconut": (["..........", "...oooo...", "..obbbbo..", ".obbcbbbo.", ".obbbbbbo.", ".obbbbbbo.", "..obbbbo..", "...oooo...", "..........", ".........."], {"o": OUT, "b": "#8A5A32", "c": "#3E2A1C"}),
+    "k_i_ash": (["..........", "..........", "....oo....", "...oaao...", "..oaaaao..", ".oaaabaao.", "oaaabbbaao", "oooooooooo", "..........", ".........."], {"o": OUT, "a": "#A89A86", "b": "#766856"}),
+    "k_i_bag": (["..o..o....", "..oooo....", ".owwwwo...", "owwwwwwo..", "owaaaawo..", "owaaaawo..", "owwwwwwo..", "owwwwwwo..", ".oooooo...", ".........."], {"o": OUT, "w": "#E2CC94", "a": "#6A5E58"}),
+    "k_i_compost": (["..........", "..g.......", ".gg..g....", "..oooooo..", ".obbsbbbo.", "obsbbbsbbo", "obbbsbbbbo", ".oooooooo.", "..........", ".........."], {"o": OUT, "b": "#5E3822", "s": "#8E5C38", "g": "#5A9C3C"}),
+    "k_i_shell": (["..........", "....oo....", "...owwo...", "..owpwpo..", ".owpwpwpo.", ".owpwpwpo.", "..owwwwo..", "...oooo...", "..........", ".........."], {"o": OUT, "w": "#FFF0E4", "p": "#F2A8A0"}),
+    "k_i_tank": (["...oooo...", "..oSSSSo..", "..oSccSo..", "..oSccSo..", "..oSccSo..", "..oSSSSo..", "...oSSo...", "....oo....", "...o..o...", ".........."], {"o": OUT, "S": "#B4C0C8", "c": "#8A3A26"}),
+}
+for _k, (_rows, _pal) in KICONS.items():
+    add_layer(_k, 10, 10, grid_art(_rows, _pal))
+add_layer("k_nene", 12, 12, grid_art([   # the nene, the Hawaiian goose: black head, buff cheek, barred grey-brown body
+    "...oo.......", "..okko......", "..okyo......", "..okko......", "...oko......", "...okoooo...", "..obbbbbbo..", ".obgbgbgbbo.", ".obbbbbbbbo.", "..obgbgbbo..", "...oooooo...", "....y..y...."],
+    {"o": OUT, "k": "#2A2420", "y": "#E8C890", "b": "#9A8670", "g": "#6E5E4C"}))
 
 SHRUBS = [(bx + 6 + c * 18, by + r * 17) for (bx, by) in BEDS[:3] for r in range(2) for c in range(4)]
 with open(os.path.join(HERE, "sprites.json"), "w") as f:

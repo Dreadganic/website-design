@@ -168,7 +168,7 @@ const cleanLook = (l, prestige) => {
   return { crest: prestige === undefined ? n(l.crest !== undefined ? l.crest : l.plate, cap) : cap,   /* the crest is always the highest the prestige has reached */ skin: cap > 0 ? n(l.skin, 7) : 0, bg: BGS.includes(l.bg) || (/^s_/.test(l.bg || "") && SEASON_IDS.includes(sid(l.bg))) ? l.bg : "none", char: CHARS.includes(l.char) ? l.char : "none",
     hat: SEASON_IDS.includes(sid(l.hat)) ? "s_" + sid(l.hat) : "", charm: l.charm === "qgrader" || l.charm === "crack" || l.charm === "founder" ? l.charm : SEASON_IDS.includes(sid(l.charm)) ? sid(l.charm) : "",
     roaster: ROASTER_FINISHES.includes(l.roaster) ? l.roaster : "", pin: TROPHY_ID.test(l.pin || "") ? l.pin : "",
-    title: (/^\d{4}-\d{2}$/.test(l.title || "") && l.title <= now) || /^nbm?:[a-z]{3,16}$|^nbt:(cupper|head|q)$|^rr:(master|crack)$|^ev:(steady|trouble)$|^ct:nbr$/.test(l.title || "") ? l.title : "" };   /* season titles, and cupping notebook titles */   /* season track cosmetics; a title names a season that has started */
+    title: (/^\d{4}-\d{2}$/.test(l.title || "") && l.title <= now) || /^nbm?:[a-z]{3,16}$|^nbt:(cupper|head|q)$|^rr:(master|crack)$|^ev:(steady|trouble)$|^ct:nbr$|^kona:master$/.test(l.title || "") ? l.title : "" };   /* season titles, and cupping notebook titles */   /* season track cosmetics; a title names a season that has started */
 };
 
 /* Trophies: wins the server checks for itself (Cup of Excellence, the Co-op Derby, Harvest Day, season and rookie finishes) and Founding farmer.

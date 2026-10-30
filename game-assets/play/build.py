@@ -15,7 +15,7 @@ for f in sorted(os.listdir(os.path.join(ROOT, "bg"))):
     if f.endswith(".png"):
         bgs[f[:-4]] = "data:image/png;base64," + base64.b64encode(open(os.path.join(ROOT, "bg", f), "rb").read()).decode()
 t = open(os.path.join(HERE, "template.html")).read()
-sfx = open(os.path.join(ROOT, "audio", "sfx.js")).read() + "\n" + open(os.path.join(ROOT, "audio", "event-sfx.js")).read() + "\n" + open(os.path.join(ROOT, "audio", "shop-sfx.js")).read()
+sfx = open(os.path.join(ROOT, "audio", "sfx.js")).read() + "\n" + open(os.path.join(ROOT, "audio", "event-sfx.js")).read() + "\n" + open(os.path.join(ROOT, "audio", "shop-sfx.js")).read() + "\n" + open(os.path.join(ROOT, "audio", "kona-sfx.js")).read()
 music = open(os.path.join(ROOT, "audio", "music.js")).read()
 cozy = open(os.path.join(ROOT, "audio", "cozy.js")).read()
 if "--launch" in sys.argv:   # the public game: no Test tab cheats

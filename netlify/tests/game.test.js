@@ -330,5 +330,7 @@ test("scores: the counter's rating and customers ride along, kept to what play a
   const season = await call(score, "GET", undefined, a, { mode: "season" });
   assert.ok(season.body.top.every((r) => typeof r.crate === "number"), "every board's rows carry the rating");
   assert.equal(G.cleanLook({ title: "ct:nbr" }, 0).title, "ct:nbr", "the Neighbourhood roaster title");
+  assert.equal(G.cleanLook({ title: "kona:master" }, 0).title, "kona:master", "the Fermentation master title from Kona Ridge");
+  assert.equal(G.cleanLook({ title: "kona:boss" }, 0).title, "", "no made-up Kona titles");
   assert.equal(G.cleanLook({ title: "ev:steady" }, 0).title, "ev:steady", "and the event titles");
 });

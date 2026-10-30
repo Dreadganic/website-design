@@ -1054,6 +1054,7 @@ const titleText = (k) => { if (!k) return ''; const [a, b] = k.split(':');
   if (a === 'rr') return b === 'crack' ? 'Crack master' : 'Master roaster';
   if (a === 'ev') return b === 'steady' ? 'Steady hands' : b === 'trouble' ? 'Troubleshooter' : '';
   if (a === 'ct') return b === 'nbr' ? 'Neighbourhood roaster' : '';
+  if (a === 'kona') return b === 'master' ? 'Fermentation master' : '';
   return ART.seasons[String(+k.slice(5))] ? theme(k).title + ' ' + k.slice(0, 4) : ''; };
 /* the cupping notebook: every coffee and process pair you sell earns stars at 1, 25 and 250 lots; each star adds +0.5 cup score to that pair */
 const NB_STARS = [1, 25, 250], NB_MAX = 9 * 6 * 3;
@@ -1333,7 +1334,7 @@ function headRoasterTick(away) {   /* starts the best roast on free roasters (le
     R.roasters[R.roasters.length - 1].auto = true; n += 1;
   }
   R.roasters.forEach((r) => { if (r.auto && !r.crack && !r.tried && (away || inCrack(r))) { r.tried = true; if (rnd() < roasterCatch()) r.crack = 1; } });   /* his catch adds quality but doesn't hurry the roast */
-  if (repLevel() >= 20 && S.staff.foreman && ctOn()) (S.counter.pre || []).forEach((p) => { if ((p.state === 'board' || p.state === 'queue') && p.n > p.got && !R.beans[p.key] && !(R.want || {})[p.key] && canBin(p.key) && R.bags.filter((b) => ctMatch(p, b)).length < p.n - p.got) { R.want = R.want || {}; R.want[p.key] = 'head'; } });
+  if (repLevel() >= 20 && S.staff.foreman && ctOn()) (S.counter.pre || []).forEach((p) => { if ((p.state === 'board' || p.state === 'queue') && p.n > p.got && !R.beans[p.key] && !(R.want || {})[p.key] && !METHODS[p.key.split('.')[1]].kona && canBin(p.key) && R.bags.filter((b) => ctMatch(p, b)).length < p.n - p.got) { R.want = R.want || {}; R.want[p.key] = 'head'; } });
   if (R.want) Object.keys(R.want).forEach((k) => { if (R.want[k] === 'head' && !(S.counter.pre || []).some((p) => p.key === k && (p.state === 'board' || p.state === 'queue') && p.n > p.got)) delete R.want[k]; });   /* and lets go of his requests once the board no longer needs them; at reputation 20 he asks the foreman for the counter's coffees himself */
   if (repLevel() >= HEAD_BLEND_REP && (away || Date.now() - (R.blendAt || 0) > 20000)) { R.blendAt = Date.now(); let nb, g = 0; while (g++ < (away ? 50 : 1) && (nb = headBlend())) if (!away && scene() === 'roast') floats.push({ x: 130, y: 58, text: nb.blend, t: 0 }); }   /* a blend every 20 s or so while you play; while you're away, every spare pair */
   return n;
@@ -1384,6 +1385,7 @@ function ctAction(o, live) {   /* the button on an order card: Serve, Roast, To 
   if (st.bin && st.bin.kg >= 0.5) return btn('Roast', ROASTS[o.profile].name.toLowerCase(), 'ctroast:' + o.key + '|' + o.profile, free);
   if (!o.key) { const k = Object.keys(R.beans).find((x) => R.beans[x].kg >= 0.5); return k ? btn('Roast', ROASTS[o.profile].name.toLowerCase(), 'ctroast:' + k + '|' + o.profile, free) : btn('Bins', 'empty', 'noop', false); }
   if (st.lot > -1) return btn('To bin', 'dry lot', 'ctbin:' + st.lot, canBin(o.key), 'blue');
+  if (METHODS[o.key.split('.')[1]].kona) return btn('Kona', 'ship a lot', 'k_go', true, 'blue');   /* co-ferments come only from Kona Ridge, never the foreman */
   const R2 = S.roastery.want || {};
   if (R2[o.key]) return btn('Requested', st.drying ? 'drying' : (S.cherries[o.key.split('.')[0]] || 0) >= 10 ? 'lot next' : 'needs cherries', 'noop', false);
   if (!S.staff.foreman) return btn('Mill', st.drying ? 'drying' : 'start a lot', 'tab:mill', true, 'blue');   /* with no foreman yet, it's yours to start */
@@ -1597,6 +1599,18 @@ const METHODS = {
   whiskey: { name: 'Whiskey barrel', time: 120, mult: 2.0, cup: 87.5, art: 'proc_whiskey', cost: 20000, coffee: 'pinkwhiskey', unlock: 'Order Colombia Pink Whiskey, or 20,000 know-how from prestige 2' },
   strawberry: { name: 'Strawberry infused', time: 120, mult: 2.2, cup: 88, art: 'proc_strawberry', cost: 45000, coffee: 'strawberry', unlock: 'Order Sumatra Strawberry, or 45,000 know-how from prestige 3' }
 };
+/* Kona Ridge's fruits, for co-fermenting in its tanks (the island's code is further down). Each makes a co-ferment process that only
+   Kona can run: hidden from every list of processes, but a lot, bin or bag of it reads and pays like any other */
+const KONA_P = 6, konaOpen = () => S.prestige >= KONA_P || !!(S.kona && S.kona.test);
+const KFR = {
+  mango: { name: 'Mango', lv: 1, grow: 12, kg: 20, ferm: 8, win: 90, bonus: 2, vents: 1, col: '#F08A30', note: 'Sweet and forgiving: the starter' },
+  pineapple: { name: 'Pineapple', lv: 8, grow: 8, kg: 20, ferm: 5, win: 45, bonus: 2.5, vents: 2, col: '#F2C04A', note: 'Pressure builds fast: two vents a tank' },
+  lemon: { name: 'Lemon', lv: 15, grow: 6, kg: 20, ferm: 6, win: 30, bonus: 1.5, vents: 1, col: '#F2D838', note: '+3 cup on Geisha and the Bourbons; turns sour fast if you\'re late' },
+  coconut: { name: 'Coconut', lv: 25, grow: 15, kg: 16, ferm: 10, win: 120, bonus: 1.5, vents: 0, col: '#E8DCC8', note: 'Creamy body: the lot comes out 20% heavier, and never needs venting' }
+};
+const KFR_ORDER = Object.keys(KFR);
+const kBonus = (fr, v) => (fr === 'lemon' && ['geisha', 'yellowbourbon', 'pinkbourbon'].includes(v) ? 3 : KFR[fr].bonus);
+KFR_ORDER.forEach((k) => Object.defineProperty(METHODS, 'cof_' + k, { value: { name: KFR[k].name + ' co-ferment', time: 0, mult: 2.6, cup: 86, art: 'k_i_' + k, kona: true }, enumerable: false }));
 /* unlock pacing: process prices follow what they pay, like the coffees, and the big unlocks wait for a prestige,
    so each run opens something new instead of the whole game arriving in the first half hour. Ordering the real coffee still unlocks its process straight away */
 const GATE = { 'method:rum': 1, 'method:whiskey': 2, 'method:strawberry': 3, 'var:pinkbourbon': 1, 'var:heirloom': 2, 'farm:gedeo': 1, 'farm:toba': 2, 'farm:turrialba': 3 };
@@ -1837,7 +1851,8 @@ const TASK_KINDS = {
   ceremony: { text: 'Hold the coffee ceremony at Gedeo', goal: 1, img: 'stamp_gedeo', slot: 2, est: 'gedeo', group: 'estate', ok: () => estOn('gedeo', 2) },
   koi: { text: 'Feed the koi in the Osaka garden', goal: 1, img: 'stamp_osaka', slot: 2, est: 'osaka', group: 'estate', ok: () => estOn('osaka', 1) },
   rake: { text: 'Rake the Mogiana patio', goal: 1, img: 'stamp_mogiana', slot: 2, est: 'mogiana', group: 'estate', ok: () => estOn('mogiana', 1) },
-  age: { text: 'Lay a lot down in the Turrialba cellar', goal: 1, img: 'stamp_turrialba', slot: 2, est: 'turrialba', group: 'estate', ok: () => estOn('turrialba', 2) }
+  age: { text: 'Lay a lot down in the Turrialba cellar', goal: 1, img: 'stamp_turrialba', slot: 2, est: 'turrialba', group: 'estate', ok: () => estOn('turrialba', 2) },
+  ktank: { text: 'Pull 3 perfect tanks at Kona Ridge', goal: 3, img: 'k_i_tank', slot: 2, go: 'kona', group: 'estate', ok: () => konaOpen() && !!S.kona }
 };
 /* weekly tasks: three bigger goals for the real week, aimed at the newer features, with bigger rewards and no season stars */
 const WEEK_KINDS = {
@@ -1854,11 +1869,12 @@ const WEEK_KINDS = {
   koi: { text: 'Feed the koi 8 times', goal: 8, img: 'stamp_osaka', est: 'osaka', group: 'estate', ok: () => estOn('osaka', 1) },
   boat: { text: 'Fill 3 orders for the trader\'s boat', goal: 3, img: 'stamp_toba', go: 'mill', group: 'estate', ok: () => estOn('toba', 1) && buyersOn() },
   aged: { text: 'Take 3 fully aged lots out of the cellar', goal: 3, img: 'stamp_turrialba', est: 'turrialba', group: 'estate', ok: () => estOn('turrialba', 2) },
-  micro: { text: 'Make 4 micro-lots', goal: 4, img: 'stamp_huila', go: 'mill', group: 'estate', ok: () => estOn('huila', 1) }
+  micro: { text: 'Make 4 micro-lots', goal: 4, img: 'stamp_huila', go: 'mill', group: 'estate', ok: () => estOn('huila', 1) },
+  kash: { text: 'Gather 150 ash at Kona Ridge', goal: 150, img: 'k_i_ash', go: 'kona', group: 'estate', ok: () => konaOpen() && !!S.kona }
 };
 const kindOk = (K, k) => !K[k].ok || K[k].ok();
 const pickOf = (ks) => ks[Math.floor(Math.random() * ks.length)];
-const DAILY_ONCE = ['contract', 'sroast', 'clean', 'ceremony', 'koi', 'rake', 'age'];   /* once-a-day chores stay at one */
+const DAILY_ONCE = ['contract', 'sroast', 'clean', 'ceremony', 'koi', 'rake', 'age', 'ktank'];   /* Kona's opens at prestige 6, so it's set for that farm already */   /* once-a-day chores stay at one */
 const dailyMult = () => 1 + 0.5 * Math.min(6, S.prestige || 0);   /* daily goals grow with prestige: ×1.5 at prestige 1, up to ×4 from prestige 6, since a later farm does them in minutes */
 function taskOf(K, k, reward, slot) {
   const d = K[k], goal = d.scale ? d.scale() : K === TASK_KINDS && !DAILY_ONCE.includes(k) ? Math.round(d.goal * dailyMult()) : d.goal;
@@ -2498,7 +2514,7 @@ Object.assign(REV_COSM, {
   shutters: { name: 'Storm shutters', pic: 'ev_shutters', where: 'on the roastery windows', own: () => S.rev.show.shutters !== undefined, give() { S.rev.show.shutters = true; }, on: () => !!S.rev.show.shutters, flip() { S.rev.show.shutters = !S.rev.show.shutters; } }
 });
 /* companions: one in 100 stopped events brings one you don't have yet, to follow your farmer */
-const REV_PETS = { piglet: ['Piglet', 'ev_piglet'], capuchin: ['Capuchin', 'ev_capuchin'], crow: ['Tame crow', 'ev_crow_sit'], millcat: ['Mill cat', 'ev_millcat'], dalmatian: ['Fire-station dalmatian', 'ev_dalmatian'] };
+const REV_PETS = { piglet: ['Piglet', 'ev_piglet'], capuchin: ['Capuchin', 'ev_capuchin'], crow: ['Tame crow', 'ev_crow_sit'], millcat: ['Mill cat', 'ev_millcat'], dalmatian: ['Fire-station dalmatian', 'ev_dalmatian'], nene: ['Nēnē goose', 'k_nene', true] };   /* the third flag: bought, never found */
 const petTrail = { sc: '', pts: [] }, PET_GAP = 13;
 const petsOut = () => Object.keys(REV_PETS).filter((k) => (S.rev.pets || {})[k] && !(S.rev.petHide || {})[k]);
 function drawPet(o, sc) {   /* your companions follow your farmer in a train, each one walking in the footsteps of the one ahead */
@@ -2558,7 +2574,7 @@ function revReward(E) {   /* only cosmetics: a keepsake on the fifth stop, a rar
   if (E.rare) got.push(revGive(D.rareCos));
   if (L.n >= (D.special ? 1 : REV_COS)) got.push(revGive(D.cos));   /* the typhoon's comes on the first stop: the next may be a month away */
   if (!S.sitems.title['ev:trouble'] && Object.keys(REVS).every((k) => REVS[k].special || ((R.log[k] || {}).n || 0) >= REV_COS)) { S.sitems.title['ev:trouble'] = true; got.push('the Troubleshooter title'); }
-  if (Math.random() < 0.01) { R.pets = R.pets || {}; const left = Object.keys(REV_PETS).filter((k) => !R.pets[k]); if (left.length) { const k = left[Math.floor(Math.random() * left.length)]; R.pets[k] = true; got.push('a ' + REV_PETS[k][0].toLowerCase() + ' companion'); } }
+  if (Math.random() < 0.01) { R.pets = R.pets || {}; const left = Object.keys(REV_PETS).filter((k) => !R.pets[k] && !REV_PETS[k][2]); if (left.length) { const k = left[Math.floor(Math.random() * left.length)]; R.pets[k] = true; got.push('a ' + REV_PETS[k][0].toLowerCase() + ' companion'); } }
   if (R.streak === 10) R.boost = Date.now() + 3600e3;
   if (R.streak === 25 && !S.sitems.title['ev:steady']) { S.sitems.title['ev:steady'] = true; got.push('the Steady hands title'); }
   const b = D.box(E), x = b[0] + b[2] / 2, y = b[1] + 4, gifts = got.filter(Boolean);
@@ -2606,7 +2622,7 @@ function revDraw(sc, time) {   /* in map pixels, under the night tint */
 }
 function revTop(sc, time) { const E = S.rev.cur, D = E && REVS[E.id]; if (E && (D.shows ? D.shows(E, sc) : D.here(E))) D.top(E, time); else revChips = []; }   /* labels at full size, over the night tint */
 function revClick(lx, ly) { const E = S.rev.cur; return !!E && REVS[E.id].click(E, lx, ly); }
-function revGo() { const E = S.rev.cur; if (!E) return; const m = revMap(E); if (m === 'farm') S.loc = E.loc; setTab(m, true); revShown = ''; }   /* the guide bar's Go: to the event's map, the sheet put away */
+function revGo() { const E = S.rev.cur; if (!E) return; const m = revMap(E); if (m === 'farm') { S.loc = E.loc; S.isle = false; } setTab(m, true); revShown = ''; }   /* the guide bar's Go: to the event's map, the sheet put away */
 const revMap = (E) => (REVS[E.id].mapOf ? REVS[E.id].mapOf(E) : REVS[E.id].map);
 const revDot = (m) => { const E = (S.rev || {}).cur; return !!E && revMap(E) === m && !revIsHere(); };
 const REV_HUD = '#hearts, #hudLevel, .hud-r .clock > *, #hudCoins, #hudCranes, #hudStore, #sfxBtn, #musicBtn, #gearBtn, #goldGo, #crackGo';
@@ -2682,6 +2698,7 @@ const CHORE_AT = { mogiana: { x: [5, 100], y: [30, 92], at: [52, 62], ok: () => 
 const choreHere = () => { const c = CHORE_AT[S.loc]; return c && S.farms[S.loc].unlocked && c.ok() ? c : null; };
 function hintAt(sc) {   /* where the map arrow points, in scene pixels, or null */
   if (!$('garrow').hidden || !$('modal').hidden) return null;   /* the guide's own arrow wins */
+  if (sc === 'kona') return konaHint();
   if (sc === 'farm') {
     const f = S.farms[S.loc], g = golden && golden.loc === S.loc && f.shrubs[golden.i]; if (g) return [g.x + 9, g.y - 2];
     const c = choreHere(); return c ? c.at : null;
@@ -2829,7 +2846,7 @@ function draw(time) {
 /* ---------- the mill yard and the roastery: what the stage shows on the Mill tab ---------- */
 const MAP_TABS = ['farm', 'mill', 'roast'];
 let mapTab = 'farm';   /* the map on screen: the Farm, Mill and Roast tabs move it; the other tabs open over it */
-const scene = () => (mapTab === 'mill' ? 'mill' : mapTab === 'roast' && roasteryOpen() ? 'roast' : 'farm');
+const scene = () => (mapTab === 'mill' ? 'mill' : mapTab === 'roast' && roasteryOpen() ? 'roast' : S.isle && konaOpen() ? 'kona' : 'farm');   /* the Farm tab shows Kona Ridge while you're on the island */
 const sceneImgs = {};
 function sceneBg(k) { if (!sceneImgs[k]) { const im = new Image(); im.src = BGS[k]; sceneImgs[k] = im; } return sceneImgs[k]; }
 const RACK_SHOWN = 32, RACK_GAPS = [50, 96, 142], TRUCK = { x: 54, y: 90 }, CUP_TABLE = { x: 56, y: 70 };   /* the cupping table sits mid-patio, clear of the counters */
@@ -3276,6 +3293,7 @@ function drawRoast(time) {
   fx.globalAlpha = 1;
 }
 function drawInside(sc, time) {
+  if (sc === 'kona') { drawKona(time); return; }
   const room = S.rcos.on.room, b = sceneBg(sc === 'roast' ? (room && room !== 'brick' ? 'roastery-' + room : 'roastery') : 'mill');
   fx.imageSmoothingEnabled = false;
   if (b.complete && b.naturalWidth) fx.drawImage(b, 0, 0); else { fx.fillStyle = '#C89A64'; fx.fillRect(0, 0, W, H); }
@@ -3342,9 +3360,391 @@ function insideClick(lx, ly) {
   if (lx >= 104 && ly < 60) { if (RS.bags.length) setTab('roast'); else floats.push({ x: lx, y: 50, text: 'no bags yet', t: 0 }); }   /* the shelf opens the bags to sell */
   else if (lx < 44 && ly > 168 && ly < 200) { if (Object.keys(RS.beans).length) setTab('roast'); else floats.push({ x: 24, y: 170, text: 'no green coffee', t: 0 }); }
 }
+/* ---------- Kona Ridge: the co-fermentation island. From prestige 6 the trader's boat reaches a volcanic island with no mill.
+   Coffee and fruit grow side by side on plots whose soil wears down; fertiliser is volcanic ash (piles the volcano puffs onto
+   the ash field) mixed with compost from the mainland mills' pulp. Cherries ferment in tanks with one fruit: vent the pressure
+   when it peaks and pull the tank in its gold window. Dry lots sell to the island co-op for shells, the island shop's money,
+   or ship to the roastery as co-ferment bags. Plots, tanks and the patio run on the real clock, so time away counts, and the
+   island keeps everything through prestige. Its sounds are in kona-sfx.js ---------- */
+const kSfx = (n) => { if (typeof KonaSFX !== 'undefined') KonaSFX.play(n); };
+const KPLOT = (i) => ({ x: 6 + (i % 4) * 46, y: i < 4 ? 116 : 162 });   /* a plot's corner: 42 x 46, its bed along the bottom */
+const KPLOT_LV = [1, 1, 1, 1, 3, 6, 10, 14];   /* plots 5 to 8 open with the island's level */
+const KTANK_X = (i) => 5 + i * 30, KTANK_Y = 222, KTANKS_MAX = 6;
+const KMAT = (i) => ({ x: 77 + (i % 3) * 38, y: 268 + Math.floor(i / 3) * 18 }), KMATS = 6;   /* the patio sits right, clear of the corner buttons */
+const KSHED = { x: 144, y: 66, w: 46, h: 46 }, KASH = { x0: 8, x1: 126, y0: 70, y1: 100 }, KCRATER = { x: 96, y: 12 };
+const KVENT_MS = 20e3;   /* a vent stays in the red this long */
+const KSHOP = [
+  { id: 'tarps', name: 'Ash tarps', cost: 60, lv: 2, text: 'Eruptions no longer cover the fruit trees' },
+  { id: 'tank3', name: 'Third tank', cost: 200, lv: 5, text: 'One more fermentation tank' },
+  { id: 'spreader', name: 'Fertiliser spreader', cost: 300, lv: 8, text: 'One bag feeds every plot in its row' },
+  { id: 'copper', name: 'Copper valve', cost: 400, lv: 10, text: 'Each tank vents itself once' },
+  { id: 'tank4', name: 'Fourth tank', cost: 600, lv: 12, text: 'One more tank' },
+  { id: 'big', name: 'Bigger tanks', cost: 800, lv: 15, text: 'Every tank holds 300 kg' },
+  { id: 'trap', name: 'Ash trap', cost: 900, lv: 18, text: 'Gathers a third of the ash while you\'re away' },
+  { id: 'keeper', name: 'Tank keeper', cost: 1000, lv: 20, text: 'Loads, vents and pulls the tanks, and sends dry lots on' },
+  { id: 'copperfin', name: 'Copper tank finish', cost: 1200, lv: 22, text: 'Hammered copper tanks (pick a finish in the Log)' },
+  { id: 'tank56', name: 'Fifth and sixth tanks', cost: 1500, lv: 28, text: 'Two more tanks' },
+  { id: 'patio2', name: 'Second patio', cost: 2500, lv: 35, text: 'Pulled lots dry in half the time' },
+  { id: 'nene', name: 'Nēnē goose', cost: 1500, lv: 40, text: 'A companion that follows your farmer' },
+  { id: 'title', name: '"Fermentation master"', cost: 2000, lv: 45, text: 'A title for your nameplate (Looks)' }
+];
+const KFIN = { steel: ['Stainless steel', null], copper: ['Hammered copper', { '#F2F6F8': '#FFD8B0', '#D4DCE2': '#E8A070', '#B4C0C8': '#C87848', '#8E9CA6': '#A05A34', '#6A7882': '#7A4024' }], gold: ['Golden', { '#F2F6F8': '#FFF4B0', '#D4DCE2': '#F8DC70', '#B4C0C8': '#E8B830', '#8E9CA6': '#B88A20', '#6A7882': '#8A6414' }] };
+const kOwnFin = (f) => f === 'steel' || (f === 'copper' && !!S.kona.shop.copperfin) || (f === 'gold' && S.kona.log.golden > 0);
+const kPlots = () => KPLOT_LV.filter((l) => S.kona.lv >= l).length;
+const kTanks = () => 2 + (S.kona.shop.tank3 ? 1 : 0) + (S.kona.shop.tank4 ? 1 : 0) + (S.kona.shop.tank56 ? 2 : 0);
+const kCap = () => (S.kona.shop.big ? 300 : 200);
+const kNeed = (l) => 20 + 8 * l;   /* island xp from level l to l + 1: about 20 hours of island play to level 50 */
+const kGrow = (pl) => (pl.k === 'coffee' ? 120 / VAR[pl.v].speed : KFR[pl.k].grow * 60);   /* seconds from planting, or the last harvest, to ripe */
+const kYield = (f) => (f >= 60 ? 1 : f >= 20 ? 0.5 + (f - 20) / 80 : f >= 10 ? 0.5 : 0);   /* fertility: full above 60, half at 20, nothing ripens under 10 */
+const kVentAt = (tk, j) => tk.dur * (j + 1) / (tk.n + 1);   /* ms into the ferment when vent j comes due */
+const kVentDue = (tk) => tk.vj < tk.n && Date.now() - tk.at >= kVentAt(tk, tk.vj);
+const kQual = (tk) => tk.end || (Date.now() - tk.at >= tk.dur ? 'gold' : 'early');
+const kDry = (l) => Date.now() - l.at >= l.dry;
+const kShells = (l) => Math.round((8 + 0.25 * l.kg) * (1 + S.kona.lv / 25) * (l.q === 'gold' ? 1.3 : l.q === 'late' ? 0.7 : 1));
+const kFruitOk = (fr) => S.kona.lv >= KFR[fr].lv;
+const kQName = { gold: 'gold window', early: 'pulled early', half: 'stopped by itself', late: 'over-fermented' };
+let kPiles = [], kPuff = null, kPuffT = 25, kEarly = null, kAlarm = 0;
+function konaFresh() {
+  const best = VAR_ORDER.filter((v) => S.vars[v]).sort((a, b) => VAR[b].value - VAR[a].value)[0] || 'caturra';
+  return { lv: 1, xp: 0, shells: 0, ash: 0, compost: 6, bags: 2, fin: 'steel', shop: {}, log: { perfect: {}, erupt: 0, golden: 0 }, cherries: {}, fruit: { mango: 0, pineapple: 0, lemon: 0, coconut: 0 }, tanks: [], patio: [], trap: 0, last: Date.now(), seen: false,
+    plots: Array.from({ length: 8 }, (_, i) => ({ k: i < 4 ? (i % 2 ? 'mango' : 'coffee') : '', v: best, p: i < 4 ? (i % 2 ? 0.55 : 0.92) : 0, f: 100, ash: false })) };
+}
+const konaHere = () => scene() === 'kona' && !document.hidden;
+function goKona() { if (!konaOpen()) return; S.isle = true; S.farmSub = 'fields'; setTab('farm', true); }
+function kXp(n) {
+  const K = S.kona; K.xp += n;
+  while (K.lv < 50 && K.xp >= kNeed(K.lv)) {
+    K.xp -= kNeed(K.lv); K.lv += 1; kSfx('level');
+    const opened = [];
+    KFR_ORDER.forEach((fr) => { if (KFR[fr].lv === K.lv) opened.push(KFR[fr].name.toLowerCase() + ' trees'); });
+    if (KPLOT_LV.includes(K.lv)) opened.push('a new plot');
+    KSHOP.forEach((it) => { if (it.lv === K.lv) opened.push(it.name.replace(/"/g, '') + ' in the island shop'); });
+    toast('Kona Ridge level ' + K.lv + (opened.length ? ': ' + listAnd(opened) : ''));
+  }
+}
+function konaTick() {
+  if (!konaOpen()) return;
+  if (!S.kona) S.kona = konaFresh();
+  const K = S.kona, now = Date.now(), dt = Math.max(0, Math.min(12 * 3600, (now - (K.last || now)) / 1000)); K.last = now;
+  if (dt <= 0) return;
+  const here = konaHere() && dt < 3;   /* a long gap is time away, even if the island is on screen when the page comes back */
+  K.plots.forEach((pl, i) => { if (!pl.k || pl.ash || i >= kPlots() || pl.p >= 1 || pl.f < 10) return; pl.p = Math.min(1, pl.p + dt / kGrow(pl)); });
+  K.tanks.forEach((tk) => {
+    if (!tk) return; const t = now - tk.at;
+    if (K.shop.copper && !tk.cu && kVentDue(tk)) { tk.cu = 1; tk.vj += 1; }   /* the copper valve lets off the first peak by itself */
+    if (K.shop.keeper && kVentDue(tk)) tk.vj += 1;
+    while (tk.vj < tk.n && t >= kVentAt(tk, tk.vj) + KVENT_MS) { if (here) { tk.miss += 1; floats.push({ x: KTANK_X(K.tanks.indexOf(tk)) + 13, y: KTANK_Y - 4, text: 'missed vent -0.5 cup', t: 0 }); SFX.play('nope'); } tk.vj += 1; }   /* away, nobody's there to vent: no harm */
+    if (!tk.end && t > tk.dur + tk.win) tk.end = here ? 'late' : 'half';   /* missed while you watch: over-fermented. Away: it stops by itself at the window's end */
+  });
+  if (here) {
+    if (K.tanks.some((tk) => tk && kVentDue(tk)) && now - kAlarm > 6000) { kAlarm = now; kSfx('alarm'); }
+    kPuffT -= dt; if (kPuffT <= 0) kPuffNow(Math.random() < 1 / 8);
+    if (K.trap >= 1) { const n = Math.floor(K.trap); K.trap -= n; K.ash += n; floats.push({ x: KSHED.x + 23, y: KSHED.y + 4, text: '+' + n + ' ash from the trap', t: 0 }); }
+  } else if (K.shop.trap) K.trap = Math.min(40, (K.trap || 0) + dt * 0.021);   /* a third of what the field gets: about 4.75 ash a puff, a puff every 75 seconds */
+  kPiles = kPiles.filter((p) => (p.t += dt) < 45);
+  if (kPuff && (kPuff.t += dt) > (kPuff.big ? 7 : 4.5)) kPuff = null;
+  if (K.shop.keeper) kKeeper();
+}
+function kPuffNow(big) {
+  const K = S.kona; kPuffT = 60 + Math.random() * 30; kPuff = { t: 0, big };
+  const n = big ? 10 : 3 + Math.floor(Math.random() * 3);
+  for (let j = 0; j < n; j++) kPiles.push({ x: KASH.x0 + Math.random() * (KASH.x1 - KASH.x0 - 12), y: KASH.y0 + Math.random() * (KASH.y1 - KASH.y0), t: -1.2 - Math.random() * 0.9, big: Math.random() < 0.3 });
+  kSfx(big ? 'erupt' : 'puff');
+  if (!big) return;
+  if (!K.shop.tarps) {
+    const trees = K.plots.map((pl, i) => [pl, i]).filter(([pl, i]) => pl.k && pl.k !== 'coffee' && !pl.ash && i < kPlots()).sort(() => Math.random() - 0.5).slice(0, 3);
+    trees.forEach(([pl]) => { pl.ash = true; }); if (trees.length) K.erupting = true;
+  }
+  floats.push({ x: KCRATER.x, y: KCRATER.y + 26, text: 'eruption! ash everywhere', t: 0 });
+}
+function kKeeper() {   /* the tank keeper: loads, vents (above) and pulls, and sends dry lots on */
+  const K = S.kona;
+  K.tanks.forEach((tk, i) => { if (tk && Date.now() - tk.at >= tk.dur && K.patio.length < KMATS) kPull(i, true); });
+  for (let i = 0; i < kTanks(); i++) if (!K.tanks[i]) { const fr = kBestFruit(); if (!fr || !kLoad(i, fr, true)) break; }
+  K.patio.slice().forEach((l) => { if (!kDry(l)) return; const j = K.patio.indexOf(l); if (!kShip(j, true)) kSell(j, true); });
+}
+/* plots */
+function kHarvest(i) {
+  const K = S.kona, pl = K.plots[i], f = kYield(pl.f), at = KPLOT(i);
+  if (pl.k === 'coffee') {
+    const kg = Math.round(25 * VAR[pl.v].kg / 3 * f * 10) / 10; K.cherries[pl.v] = (K.cherries[pl.v] || 0) + kg; pl.f = Math.max(0, pl.f - 8);
+    SFX.play('harvest'); floats.push({ x: at.x + 21, y: at.y + 10, text: '+' + fmtKg(kg) + ' kg ' + ART.varieties[pl.v], t: 0 }); kXp(2);
+  } else {
+    const kg = Math.round(KFR[pl.k].kg * f); K.fruit[pl.k] = Math.min(200, (K.fruit[pl.k] || 0) + kg); pl.f = Math.max(0, pl.f - 12);
+    kSfx('fruit'); floats.push({ x: at.x + 21, y: at.y + 8, text: '+' + kg + ' kg ' + KFR[pl.k].name.toLowerCase(), t: 0 }); kXp(3);
+    if (pl.k === 'pineapple' && Math.random() < 1 / 50) { K.log.golden += 1; K.shells += 50; SFX.play('achieve'); toast('A golden pineapple! +50 shells' + (K.log.golden === 1 ? ', and the golden tank finish (Kona › Log)' : '')); }
+  }
+  for (let k = 0; k < 7; k++) bursts.push({ x: at.x + 21, y: at.y + 18, vx: (rnd() - 0.5) * 60, vy: -30 - rnd() * 40, t: 0, c: pl.k === 'coffee' ? (k % 2 ? '#E83A30' : '#3E8036') : (k % 2 ? KFR[pl.k].col : '#3E8036') });
+  pl.p = 0;
+}
+function kFeed(i) {   /* a bag on a plot, or with the spreader on its whole row */
+  const K = S.kona; if (K.bags < 1) return false;
+  K.bags -= 1; const row = K.shop.spreader ? [0, 1, 2, 3].map((c) => (i < 4 ? c : c + 4)).filter((j) => j < kPlots()) : [i];
+  row.forEach((j) => { K.plots[j].f = Math.min(100, K.plots[j].f + 40); });
+  kSfx('feed'); kXp(2); const at = KPLOT(i); floats.push({ x: at.x + 21, y: at.y + 20, text: row.length > 1 ? 'row fed +40' : 'fed +40', t: 0 });
+  for (let k = 0; k < 10; k++) bursts.push({ x: at.x + 21, y: at.y + 32, vx: (rnd() - 0.5) * 50, vy: -20 - rnd() * 20, t: 0, c: k % 2 ? '#A89A86' : '#5E3822' });
+  return true;
+}
+function kPlant(i, what) {
+  const K = S.kona, pl = K.plots[i]; if (!pl || i >= kPlots()) return;
+  if (what === 'coffee' || VAR[what]) { pl.k = 'coffee'; pl.v = VAR[what] ? what : pl.v; } else if (KFR[what] && kFruitOk(what)) pl.k = what; else return;
+  pl.p = 0; pl.ash = false; kSfx('plant'); kXp(1);
+}
+function kMix() {
+  const K = S.kona;
+  if (K.ash < 3 || K.compost < 1) { SFX.play('knock'); floats.push({ x: KSHED.x + 23, y: KSHED.y + 10, text: K.ash < 3 ? 'needs 3 ash' : 'needs compost from the mills', t: 0 }); return false; }
+  K.ash -= 3; K.compost -= 1; K.bags += 1; kSfx('mix'); kXp(1); floats.push({ x: KSHED.x + 23, y: KSHED.y + 10, text: '+1 fertiliser', t: 0 }); return true;
+}
+/* tanks */
+function kBestFruit() {   /* the fruit to load: the best bonus there's enough of */
+  const K = S.kona, v = kBigV(); if (!v) return null;
+  const need = Math.min(kCap(), K.cherries[v]) / 10;
+  return KFR_ORDER.filter((fr) => kFruitOk(fr) && (K.fruit[fr] || 0) >= Math.min(need, 4)).sort((a, b) => kBonus(b, v) - kBonus(a, v))[0] || null;
+}
+const kBigV = () => { const c = S.kona.cherries; return Object.keys(c).filter((v) => c[v] >= 40).sort((a, b) => c[b] - c[a])[0] || null; };   /* the coffee with the most cherries, at least 40 kg */
+function kLoad(i, fr, quiet) {
+  const K = S.kona, v = kBigV(); if (K.tanks[i] || i >= kTanks() || !v || !KFR[fr] || !kFruitOk(fr)) return false;
+  const kg = Math.floor(Math.min(kCap(), K.cherries[v], (K.fruit[fr] || 0) * 10)); if (kg < 40) return false;
+  K.cherries[v] -= kg; if (K.cherries[v] < 0.5) delete K.cherries[v]; K.fruit[fr] -= kg / 10;
+  const F = KFR[fr]; K.tanks[i] = { v, fr, kg, at: Date.now(), dur: F.ferm * 60e3, win: F.win * 1e3, n: F.vents, vj: 0, miss: 0 };
+  if (!quiet) { kSfx('load'); floats.push({ x: KTANK_X(i) + 13, y: KTANK_Y - 4, text: fmt(kg) + ' kg + ' + F.name.toLowerCase(), t: 0 }); }
+  return true;
+}
+function kVent(i) { const tk = S.kona.tanks[i]; if (!tk || !kVentDue(tk)) return false; tk.vj += 1; kSfx('vent'); kXp(2); floats.push({ x: KTANK_X(i) + 13, y: KTANK_Y - 4, text: 'vented', t: 0 }); for (let k = 0; k < 10; k++) bursts.push({ x: KTANK_X(i) + 13, y: KTANK_Y, vx: (rnd() - 0.5) * 40, vy: -40 - rnd() * 30, t: 0, c: '#F2F6F8' }); return true; }
+function kPull(i, quiet) {
+  const K = S.kona, tk = K.tanks[i]; if (!tk) return false;
+  if (K.patio.length >= KMATS) { if (!quiet) { SFX.play('knock'); floats.push({ x: KTANK_X(i) + 13, y: KTANK_Y - 4, text: 'the patio is full', t: 0 }); } return false; }
+  const q = kQual(tk), b = kBonus(tk.fr, tk.v), adj = (q === 'gold' ? b : q === 'late' ? -2 : b / 2) - 0.5 * tk.miss;
+  K.patio.push({ v: tk.v, fr: tk.fr, kg: Math.round(tk.kg * 0.2 * (tk.fr === 'coconut' ? 1.2 : 1) * 10) / 10, adj, pay: q === 'gold' ? 1.15 : q === 'late' ? 0.7 : 1, q, at: Date.now(), dry: (K.shop.patio2 ? 90 : 180) * 1e3 });
+  K.tanks[i] = null;
+  if (q === 'gold') { const k = tk.v + '.' + tk.fr; K.log.perfect[k] = (K.log.perfect[k] || 0) + 1; task('ktank', 1); }
+  K.stats = K.stats || {}; K.stats.tanks = (K.stats.tanks || 0) + 1;
+  kXp(q === 'gold' ? 15 : 8);
+  if (!quiet) { kSfx(q === 'late' ? 'sour' : 'pull'); floats.push({ x: KTANK_X(i) + 13, y: KTANK_Y - 4, text: q === 'gold' ? 'perfect! +' + b + ' cup' : kQName[q], t: 0 }); }
+  return true;
+}
+/* the patio: dry lots go to the island co-op for shells, or to a roastery bin as co-ferment bags */
+function kSell(j, quiet) {
+  const K = S.kona, l = K.patio[j]; if (!l || !kDry(l)) return false;
+  const n = kShells(l); K.shells += n; K.patio.splice(j, 1); kXp(5);
+  if (!quiet) { kSfx('shells'); tapNote('+' + n + ' shells', 'The island co-op bought your ' + KFR[l.fr].name.toLowerCase() + ' co-ferment: +' + n + ' shells'); }
+  return true;
+}
+function kShip(j, quiet) {
+  const K = S.kona, l = K.patio[j], key = l && l.v + '.cof_' + l.fr; if (!l || !kDry(l)) return false;
+  if (!roasteryOpen() || !canBin(key)) { if (!quiet) { SFX.play('nope'); toast('All ' + ROAST_BINS + ' roastery bins are full. Roast or sell one first'); } return false; }
+  const r = saleFor(l.v, 'cof_' + l.fr, l.kg, { raked: l.adj }), R = S.roastery, b = R.beans[key] = R.beans[key] || { kg: 0, coins: 0, pts: 0, cup: 0 };
+  b.cup = (b.cup * b.kg + r.cup * l.kg) / (b.kg + l.kg); b.kg += l.kg; b.coins += r.coins * l.pay; b.pts += r.points;
+  K.patio.splice(j, 1); kXp(5);
+  if (!quiet) { SFX.play('stamp'); tapNote('+' + fmtKg(l.kg) + ' kg to a bin', fmtKg(l.kg) + ' kg of ' + beanName(key) + ' shipped to the roastery'); }
+  return true;
+}
+function kLotCard(j) {
+  const K = S.kona, l = K.patio[j]; if (!l) return '';
+  const key = l.v + '.cof_' + l.fr, can = roasteryOpen() && canBin(key), r = saleFor(l.v, 'cof_' + l.fr, l.kg, { raked: l.adj });
+  return '<h2>' + KFR[l.fr].name + ' co-ferment</h2><p class="note">' + fmtKg(l.kg) + ' kg of ' + ART.varieties[l.v] + ', ' + kQName[l.q] + ', cup ' + r.cup.toFixed(1) + '.</p>' +
+    row(img('k_i_shell', 28), 'Sell to the island co-op', '+' + kShells(l) + ' shells for the island shop', btn('Sell', '+' + kShells(l), 'k_sell:' + j, true, 'green')) +
+    row(img('k_i_' + l.fr, 28), 'Ship to the roastery', can ? 'Into a bin as ' + beanName(key) + ': its bags carry the fruit\'s name and sell high' : roasteryOpen() ? 'Every roastery bin is full' : 'The roastery isn\'t open yet', btn('Ship', 'to Osaka', 'k_ship:' + j, can, 'blue')) +
+    '<button class="btn" data-act="close">Close</button>';
+}
+/* the map */
+function konaClick(lx, ly) {
+  const K = S.kona; kWalk(lx, ly);
+  for (let j = kPiles.length - 1; j >= 0; j--) { const p = kPiles[j], w = p.big ? 12 : 9; if (p.t >= 0 && lx >= p.x - 3 && lx < p.x + w + 3 && ly >= p.y - 5 && ly < p.y + 11) { kPiles.splice(j, 1); K.ash += 1; task('kash', 1); kXp(1); kSfx('gather'); floats.push({ x: p.x + w / 2, y: p.y - 2, text: '+1 ash', t: 0 }); return; } }
+  if (lx >= KSHED.x && lx < KSHED.x + KSHED.w && ly >= KSHED.y && ly < KSHED.y + KSHED.h) { kMix(); return; }
+  for (let i = 0; i < 8; i++) {
+    const at = KPLOT(i); if (lx < at.x || lx >= at.x + 42 || ly < at.y || ly >= at.y + 46) continue;
+    const pl = K.plots[i];
+    if (i >= kPlots()) { SFX.play('knock'); floats.push({ x: at.x + 21, y: at.y + 24, text: 'opens at island level ' + KPLOT_LV[i], t: 0 }); return; }
+    if (!pl.k) { showModal(kPlantCard(i)); return; }
+    if (pl.ash) { pl.ash = false; K.ash += 2; kXp(2); kSfx('gather'); floats.push({ x: at.x + 21, y: at.y + 10, text: 'cleared +2 ash', t: 0 }); if (K.erupting && !K.plots.some((x) => x.ash)) { K.erupting = false; if (!K.shop.tarps) K.log.erupt += 1; } return; }
+    if (pl.p >= 1 && pl.f >= 10) { kHarvest(i); return; }
+    if (pl.f <= 70 && K.bags > 0) { kFeed(i); return; }
+    SFX.play('brush'); floats.push({ x: at.x + 21, y: at.y + 12, text: pl.f < 10 ? 'tired soil: feed it' : pl.f <= 70 ? 'needs fertiliser' : 'growing ' + Math.floor(pl.p * 100) + '%', t: 0 }); return;
+  }
+  for (let i = 0; i < KTANKS_MAX; i++) {
+    const x = KTANK_X(i); if (lx < x || lx >= x + 26 || ly < KTANK_Y - 6 || ly >= KTANK_Y + 44) continue;
+    if (i >= kTanks()) { SFX.play('knock'); floats.push({ x: x + 13, y: KTANK_Y + 10, text: 'more tanks in the island shop', t: 0 }); return; }
+    const tk = K.tanks[i];
+    if (!tk) {
+      const v = kBigV(), ok = KFR_ORDER.filter((fr) => kFruitOk(fr) && (K.fruit[fr] || 0) >= 4);
+      if (!v) { SFX.play('knock'); floats.push({ x: x + 13, y: KTANK_Y - 4, text: 'needs 40 kg of cherries', t: 0 }); return; }
+      if (!ok.length) { SFX.play('knock'); floats.push({ x: x + 13, y: KTANK_Y - 4, text: 'needs fruit', t: 0 }); return; }
+      if (ok.length === 1) kLoad(i, ok[0]); else showModal(kLoadCard(i));
+      return;
+    }
+    if (kVentDue(tk)) { kVent(i); return; }
+    const t = Date.now() - tk.at;
+    if (t >= tk.dur || tk.end) { kPull(i); return; }
+    if (t >= tk.dur * 0.5) {   /* early: a second tap within a moment pulls it anyway, at half the bonus */
+      if (kEarly && kEarly.i === i && Date.now() - kEarly.at < 2500) { kEarly = null; kPull(i); return; }
+      kEarly = { i, at: Date.now() }; SFX.play('tick'); floats.push({ x: x + 13, y: KTANK_Y - 4, text: 'tap again to pull early', t: 0 }); return;
+    }
+    SFX.play('brush'); floats.push({ x: x + 13, y: KTANK_Y - 4, text: 'fermenting ' + Math.floor(t / tk.dur * 100) + '%', t: 0 }); return;
+  }
+  for (let j = 0; j < KMATS; j++) {
+    const m = KMAT(j); if (lx < m.x || lx >= m.x + 34 || ly < m.y - 2 || ly >= m.y + 18) continue;
+    const l = K.patio[j]; if (!l) { floats.push({ x: m.x + 17, y: m.y, text: 'pull a tank to dry it here', t: 0 }); return; }
+    if (!kDry(l)) { SFX.play('brush'); floats.push({ x: m.x + 17, y: m.y, text: 'drying ' + Math.floor((Date.now() - l.at) / l.dry * 100) + '%', t: 0 }); return; }
+    showModal(kLotCard(j)); return;
+  }
+  if (ly > 270 && lx < 70) { SFX.play('knock'); floats.push({ x: 40, y: 290, text: 'the boat to Osaka', t: 0 }); }
+}
+function kWalk(lx, ly) {   /* your farmer heads for wherever you tap, along the paths between the rows */
+  const me = S.kona && IN.kona.me; if (!me) return;
+  const lane = ly < 114 ? 113 : ly < 162 ? 161 : ly < 216 ? 213 : 265, x = Math.max(8, Math.min(W - 8, lx));
+  me.path = [{ x: me.x, y: lane }, { x, y: lane }, { x, y: Math.max(66, Math.min(304, ly + 18)) }];
+}
+IN.kona = { me: null };
+function drawKona(time) {
+  const K = S.kona, b = sceneBg('kona'); fx.imageSmoothingEnabled = false;
+  if (b.complete && b.naturalWidth) fx.drawImage(b, 0, 0); else { fx.fillStyle = '#6CA442'; fx.fillRect(0, 0, W, H); }
+  if (!K) return;
+  if (!IN.kona.me) { IN.kona.me = walker(100, 213); IN.kona.me.me = true; }
+  const me = IN.kona.me; if (!step(me, 1 / 60, 40)) me.walk = 0;
+  /* the crater glows, and puffs smoke */
+  { const g = 0.5 + 0.5 * Math.sin(time * 2.2); fx.fillStyle = 'rgba(255,170,60,' + (0.25 + 0.25 * g).toFixed(2) + ')'; fx.beginPath(); fx.ellipse(KCRATER.x, KCRATER.y, 9, 3, 0, 0, 7); fx.fill(); }
+  for (let k = 0; k < 4; k++) { const ph = (time * 0.18 + k / 4) % 1; fx.fillStyle = 'rgba(200,196,190,' + (0.5 - ph * 0.5).toFixed(2) + ')'; fx.beginPath(); fx.arc(KCRATER.x + Math.sin(time * 0.7 + k) * 4 + ph * 10, KCRATER.y - 4 - ph * 26, 3 + ph * 6, 0, 7); fx.fill(); }
+  if (kPuff) {
+    const big = kPuff.big, u = kPuff.t / (big ? 7 : 4.5);
+    for (let k = 0; k < (big ? 16 : 8); k++) { const a = k * 2.4, r = (big ? 10 : 6) + u * (big ? 30 : 18) * (0.6 + (k % 3) * 0.2); fx.fillStyle = 'rgba(' + (big ? '120,110,104' : '170,164,158') + ',' + Math.max(0, 0.7 - u * 0.7).toFixed(2) + ')'; fx.beginPath(); fx.arc(KCRATER.x + Math.cos(a) * r * 0.7, KCRATER.y - 6 - u * 30 + Math.sin(a) * r * 0.35, 4 + u * (big ? 9 : 6), 0, 7); fx.fill(); }
+    if (big && u < 0.4) for (let k = 0; k < 6; k++) { fx.fillStyle = k % 2 ? '#F2A040' : '#E8481E'; fx.fillRect(Math.round(KCRATER.x - 8 + k * 3 + Math.sin(time * 9 + k) * 2), Math.round(KCRATER.y - 4 - (u * 60 + k * 3) % 18), 2, 2); }
+  }
+  /* ash: flakes drifting down, then piles to gather */
+  kPiles.forEach((p) => {
+    if (p.t < 0) { const u = 1 + p.t / 2.1; fx.fillStyle = '#7E7468'; for (let k = 0; k < 3; k++) fx.fillRect(Math.round(KCRATER.x + (p.x + 5 - KCRATER.x) * u + Math.sin(time * 4 + k + p.x) * 3), Math.round(KCRATER.y + (p.y - KCRATER.y) * u - k * 4), 1, 1); return; }
+    if (p.t > 40 && Math.floor(time * 6) % 2) return;   /* about to blow away */
+    fx.drawImage(sprite(p.big ? 'k_pile_1' : 'k_pile_0'), Math.round(p.x), Math.round(p.y));
+  });
+  /* the shed: sacks of fertiliser stacked by the door */
+  for (let k = 0; k < Math.min(6, K.bags); k++) fx.drawImage(sprite('k_i_bag'), KSHED.x + 2 + (k % 3) * 8, KSHED.y + 36 - Math.floor(k / 3) * 7);
+  /* the plots */
+  for (let i = 0; i < 8; i++) {
+    const at = KPLOT(i), pl = K.plots[i], open = i < kPlots();
+    if (!open) { fx.fillStyle = 'rgba(40,30,20,0.35)'; fx.fillRect(at.x, at.y + 26, 42, 18); continue; }
+    const st = pl.p >= 1 && pl.f >= 10 ? 2 : pl.p >= 0.5 ? 1 : 0;
+    if (pl.k === 'coffee') { const s = STAGES[pl.p < 0.3 ? 0 : pl.p < 0.55 ? 1 : pl.p < 0.8 ? 2 : pl.p < 1 ? 3 : 4]; fx.drawImage(sprite('bush_' + pl.v + '_' + s), at.x + 3, at.y + 17); fx.drawImage(sprite('bush_' + pl.v + '_' + s), at.x + 21, at.y + 17); }
+    else if (pl.k) fx.drawImage(sprite('k_' + pl.k + '_' + st), at.x + 9, at.y + 10);
+    if (pl.ash) { fx.fillStyle = 'rgba(150,140,128,0.85)'; fx.beginPath(); fx.ellipse(at.x + 21, at.y + 22, 13, 12, 0, 0, 7); fx.fill(); fx.fillStyle = '#7E7468'; for (let k = 0; k < 8; k++) fx.fillRect(at.x + 11 + (k * 5) % 20, at.y + 14 + (k * 7) % 16, 2, 1); }
+    if (pl.k && pl.p >= 1 && pl.f >= 10 && !pl.ash && Math.floor(time * 3 + i) % 6 === 0) fx.drawImage(sprite('sparkle'), at.x + 30, at.y + 10);
+    const f = Math.max(0, Math.min(100, pl.f)); fx.fillStyle = '#2A1E14'; fx.fillRect(at.x + 4, at.y + 40, 34, 2); fx.fillStyle = f >= 60 ? '#7EB84C' : f >= 20 ? '#F2C04A' : '#D8402C'; fx.fillRect(at.x + 4, at.y + 40, Math.round(34 * f / 100), 2);
+  }
+  /* the tanks */
+  for (let i = 0; i < KTANKS_MAX; i++) {
+    const x = KTANK_X(i), tk = K.tanks[i];
+    if (i >= kTanks()) { fx.globalAlpha = 0.18; fx.drawImage(sprite('k_tank'), x, KTANK_Y); fx.globalAlpha = 1; continue; }
+    fx.drawImage(sprite('k_tank', KFIN[K.fin] && KFIN[K.fin][1] ? { swap: KFIN[K.fin][1] } : undefined), x, KTANK_Y);
+    if (!tk) continue;
+    const t = Date.now() - tk.at, u = Math.min(1, t / tk.dur), h = Math.round(18 * u), gold = !tk.end && t >= tk.dur, late = tk.end === 'late';
+    fx.fillStyle = late ? '#6A5A2A' : KFR[tk.fr].col; fx.fillRect(x + 10, KTANK_Y + 28 - h, 6, h);   /* the flavour rising in the window */
+    fx.fillStyle = '#8A3A26'; fx.fillRect(x + 10, KTANK_Y + 28 - Math.max(2, Math.round(h * 0.4)), 6, Math.max(2, Math.round(h * 0.4)));
+    if (gold && Math.floor(time * 4) % 2) { fx.strokeStyle = '#F2C04A'; fx.lineWidth = 1; fx.strokeRect(x + 1.5, KTANK_Y + 5.5, 23, 29); }
+    if (kVentDue(tk)) { fx.fillStyle = Math.floor(time * 6) % 2 ? '#FF4030' : '#FFD070'; fx.fillRect(x + 12, KTANK_Y, 2, 3); for (let k = 0; k < 3; k++) { const ph = (time * 2 + k / 3) % 1; fx.fillStyle = 'rgba(255,255,255,' + (0.7 - ph * 0.7).toFixed(2) + ')'; fx.fillRect(Math.round(x + 13 + Math.sin(time * 5 + k) * 2), Math.round(KTANK_Y - 2 - ph * 10), 2, 2); } }
+    const pr = tk.vj < tk.n ? Math.min(1, t / kVentAt(tk, tk.vj)) : 0.2; fx.fillStyle = '#2A1E14'; fx.fillRect(x + 19, KTANK_Y + 12, 2, 14); fx.fillStyle = pr >= 1 ? '#FF4030' : pr > 0.7 ? '#F2C04A' : '#7EB84C'; fx.fillRect(x + 19, KTANK_Y + 26 - Math.round(14 * pr), 2, Math.round(14 * pr));   /* the pressure gauge */
+  }
+  /* the patio */
+  for (let j = 0; j < KMATS; j++) {
+    const m = KMAT(j), l = K.patio[j]; if (!l) continue;
+    fx.drawImage(sprite('k_mat'), m.x, m.y); fx.drawImage(sprite('k_i_' + l.fr), m.x + 12, m.y + 2);
+    const u = Math.min(1, (Date.now() - l.at) / l.dry); fx.fillStyle = '#2A1E14'; fx.fillRect(m.x + 2, m.y + 14, 30, 2); fx.fillStyle = u >= 1 ? '#F2C04A' : '#7EB84C'; fx.fillRect(m.x + 2, m.y + 14, Math.round(30 * u), 2);
+  }
+  drawGuy(me); drawPet(me, 'kona');
+  bursts.forEach((p) => { fx.fillStyle = p.c; fx.fillRect(Math.round(p.x), Math.round(p.y), 1, 1); });
+  const hr = S.minutes / 60, tint = hr >= 20 || hr < 5 ? 'rgba(30,40,110,0.34)' : hr >= 17.5 ? 'rgba(240,120,40,' + (0.08 + (hr - 17.5) * 0.06).toFixed(2) + ')' : hr < 7 ? 'rgba(240,150,170,0.14)' : null;
+  if (tint) { fx.fillStyle = tint; fx.fillRect(0, 0, W, H); }
+  ctx.imageSmoothingEnabled = false; ctx.drawImage(frame, 0, 0, W * 2, H * 2); ctx.textAlign = 'center';
+  nameTag(me.x, me.y);
+  ctx.font = '700 13px "Pixelify Sans", monospace';
+  const tag = (tx, x, y, bg, fg) => { const w = ctx.measureText(tx).width + 10; ctx.fillStyle = bg; ctx.fillRect(x * 2 - w / 2, y * 2 - 14, w, 18); ctx.fillStyle = fg; ctx.fillText(tx, x * 2, y * 2); };
+  K.tanks.forEach((tk, i) => { if (!tk || i >= kTanks()) return; const x = KTANK_X(i) + 13, t = Date.now() - tk.at; if (kVentDue(tk)) { if (Math.floor(time * 4) % 2) tag('VENT!', x, KTANK_Y - 6, '#3E2A1C', '#FF6A50'); } else if (tk.end === 'late') tag('SOUR', x, KTANK_Y - 6, '#3E2A1C', '#C8B060'); else if (t >= tk.dur || tk.end) tag('PULL', x, KTANK_Y - 6, '#3E2A1C', '#F2C04A'); });
+  K.patio.forEach((l, j) => { if (kDry(l)) { const m = KMAT(j); tag('DRY', m.x + 17, m.y - 1, '#3E2A1C', '#F2C04A'); } });
+  for (let i = kPlots(); i < 8; i++) { const at = KPLOT(i); ctx.fillStyle = 'rgba(255,244,222,0.85)'; ctx.fillText('LV ' + KPLOT_LV[i], (at.x + 21) * 2, (at.y + 38) * 2); }
+  if (K.ash >= 3 && K.compost >= 1 && K.bags < 4) tag('MIX', KSHED.x + 23, KSHED.y + 2, '#3E2A1C', '#FFF4DE');
+  drawHint('kona', time);
+  drawFloats();
+}
+function kPlantCard(i) {
+  const K = S.kona, vs = VAR_ORDER.filter((v) => S.vars[v]);
+  return '<h2>Plant plot ' + (i + 1) + '</h2><p class="note">Coffee makes the cherries for the tanks; fruit goes in with them. A coffee plot ripens every 2 minutes or so, a fruit tree every 6 to 15.</p>' +
+    '<h3>Coffee</h3>' + vs.map((v) => row(img('bush_' + v + '_ripe', 28), ART.varieties[v], (VAR[v].kg * 25 / 3).toFixed(0) + ' kg a harvest' + (['geisha', 'yellowbourbon', 'pinkbourbon'].includes(v) ? ' · lemon loves it' : ''), btn('Plant', '', 'k_plant:' + i + '.' + v, true, 'green'))).join('') +
+    '<h3>Fruit</h3>' + KFR_ORDER.map((fr) => row(img('k_i_' + fr, 28), KFR[fr].name, kFruitOk(fr) ? KFR[fr].note + ' · +' + KFR[fr].bonus + ' cup' : 'Opens at island level ' + KFR[fr].lv, btn('Plant', '', 'k_plant:' + i + '.' + fr, kFruitOk(fr), 'green'))).join('') +
+    '<button class="btn" data-act="close">Close</button>';
+}
+function kLoadCard(i) {
+  const K = S.kona, v = kBigV(), kg = Math.min(kCap(), K.cherries[v] || 0);
+  return '<h2>Load tank ' + (i + 1) + '</h2><p class="note">' + fmt(kg) + ' kg of ' + ART.varieties[v] + ' and 1 kg of fruit for every 10 kg. Pick the fruit:</p>' +
+    KFR_ORDER.filter((fr) => kFruitOk(fr)).map((fr) => { const have = K.fruit[fr] || 0, n = Math.floor(Math.min(kg, have * 10)); return row(img('k_i_' + fr, 28), KFR[fr].name + ' · +' + kBonus(fr, v) + ' cup', fmt(have) + ' kg of fruit · ' + KFR[fr].ferm + ' min, gold window ' + KFR[fr].win + ' s' + (KFR[fr].vents ? ', ' + KFR[fr].vents + ' vent' + (KFR[fr].vents > 1 ? 's' : '') : ', no venting'), btn('Load', n >= 40 ? fmt(n) + ' kg' : 'not enough', 'k_load:' + i + '.' + fr, n >= 40, 'green')); }).join('') +
+    '<button class="btn" data-act="close">Close</button>';
+}
+/* the Farm tab while you're on the island */
+function konaPanel() {
+  const K = S.kona, sub = ['island', 'shop', 'log'].includes(S.konaSub) ? S.konaSub : 'island';
+  let h = '<div class="seg">' + [['island', 'Island'], ['shop', 'Shop'], ['log', 'Log']].map(([k, t]) => '<button type="button" data-act="k_sub:' + k + '" aria-pressed="' + (sub === k) + '">' + t + '</button>').join('') + '</div>';
+  const res = '<div style="display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center;margin:6px 0">' + [['k_i_shell', fmt(K.shells) + ' shells'], ['k_i_ash', fmt(K.ash) + ' ash'], ['k_i_compost', fmt(Math.floor(K.compost)) + ' compost'], ['k_i_bag', fmt(K.bags) + ' fertiliser']].map(([i, t]) => '<span style="display:inline-flex;align-items:center;gap:4px">' + img(i, 18) + '<b>' + t + '</b></span>').join('') + '</div>';
+  if (sub === 'island') {
+    h += '<h2>Kona Ridge · level ' + K.lv + '</h2><div class="bar"><i style="width:' + (K.lv >= 50 ? 100 : Math.round(K.xp / kNeed(K.lv) * 100)) + '%"></i></div>' + res;
+    h += help('kona', 'Grow coffee and fruit, ferment them together in the tanks, and dry the lots on the patio.', 'Coffee plots make cherries and fruit trees make fruit. Every harvest wears the soil down: fertiliser (3 ash and 1 compost, mixed at the shed) brings it back. The volcano puffs ash onto the field every minute or so; tap the piles before they blow away. Compost comes from your mainland mills: 100 kg of cherries milled makes 1. Load a tank with cherries and one fruit, vent it when the gauge goes red, and pull it in its gold window. A dry lot sells to the island co-op for shells, or ships to the roastery as co-ferment bags.');
+    h += '<p class="note"><b>In store:</b> ' + (Object.keys(K.cherries).filter((v) => K.cherries[v] >= 1).map((v) => fmtKg(K.cherries[v]) + ' kg ' + ART.varieties[v]).join(' · ') || 'no cherries') + ' · ' + (KFR_ORDER.filter((fr) => (K.fruit[fr] || 0) >= 1).map((fr) => fmt(K.fruit[fr]) + ' kg ' + KFR[fr].name.toLowerCase()).join(' · ') || 'no fruit') + '</p>';
+    h += '<div class="seg">' + btn('Mix fertiliser', '3 ash + 1 compost', 'k_mix', K.ash >= 3 && K.compost >= 1, 'green') + '</div>';
+    h += '<h3>Plots ' + kPlots() + ' / 8</h3>' + K.plots.slice(0, kPlots()).map((pl, i) => row(img(pl.k === 'coffee' ? 'bush_' + pl.v + '_ripe' : pl.k ? 'k_i_' + pl.k : 'k_i_compost', 28), 'Plot ' + (i + 1) + ': ' + (pl.k === 'coffee' ? ART.varieties[pl.v] : pl.k ? KFR[pl.k].name : 'empty'),
+      pl.k ? (pl.ash ? 'covered in ash: tap it on the map' : pl.p >= 1 ? 'ripe' : 'growing ' + Math.floor(pl.p * 100) + '%') + ' · soil ' + Math.round(pl.f) + '%' : 'plant something', btn(pl.k ? 'Replant' : 'Plant', '', 'k_plantcard:' + i, true, 'blue') + (pl.k && pl.f < 100 ? btn('Feed', '+40', 'k_feed:' + i, K.bags > 0, 'green') : ''))).join('');
+    h += '<h3>Tanks ' + K.tanks.filter(Boolean).length + ' / ' + kTanks() + '</h3>' + Array.from({ length: kTanks() }, (_, i) => { const tk = K.tanks[i]; if (!tk) return row(img('k_i_tank', 28), 'Tank ' + (i + 1), 'empty · holds ' + kCap() + ' kg', btn('Load', '', 'k_loadcard:' + i, !!kBigV(), 'green')); const t = Date.now() - tk.at, vent = kVentDue(tk);
+      return row(img('k_i_' + tk.fr, 28), 'Tank ' + (i + 1) + ': ' + KFR[tk.fr].name + ' + ' + ART.varieties[tk.v], fmt(tk.kg) + ' kg · ' + (vent ? 'vent it now!' : tk.end ? kQName[tk.end] : t >= tk.dur ? 'in its gold window' : 'fermenting ' + Math.floor(t / tk.dur * 100) + '%') + (tk.miss ? ' · ' + tk.miss + ' missed vent' + (tk.miss > 1 ? 's' : '') : ''), vent ? btn('Vent', '', 'k_vent:' + i, true, 'red') : btn('Pull', t >= tk.dur || tk.end ? kQName[kQual(tk)] : 'early', 'k_pull:' + i, t >= tk.dur * 0.5 || !!tk.end, t >= tk.dur || tk.end ? 'gold' : '')); }).join('');
+    if (K.patio.length) h += '<h3>Patio ' + K.patio.length + ' / ' + KMATS + '</h3>' + K.patio.map((l, j) => row(img('k_i_' + l.fr, 28), KFR[l.fr].name + ' co-ferment · ' + ART.varieties[l.v], fmtKg(l.kg) + ' kg · ' + kQName[l.q] + ' · ' + (kDry(l) ? 'dry' : 'drying ' + Math.floor((Date.now() - l.at) / l.dry * 100) + '%'), kDry(l) ? btn('Sell', '+' + kShells(l) + ' shells', 'k_sell:' + j, true, 'green') + btn('Ship', 'to Osaka', 'k_ship:' + j, roasteryOpen() && canBin(l.v + '.cof_' + l.fr), 'blue') : '')).join('');
+  } else if (sub === 'shop') {
+    h += '<h2>Island shop</h2>' + res + '<p class="note">Shells come from the island co-op, for the lots you sell there.</p>';
+    h += KSHOP.map((it) => { const own = !!K.shop[it.id]; return row(img(it.id === 'nene' ? 'k_nene' : it.id.startsWith('tank') || it.id === 'big' || it.id === 'copper' || it.id === 'copperfin' || it.id === 'keeper' ? 'k_i_tank' : it.id === 'trap' || it.id === 'tarps' ? 'k_i_ash' : it.id === 'spreader' ? 'k_i_bag' : 'k_i_shell', 28), it.name, it.text + (K.lv < it.lv ? ' · island level ' + it.lv : ''), own ? btn('Owned', '', 'noop', false) : btn(fmt(it.cost), 'shells', 'k_buy:' + it.id, K.lv >= it.lv && K.shells >= it.cost, 'green')); }).join('');
+  } else {
+    const vs = VAR_ORDER.filter((v) => S.vars[v]), fr = KFR_ORDER.filter(kFruitOk), got = vs.reduce((a, v) => a + fr.filter((f) => K.log.perfect[v + '.' + f]).length, 0);
+    h += '<h2>Collection log</h2><p class="note">A perfect pull of every fruit on every coffee: ' + got + ' / ' + vs.length * fr.length + '.</p>';
+    h += '<div class="nbw"><table class="nb"><thead><tr><th></th>' + fr.map((f) => '<th>' + img('k_i_' + f, 18) + '</th>').join('') + '</tr></thead><tbody>' + vs.map((v) => '<tr><th>' + ART.varieties[v] + '</th>' + fr.map((f) => '<td>' + (K.log.perfect[v + '.' + f] ? '★' : '·') + '</td>').join('') + '</tr>').join('') + '</tbody></table></div>';
+    h += row(img('k_i_ash', 28), 'Eruptions weathered', K.log.erupt ? K.log.erupt + ' cleared up without tarps' : 'Clear every ash-covered tree after an eruption, without tarps', '');
+    h += row(img('k_i_pineapple', 28), 'Golden pineapple', K.log.golden ? K.log.golden + ' found' : 'One pineapple harvest in 50', '');
+    h += '<h3>Tank finish</h3><div class="seg">' + Object.keys(KFIN).map((f) => '<button type="button" data-act="k_fin:' + f + '" aria-pressed="' + (K.fin === f) + '"' + (kOwnFin(f) ? '' : ' disabled') + '>' + KFIN[f][0] + '</button>').join('') + '</div>';
+  }
+  return h;
+}
+function konaAct(a, v) {   /* the island's buttons */
+  const K = S.kona; if (!K) return;
+  const [x, y] = String(v || '').split('.');
+  if (a === 'k_go') goKona();
+  else if (a === 'k_sub') { S.konaSub = v; SFX.play('tick'); }
+  else if (a === 'k_mix') kMix();
+  else if (a === 'k_plantcard') showModal(kPlantCard(+v));
+  else if (a === 'k_plant') { closeModal(); kPlant(+x, y); }
+  else if (a === 'k_feed') { if (K.plots[+v].f < 100) kFeed(+v); }
+  else if (a === 'k_loadcard') { const ok = KFR_ORDER.filter((fr) => kFruitOk(fr) && (K.fruit[fr] || 0) >= 4); if (ok.length === 1) kLoad(+v, ok[0]); else showModal(kLoadCard(+v)); }
+  else if (a === 'k_load') { closeModal(); kLoad(+x, y); }
+  else if (a === 'k_vent') kVent(+v);
+  else if (a === 'k_pull') kPull(+v);
+  else if (a === 'k_sell') { closeModal(); kSell(+v); }
+  else if (a === 'k_ship') { closeModal(); kShip(+v); }
+  else if (a === 'k_fin') { if (kOwnFin(v)) { K.fin = v; SFX.play('tick'); } }
+  else if (a === 'k_buy') {
+    const it = KSHOP.find((s) => s.id === v); if (!it || K.shop[v] || K.lv < it.lv || K.shells < it.cost) return;
+    K.shells -= it.cost; K.shop[v] = true; SFX.play('achieve');
+    if (v === 'nene') { S.rev.pets = S.rev.pets || {}; S.rev.pets.nene = true; }
+    if (v === 'title') S.sitems.title['kona:master'] = true;
+    if (v === 'copperfin') K.fin = 'copper';
+    toast(it.name.replace(/"/g, '') + (v === 'title' ? ': wear it in Looks' : v === 'nene' ? ' follows your farmer now' : ' is yours'));
+  }
+}
+function konaIntro() {
+  const K = S.kona; if (!K || K.seen || !konaHere() || !$('modal').hidden) return;
+  K.seen = true; showModal(coachCard('Kona Ridge', 'The trader\'s boat brought you to Kona Ridge, a volcanic island with no mill. Here coffee ferments in tanks with fruit you grow beside it. Pick the coffee and the mangoes, load a tank, vent it when the gauge goes red and pull it in its gold window. The ash the volcano puffs out, mixed with compost from your mills, keeps the soil fed.'));
+}
+const konaInfo = () => { const K = S.kona; return K ? { lv: K.lv, badge: 'Lv ' + K.lv, pct: K.lv >= 50 ? 100 : Math.round(K.xp / kNeed(K.lv) * 100), text: 'Kona Ridge level ' + K.lv + (K.lv < 50 ? ': ' + (kNeed(K.lv) - K.xp) + ' island xp to level ' + (K.lv + 1) : '') } : null; };
+function konaHint() {   /* the map arrow: a vent first, then a tank to pull, then a dry lot */
+  const K = S.kona; if (!K) return null;
+  let i = K.tanks.findIndex((tk, j) => tk && j < kTanks() && kVentDue(tk)); if (i > -1) return [KTANK_X(i) + 13, KTANK_Y - 2];
+  i = K.tanks.findIndex((tk, j) => tk && j < kTanks() && (tk.end || Date.now() - tk.at >= tk.dur)); if (i > -1) return [KTANK_X(i) + 13, KTANK_Y - 2];
+  i = K.patio.findIndex(kDry); if (i > -1) { const m = KMAT(i); return [m.x + 17, m.y]; }
+  return null;
+}
 /* ---------- player actions ---------- */
 cv.addEventListener('click', (e) => {
   const r = cv.getBoundingClientRect(), lx = (e.clientX - r.left) / r.width * W, ly = (e.clientY - r.top) / r.height * H;
+  if (scene() === 'kona') { konaClick(lx, ly); return; }   /* random events stay on the mainland */
   if (revClick(lx, ly)) return;   /* a random event's taps come first */
   if (scene() !== 'farm') { insideClick(lx, ly); return; }
   const f = S.farms[S.loc];
@@ -3382,9 +3782,10 @@ cv.addEventListener('click', (e) => {
 });
 function travel(dir) {
   if (S.pwalk === 4) { S.pwalk = 0; S.pwalkDone = true; }   /* the prestige walk's last arrow points here */
-  let i = LOCS.indexOf(S.loc);
-  i = (i + dir + LOCS.length) % LOCS.length;
-  S.loc = LOCS[i];
+  const ring = konaOpen() ? LOCS.concat(['kona']) : LOCS;   /* Kona Ridge comes after Osaka */
+  let i = ring.indexOf(S.isle && konaOpen() ? 'kona' : S.loc);
+  i = (i + dir + ring.length) % ring.length;
+  if (ring[i] === 'kona') S.isle = true; else { S.isle = false; S.loc = ring[i]; }
   if (tab === 'mill' || tab === 'roast') tab = 'farm';   /* the arrows lead back out to the farms */
   mapTab = 'farm'; if (sheetOpen) { $('panel').scrollTop = 0; showSheet(true); }   /* the menu stays as it was: open shows the new farm's page from its top, put away stays put away */
   refreshAll();
@@ -3482,6 +3883,7 @@ function startLot(v, method, quiet) {
   const micro = rnd() < microChance(method);   /* Huila's marquesinas: now and then a micro-lot */
   const carried = Math.min(kg, (S.carriedKg || {})[v] || 0);   /* cherries carried over a prestige go into lots first */
   if (carried > 0) { S.carriedKg[v] -= carried; if (S.carriedKg[v] < 1) delete S.carriedKg[v]; }
+  if (S.kona) S.kona.compost = Math.min(200, S.kona.compost + kg / 100);   /* the pulp goes to Kona Ridge as compost */
   S.cherries[v] = have - kg; S.millT = S.minutesTotal; S.mlots = S.mlots || {}; S.mlots[method] = (S.mlots[method] || 0) + 1;
   S.lots.push(Object.assign({ v, kg, method, left: time, total: time }, micro ? { micro: true } : {}, method === 'natural' && rakeCup() ? { raked: rakeCup() } : {}, carried > 0 ? { carry: carried / kg } : {}));
   if (micro) { S.stats.micro = (S.stats.micro || 0) + 1; task('micro', 1); if (!quiet) SFX.play('achieve'); }
@@ -3683,6 +4085,7 @@ function prestige() {
   S.xp = 0; carryOver();
   LOCS.forEach((l) => { if (FARM_LEVEL[l] && S.farms[l].unlocked && !(hasPerk('awake') && AWAKE.includes(l))) S.dormant[l] = wakeLevel(l, S.prestige); });
   setTimeout(() => checkSamples(), 300);
+  if (S.prestige === KONA_P && !S.kona) setTimeout(() => showModal(coachCard('Kona Ridge', 'The trader\'s boat reaches a new island now: Kona Ridge, where coffee ferments in tanks with fruit. Tap the farm arrow past Osaka to sail there.')), 600);
   const asleep = Object.keys(S.dormant);
   showModal('<i class="psum" hidden></i>' + avatar(S.look, 64) + '<h2>Prestige ' + S.prestige + '</h2>' + plate(S.name, S.look.crest, starsFor(S.prestige)) + '<p class="note">' + (S.prestige < TIERS.length ? 'New crest: <b>' + TIERS[t] + '</b>. Its nameplate and border are yours and already on.' : 'You are past the top tier: every prestige adds a star to your name.') + '</p>' + (perkAt(S.prestige) ? '<p class="rule"><b>New perk: ' + perkAt(S.prestige).name + '.</b> ' + perkAt(S.prestige).text + (PERK_LV[perkAt(S.prestige).id] ? ' It switches on at level ' + PERK_LV[perkAt(S.prestige).id] + '.' : '') + '</p>' : '') + (BUILD_CAPS[S.prestige] ? '<p class="rule"><b>Bigger farms:</b> buildings now go up to level ' + BUILD_CAPS[S.prestige] + '.</p>' : '') + skinPicker() +
     (asleep.length ? '<p class="note">' + asleep.map((l) => ART.locations[l].name.split(',')[0] + ' wakes at level ' + S.dormant[l]).join(', ') + '. ' + (() => { const o = LOCS.filter((l) => S.farms[l].unlocked && !S.dormant[l]).map(fname); return listAnd(o) + (o.length === 1 ? ' stays' : ' stay') + ' open.'; })() + '</p>' : '') + (kept ? '<p class="note">Your spare know-how became <b>' + kept + ' level' + (kept > 1 ? 's' : '') + ' of cupping research</b>: +' + S.research + '% know-how from every sale, for good.</p>' : '') + '<button class="btn green" data-act="close">Back to the farm</button>');
@@ -4201,6 +4604,7 @@ function renderPanel() {
   if (!sheetOpen) return;
   let h = '';
   h += eventBanner();
+  if (tab === 'farm' && scene() === 'kona' && S.kona) { setHTML(P, h + konaPanel()); return; }   /* the island's own page */
   const fsub = S.tabs.upgrades && ['upgrades', 'build', 'staff'].includes(S.farmSub) ? S.farmSub : 'fields';
   if (tab === 'farm') h += farmSubtabs(fsub, f);
   if (tab === 'farm' && fsub === 'fields') {
@@ -4619,6 +5023,7 @@ function renderPanel() {
     h += '<h3>Simulate a bejucoffee.com order</h3><div class="seg">' + Object.keys(COFFEES).map((k) => '<button type="button" data-act="order:' + k + '">' + COFFEES[k].name + '</button>').join('') + '</div>';
     h += '<div class="stamps">' + LOCS.map((l) => '<img src="' + url('stamp_' + l) + '" alt="' + ART.locations[l].name + (S.stamps[l] ? ', stamped' : ', not yet') + '" class="' + (S.stamps[l] ? '' : 'off') + ((S.goldStamps || {})[l] ? ' gold' : '') + '">').join('') + '</div>';
     h += '<h3>Resources</h3><div class="seg"><button type="button" data-act="add:coins">+1,000 coins</button><button type="button" data-act="add:bigcoins">+25,000 coins</button><button type="button" data-act="add:contracts">New contracts</button><button type="button" data-act="add:checkin">Next real day</button><button type="button" data-act="add:drop">Start a drop event</button><button type="button" data-act="add:season">End the season</button><button type="button" data-act="add:stars">+50 season stars</button><button type="button" data-act="add:guide">Restart guide</button><button type="button" data-act="add:points">+2,000 know-how</button><button type="button" data-act="add:cranes">+50 cranes</button><button type="button" data-act="add:vars">All varieties</button><button type="button" data-act="add:xp">+1 level</button><button type="button" data-act="add:cherries">Fill storage</button><button type="button" data-act="add:stamp">Next passport stamp</button><button type="button" data-act="add:sample">Next free sample</button><button type="button" data-act="add:days">+20 check-in days</button></div>';
+    h += '<h3>Kona Ridge</h3><div class="seg"><button type="button" data-act="konatest:open">' + (konaOpen() ? 'Go to Kona Ridge' : 'Open Kona Ridge early') + '</button><button type="button" data-act="konatest:shells">+500 shells</button><button type="button" data-act="konatest:lv">+1 island level</button><button type="button" data-act="konatest:stock">+ash, compost, fruit, cherries</button></div>';
     h += '<h3>Random events</h3><div class="seg">' + Object.keys(REVS).map((k) => '<button type="button" data-act="revtest:' + k + '">' + REVS[k].name + '</button>' + (REVS[k].rareCos ? '<button type="button" data-act="revtest:' + k + '.rare">' + REVS[k].name + ' (rare)</button>' : '')).join('') + '</div>';
     h += '<h3>Time</h3><div class="seg"><button type="button" data-act="away:1">Away 1 h</button><button type="button" data-act="away:4">Away 4 h</button><button type="button" data-act="away:12">Away 12 h</button><button type="button" data-act="day">Next day</button></div>';
     h += '<h3>Game speed</h3><div class="seg">' + [1, 3, 10].map((x) => '<button type="button" data-act="speed:' + x + '" aria-pressed="' + (S.speed === x) + '">×' + x + '</button>').join('') + '</div>';
@@ -4646,7 +5051,7 @@ document.addEventListener('click', (e) => {
   const f = S.farms[S.loc];
   if (a === 'close') { SFX.play('close'); closeModal(); return; }
   if (a === 'pcer') { SFX.play('page'); $('pcer').hidden = true; if (S.pwalk === 3) { dropPrestigeCard(); setTab('looks'); setTimeout(() => showModal(coachCard('Looks', 'Every prestige lets you pick one new outfit. Tap one to keep it.')), 300); } return; }
-  if (!TEST_TOOLS && ['add', 'order', 'away', 'day', 'speed', 'season', 'revtest'].includes(a)) return;   /* no cheats in the public game */
+  if (!TEST_TOOLS && ['add', 'order', 'away', 'day', 'speed', 'season', 'revtest', 'konatest'].includes(a)) return;   /* no cheats in the public game */
   const wallet = S.coins + S.points + S.cranes, decorOwned = S.decor[v] !== undefined;
   setTimeout(() => {   /* sound for the action, once its effect is known */
     const spent = S.coins + S.points + S.cranes < wallet;
@@ -4656,6 +5061,7 @@ document.addEventListener('click', (e) => {
   }, 0);
   if (a === 'hire') { if (f.workers.length < maxPickers(f) && spend('coins', hireCost())) { addWorker(f); guideStep('hire'); } }   /* the new picker walks onto the farm */
   else if (a === 'tab') setTab(v);
+  else if (a.startsWith('k_')) konaAct(a, v);
   else if (a === 'sheetmin') { SFX.play('click'); showSheet(false); }
   else if (a === 'coachgo') { closeModal(); if (v === 'ranks') S.rankSub = 'board'; if (v === 'season') { S.rankSub = 'season'; setTab('ranks'); return; } setTab(v); }
   else if (a === 'seasonhow') S.seasonHow = !S.seasonHow;
@@ -4774,9 +5180,9 @@ document.addEventListener('click', (e) => {
   else if (a === 'skip') { S.contracts = S.contracts.filter((c) => String(c.id) !== v); S.nextContract = Math.max(S.nextContract, S.minutesTotal + 2 * REAL_MIN); toast('Contract skipped. A new buyer comes in about 2 minutes.');   /* a real wait, so skipping can't reroll the board for free */ }
   else if (a === 'deliver') { const [i, id] = v.split('.'); deliver(+i, +id); }
   else if (a === 'decor') { if (S.decor[v] !== undefined) S.decor[v] = !S.decor[v]; else if (spend('coins', DECOR[v].cost)) { S.decor[v] = true; toast(DECOR[v].name + ' added to your farms'); } }
-  else if (a === 'go') { S.loc = v; setTab('farm', true); }   /* Visit: the farm's map, menu put away */
-  else if (a === 'goldtip') { closeModal(); if (golden) { S.loc = golden.loc; setTab('farm', true); } }   /* Rosa's card: the sheet goes so you can see the bush */
-  else if (a === 'goldgo') { if (golden) { S.loc = golden.loc; setTab('farm', true); } }   /* the golden bush is on the map, so the sheet makes way */
+  else if (a === 'go') { S.loc = v; S.isle = false; setTab('farm', true); }   /* Visit: the farm's map, menu put away */
+  else if (a === 'goldtip') { closeModal(); if (golden) { S.loc = golden.loc; S.isle = false; setTab('farm', true); } }   /* Rosa's card: the sheet goes so you can see the bush */
+  else if (a === 'goldgo') { if (golden) { S.loc = golden.loc; S.isle = false; setTab('farm', true); } }   /* the golden bush is on the map, so the sheet makes way */
   else if (a === 'decorgo') { S.shopTab = 'roast'; setTab('shop'); }
   else if (a === 'millgo') { closeModal(); setTab('mill'); }
   else if (a === 'estbuy') { const n = estateNext(v); if (n && n.ok && spend('coins', n.c) && spend('points', n.k)) { S.estate.st[v] = n.n + 1; if (v === 'toba' && n.n === 0) S.estate.boatAt = 0; const st = ESTATE[v].stages[n.n]; SFX.play('achieve'); fireworks = 3; showModal('<h2>' + st[0] + '</h2><img src="' + estatePic(v, n.n + 1) + '" alt="" style="width:208px;image-rendering:pixelated;border-radius:6px"><p class="note">' + st[1] + '.</p><p class="rule"><b>' + st[2] + '.</b></p><button class="btn green" data-act="close">Wonderful</button>', true); } }
@@ -4785,9 +5191,9 @@ document.addEventListener('click', (e) => {
   else if (a === 'ageask') estateAgeModal();
   else if (a === 'age') { ageLot(+v); closeModal(); }
   else if (a === 'unage') { unageLot(+v); estRefresh('turrialba'); }
-  else if (a === 'plantgo') { closeModal(); const home = (VAR_HOME[v] || []).find((l) => S.farms[l].unlocked && !S.dormant[l]); if (home) S.loc = home; S.farmSub = 'fields'; setTab('farm'); toast('Tap a field to plant ' + ART.varieties[v]); }
+  else if (a === 'plantgo') { closeModal(); const home = (VAR_HOME[v] || []).find((l) => S.farms[l].unlocked && !S.dormant[l]); if (home) S.loc = home; S.isle = false; S.farmSub = 'fields'; setTab('farm'); toast('Tap a field to plant ' + ART.varieties[v]); }
   else if (a === 'crackgo') { const i = S.roastery.roasters.findIndex((r) => inCrack(r) && !r.crack); if (i > -1) crackRoast(i); }
-  else if (a === 'taskgo') { S.farmSub = 'fields'; if (v === 'counter') { S.roastSub = 'counter'; v = 'roast'; } setTab(v); }
+  else if (a === 'taskgo') { S.farmSub = 'fields'; if (v === 'kona') { goKona(); return; } if (v === 'counter') { S.roastSub = 'counter'; v = 'roast'; } setTab(v); }
   else if (a === 'replantask') showModal('<h2>Replant all</h2><p class="note">Every field on every open farm switches to the coffee you choose and starts again from sprouts. Each farm keeps one native field, or gets one if you own a coffee native there, so terroir stays on.</p>' + VAR_ORDER.filter((x) => S.vars[x]).map((x) => row(img('bush_' + x + '_ripe', 30), ART.varieties[x], VAR[x].kg + ' kg a pick · ×' + VAR[x].value + ' price', btn('Plant everywhere', '', 'replantall:' + x, true, 'green'))).join('') + '<button class="btn" data-act="close">Cancel</button>');
   else if (a === 'replantall') { if (hasPerk('replantall') && S.vars[v]) { const n = replantAll(v); closeModal(); SFX.play('dig'); toast(n ? n + ' field' + (n > 1 ? 's' : '') + ' replanted with ' + ART.varieties[v] : 'Every field already grows ' + ART.varieties[v]); } }
   else if (a === 'bed') {
@@ -4799,7 +5205,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'plant') { const [b, x] = v.split('.'); if (S.vars[x] || (eventDrop() && eventDrop().variety === x)) { replantBed(f, +b, x); closeModal(); guideStep('plant'); toast('Field ' + (+b + 1) + ' planted with ' + ART.varieties[x]); } }
   else if (a === 'var') { if (VAR[v] && !S.vars[v] && gateOK('var:' + v) && spend('points', VAR[v].cost)) { S.vars[v] = true; S.lastVar = v; guideStep('var'); showModal('<h2>' + ART.varieties[v] + ' unlocked</h2>' + img('bush_' + v + '_ripe', 54) + '<p class="note">' + VAR[v].perk + ' Plant it in a field, on its native farm for the terroir bonus.</p><button class="btn green" data-act="plantgo:' + v + '">Plant it</button><button class="btn" data-act="close">Later</button>'); } }
   else if (a === 'wtask') { const tk = (S.wtasks || {}).list[+v]; if (tk && tk.have >= tk.goal && !tk.done) { tk.done = true; const r = taskReward(tk.reward); if (r.grow) S.boosts.grow = Math.max(S.boosts.grow || 0, S.minutesTotal) + r.grow * REAL_MIN; else { earn(r); unRate(r); } SFX.play(r.cranes ? 'crane' : 'coins'); toast('Weekly task complete: +' + rewardText(tk.reward)); } }
-  else if (a === 'estgo') { closeModal(); S.loc = v; S.farmSub = 'fields'; setTab('farm'); }
+  else if (a === 'estgo') { closeModal(); S.loc = v; S.isle = false; S.farmSub = 'fields'; setTab('farm'); }
   else if (a === 'task') { const tk = S.tasks[+v]; if (tk.have >= tk.goal && !tk.done) { tk.done = true; const rr = tk.practice ? tk.reward : taskReward(tk.reward); const got = rule('shogatsu') && rr.coins ? { coins: rr.coins * 2 } : rr; earn(got); unRate(got); if (!tk.practice) star('task'); guideStep('task'); toast('Task complete!'); } }
   else if (a === 'weekly') { S.weekly.claimed = true; S.cranes += WEEKLY_CRANES; star('weekly'); showModal('<h2>Order delivered!</h2><p class="note">Beju\'s farms delivered ' + fmt(S.weekly.target) + ' kg of washed coffee to the roastery together. +' + WEEKLY_CRANES + ' cranes and ' + STAR_PER.weekly + ' season stars.</p><button class="btn green" data-act="close">Hooray</button>'); }
   else if (a === 'prestigeAsk') {
@@ -4846,6 +5252,7 @@ document.addEventListener('click', (e) => {
     if (v === 'cherries') { const vv = S.farms[S.loc].beds[0]; S.cherries[vv] = (S.cherries[vv] || 0) + (cap() - stored()); }
   }
   else if (a === 'away') away(+v);
+  else if (a === 'konatest') { if (!S.kona) S.kona = konaFresh(); if (v === 'open') { S.kona.test = true; goKona(); } if (v === 'shells') S.kona.shells += 500; if (v === 'lv') kXp(kNeed(S.kona.lv) - S.kona.xp); if (v === 'stock') { S.kona.ash += 30; S.kona.compost += 10; S.kona.fruit.mango += 60; const vv = S.kona.plots[0].v; S.kona.cherries[vv] = (S.kona.cherries[vv] || 0) + 400; } }
   else if (a === 'day') { S.minutes = 1439.9; }
   else if (a === 'speed') S.speed = +v;
   else if (a === 'mvol') { S.musicVol = +v; syncMusic(); }
@@ -4860,7 +5267,7 @@ function farmLvInfo() {   /* this farm's own level and its next milestone, once 
   return { lv, badge: 'Lv ' + lv, pct: Math.round(next ? (lv - (prev ? prev.lv : 0)) / (next.lv - (prev ? prev.lv : 0)) * 100 : 100),
     text: nm + ' farm level ' + lv + '. ' + (next ? 'Next at ' + next.lv + ': ' + next.label(S.loc) + '.' : 'Every milestone reached.') + ' Buildings, a manager, the fourth field and mastery raise it.' };
 }
-const barLvInfo = () => (scene() === 'farm' ? farmLvInfo() : scene() === 'roast' ? repInfo() : null);
+const barLvInfo = () => (scene() === 'farm' ? farmLvInfo() : scene() === 'roast' ? repInfo() : scene() === 'kona' ? konaInfo() : null);
 function refreshHud() {
   const L = ART.locations[S.loc], sea = season(S.loc);
   $('locName').textContent = L.name;
@@ -4875,6 +5282,7 @@ function refreshHud() {
   { const E = (S.rev || {}).cur, d = E && revMap(E) === 'farm' && E.loc !== S.loc ? (LOCS.indexOf(E.loc) - LOCS.indexOf(S.loc) + LOCS.length) % LOCS.length : 0;   /* the arrow the short way to a farm with trouble */
     $('nextLoc').classList.toggle('evt', d > 0 && d <= LOCS.length / 2); $('prevLoc').classList.toggle('evt', d > LOCS.length / 2); }
   if (sc === 'mill') { $('locName').textContent = 'Dry mill'; $('locBeds').textContent = S.lots.length + ' / ' + racks() + ' racks in use · ' + (boatLeft() ? 'boat: ' + fmt(boatLeft()) + ' kg to go' : fmtKg(stored()) + ' kg of cherries waiting'); }   /* the trader's boat, while it waits */
+  if (sc === 'kona') { const K = S.kona; $('locName').textContent = 'Kona Ridge, Hawaiʻi'; $('locBeds').textContent = K ? fmt(K.shells) + ' shells · ' + fmt(K.ash) + ' ash · ' + fmt(K.bags) + ' bags' : ''; }
   if (sc === 'roast') { $('locName').textContent = 'Roastery, Osaka'; $('locBeds').textContent = S.roastery.roasters.length + ' / ' + roasterCount() + ' roasting · ' + S.roastery.bags.length + ' bags on the shelf'; }
   const lab = sc === 'mill' ? 'Your dry mill: lots drying on raised racks. Tap a rack to cup its lot, or to sell it once it is dry.' : sc === 'roast' ? 'Your roastery. Tap a free roaster to roast your largest green coffee at its best roast, and tap a roaster at first crack.' : 'Your farm seen from above. Tap shrubs with ripe cherries to pick them.';
   if (cv.getAttribute('aria-label') !== lab) cv.setAttribute('aria-label', lab);
@@ -5411,10 +5819,10 @@ function loop(t) {
   playBehind();
   if (scene() !== mapScene) { mapScene = scene(); mapFocus(); }   /* each scene opens where its work is */
   const dt = Math.min(0.05, (t - last) / 1000); last = t;
-  tick(dt); revTick(dt); counterTick(dt); draw(t / 1000);
+  tick(dt); revTick(dt); counterTick(dt); konaTick(); draw(t / 1000);
   uiT += dt; saveT += dt;
   if (toastT > 0) { toastT -= dt; if (toastT <= 0) { if (toastQ.length) toast(toastQ.shift()); else $('toast').hidden = true; } }
-  if (uiT > 0.5) { uiT = 0; refreshHud(); syncMusic(); if (!panelBusy()) { if (!(document.activeElement && document.activeElement.matches('#panel select, #panel input, #panel textarea'))) renderPanel();   /* a menu or box you're using stays open while you use it */ checkTabs(); renderTabs(); renderGuide(); } harvestSync(); coopSync(); coeTick(); }
+  if (uiT > 0.5) { uiT = 0; refreshHud(); syncMusic(); if (!panelBusy()) { if (!(document.activeElement && document.activeElement.matches('#panel select, #panel input, #panel textarea'))) renderPanel();   /* a menu or box you're using stays open while you use it */ checkTabs(); renderTabs(); renderGuide(); } harvestSync(); coopSync(); coeTick(); konaIntro(); }
   if (saveT > 5) { saveT = 0; save(); }
   requestAnimationFrame(loop);
 }
@@ -5429,7 +5837,7 @@ function audioStart() {   /* browsers only allow sound after a tap, so everythin
   SFX.unlock(); Cozy.init(SFX.context()); syncMusic();
 }
 document.addEventListener('pointerdown', audioStart, true);
-const trackFor = () => (scene() === 'roast' ? 'roastery' : S.loc);   /* every farm plays its own theme, open or not; the roastery has its own kissaten jazz */
+const trackFor = () => (scene() === 'roast' ? 'roastery' : scene() === 'kona' ? 'toba' : S.loc);   /* every farm plays its own theme, open or not; the roastery has its own kissaten jazz */
 function syncMusic() {
   Cozy.setVolume(S.musicVol); Cozy.setEnabled(S.music);
   const hr = S.minutes / 60; Cozy.setNight(hr >= 19 || hr < 6);
