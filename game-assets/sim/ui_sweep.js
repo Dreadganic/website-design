@@ -1,12 +1,12 @@
 /* Interface sweep: load a game state, open every tab and sub-page, screenshot each, and flag sideways scrolling, clipped buttons,
    broken images and "undefined"/"NaN" text. The state is a run.js output (its final save) or 'fresh'; prep-js runs in the page first.
    node ui_sweep.js <test.html> <state.json|fresh> <outdir> <label> [width] [height] [prep-js] */
-const { chromium } = require('/opt/node-tools/node_modules/playwright');
+const { chromium } = require(process.env.PW_MODULE || '/opt/node-tools/node_modules/playwright');
 const fs = require('fs'), path = require('path');
 const [page, stateFile, outDir, label, W = '390', H = '844', prep = ''] = process.argv.slice(2);
 fs.mkdirSync(outDir, { recursive: true });
 (async () => {
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const b = await chromium.launch({ executablePath: process.env.PW_CHROMIUM || '/opt/pw-browsers/chromium' });
   const g = await b.newPage({ viewport: { width: +W, height: +H }, deviceScaleFactor: 1, hasTouch: true });
   const errs = []; g.on('pageerror', (e) => errs.push(e.message)); g.on('console', (m) => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
   let state = null;

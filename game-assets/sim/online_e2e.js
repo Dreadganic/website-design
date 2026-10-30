@@ -1,6 +1,6 @@
 /* Online end-to-end: the real Netlify functions behind a local server, two browser "devices".
    node online_e2e.js <test.html> [shots dir]   (served from http://localhost, so the game turns its online layer on) */
-const { chromium } = require('/opt/node-tools/node_modules/playwright');
+const { chromium } = require(process.env.PW_MODULE || '/opt/node-tools/node_modules/playwright');
 const http = require('http'), fs = require('fs'), path = require('path');
 const N = path.join(__dirname, '../../netlify/');
 const G = require(N + 'lib/game'); const store = G.memoryStore();
@@ -26,7 +26,7 @@ const ok = (c, msg) => { console.log((c ? 'PASS ' : 'FAIL ') + msg); if (!c) pro
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 (async () => {
   await new Promise((r) => srv.listen(8765, r));
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const b = await chromium.launch({ executablePath: process.env.PW_CHROMIUM || '/opt/pw-browsers/chromium' });
   const dev = async () => { const c = await b.newContext({ viewport: { width: 390, height: 844 } }); const p = await c.newPage(); p.errs = []; p.on('pageerror', (e) => p.errs.push(e.message + ' @ ' + (e.stack || '').split('\n').slice(1, 3).join(' | '))); await p.goto('http://localhost:8765/'); await p.waitForTimeout(1500); return p; };
   const clean = (p) => p.evaluate(() => { const T = window.__T; for (let i = 0; i < 12; i++) T.closeModal(); document.getElementById('modal').hidden = true; T.S.nav = null; T.S.navSeen = new Proxy({}, { get: () => true }); });
   const settle = async (p) => { await p.waitForTimeout(1500); await clean(p); };   /* let windows that arrive late (samples, check-in) come, then clear them */

@@ -1,11 +1,11 @@
 /* Playtest feedback, round of 25 October: quick reactions as a small label where you tapped (not the banner), long windows that scroll,
    menus that stay open while you use them, the boat's remaining delivery, the head roaster's blends from reputation 15, and renaming for cranes.
    node feedback_e2e.js <test.html from mktest.py> */
-const { chromium } = require('/opt/node-tools/node_modules/playwright');
+const { chromium } = require(process.env.PW_MODULE || '/opt/node-tools/node_modules/playwright');
 const path = require('path'), file = path.resolve(process.argv[2]);
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log('FAIL', m); } };
 (async () => {
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const b = await chromium.launch({ executablePath: process.env.PW_CHROMIUM || '/opt/pw-browsers/chromium' });
   const g = await b.newPage({ viewport: { width: 320, height: 568 }, hasTouch: true }); const errs = []; g.on('pageerror', (e) => errs.push(e.message));
   await g.addInitScript(() => { try { localStorage.clear(); } catch (e) {} });
   await g.goto('file://' + file); await g.waitForTimeout(800);

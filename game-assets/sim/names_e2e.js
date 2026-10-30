@@ -1,6 +1,6 @@
 /* Names end-to-end: the first time the game opens it asks for a name, and no two farmers can hold the same one.
    node names_e2e.js <test.html> [shots dir]   (the real Netlify functions behind http://localhost, as in online_e2e.js) */
-const { chromium } = require('/opt/node-tools/node_modules/playwright');
+const { chromium } = require(process.env.PW_MODULE || '/opt/node-tools/node_modules/playwright');
 const http = require('http'), fs = require('fs'), path = require('path');
 const N = path.join(__dirname, '../../netlify/');
 const G = require(N + 'lib/game'); const store = G.memoryStore();
@@ -21,7 +21,7 @@ const shots = process.argv[3] || '.'; fs.mkdirSync(shots, { recursive: true });
 const ok = (c, msg) => { console.log((c ? 'PASS ' : 'FAIL ') + msg); if (!c) process.exitCode = 1; };
 (async () => {
   await new Promise((r) => srv.listen(8766, r));
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const b = await chromium.launch({ executablePath: process.env.PW_CHROMIUM || '/opt/pw-browsers/chromium' });
   const dev = async (url) => { const c = await b.newContext({ viewport: { width: 390, height: 844 } }); const p = await c.newPage(); p.errs = []; p.on('pageerror', (e) => p.errs.push(e.message)); await p.goto(url || 'http://localhost:8766/farm/'); await p.waitForTimeout(1500); return p; };
   const modal = (p) => p.evaluate(() => document.getElementById('modal').hidden ? '' : document.getElementById('modalCard').innerText.replace(/\s+/g, ' '));
   const type = async (p, sel, t) => { await p.fill(sel, t); await p.press(sel, 'Enter'); await p.waitForTimeout(500); };

@@ -1,8 +1,8 @@
-const { chromium } = require('/opt/node-tools/node_modules/playwright');
+const { chromium } = require(process.env.PW_MODULE || '/opt/node-tools/node_modules/playwright');
 const fs = require('fs');
 const mode = process.argv[2] || 'active', target = +(process.argv[3] || 5), out = process.argv[4] || ('run-' + mode + '.json'), html = process.argv[5] || 'sim.html', maxBuild = +(process.argv[6] || 3);
 (async () => {
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const b = await chromium.launch({ executablePath: process.env.PW_CHROMIUM || '/opt/pw-browsers/chromium' });
   const p = await b.newPage({ viewport: { width: 420, height: 900 } });
   const errs = []; p.on('pageerror', (e) => errs.push(e.message));
   await p.addInitScript(() => {

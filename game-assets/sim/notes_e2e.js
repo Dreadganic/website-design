@@ -1,7 +1,7 @@
 /* Notes from later play, end to end: the co-op order's size and Claim button, every other Claim button, the rack the foreman keeps
    for a request, the Shop's lock, the farm level in the farm bar, and the menu staying open or closed across farms.
    node notes_e2e.js <test page with API '/fn/'> [shots dir]   (the real Netlify functions answer /fn/ requests, as in community_e2e.js) */
-const { chromium } = require('/opt/node-tools/node_modules/playwright');
+const { chromium } = require(process.env.PW_MODULE || '/opt/node-tools/node_modules/playwright');
 const fs = require('fs'), path = require('path');
 const N = path.join(__dirname, '../../netlify/');
 const G = require(N + 'lib/game'), C = require(N + 'lib/community'); const store = G.memoryStore();
@@ -9,7 +9,7 @@ const fns = {}; ['game-account', 'game-save', 'game-score', 'game-visit', 'game-
 const shots = process.argv[3] || '.'; fs.mkdirSync(shots, { recursive: true });
 const ok = (c, msg) => { console.log((c ? 'PASS ' : 'FAIL ') + msg); if (!c) process.exitCode = 1; };
 (async () => {
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const b = await chromium.launch({ executablePath: process.env.PW_CHROMIUM || '/opt/pw-browsers/chromium' });
   const p = await (await b.newContext({ viewport: { width: 390, height: 844 } })).newPage(); const errs = []; p.on('pageerror', (e) => errs.push(e.message));
   await p.route('**/fn/**', async (route) => { const req = route.request(), u = new URL(req.url()), fn = fns[u.pathname.split('/').pop()];
     if (!fn) return route.fulfill({ status: 404, body: '{}' });

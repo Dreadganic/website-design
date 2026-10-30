@@ -2,12 +2,12 @@
    you have to tap sits under the HUD, the corner buttons or the guide bar. Every spot an event can use is tried: each field
    for the pigs, each rack the nest can hang under, Karen and her replies. Usual and rare.
    node events_layout.js <test.html from mktest.py> [shots dir] */
-const { chromium } = require('/opt/node-tools/node_modules/playwright');
+const { chromium } = require(process.env.PW_MODULE || '/opt/node-tools/node_modules/playwright');
 const fs = require('fs'), path = require('path');
 const file = path.resolve(process.argv[2]), shots = process.argv[3] || ''; if (shots) fs.mkdirSync(shots, { recursive: true });
 const SIZES = [[320, 568], [360, 640], [375, 667], [390, 844], [414, 896], [430, 932]];
 (async () => {
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  const b = await chromium.launch({ executablePath: process.env.PW_CHROMIUM || '/opt/pw-browsers/chromium' });
   let bad = 0, n = 0; const errs = [];
   for (const [w, h] of SIZES) {
     const p = await b.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 2, hasTouch: true }); p.on('pageerror', (e) => errs.push(e.message));

@@ -1,4 +1,4 @@
-const { chromium } = require('/opt/node-tools/node_modules/playwright');
+const { chromium } = require(process.env.PW_MODULE || '/opt/node-tools/node_modules/playwright');
 const N = require('path').join(__dirname, '../../netlify/');
 const G = require(N + 'lib/game'), C = require(N + 'lib/community'); const store = G.memoryStore();
 const now0 = Date.now(), hv = { days: [{ id: 'test-hv', name: 'Test weekend', text: 'Sell or deliver washed lots', unit: 'lots', method: 'washed', starts: new Date(now0 - 3600e3).toISOString(), ends: new Date(now0 + 864e5).toISOString(), target: 20 }] };
@@ -11,7 +11,7 @@ const farmer = async (name, prestige) => { const acc = await callAs('game-accoun
   const mika = await farmer('Mika', 6), ken = await farmer('Ken', 5);
   const made = await callAs('game-coop', 'POST', mika, { act: 'create', name: 'Las Nubes' }); await callAs('game-coop', 'POST', ken, { act: 'join', code: made.coop.code });
   await callAs('game-coop', 'POST', mika, { act: 'sticker', id: 'hello' });
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' }); const p = await b.newPage({ viewport: { width: 400, height: 1300 } }); const errs = []; p.on('pageerror', (e) => errs.push(e.message));
+  const b = await chromium.launch({ executablePath: process.env.PW_CHROMIUM || '/opt/pw-browsers/chromium' }); const p = await b.newPage({ viewport: { width: 400, height: 1300 } }); const errs = []; p.on('pageerror', (e) => errs.push(e.message));
   await p.route('**/fn/**', async (route) => { const req = route.request(), u = new URL(req.url()), name = u.pathname.split('/').pop(), fn = fns[name];
     if (!fn) return route.fulfill({ status: 404, body: '{}' });
     const r = await fn.handler({ httpMethod: req.method(), headers: req.headers(), body: req.postData(), queryStringParameters: Object.fromEntries(u.searchParams) });
