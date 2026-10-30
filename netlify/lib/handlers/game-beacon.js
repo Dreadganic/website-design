@@ -7,10 +7,10 @@ const G = require("../game");
 
 const NAMES = ["session_start", "session_end", "first_pick", "first_sale", "first_prestige", "prestige", "tab_open", "shop_view",
   "counter_open", "counter_close", "counter_quick", "kona_open", "coop_join", "coe_play", "away_collect", "order_click", "unlock_seen", "practice_seen",
-  "mood_view", "reg_story"];
+  "mood_view", "reg_story", "care_send", "care_recv", "postcard_send"];
 const FIELDS = {   /* field: [type, cap] — unknown or oversized fields are dropped */
   len: ["int", 172800], h: ["num", 24], p: ["int", 99], lvl: ["int", 999], min: ["int", 100000], gap: ["int", 2592000000],
-  served: ["int", 999], out: ["int", 999], coins: ["int", 1e12], rep: ["int", 1000000], m: ["int", 999], t: ["string", 40], key: ["string", 40], reg: ["string", 10]
+  served: ["int", 999], out: ["int", 999], coins: ["int", 1e12], rep: ["int", 1000000], m: ["int", 999], t: ["string", 40], key: ["string", 40], reg: ["string", 10], pc: ["string", 12]
 };
 
 exports.handler = async (event) => {

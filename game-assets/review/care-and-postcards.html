@@ -1,0 +1,38 @@
+<!doctype html><meta charset="utf-8"><title>Care packages and postcards — design note (T2.3 + T2.4 + T2.5)</title>
+<style>body{max-width:720px;margin:40px auto;font:16px/1.6 Georgia,serif;color:#2A2118;padding:0 16px}h1,h2{font-family:Avenir,Helvetica,sans-serif}code{background:#F2EDE4;padding:1px 5px;border-radius:4px}li{margin:6px 0}</style>
+<h1>Care packages and postcards</h1>
+<p><i>Phase 2 · T2.3 co-op care packages + T2.4 visit postcards + T2.5 seasonal-roast stars · shipped together because all three deepen ties the game already has (a co-op, a farm visit, the season track) without adding a single new screen.</i></p>
+
+<h2>What they fix</h2>
+<p>The social layer could only take: stickers, help, cheers. Nothing you <b>make</b> can travel to another farmer, and a farm visit ends with a single anonymous tap. Care packages let your roast carry your name to a mate's shelf; postcards let a visitor leave a thought, not just a count. Both are server-checked, capped, and free text stays out.</p>
+
+<h2>T2.3 · Care packages (co-op)</h2>
+<ul>
+<li>From the co-op's Members row, <b>Send a bag</b> opens your roasted shelf grouped by coffee + roast (best cup shown), and mails one bag to that mate. It arrives at <b>their next check-in</b> with your name and its cup score, priced by <b>their</b> farm's own <code>saleFor</code> math — a client-declared coin value is never trusted, and the bag lands at quality 70 with the sender's cup noted.</li>
+<li><b>One send per farmer per day</b>, checked server-side (day-keyed blob <code>coops/{id}/care/{dayJST}</code>, inbox capped at 3). Both sides earn <b>+1 season star</b>, once a day each — the sender on send, the receiver on first delivery. It lands in the Stars-today board like every other star.</li>
+<li>Mates are addressed by list index (never ids), the delivered payload carries only name/key/profile/cup — <b>player ids never reach other players</b> — and day blobs read yesterday + today so a package mailed late JST still arrives.</li>
+<li>No chat, by design: the bag and its cup score <i>are</i> the message.</li>
+</ul>
+
+<h2>T2.4 · Visit postcards</h2>
+<ul>
+<li>Six preset compliments (<code>lovely, bloom, roast, coffee, farm, wow</code>), each with its own sprite: "The cherries look happy", "Save me a cup", "Farm goals!". One tap on any farm visit; the single Cheers button becomes a six-card choice.</li>
+<li>A postcard <b>rides the Cheers</b> — same handler, same limits (one per farm per day per visitor, 30 farms a day) — so there is no new rate surface to abuse. Unknown card ids are dropped server-side.</li>
+<li>The host's <b>keepsake shelf</b> keeps the last five, shown when they view their own farm: who left it and what it said. Cosmetic only; nothing else changes.</li>
+<li><code>postcard_send</code> is whitelisted in the beacon handler with a 12-char <code>pc</code> field.</li>
+</ul>
+
+<h2>T2.5 · Seasonal-roast stars</h2>
+<ul>
+<li>The last piece of the master-roaster loop: roasting the <b>season's recipe</b> now earns a season star (once a day, manual roasts only — matching the daily task), on top of the existing +20% seasonal bag price and tier-8 unlock.</li>
+<li>Shown in Stars-today whenever the roastery is open, so the reason to reach tier 8 is visible before you have it.</li>
+</ul>
+
+<h2>Acceptance</h2>
+<ul>
+<li><code>care_send</code>, <code>care_recv</code>, <code>postcard_send</code> whitelisted; <code>care</code> and <code>sroast</code> gated correctly in the Stars-today board (online / roastery-open).</li>
+<li>Netlify tests <b>55/55</b>: new care-package checks (self-send refused, bad key/profile refused, cup rounded to a decimal, one a day, sent flag, delivery once, both-side stars, next-day repeat) and postcard checks (unknown cards dropped, shelf keeps the last five).</li>
+<li><code>community_e2e.js</code> extended end to end with real handlers: shelf pick → send → star → server inbox → Mika's return package priced by the receiver (q70) → second send blocked → six postcard chips → postcard sent → Ken's shelf on the server → the host's keepsake shelf in the modal; <b>no player id leaks</b> into the care payload.</li>
+<li><code>counter_e2e</code> 89/89, <code>kona_e2e</code> 55/55, <code>ui_sweep</code> 0 issues, build deterministic. <code>online_e2e</code>: only the pre-existing rename-sanitizer failure on main (not this feature).</li>
+<li>Netlify traffic: the postcard adds zero requests (it rides the existing Cheers POST); care adds one POST on send and rides the co-op view the mate already fetches. Still well inside the beacon/sync budget.</li>
+</ul>

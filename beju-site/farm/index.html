@@ -2178,9 +2178,9 @@ const perkAt = (p) => PERKS[p] || null;
 const prestigeNeed = () => PRESTIGE_LEVEL + 8 * S.prestige;   /* 10, 18, 26, 34 ... and each level past 10 costs 1.22x the last */
 const BADGE = (rank) => (rank === 1 ? 'Champion' : rank <= 3 ? 'Top 3' : rank <= 10 ? 'Top 10' : 'Farmer');
 /* season stars come from things done on a real day, each with a daily cap, so an hour a day earns nearly as much as six */
-const STAR_PER = { help: 1, cheers: 1, checkin: 2, task: 2, golden: 1, cup: 1, contract: 1, roast: 1, counter: 1, weekly: 15, drop: 5, prestige: 10 };
-const STAR_CAP = { help: 1, cheers: 1, checkin: 2, task: 6, golden: 5, cup: 3, contract: 3, roast: 3, counter: 3 };
-const STAR_WHAT = { help: 'Help a co-op mate', cheers: 'Cheers for a farm', checkin: 'Daily check-in', task: 'Daily tasks', golden: 'Golden bushes', cup: 'Lots cupped by hand', contract: 'Supply contracts', roast: 'Roasts', counter: 'Counter sessions with no walk-outs' };
+const STAR_PER = { help: 1, cheers: 1, care: 1, sroast: 2, checkin: 2, task: 2, golden: 1, cup: 1, contract: 1, roast: 1, counter: 1, weekly: 15, drop: 5, prestige: 10 };
+const STAR_CAP = { help: 1, cheers: 1, care: 1, sroast: 1, checkin: 2, task: 6, golden: 5, cup: 3, contract: 3, roast: 3, counter: 3 };
+const STAR_WHAT = { help: 'Help a co-op mate', cheers: 'Cheers for a farm', care: 'Send a care package', sroast: 'Roast the season\'s coffee', checkin: 'Daily check-in', task: 'Daily tasks', golden: 'Golden bushes', cup: 'Lots cupped by hand', contract: 'Supply contracts', roast: 'Roasts', counter: 'Counter sessions with no walk-outs' };
 const TRACK_TIERS = 30, TIER_STARS = 15;
 const tierAt = (st) => Math.min(TRACK_TIERS, Math.floor(st / TIER_STARS));
 const newSeason = () => ({ key: seasonKey(), prestige: 0, kh: 0, stars: 0, claimed: {}, caps: {}, capDay: '' });
@@ -2566,7 +2566,7 @@ function roasteryTick() {
     const sr = seasonRoast(), seasonal = sr && sr.known && r.profile === sr.profile && (!sr.method || r.key.split('.')[1] === sr.method);
     R.bags.push({ key: r.key, profile: r.profile, kg: r.kg, coins: r.coins, pts: r.pts, np: r.np || undefined, q, cup: Math.round(r.cup * 10) / 10, pc: r.crack === 1 || undefined, seasonal: seasonal ? sr.name : undefined, skey: seasonal ? S.season.key : undefined, sid: seasonal ? sr.id : undefined });
     IN.roast.cool[i] = { until: Date.now() + 5000, col: ROASTS[r.profile].col };   /* the beans tip into the cooling tray */
-    R.roasters.splice(i, 1); if (!r.auto) { star('roast'); task('roast', 1); if (seasonal) task('sroast', 1); } SFX.play('drop');
+    R.roasters.splice(i, 1); if (!r.auto) { star('roast'); task('roast', 1); if (seasonal) { const d2 = dayKey(new Date()); if (S.srDay !== d2) { S.srDay = d2; star('sroast'); } task('sroast', 1); } } SFX.play('drop');
     if (i < BAYS.length) floats.push({ x: BAYS[i] + 13, y: BAY_Y - 4, text: 'quality ' + q + (r.crack === 1 ? ' ★' : ''), t: 0 });   /* over the roaster, not the banner */
   }
   const lv = repLevel(), newCos = rCheck();
@@ -6178,12 +6178,12 @@ function renderPanel() {
     const th = theme(), into = ss.stars - reached * TIER_STARS, today = ss.capDay === dayKey(new Date()) ? ss.caps : {};
     h += strip;
     const howOpen = S.seasonHow === undefined ? !Object.keys(ss.claimed).length : S.seasonHow;
-    h += '<div class="how"><button type="button" class="how-h" data-act="seasonhow" aria-expanded="' + howOpen + '"><b>How seasons work</b><span>' + (howOpen ? 'Hide' : 'Show') + '</span></button>' + (howOpen ? '<ol><li><b>Earn stars.</b> Check in, finish daily tasks, catch golden bushes, cup lots by hand, complete contracts and finish roasts' + (API ? ', and online, cheer a farm or help a co-op mate' : '') + '. Each has a daily cap (below), so come back each day.</li><li><b>Climb the track.</b> Every ' + TIER_STARS + ' stars is a tier. Tap Claim on a tier for its reward; every 5th tier is a cosmetic only this season has.</li><li><b>Race the board.</b> The season board ranks by stars, then know-how. When the month ends you get a badge for your rank, and anything you reached but didn\'t claim is given to you.</li></ol>' : '') + '</div>';
+    h += '<div class="how"><button type="button" class="how-h" data-act="seasonhow" aria-expanded="' + howOpen + '"><b>How seasons work</b><span>' + (howOpen ? 'Hide' : 'Show') + '</span></button>' + (howOpen ? '<ol><li><b>Earn stars.</b> Check in, finish daily tasks, catch golden bushes, cup lots by hand, complete contracts and finish roasts' + (API ? ', and online, cheer a farm, help a co-op mate, or send a care package' : '') + '. Each has a daily cap (below), so come back each day.</li><li><b>Climb the track.</b> Every ' + TIER_STARS + ' stars is a tier. Tap Claim on a tier for its reward; every 5th tier is a cosmetic only this season has.</li><li><b>Race the board.</b> The season board ranks by stars, then know-how. When the month ends you get a badge for your rank, and anything you reached but didn\'t claim is given to you.</li></ol>' : '') + '</div>';
     if (lastHarvest()) h += '<p class="rule"><b>Last harvest!</b> Golden bushes come twice as often until the season ends.</p>';
     h += '<p class="rule"><b>' + th.name + ' season rule:</b> ' + th.rule + '</p>';
     h += reached < TRACK_TIERS ? '<div class="bar"><i style="width:' + Math.round(into / TIER_STARS * 100) + '%"></i></div><p class="note">' + into + ' / ' + TIER_STARS + ' stars to tier ' + (reached + 1) + '.</p>' : '<p class="note"><b>Track complete!</b> Stars you earn now still count on the season board.</p>';
     if (sdot) h += btn('Claim all', 'tiers you have reached', 'tierall', true, 'green');
-    h += '<h3>Stars today</h3><div class="stats">' + Object.keys(STAR_WHAT).filter((k) => (k !== 'help' && k !== 'cheers' || (API && NET.status === 'online')) && (k !== 'roast' || roasteryOpen()) && (k !== 'counter' || ctOn())).map((k) => '<div><small>' + STAR_WHAT[k] + '</small><b>' + (today[k] || 0) + ' / ' + starCap(k) + '</b></div>').join('') + '</div>';
+    h += '<h3>Stars today</h3><div class="stats">' + Object.keys(STAR_WHAT).filter((k) => (k !== 'help' && k !== 'cheers' && k !== 'care' || (API && NET.status === 'online')) && (k !== 'roast' && k !== 'sroast' || roasteryOpen()) && (k !== 'counter' || ctOn())).map((k) => '<div><small>' + STAR_WHAT[k] + '</small><b>' + (today[k] || 0) + ' / ' + starCap(k) + '</b></div>').join('') + '</div>';
     h += help('stars', 'Daily caps reset each real day.', 'Also: weekly order ' + STAR_PER.weekly + ' stars, each drop event contract ' + STAR_PER.drop + ', your first prestige this season ' + STAR_PER.prestige + '. The daily caps reset each real day, so playing a little every day beats one long session.');
     const lo = S.trackOpen ? 1 : Math.max(1, Math.min(reached, ...Array.from({ length: reached }, (_, i) => i + 1).filter((n) => !ss.claimed[n]), reached + 1) - 1), hi = S.trackOpen ? TRACK_TIERS : Math.min(TRACK_TIERS, Math.max(lo + 5, reached + 3), Math.max(...[5, 10, 15, 18, 20, 25, 30].filter((x) => x > reached).slice(0, 1).concat([0])));   /* the tiers around you and the next cosmetic; the rest behind a tap */
     h += '<h3>Season track <button type="button" class="linkbtn" data-act="trackopen">' + (S.trackOpen ? 'show less' : 'see all 30') + '</button></h3><div class="track">' + Array.from({ length: hi - lo + 1 }, (_, i) => {
@@ -6417,7 +6417,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'visit') visitFarm(v);
   else if (a === 'visitcode') visitFarm(($('visitIn') || {}).value);
   else if (a === 'visitloc') { NET.visitLoc = v; showVisit(); }
-  else if (a === 'cheers') cheersFarm(v);
+  else if (a === 'cheers') cheersFarm(v, b.dataset.act.split(':')[2]);   /* the code and the postcard key hold no colons */
   else if (a === 'perksopen') S.perksOpen = !S.perksOpen;
   else if (a === 'trackopen') S.trackOpen = !S.trackOpen;
   else if (a === 'showhelp') S.showHelp = v === '1';
@@ -6461,6 +6461,8 @@ document.addEventListener('click', (e) => {
   else if (a === 'hvclaim') harvestClaim();
   else if (a === 'coe') coeStep(v);
   else if (a === 'coop') coopAct(v === 'find' ? { act: 'find' } : v === 'leave' ? { act: 'leave' } : v === 'derbyclaim' ? { act: 'derbyclaim' } : v.startsWith('sticker.') ? { act: 'sticker', id: v.slice(8) } : v.startsWith('help.') ? { act: 'help', i: +v.slice(5) } : v === 'claim' ? { act: 'claim' } : null);   /* one claim pays every tier reached */
+  else if (a === 'carepick') carePick(+v);
+  else if (a === 'caresend') { const [, i2, k2, p2, c2] = b.dataset.act.split(':'); closeModal(); coopAct({ act: 'care', i: +i2, key: k2, profile: p2, cup: +c2 / 10 }); }
   else if (a === 'dailysub') S.dailySub = v;
   else if (a === 'stickersall') S.stickersAll = !S.stickersAll;
   else if (a === 'derbyall') S.derbyAll = !S.derbyAll;
@@ -6870,6 +6872,7 @@ function harvestCard() {   /* the Daily tab's Harvest Day section: the next one,
 /* ---------- cooperatives and the Co-op Derby (server: game-coop) ---------- */
 const DERBY_KINDS = ['sell', 'cup', 'golden', 'contract', 'roast', 'boat'];
 const STICKERS = { hello: ['Hello!', 'worker_down_0'], thanks: ['Thanks!', 'i_heart'], nice: ['Nice one!', 'sparkle'], onit: ['On it!', 'i_cherry'], washed: ['Need washed', 'proc_washed'], natural: ['Need natural', 'proc_natural'], honey: ['Need honey', 'proc_honey'], roast: ['Roasting!', 'roaster_0'], golden: ['Golden bush!', 'i_coin'], prestige: ['Prestige soon', 'i_trophy'], harvest: ['Harvest Day!', 'deco_harvest'], night: ['Good night', 'crane_fly_0'] };
+const POSTCARDS = { lovely: ['What a lovely farm!', 'i_heart'], bloom: ['The cherries look happy', 'i_cherry'], roast: ['That roastery smells amazing', 'roaster_0'], coffee: ['Save me a cup', 'sh_mug'], farm: ['Your harvest is inspiring', 'green_sack'], wow: ['Farm goals!', 'i_trophy'] };   /* T2.4: the six compliments, one tap on a visit */
 const coopOK = () => !!API && S.guide >= GUIDE.length && (S.prestige >= 2 || (S.prestige >= 1 && level() >= 6) || !!S.coopName);   /* co-ops open at level 6 after the first prestige (level 9 already brings Ranks, the season and farm visits) */
 function coopAdd(method, green) {   /* green coffee sold: the 7-day log for the co-op estimate, and the week's co-op order */
   const dk = dayKey(new Date()); S.soldLog = S.soldLog || {}; S.soldLog[dk] = (S.soldLog[dk] || 0) + green; earnedG += green;
@@ -6880,6 +6883,7 @@ const coopEst = () => { const keys = Object.keys(S.soldLog || {}).sort().slice(-
 function coopTake(v) {   /* a fresh view from the server: line up this week's tallies with it */
   NET.coop = v; NET.coopSeen = true; S.coopName = v ? v.name : '';
   if (!v) return;
+  careArrive(v);
   const me = v.members.find((m) => m.you) || { share: 0 };
   if (!S.cw || S.cw.wk !== v.order.week) S.cw = { wk: v.order.week, kg: me.share, sent: me.share };
   else { S.cw.sent = Math.max(S.cw.sent || 0, me.share); S.cw.kg = Math.max(S.cw.kg, me.share); }
@@ -6907,6 +6911,7 @@ async function coopAct(body) {
   if (body.act === 'claim') { earn({ cranes: r.data.cranes }); if (r.data.full) star('weekly'); SFX.play('crane'); toast('Co-op order: +' + r.data.cranes + ' crane' + (r.data.cranes === 1 ? '' : 's')); coopSync(true); return; }
   if (body.act === 'derbyclaim') { const l = NET.coop.derby && NET.coop.derby.last; earn({ cranes: r.data.cranes }); if (l) S.badges.push({ event: 'Co-op Derby', label: l.rank === 1 ? 'Derby winner' : 'Derby ' + l.rank + ordinal(l.rank), rank: l.rank }); SFX.play('crane'); toast('Co-op Derby: a badge and +' + r.data.cranes + ' crane' + (r.data.cranes === 1 ? '' : 's')); coopSync(true); return; }
   if (body.act === 'help') { SFX.play('pop'); star('help'); toast('Help sent: their drying lots go 10% faster'); }
+  if (body.act === 'care') { SFX.play('pop'); if (r.data.star) star('care'); BEACON.ev('care_send', { p: S.prestige, lvl: level() }); toast('Care package on its way to ' + r.data.to + (r.data.star ? ' · +1 season star' : '')); }
   if (body.act === 'sticker') SFX.play('pop');
   if (body.act === 'create' || body.act === 'join' || body.act === 'find') { SFX.play('achieve'); toast('Welcome to ' + r.data.coop.name); }
   if (body.act === 'leave') toast('You left the co-op');
@@ -6919,6 +6924,24 @@ async function coopHelps() {   /* help from co-op mates: each one dries every lo
   NET.coop.helpsIn = 0; SFX.play('achieve');
   toast([...new Set(r.data.from)].join(', ') + ' helped your lots dry faster');
 }
+function careArrive(v) {   /* T2.3: a co-op mate's care package lands on the shelf, priced fairly by your own farm's math */
+  if (!v.care || !v.care.got.length) return;
+  v.care.got.forEach((p2) => {
+    const [vv, mm] = p2.key.split('.'); if (!VAR[vv] || !METHODS[mm]) return;
+    const kg = 40, r2 = saleFor(vv, mm, kg, null);
+    S.roastery.bags.push({ key: p2.key, profile: p2.profile, kg, coins: r2.coins, pts: r2.points, q: 70, cup: p2.cup || undefined, from: p2.name });
+    toast('Care package from ' + p2.name + ': ' + beanName(p2.key) + (p2.cup ? ' · cup ' + p2.cup.toFixed(1) : ''));
+  });
+  if (v.care.got.length) { SFX.play('achieve'); BEACON.ev('care_recv', { p: S.prestige, lvl: level() }); for (let k = 0; k < (v.care.stars || 0); k++) star('care'); }
+}
+function carePick(i) {   /* T2.3: choose which of your roasts to mail a co-op mate */
+  const bags = S.roastery.bags.filter((b) => !b.blend);
+  if (!bags.length) { toast('Roast a bag first — a care package mails one of your roasted bags'); return; }
+  const seen = {};
+  bags.forEach((b) => { const k2 = b.key + '|' + b.profile; if (!seen[k2]) seen[k2] = { key: b.key, profile: b.profile, cup: 0, n: 0 }; seen[k2].n += 1; seen[k2].cup = Math.max(seen[k2].cup, b.cup || 0); });
+  const m8 = (NET.coop.members[i] || {}).name || 'your mate';
+  showModal('<h2>Care package for ' + m8 + '</h2><p class="note">One bag from your shelf travels with your name and its cup score. It arrives at their next check-in, and you both earn a season star (once a day).</p>' + Object.values(seen).map((r2) => row(img('green_sack', 26), beanName(r2.key) + ' · ' + ROASTS[r2.profile].name.toLowerCase(), (r2.n > 1 ? r2.n + ' on the shelf · ' : '') + 'cup ' + (r2.cup ? r2.cup.toFixed(1) : '?'), btn('Send', '', 'caresend:' + i + ':' + r2.key + ':' + r2.profile + ':' + Math.round(r2.cup * 10), true, 'green'))).join('') + '<button class="btn" data-act="close">Cancel</button>');
+}
 function coopCard() {   /* the Daily tab's co-op section */
   if (!coopOK() || NET.status !== 'online' || !NET.coopSeen) return '<p class="note">Co-ops work when you play online at bejucoffee.com.</p>';
   const c = NET.coop;
@@ -6930,7 +6953,7 @@ function coopCard() {   /* the Daily tab's co-op section */
   const ready = o.tiers.filter((t, i) => o.total >= t.at && !o.claimed.includes(i)), gain = ready.reduce((a, t) => a + t.cranes, 0);
   h += '<div class="tiers">' + o.tiers.map((t, i) => '<span class="chip' + (o.claimed.includes(i) ? ' got' : '') + '">' + [25, 50, 75, 100][i] + '% · ' + t.cranes + ' crane' + (t.cranes === 1 ? '' : 's') + (o.claimed.includes(i) ? ' ✓' : '') + '</span>').join('') + '</div>';
   if (gain && mine.share > 0) h += btn('Claim', gain + ' crane' + (gain === 1 ? '' : 's'), 'coop:claim', true, 'green');
-  h += '<h3>Members</h3>' + c.members.map((m, i) => row(avatar(m.look, 30), m.you ? m.name + ' (you)' : m.name, (m.away ? 'Away for a week or more · ' : 'Prestige ' + m.prestige + ' · ') + fmt(m.share) + ' kg this week', m.you ? '' : '<div class="seg" style="flex-direction:column;gap:4px">' + btn(m.helped ? 'Helped' : 'Help', m.helped ? 'today' : 'dry their lots', 'coop:help.' + i, !m.helped, 'blue') + (m.code ? '<button type="button" class="visit-btn" data-act="visit:' + m.code + '">Visit</button>' : '') + '</div>')).join('');
+  h += '<h3>Members</h3>' + c.members.map((m, i) => row(avatar(m.look, 30), m.you ? m.name + ' (you)' : m.name, (m.away ? 'Away for a week or more · ' : 'Prestige ' + m.prestige + ' · ') + fmt(m.share) + ' kg this week', m.you ? '' : '<div class="seg" style="flex-direction:column;gap:4px">' + btn(m.helped ? 'Helped' : 'Help', m.helped ? 'today' : 'dry their lots', 'coop:help.' + i, !m.helped, 'blue') + btn(c.care.sent ? 'Sent' : 'Send a bag', c.care.sent ? 'one a day' : 'a care package', 'carepick:' + i, !c.care.sent, '') + (m.code ? '<button type="button" class="visit-btn" data-act="visit:' + m.code + '">Visit</button>' : '') + '</div>')).join('');
   if (S.hideStickers) h += '<p class="note">Stickers are hidden. Show them again in Settings.</p>';
   else {
     const keys = S.stickersAll ? Object.keys(STICKERS) : ['hello', 'thanks', 'nice', 'onit', 'golden', 'night'];
@@ -7076,7 +7099,7 @@ async function showVisit(fresh) {
     '<div class="seg visit-farms">' + Object.keys(v.farm.farms).map((l) => '<button type="button" data-act="visitloc:' + l + '" aria-pressed="' + (l === loc) + '">' + fname(l) + '</button>').join('') + (v.farm.rst ? '<button type="button" data-act="visitloc:roast" aria-pressed="' + roast + '">Roastery</button>' : '') + '</div>' +
     (tro.length ? '<div class="trow">' + tro.map((t) => trophyImg(t, 'tro')).join('') + '</div>' : '') +
     (est ? '<p class="note">Estates: ' + est + '</p>' : '') + '<p class="note">Farm code ' + v.code + '</p>' +
-    (mine ? '<p class="note">This is how visitors see your farm.</p>' : btn(done ? 'Cheered today' : 'Cheers! ♥', done ? 'come back tomorrow' : 'one a day for each farm', 'cheers:' + v.code, !done, 'gold')) + '<button class="btn" data-act="close">Leave</button></div>', !fresh);
+    (mine ? '<p class="note">This is how visitors see your farm.</p>' + (v.cards && v.cards.length ? '<p class="note"><b>Postcards on your keepsake shelf:</b></p><div class="stickers">' + v.cards.slice(-5).map((c2) => '<span><img src="' + url((POSTCARDS[c2.pc] || POSTCARDS.lovely)[1]) + '" alt=""><b>' + c2.name + '</b> ' + (POSTCARDS[c2.pc] || POSTCARDS.lovely)[0] + '</span>').join('') + '</div>' : '') : '<p class="note">Leave a compliment — ' + (done ? 'you left one today' : 'one a day for each farm') + ':</p><div class="stickers">' + Object.keys(POSTCARDS).map((k2) => '<button type="button" class="btn" data-act="cheers:' + v.code + ':' + k2 + '"' + (done ? ' disabled' : '') + '><img src="' + url(POSTCARDS[k2][1]) + '" alt="">' + POSTCARDS[k2][0] + '</button>').join('') + '</div>') + '<button class="btn" data-act="close">Leave</button></div>', !fresh);
   if (NET.visitFx.length && !NET.visitFxOn) { NET.visitFxOn = true; requestAnimationFrame(visitFxLoop); }
 }
 function visitFxLoop() {   /* a visited farm's effects, drawn over its still picture while the card is open */
@@ -7102,9 +7125,9 @@ async function renderRoastVisit(v) {   /* a visited roastery, still: its room, r
   const sh = apronShirt(r.apron); x.drawImage(sprite('worker_down_0', sh ? { shirt: sh, hat: HELP_LOOK.hat } : HELP_LOOK), 88, 150);   /* the barista, in the house aprons */
   return (visitImgs[k] = c.toDataURL());
 }
-async function cheersFarm(code) {
-  const r = await api('game-visit?code=' + code, 'POST', {}).catch(() => null);
-  if (r && r.status === 200) { S.cheered = S.cheered || {}; S.cheered[code] = dayKey(new Date()); if (NET.visit && NET.visit.code === code) NET.visit.cheers = r.data.cheers; star('cheers'); SFX.play('achieve'); toast('Cheers sent!'); showVisit(); }
+async function cheersFarm(code, pc) {
+  const r = await api('game-visit?code=' + code, 'POST', pc ? { pc } : {}).catch(() => null);
+  if (r && r.status === 200) { S.cheered = S.cheered || {}; S.cheered[code] = dayKey(new Date()); if (NET.visit && NET.visit.code === code) NET.visit.cheers = r.data.cheers; star('cheers'); SFX.play('achieve'); if (pc) { BEACON.ev('postcard_send', { pc, p: S.prestige, lvl: level() }); toast('Postcard sent!'); } else toast('Cheers sent!'); showVisit(); }
   else { SFX.play('nope'); toast(r && r.data.error === 'already_today' ? 'You cheered this farm today' : r && r.data.error === 'enough_today' ? 'That\'s enough Cheers for today' : 'Could not send Cheers'); if (r && r.data.error === 'already_today') { S.cheered = S.cheered || {}; S.cheered[code] = dayKey(new Date()); showVisit(); } }
 }
 setInterval(() => { if (document.hidden) return; cloudSync(); submitScore(); visitSync(); if (API && NET.acct && NET.status === 'online' && Date.now() - (NET.trophiesAt || 0) > 1800000) { NET.trophiesAt = Date.now(); liveBoard('all'); } }, 30000);   /* the trophy list comes with your board row */
