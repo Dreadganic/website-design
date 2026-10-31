@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<!-- Registers the site's forms with Netlify Forms at deploy time. The real forms are in
+     contact/ and wholesale/ and are sent by assets/app.*.js; field names here must match what it sends. -->
+<html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex, nofollow"><title>Forms</title></head>
+<body>
+<form name="contact" data-netlify="true" netlify-honeypot="bot-field" hidden>
+  <input type="hidden" name="form-name" value="contact">
+  <input type="hidden" name="subject">
+  <input type="text" name="name">
+  <input type="email" name="email">
+  <input type="text" name="topic">
+  <input type="text" name="language">
+  <textarea name="message"></textarea>
+  <input name="bot-field">
+</form>
+<form name="wholesale" data-netlify="true" netlify-honeypot="bot-field" hidden>
+  <input type="hidden" name="form-name" value="wholesale">
+  <input type="hidden" name="subject">
+  <input type="text" name="name">
+  <input type="email" name="email">
+  <input type="text" name="type">
+  <input type="text" name="biz">
+  <input type="text" name="kind">
+  <input type="text" name="vol">
+  <input type="text" name="eq">
+  <input type="text" name="when">
+  <input type="text" name="course">
+  <input type="text" name="exp">
+  <input type="text" name="people">
+  <input type="text" name="dates">
+  <input type="text" name="language">
+  <textarea name="message"></textarea>
+  <input name="bot-field">
+</form>
+</body></html>

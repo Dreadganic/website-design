@@ -88,7 +88,7 @@ Your seller details are filled in: Jordan Hipkiss (Beju Coffee Roasters), the Hi
 
 ## 4. Contact and enquiry forms
 
-Create a free form at **Formspree** (formspree.io) and paste its address into `contactEndpoint` in `config.js`. Both the contact form and the wholesale/training enquiry form will then send to your inbox. Enquiries arrive with every answer included (business type, monthly volume, course, dates). Until then, the forms ask people to message you on Instagram.
+The contact form and the wholesale/training enquiry form send through **Netlify Forms**. They're registered by `beju-site/__forms.html`, so keep its field names in step with what the site script sends. Submissions show up in the Netlify dashboard under **Forms**. To get them by email, go to **Forms → Form notifications → Add notification → Email notification** and enter your address. Each email's reply-to is the customer's address, and enquiries include every answer (business type, monthly volume, course, dates). Anything flagged as spam goes to the **Spam** list there. To send to Formspree or another JSON endpoint instead, put its address in `contactEndpoint` in `config.js`.
 
 ## 5. Get found on Google
 
