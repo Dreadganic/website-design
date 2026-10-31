@@ -211,6 +211,7 @@ button.dchip { cursor: pointer; }
 .modal { position: fixed; inset: 0; background: rgba(20,12,6,0.6); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 20; }
 .modal[hidden] { display: none; }
 button, a.btn, [data-act], [data-tab] { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+a.btn { text-decoration: none; }   /* link buttons (the shop, real bags) read like every other button */
 .ccards { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; scroll-snap-type: x proximity; }
 .ccard { flex: 0 0 220px; scroll-snap-align: start; display: flex; gap: 8px; align-items: center; padding: 6px 8px; background: var(--paper-2); border: 2px solid var(--edge); border-radius: 8px; }
 .ccard.ev { border-color: #C86C8E; background: #FFF0F5; }
@@ -492,7 +493,7 @@ const BEACON = (() => {
   };
   setInterval(() => flush(false), 120000);   /* slow drip, same spirit as the sync cuts: events wait for the batch */
   window.addEventListener("pagehide", () => flush(true));
-  document.addEventListener("click", (e) => { const a = e.target && e.target.closest ? e.target.closest('a[href*="bejucoffee.com"]') : null; if (a) ev("order_click", { t: (a.textContent || "").slice(0, 30) }); }, true);
+  document.addEventListener("click", (e) => { const a = e.target && e.target.closest ? e.target.closest('a[href*="bejucoffee.com"]') : null; if (a) ev("order_click", { t: (a.textContent || "").slice(0, 30), key: a.dataset.bag }); }, true);   /* key: the bag card's coffee, so card → click reads per bag */
   return { ev, flush, startedAt, qlen: () => q.length, last: () => q[q.length - 1] };   /* qlen/last: read-only, for the sim tests */
 })();
 const W = 192, H = 352, LANE_X = 97, HOME = { x: 150, y: 80 }, DROP = { x: 120, y: 106 }, STORE_AT = { x: 98, y: 68 };
@@ -1686,13 +1687,14 @@ function unlockReq(key) {   /* { ok, short: a button label, why: a sentence } fo
 const gateOK = (key) => unlockReq(key).ok;
 const gateNote = (key) => unlockReq(key).why;
 /* Real Beju coffees: buying one gives cranes, its origin's passport stamp (one per order line; a blend stamps its next origin by share) and any process it unlocks */
-const COFFEES = {
-  casablanca: { name: 'Casablanca Blend', price: 3000, stamps: ['mogiana', 'huila', 'turrialba'] },
-  pinkwhiskey: { name: 'Colombia Pink Whiskey', price: 4500, stamps: ['huila'], method: 'whiskey' },
-  rumbarrel: { name: 'Colombia Rum Barrel', price: 4500, stamps: ['huila'], method: 'rum' },
-  yirgacheffe: { name: 'Ethiopia Yirgacheffe', price: 2800, stamps: ['gedeo'] },
-  strawberry: { name: 'Sumatra Strawberry', price: 3800, stamps: ['toba'], method: 'strawberry' }
+const COFFEES = {   /* real: the bag itself, from its page on bejucoffee.com/shop/<key>/ */
+  casablanca: { name: 'Casablanca Blend', price: 3000, stamps: ['mogiana', 'huila', 'turrialba'], real: 'Beju\'s house blend, with a natural from Fazenda Terra Preta in Mogiana, a washed Excelso from Colombia and a washed lot from Aquiares Estate in Turrialba, Costa Rica.' },
+  pinkwhiskey: { name: 'Colombia Pink Whiskey', price: 4500, stamps: ['huila'], method: 'whiskey', real: 'Pink Bourbon and Caturra from Finca Monteblanco above Pitalito, Huila, dried whole and finished in whiskey barrels.' },
+  rumbarrel: { name: 'Colombia Rum Barrel', price: 4500, stamps: ['huila'], method: 'rum', real: 'A washed Castillo from La Loma, a small family farm in Caldas, aged in rum barrels.' },
+  yirgacheffe: { name: 'Ethiopia Yirgacheffe', price: 2800, stamps: ['gedeo'], real: 'A G1 washed coffee grown by smallholders around Worka village in Ethiopia\'s Gedeo zone, above 2,100 m.' },
+  strawberry: { name: 'Sumatra Strawberry', price: 3800, stamps: ['toba'], method: 'strawberry', real: 'A Catimor from Shimaren Farm by Lake Toba, semi-washed with a strawberry infused fermentation.' }
 };
+const FARM_BAG = { huila: 'pinkwhiskey', gedeo: 'yirgacheffe', toba: 'strawberry', turrialba: 'casablanca' };   /* the real bag grown on each farm that opens */
 /* farms open in order with points earned by playing; Osaka is cranes only */
 const FARM_COST = { mogiana: 0, huila: 1500, gedeo: 5000, toba: 20000, turrialba: 60000 };
 const prevFarm = (loc) => LOCS[LOCS.indexOf(loc) - 1];
@@ -4200,6 +4202,14 @@ function unlockFarm(loc) {
   f.unlocked = true;
   if (loc === 'osaka') { S.vars.geisha = true; [0, 1, 2, 3].forEach((b) => replantBed(f, b, 'geisha')); showModal('<h2>Osaka garden open</h2>' + img('bush_geisha_ripe', 54) + '<p class="note">The roastery garden comes with Geisha seeds. Geisha is now unlocked for every farm, and the garden is a new background for your farmer in Ranks.</p><button class="btn green" data-act="close">Lovely</button>'); }
   addWorker(f); toast(ART.locations[loc].name + ' is open');
+  bagCard(FARM_BAG[loc], ART.locations[loc].name.split(',')[0] + ' is open', img('stamp_' + loc, 54));
+}
+function bagCard(k, title, art) {   /* an unlock that exists for real links its bag, once a save: the unlock is the ad, earned not pushed. Off until orders count (ORDERS_LIVE) */
+  if (!k || !ordersLive() || (S.bagSeen || {})[k]) return false;
+  (S.bagSeen = S.bagSeen || {})[k] = true; BEACON.ev('bag_card', { key: k, p: S.prestige, lvl: level() });
+  const c = COFFEES[k];
+  showModal('<h2>' + title + '</h2>' + art + '<p class="note">This one is real. <b>' + c.name + '</b>: ' + c.real + ' ¥' + fmt(c.price) + ' a bag from Beju.</p><a class="btn green" data-act="close" data-bag="' + k + '" href="https://bejucoffee.com/shop/' + k + '/" target="_blank" rel="noopener">See the real bag</a><button class="btn" data-act="close">Later</button>');
+  return true;
 }
 function skinPicker() {   /* the outfit choice offered with each prestige */
   if (!S.skinPicks) return '';
@@ -5262,7 +5272,7 @@ document.addEventListener('click', (e) => {
     if (n) { SFX.play('coins'); toast(n + ' lot' + (n > 1 ? 's' : '') + ' sold and delivered: +' + fmt(S.coins - c0) + ' coins'); }
   }
   else if (a === 'cup') cupLot(+v);
-  else if (a === 'method') { if (gateOK('method:' + v) && spend('points', METHODS[v].cost)) { S.methods[v] = true; S.lastMethod = v; toast(METHODS[v].name + ' unlocked'); } }
+  else if (a === 'method') { if (gateOK('method:' + v) && spend('points', METHODS[v].cost)) { S.methods[v] = true; S.lastMethod = v; if (!bagCard(METHODS[v].coffee, METHODS[v].name + ' unlocked', img(METHODS[v].art, 54))) toast(METHODS[v].name + ' unlocked'); } }
   else if (a === 'up') { const before = S.lv[v]; buyUpgrade(v); if (S.lv[v] !== before) guideStep('up:' + v); }
   else if (a === 'guideNext') { if (S.guide < GUIDE.length) guideDone(); }
   else if (a === 'guideSkip') { S.guide = GUIDE.length; tutorialEnd(); checkTabs(); const wait = [!S.tabs.shop && 'the Shop opens at level ' + TAB_LEVEL.shop, !S.tabs.ranks && 'Ranks at level ' + TAB_LEVEL.ranks].filter(Boolean).join(' and '); toast('Lessons skipped.' + (wait ? ' ' + wait[0].toUpperCase() + wait.slice(1) + '.' : '')); }   /* only what the lessons open: the Shop and Ranks keep their levels */

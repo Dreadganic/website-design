@@ -229,7 +229,7 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
   ok(await E(() => /This week's moods/.test(document.getElementById('panel').innerText)), 'the mood board on the Daily tab');
   ok(await E(() => { const e = window.__T.BEACON.last(); return e && e.e === 'mood_view' && window.__T.S.moodSeen === window.__T.moodWeek(); }), 'mood_view fires the first time the board is shown');
   const q0 = await E(() => window.__T.BEACON.qlen());
-  await E(() => { const T = window.__T; T.setTab('farm'); T.setTab('orders'); T.renderPanel(); });
+  await E(() => { const T = window.__T, r = Math.random; Math.random = () => 0.5; T.setTab('farm'); T.setTab('orders'); T.renderPanel(); Math.random = r; });   /* tab_open is sampled 1 switch in 10: hold it off, so only a second mood_view could grow the queue */
   ok((await E(() => window.__T.BEACON.qlen())) === q0, 'mood_view once a week, not on every visit');
   ok(await E(() => { const a = window.__T.moodOf('cafe'); return a.key === window.__T.moodKey('cafe') && a.mult >= 1.15 && a.mult <= 1.25; }), 'mood pay stays in the +15–25% band');
   ok(await E(() => { const T = window.__T, k = T.moodKey('cafe'); const b = { key: k, profile: 'light', coins: 20000, q: 80, cup: 85 }; const c = Object.assign({}, b, { key: k === 'caturra.washed' ? 'caturra.natural' : 'caturra.washed' }); return Math.abs(T.bagPrice(b, 'cafe') / T.bagPrice(c, 'cafe') - T.moodMult('cafe')) < 0.001; }), 'the moody buyer pays the premium for its coffee');

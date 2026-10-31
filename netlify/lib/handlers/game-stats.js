@@ -58,6 +58,8 @@ exports.handler = async (event) => {
   const prestigeByP = {};
   for (const e of events) if (e.e === "prestige" || e.e === "first_prestige") prestigeByP["P" + (e.p || 1)] = (prestigeByP["P" + (e.p || 1)] || 0) + 1;
   const players = Object.keys(firstDay).length;
+  const bags = {};   /* real-bag cards: shown, then "See the real bag" tapped, per coffee */
+  for (const e of events) if ((e.e === "bag_card" || e.e === "order_click") && e.key) { const b = bags[e.key] = bags[e.key] || { cards: 0, clicks: 0 }; if (e.e === "bag_card") b.cards += 1; else b.clicks += 1; }
 
   return G.json(200, {
     days, from: new Date(from).toISOString(), to: new Date(now).toISOString(),
@@ -66,7 +68,7 @@ exports.handler = async (event) => {
     retention: ret,
     counter: { closes: counterSessions.length, medianServed: median(counterSessions.map((e) => e.served || 0)), medianWalkouts: median(counterSessions.map((e) => e.out || 0)) },
     away: { sessions: away.length, medianHours: median(away) },
-    prestigeByP, p5Plus: starts.filter((e) => (e.p || 0) >= 5).length,
+    bags, prestigeByP, p5Plus: starts.filter((e) => (e.p || 0) >= 5).length,
     funnel: { first_pick: counts.first_pick || 0, first_sale: counts.first_sale || 0, first_prestige: counts.first_prestige || 0, counter_open: counts.counter_open || 0, kona_open: counts.kona_open || 0, order_click: counts.order_click || 0 }
   });
 };
