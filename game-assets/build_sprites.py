@@ -2117,6 +2117,156 @@ def scene_kona():
 
 scene_kona(); img.save(os.path.join(HERE, "bg", "kona.png")); rendered[("kona", "")] = img.copy()
 
+RIDGE = ["#B8C8DC", "#9CB0CC", "#8098BA", "#6A82A8", "#566E94", "#445A7E"]   # the Blue Mountains, blue in their own haze
+CLOUDF = ["#7AA066", "#5E8A52", "#467444", "#345C38", "#24442A", "#16301E"]   # cloud forest above the farm
+
+
+def bm_wall(x0, y0, w, seed):   # a dry-stone retaining wall along a terrace's foot: stones of every size, moss in the joints
+    rnd = random.Random(seed)
+    x = x0
+    while x < x0 + w:   # two courses of irregular stones
+        for (cy, ch) in ((y0, 4), (y0 + 4, 4)):
+            sw = rnd.randint(3, 7)
+            for yy in range(cy, cy + ch):
+                for xx in range(x + (2 if cy > y0 else 0), min(x0 + w, x + sw + (2 if cy > y0 else 0))):
+                    edge = xx == x + (2 if cy > y0 else 0) or yy == cy
+                    put(xx, yy, STONE[3] if edge else STONE[0] if yy == cy + 1 and rnd.random() < 0.5 else STONE[1] if (xx + yy) % 3 else STONE[2])
+        x += rnd.randint(3, 7)
+    for _ in range(w // 5):   # moss and little ferns in the joints
+        put(x0 + rnd.randrange(w), y0 + rnd.randrange(8), rnd.choice(["#6A8A3A", "#4E7030", "#86A848"]))
+    for xx in range(x0, x0 + w):
+        put(xx, y0 + 8, "#2A2A0860"); put(xx, y0 + 9, "#2A2A0830")
+
+
+def bm_terrace(i, x0, y0, w=86):   # a terrace: soil worked in contour rows with rounded ends, a tufted grass lip, a stone wall below (the game draws the Typica)
+    rnd = random.Random(500 + i)
+    lush = GRASS["lush"]
+    for y in range(y0, y0 + 40):
+        for x in range(x0, x0 + w):
+            dx = min(x - x0, x0 + w - 1 - x)
+            if y < y0 + 3 or (dx < 4 and (y - y0) < 4 - dx) or (dx < 3 and (y0 + 39 - y) < 3 - dx):   # grass lip and rounded corners
+                put(x, y, lush[2] if (x + y) % 3 else lush[1])
+                continue
+            row = int(y - y0 - 3 + math.sin(x * 0.07 + i) * 1.5) % 6   # contour rows that follow the slope
+            put(x, y, SOIL[3] if row == 5 else SOIL[1] if row == 0 and (x * 3 + i) % 7 else SOIL[2] if (x * 7 + y * 3 + i) % 9 else SOIL[0])
+    for x in range(x0, x0 + w):   # tufts hanging over the soil from the lip
+        if rnd.random() < 0.45:
+            put(x, y0 + 3, lush[2]); put(x, y0 + 4, lush[3]) if rnd.random() < 0.4 else None
+    for _ in range(16):   # fallen leaves, pebbles and the odd seedling
+        put(x0 + rnd.randrange(3, w - 3), y0 + rnd.randrange(6, 37), rnd.choice([LEAF[3], LEAF[4], STONE[2], "#B07A44"]))
+    bm_wall(x0, y0 + 40, w, 520 + i)
+    for k in range(3):   # flowers along the wall top: impatiens and crotons
+        k_flower(x0 + 10 + k * 30 + rnd.randint(-4, 4), y0 + 39, rnd.choice(["#F08AA8", "#E8384A", "#FFF4E8", "#F2C04A"]))
+
+
+def scene_bluemtn():
+    """Blue Mountain, the slow island: the misty Blue Mountains at the top, cloud forest, three rows of terraces held by
+    dry-stone walls with stone steps down the middle and banana plants for shade, the spring channel, the concrete
+    barbecue where parchment rests in four bays, the pulpery bottom left and the grading house with its barrel store
+    bottom right. The game draws the Typica, the fog, the batches and the barrels (BTER, BBQ, BGTABLE and BBARREL in
+    template.html use the same spots)."""
+    lush = GRASS["lush"]
+    new_scene(lush[2])
+    rnd = random.Random(71)
+    nz = noise(72)
+    for y in range(H):
+        for x in range(W):
+            v = nz(x, y)
+            put(x, y, rnd.choice(lush[1:4]) if rnd.random() < 0.1 else lush[1] if v > 1.6 else lush[3] if v < 0.5 else lush[2])
+    # sky, then three ridges, each bluer and paler with distance
+    for y in range(0, 40):
+        for x in range(W):
+            put(x, y, "#D8E2EE" if y < 14 else "#CCD8E8" if y < 26 else "#C0CEE2")
+    for k, (base, amp, freq, ph, col) in enumerate([(22, 8, 0.045, 0.3, RIDGE[1]), (30, 9, 0.06, 1.7, RIDGE[3]), (40, 7, 0.08, 4.2, RIDGE[4])]):
+        for x in range(W):
+            top = base - amp * (math.sin(x * freq + ph) * 0.6 + math.sin(x * freq * 2.3 + ph * 2) * 0.4) - (10 if k == 0 and 120 < x < 172 else 0) * math.sin((x - 120) / 52 * math.pi)
+            for y in range(int(top), 64):
+                lit = (math.sin(x * 0.2 + y * 0.1 + k) > 0.6)
+                put(x, y, RIDGE[max(0, RIDGE.index(col) - 1)] if lit else col)
+    for y in range(18, 40):   # a band of cloud lying in the valleys between the ridges
+        for x in range(W):
+            if math.sin(x * 0.05 + y * 0.3) + math.sin(x * 0.11) * 0.5 > 0.7 - (y - 18) * 0.04:
+                put(x, y, "#F2F6FA", 170)
+    # cloud forest: dark canopy blobs and tree ferns along the top of the farm
+    for x in range(-4, W + 8, 11):
+        cluster(x + rnd.randint(-2, 2), 54 + rnd.randint(-2, 3), 8, 7, CLOUDF, 700 + x, blobs=10, br=(2.5, 4), speck=False)
+    for x in range(4, W, 23):
+        k_fern(x, 64, 760 + x, CLOUDF)
+    # the terraces: three rows, two each, stone steps between them
+    for r in range(3):
+        for c in range(2):
+            bm_terrace(r * 2 + c, 6 + c * 94, 70 + r * 48)
+        for y in range(70 + r * 48, 70 + r * 48 + 48):   # the grassy ends beside the walls
+            for x in list(range(0, 6)) + list(range(186, W)):
+                put(x, y, lush[2] if (x + y) % 4 else lush[3])
+    for y in range(66, 214):   # the stone steps down the middle
+        for x in range(92, 100):
+            step = (y - 66) % 6
+            put(x, y, STONE[3] if step == 5 or x in (92, 99) else STONE[1] if step == 0 else STONE[2] if (x + y) % 4 else STONE[0])
+    for (bx, by, sz) in [(14, 58, 13), (64, 60, 12), (128, 58, 13), (178, 60, 12)]:   # banana plants along the top: the old shade
+        paddle_plant(bx, by, sz, 780 + by + bx, LUSH)
+    for (fx_, fy_) in [(2, 96), (189, 102), (2, 150), (189, 146), (2, 196), (189, 190)]:   # ferns tucked at the terrace ends
+        k_fern(fx_, fy_, 790 + fy_, LUSH)
+    # the spring channel: a stone-lined runnel of clear water along the foot of the terraces
+    for y in range(213, 217):
+        for x in range(W):
+            put(x, y, STONE[3] if y in (213, 216) else WATER[1] if (x + y) % 5 else WATER[0])
+    # the barbecue: a concrete drying floor in four bays, cracked and patched, with low kerbs
+    for y in range(217, 260):
+        for x in range(2, 190):
+            seam = (x - 2) % 46 in (0, 45) or y in (217, 259)
+            put(x, y, CONCRETE[3] if seam else CONCRETE[0] if (x * 5 + y * 3) % 17 == 0 else CONCRETE[1] if (x + y) % 3 else CONCRETE[2])
+    for _ in range(10):
+        x, y = rnd.uniform(6, 186), rnd.uniform(220, 256)
+        for t in range(rnd.randint(4, 9)):
+            x += rnd.uniform(0.4, 1.1); y += rnd.uniform(-0.6, 0.6); put(x, y, CONCRETE[3])
+    for x in range(2, 190, 2):
+        put(x, 260, "#2A2A0850")
+    # the pulpery, bottom left: whitewashed walls, a red tin roof, the hopper and the wash tank
+    soft_shadow(2, 311, 68)
+    tin_roof(0, 262, 72, 10, ["#C8402C", "#A8342A", "#7A2620"])
+    for y in range(272, 311):
+        for x in range(2, 70):
+            put(x, y, "#5A4A3A" if x in (2, 69) or y == 310 else "#F2EEE4" if (x + y) % 9 else "#E2DCCC")
+    fill(8, 280, 22, 24, "#4A3A2A"); fill(9, 281, 20, 22, "#2E241A")   # the open door, the pulper inside
+    ellipse(19, 294, 6, 4, STONE[2]); ellipse(19, 293, 4, 2.5, STONE[3])
+    for y in range(278, 300):   # the hopper and wash tank on the right
+        for x in range(38, 66):
+            edge = x in (38, 65) or y in (278, 299)
+            put(x, y, CONCRETE[3] if edge else WATER[2] if y > 284 else CONCRETE[1])
+    for x in range(40, 64, 3):
+        put(x, 290, WATER[0])
+    # the grading house, bottom right: a veranda on posts, the grading table and the barrel store under one roof
+    soft_shadow(74, 311, 118)
+    front_roof(74, 262, 118, 10, ["#8A5A3A", "#764A30", "#5E3A24"])
+    for y in range(272, 311):
+        for x in range(74, W):
+            board = (y - 272) % 4
+            put(x, y, WOOD[4] if x == 74 or board == 3 else WOOD[1] if board == 0 else WOOD[2] if (x * 3 + y) % 19 else WOOD[3])
+    for px_ in (76, 117, 189):   # the posts
+        R(px_, 270, 2, 41, WOOD[4]); put(px_, 270, WOOD[1])
+    fill(78, 276, 38, 26, OUT); fill(79, 277, 36, 24, "#C8A878")   # the grading table, the game lays the tray on it
+    for x in range(81, 113, 4):
+        for y in range(279, 299, 4):
+            put(x, y, "#A88858")   # screen holes
+    R(80, 302, 2, 7, WOOD[4]); R(112, 302, 2, 7, WOOD[4])
+    for g in range(5):   # chalk marks on the floor where each grade's barrel stands
+        bx = 120 + g * 14
+        ellipse(bx + 6, 300, 6, 2, "#5E4428")
+    # down the mountain: a red-dirt road, more bananas, a rum shop sign
+    for y in range(312, H):
+        for x in range(W):
+            edge = 4 + math.sin(y * 0.15) * 3
+            road = abs(x - (120 + math.sin(y * 0.09) * 20)) < 13 + (y - 312) * 0.08
+            put(x, y, DIRT["red"][1] if road and abs(x - (120 + math.sin(y * 0.09) * 20)) < 11 else DIRT["red"][3] if road else lush[2] if (x + y) % 5 else lush[3])
+    for (bx, by, s) in [(186, 322, 10), (60, 330, 9), (14, 340, 8)]:
+        paddle_plant(bx, by, s, 900 + bx, LUSH)
+    for (fx_, fy_) in [(40, 318), (88, 344), (170, 348), (22, 326)]:   # red ginger and yellow allamanda by the road
+        k_flower(fx_, fy_, "#E8384A" if fx_ % 2 else "#F2D838", "#FFF4B0")
+
+
+scene_bluemtn(); img.save(os.path.join(HERE, "bg", "bluemtn.png")); rendered[("bluemtn", "")] = img.copy()
+
 scene_mill(); img.save(os.path.join(HERE, "bg", "mill.png")); rendered[("mill", "")] = img.copy()
 for _room in ROOMS:
     scene_roastery(_room); img.save(os.path.join(HERE, "bg", "roastery.png" if _room == "brick" else "roastery-%s.png" % _room)); rendered[("roastery", _room)] = img.copy()
@@ -2133,6 +2283,7 @@ VARIETIES = {
     "catimor":        ("Catimor",        ["#FFB89C", "#F04838", "#A02418"], ["#D8E890", "#A8C850", "#6E8A30"], ["#8CC05A", "#62A244", "#448838", "#2E6C2E", "#1E5024", "#143618"], (0.95, 0.82, 1.2)),
     "heirloom":       ("Ethiopian heirloom", ["#E888A0", "#9E2040", "#561028"], ["#C8DC80", "#94B444", "#5E7A28"], ["#6A9C50", "#4A823C", "#346A30", "#245226", "#183C1C", "#10281A"], (0.95, 1.0, 0.85)),
     "geisha":         ("Geisha",         ["#F0A0B8", "#B02854", "#64102E"], ["#D8E890", "#A8C850", "#6E8A30"], ["#A8C070", "#7EA856", "#5A9040", "#3E7434", "#2A5426", "#1A381A"], (0.8, 1.22, 0.9)),
+    "typica":         ("Typica",         ["#F49C8C", "#D42C30", "#7E1418"], ["#D0E488", "#9CC048", "#64822C"], ["#9CBC66", "#74A04C", "#548638", "#3C6C30", "#285024", "#18381A"], (0.85, 1.25, 0.85)),   # Blue Mountain's only: tall and open
 }
 S = {}
 
@@ -2164,7 +2315,7 @@ def shrub(stage, vid):
         size = 0.62 if stage == 1 else 1.0
         rx, ry = 7 * size * sw, 8 * size * sh
         cluster(9, 19 - ry, rx, ry, leaf, 11 + stage + len(vid), blobs=int(12 * size * dense) + 4, br=(2.2, 3.4), target=p)
-        if vid == "geisha" and stage >= 1:   # bronze new growth at the tips
+        if vid in ("geisha", "typica") and stage >= 1:   # bronze new growth at the tips
             for (x, y) in [(8, int(19 - 2 * ry)), (11, int(20 - 2 * ry))]:
                 p(x, y + 1, "#B07A44")
         if stage >= 2:
@@ -3843,6 +3994,77 @@ for _k, (_rows, _pal) in KICONS.items():
 add_layer("k_nene", 12, 12, grid_art([   # the nene, the Hawaiian goose: black head, buff cheek, barred grey-brown body
     "...oo.......", "..okko......", "..okyo......", "..okko......", "...oko......", "...okoooo...", "..obbbbbbo..", ".obgbgbgbbo.", ".obbbbbbbbo.", "..obgbgbbo..", "...oooooo...", "....y..y...."],
     {"o": OUT, "k": "#2A2420", "y": "#E8C890", "b": "#9A8670", "g": "#6E5E4C"}))
+
+# ---------------- Blue Mountain: barrels, the graded beans, parchment, the doctor bird and the island's icons ----------------
+def bm_barrel(p):   # a Blue Mountain export barrel: oak staves, three iron hoops (the game paints the grade's band and number)
+    for x in range(1, 13):
+        p(x, 23, "#2A2A0860")
+    for y in range(1, 23):
+        bulge = 1 if 5 <= y <= 17 else 0
+        for x in range(1 - bulge, 13 + bulge):
+            if x < 0 or x > 12:
+                continue
+            edge = x in (1 - bulge, 12 + bulge) or y in (1, 22)
+            stave = (x - 1) % 3 == 0
+            p(x, y, OUT if edge else WOOD[3] if stave else WOOD[1] if x < 5 else WOOD[2])
+    for hy in (3, 11, 19):
+        for x in range(0, 13):
+            p(x, hy, "#4E5E6A" if x % 4 else "#6C7E8C")
+    for x in range(3, 10):
+        p(x, 1, WOOD[0])
+
+
+add_layer("bm_barrel", 13, 24, bm_barrel)
+
+
+def bm_bean(rx, ry, round_=False):   # green coffee, drawn in one 14 x 12 frame so the sizes compare true
+    def draw(p):
+        cx, cy = 7, 6
+        for y in range(12):
+            for x in range(14):
+                d = ((x + 0.5 - cx) / rx) ** 2 + ((y + 0.5 - cy) / ry) ** 2
+                if d <= 1:
+                    edge = d > 0.72
+                    lit = (x + 0.5 - cx) < -rx * 0.2 and (y + 0.5 - cy) < 0
+                    p(x, y, "#5E6A44" if edge else "#C6D0A2" if lit else "#9EAA78")
+        if round_:   # a peaberry: one round bean, a short curled seam
+            p(cx, cy - 1, "#6E7A52"); p(cx + 1, cy, "#6E7A52"); p(cx, cy + 1, "#6E7A52")
+        else:   # the centre cut down a flat bean
+            for x in range(int(cx - rx * 0.6), int(cx + rx * 0.6) + 1):
+                p(x, cy + (1 if (x % 3 == 0) else 0), "#5E6A44")
+    return draw
+
+
+for _k, (_rx, _ry, _rd) in {"n1": (6.2, 4.4, False), "n2": (5.0, 3.6, False), "n3": (3.8, 2.8, False), "pb": (3.9, 3.7, True)}.items():
+    add_layer("bm_bean_" + _k, 14, 12, bm_bean(_rx, _ry, _rd))
+
+
+def bm_parch(rested):   # a raked bay of coffee in parchment: wet and darker when fresh, pale and dry once it has rested
+    rnd = random.Random(91 + rested)
+    cs = ["#F2E6C4", "#E6D6AC", "#D8C496", "#C8B080"] if rested else ["#D8C08C", "#C8AC78", "#B49462", "#9C7C4E"]
+    def draw(p):
+        for y in range(28):
+            for x in range(38):
+                if (x in (0, 37) or y in (0, 27)) and rnd.random() < 0.6:
+                    continue
+                rake = (x + (y // 2)) % 5 == 0
+                p(x, y, cs[3] if rake else rnd.choice(cs[:3]))
+    return draw
+
+
+add_layer("bm_parch_0", 38, 28, bm_parch(0)); add_layer("bm_parch_1", 38, 28, bm_parch(1))
+BMICONS = {
+    "bm_i_cherry": (["......g...", ".....g....", "..rr.g.rr.", ".rRrrgrRr.", ".rrrr.rrr.", "..rr...r..", "....rr....", "...rRrr...", "...rrrr...", "....rr...."], {"g": "#3E8036", "r": "#D42C30", "R": "#F49C8C"}),
+    "bm_i_barrel": (["..oooooo..", ".owwwwwwo.", "ohhhhhhhho", "owWwwwWwwo", "owWwwwWwwo", "ohhhhhhhho", "owWwwwWwwo", ".owwwwwwo.", "..oooooo..", ".........."], {"o": OUT, "w": "#C08C50", "W": "#9C6C3C", "h": "#6C7E8C"}),
+    "bm_i_parch": (["..........", "..........", "...yyyy...", ".yyYyyyYy.", "yyYyyYyyyy", "yyyyyYyyYy", ".yYyyyyyy.", "..........", "cccccccccc", ".........."], {"y": "#E6D6AC", "Y": "#C8B080", "c": "#B0ACA2"}),
+    "bm_i_fog": (["..........", "..wwww....", ".wWWWWw...", "wWWWWWWww.", "..........", "....wwwww.", "...wWWWWWw", "..wWWWWWWw", "..........", ".........."], {"w": "#C4D2E2", "W": "#EEF4FA"}),
+    "bm_i_seal": (["...oooo...", "..oyyyyo..", ".oyYyyYyo.", "oyyyggyyyo", "oyygGGgyyo", "oyygGGgyyo", "oyyyggyyyo", ".oyYyyYyo.", "..oyyyyo..", "...oooo..."], {"o": OUT, "y": "#F2C04A", "Y": "#FFF4B0", "g": "#3E8036", "G": "#7EB84C"}),
+}
+for _k, (_rows, _pal) in BMICONS.items():
+    add_layer(_k, 10, 10, grid_art(_rows, _pal))
+add_layer("bm_bird", 14, 12, grid_art([   # the doctor bird, Jamaica's streamertail hummingbird: emerald, a black cap, a red bill, two long tail streamers
+    "...kk.........", "..kkkk........", "rrkkgk........", "..kggg........", "...gGgg.......", "...gGGgg......", "....gggggt....", ".....ggg.ttt..", "......o...tt..", "......o....tt.", "...........ttt", "............tt"],
+    {"k": "#1A1A1A", "g": "#2E9A4E", "G": "#6ED07A", "r": "#E8402C", "t": "#141414", "o": "#2A2A2A"}))
 
 SHRUBS = [(bx + 6 + c * 18, by + r * 17) for (bx, by) in BEDS[:3] for r in range(2) for c in range(4)]
 with open(os.path.join(HERE, "sprites.json"), "w") as f:

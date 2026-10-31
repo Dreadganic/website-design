@@ -40,3 +40,13 @@ node game-assets/sim/events_layout.js /tmp/test.html /tmp/evlayout              
 node game-assets/sim/currency_audit.js /tmp/test.html                         # one currency a screen: every price on all 26 screens of a prestige 6 farm, shells only on Kona (exits 1 on a new mix; see review/currency-pass.html)
 ```
 `ui_sweep.js` opens every tab and sub-page, saves a screenshot of each and lists sideways scrolling, clipped buttons, broken images and "undefined"/"NaN" text (it should report 0 issues and 0 errors). `online_e2e.js` prints PASS or FAIL for: going online, saving, moving a farm with a code and with the recovery code, a used code, the newer-save choice (nothing overwritten while it's open), name checks and a reset restarting the leaderboard row.
+
+## Blue Mountain (prestige 5)
+```
+python3 game-assets/play/build.py /tmp/beju-farm.html
+python3 game-assets/sim/mktest.py /tmp/beju-farm.html /tmp/test.html
+node game-assets/sim/bluemtn_e2e.js /tmp/test.html /tmp/bm        # opening, the ripe pool and time away, clearings, clean and blind picks, resting, grading, every certification, shipping, the Counter, imports, saving, and coming back to the island after 2 minutes, 8 hours and 3 days (82 checks)
+node game-assets/sim/bluemtn_layout.js /tmp/test.html /tmp/bmlay  # every terrace, bay, the grading table and the barrels, clear of the interface on six phone sizes
+node game-assets/sim/bluemtn_pace.js /tmp/test.html 28            # 28 days of visits on four schedules: certification by day, seconds a visit, value next to twice a day
+```
+The design, the research behind the numbers and the measured pacing are in `game-assets/review/blue-mountain.html`. Test tools in Settings › Test tools open the island early, ripen the terraces, rest the batches and add a certification.

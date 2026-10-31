@@ -516,6 +516,7 @@ const VAR = {
   heirloom: { cost: 30000, kg: 3, speed: 0.9, value: 1.8, cup: { washed: 2 }, perk: 'Floral: sells ×1.8, +2 cup score washed.' },
   geisha: { cost: 60000, kg: 2, speed: 0.6, value: 3, cup: { washed: 3, natural: 3, honey: 3 }, perk: 'Rare: sells ×3 and cups high, but 2 kg a pick and slow. Free with the Osaka garden.' }
 };
+Object.defineProperty(VAR, 'typica', { value: { cost: 0, kg: 3, speed: 0.7, value: 3.2, perk: 'Blue Mountain\'s old Typica: tall, slow and sweet. It grows only on the island.' }, enumerable: false });   /* Blue Mountain's own: hidden from every mainland list, like Kona's co-ferments */
 /* farm buildings: per farm, three levels each, bought with coins; they stand in the lots along the fence */
 const BUILD = {
   housing: { base: 600, sub: (n) => '+' + (2 * n) + ' picker places here (' + (6 + 2 * n) + ' in all)' },
@@ -1079,6 +1080,7 @@ const titleText = (k) => { if (!k) return ''; const [a, b] = k.split(':');
   if (a === 'ev') return b === 'steady' ? 'Steady hands' : b === 'trouble' ? 'Troubleshooter' : '';
   if (a === 'ct') return b === 'nbr' ? 'Neighbourhood roaster' : b === 'conf' ? 'Counter confidant' : '';
   if (a === 'kona') return b === 'master' ? 'Fermentation master' : '';
+  if (a === 'bm') return b === 'grader' ? 'Blue Mountain grader' : '';
   return ART.seasons[String(+k.slice(5))] ? theme(k).title + ' ' + k.slice(0, 4) : ''; };
 /* the cupping notebook: every coffee and process pair you sell earns stars at 1, 25 and 250 lots; each star adds +0.5 cup score to that pair */
 const NB_STARS = [1, 25, 250], NB_MAX = 9 * 6 * 3;
@@ -1380,7 +1382,7 @@ function headRoasterTick(away) {   /* starts the best roast on free roasters (le
     R.roasters[R.roasters.length - 1].auto = true; n += 1;
   }
   R.roasters.forEach((r) => { if (r.auto && !r.crack && !r.tried && (away || inCrack(r))) { r.tried = true; if (rnd() < roasterCatch()) r.crack = 1; } });   /* his catch adds quality but doesn't hurry the roast */
-  if (repLevel() >= 20 && S.staff.foreman && ctOn()) (S.counter.pre || []).forEach((p) => { if ((p.state === 'board' || p.state === 'queue') && p.n > p.got && !R.beans[p.key] && !(R.want || {})[p.key] && !METHODS[p.key.split('.')[1]].kona && canBin(p.key) && R.bags.filter((b) => ctMatch(p, b)).length < p.n - p.got) { R.want = R.want || {}; R.want[p.key] = 'head'; } });
+  if (repLevel() >= 20 && S.staff.foreman && ctOn()) (S.counter.pre || []).forEach((p) => { if ((p.state === 'board' || p.state === 'queue') && p.n > p.got && !R.beans[p.key] && !(R.want || {})[p.key] && !METHODS[p.key.split('.')[1]].kona && !METHODS[p.key.split('.')[1]].bm && canBin(p.key) && R.bags.filter((b) => ctMatch(p, b)).length < p.n - p.got) { R.want = R.want || {}; R.want[p.key] = 'head'; } });
   if (R.want) Object.keys(R.want).forEach((k) => { if (R.want[k] === 'head' && !(S.counter.pre || []).some((p) => p.key === k && (p.state === 'board' || p.state === 'queue') && p.n > p.got)) delete R.want[k]; });   /* and lets go of his requests once the board no longer needs them; at reputation 20 he asks the foreman for the counter's coffees himself */
   if (repLevel() >= HEAD_BLEND_REP && (away || Date.now() - (R.blendAt || 0) > 20000)) { R.blendAt = Date.now(); let nb, g = 0; while (g++ < (away ? 50 : 1) && (nb = headBlend())) if (!away && scene() === 'roast') floats.push({ x: 130, y: 58, text: nb.blend, t: 0 }); }   /* a blend every 20 s or so while you play; while you're away, every spare pair */
   return n;
@@ -1432,6 +1434,7 @@ function ctAction(o, live) {   /* the button on an order card: Serve, Roast, To 
   if (!o.key) { const k = Object.keys(R.beans).find((x) => R.beans[x].kg >= 0.5); return k ? btn('Roast', ROASTS[o.profile].name.toLowerCase(), 'ctroast:' + k + '|' + o.profile, free) : btn('Bins', 'empty', 'noop', false); }
   if (st.lot > -1) return btn('To bin', 'dry lot', 'ctbin:' + st.lot, canBin(o.key), 'blue');
   if (METHODS[o.key.split('.')[1]].kona) return btn('Kona', 'ship a lot', 'k_go', true, 'blue');   /* co-ferments come only from Kona Ridge, never the foreman */
+  if (METHODS[o.key.split('.')[1]].bm) return btn('Blue Mtn', 'ship a barrel', 'bm_go', true, 'blue');   /* and Blue Mountain's grades only from its barrels */
   const R2 = S.roastery.want || {};
   if (R2[o.key]) return btn('Requested', st.drying ? 'drying' : (S.cherries[o.key.split('.')[0]] || 0) >= 10 ? 'lot next' : 'needs cherries', 'noop', false);
   if (!S.staff.foreman) return btn('Mill', st.drying ? 'drying' : 'start a lot', 'tab:mill', true, 'blue');   /* with no foreman yet, it's yours to start */
@@ -1660,6 +1663,8 @@ const KFR = {   /* grow and ferment in seconds, kg of fruit a harvest (a tank ta
 const KFR_ORDER = Object.keys(KFR);
 const kBonus = (fr, v) => (fr === 'lemon' && ['geisha', 'yellowbourbon', 'pinkbourbon'].includes(v) ? 3 : KFR[fr].bonus);
 KFR_ORDER.forEach((k) => Object.defineProperty(METHODS, 'cof_' + k, { value: { name: KFR[k].name + ' co-ferment', time: 0, mult: 2.6, cup: 86, art: 'k_i_' + k, kona: true }, enumerable: false }));
+[['n1', 'Blue Mountain No. 1', 2.4, 88.5], ['n2', 'Blue Mountain No. 2', 1.9, 87], ['n3', 'Blue Mountain No. 3', 1.4, 85.5], ['pb', 'Blue Mountain Peaberry', 2.6, 89], ['sel', 'Blue Mountain Select', 1.1, 84]]
+  .forEach(([k, name, mult, cup]) => Object.defineProperty(METHODS, 'bm_' + k, { value: { name, time: 0, mult, cup, art: 'bm_i_barrel', bm: true }, enumerable: false }));   /* Blue Mountain's grades, which only its barrels make */
 /* unlock pacing: process prices follow what they pay, like the coffees, and the big unlocks wait for a prestige,
    so each run opens something new instead of the whole game arriving in the first half hour. Ordering the real coffee still unlocks its process straight away */
 const GATE = { 'method:rum': 1, 'method:whiskey': 2, 'method:strawberry': 3, 'var:pinkbourbon': 1, 'var:heirloom': 2, 'farm:gedeo': 1, 'farm:toba': 2, 'farm:turrialba': 3 };
@@ -2564,7 +2569,7 @@ Object.assign(REV_COSM, {
   shutters: { name: 'Storm shutters', pic: 'ev_shutters', where: 'on the roastery windows', own: () => S.rev.show.shutters !== undefined, give() { S.rev.show.shutters = true; }, on: () => !!S.rev.show.shutters, flip() { S.rev.show.shutters = !S.rev.show.shutters; } }
 });
 /* companions: one in 100 stopped events brings one you don't have yet, to follow your farmer */
-const REV_PETS = { piglet: ['Piglet', 'ev_piglet'], capuchin: ['Capuchin', 'ev_capuchin'], crow: ['Tame crow', 'ev_crow_sit'], millcat: ['Mill cat', 'ev_millcat'], dalmatian: ['Fire-station dalmatian', 'ev_dalmatian'], nene: ['Nēnē goose', 'k_nene', true] };   /* the third flag: bought, never found */
+const REV_PETS = { piglet: ['Piglet', 'ev_piglet'], capuchin: ['Capuchin', 'ev_capuchin'], crow: ['Tame crow', 'ev_crow_sit'], millcat: ['Mill cat', 'ev_millcat'], dalmatian: ['Fire-station dalmatian', 'ev_dalmatian'], doctorbird: ['Doctor bird', 'bm_bird'], nene: ['Nēnē goose', 'k_nene', true] };   /* the third flag: bought, never found */
 const petTrail = { sc: '', pts: [] }, PET_GAP = 13;
 const petsOut = () => Object.keys(REV_PETS).filter((k) => (S.rev.pets || {})[k] && !(S.rev.petHide || {})[k]);
 function drawPet(o, sc) {   /* your companions follow your farmer in a train, each one walking in the footsteps of the one ahead */
@@ -2749,6 +2754,7 @@ const choreHere = () => { const c = CHORE_AT[S.loc]; return c && S.farms[S.loc].
 function hintAt(sc) {   /* where the map arrow points, in scene pixels, or null */
   if (!$('garrow').hidden || !$('modal').hidden) return null;   /* the guide's own arrow wins */
   if (sc === 'kona') return konaHint();
+  if (sc === 'bm') return bmHint();
   if (sc === 'farm') {
     const f = S.farms[S.loc], g = golden && golden.loc === S.loc && f.shrubs[golden.i]; if (g) return [g.x + 9, g.y - 2];
     const c = choreHere(); return c ? c.at : null;
@@ -2896,7 +2902,7 @@ function draw(time) {
 /* ---------- the mill yard and the roastery: what the stage shows on the Mill tab ---------- */
 const MAP_TABS = ['farm', 'mill', 'roast'];
 let mapTab = 'farm';   /* the map on screen: the Farm, Mill and Roast tabs move it; the other tabs open over it */
-const scene = () => (mapTab === 'mill' ? 'mill' : mapTab === 'roast' && roasteryOpen() ? 'roast' : S.isle && konaOpen() ? 'kona' : 'farm');   /* the Farm tab shows Kona Ridge while you're on the island */
+const scene = () => (mapTab === 'mill' ? 'mill' : mapTab === 'roast' && roasteryOpen() ? 'roast' : S.isle === 'bm' ? (bmOpen() ? 'bm' : 'farm') : S.isle && konaOpen() ? 'kona' : 'farm');   /* the Farm tab shows the island you're on */
 const sceneImgs = {};
 function sceneBg(k) { if (!sceneImgs[k]) { const im = new Image(); im.src = BGS[k]; sceneImgs[k] = im; } return sceneImgs[k]; }
 const RACK_SHOWN = 32, RACK_GAPS = [50, 96, 142], TRUCK = { x: 54, y: 90 }, CUP_TABLE = { x: 56, y: 70 };   /* the cupping table sits mid-patio, clear of the counters */
@@ -3399,6 +3405,7 @@ function drawRoast(time) {
 }
 function drawInside(sc, time) {
   if (sc === 'kona') { drawKona(time); return; }
+  if (sc === 'bm') { drawBluemtn(time); return; }
   const room = S.rcos.on.room, b = sceneBg(sc === 'roast' ? (room && room !== 'brick' ? 'roastery-' + room : 'roastery') : 'mill');
   fx.imageSmoothingEnabled = false;
   if (b.complete && b.naturalWidth) fx.drawImage(b, 0, 0); else { fx.fillStyle = '#C89A64'; fx.fillRect(0, 0, W, H); }
@@ -3882,10 +3889,318 @@ function konaHint() {   /* the map arrow: a vent first, then a tank to pull */
   i = K.tanks.findIndex((tk, j) => tk && j < kTanks() && (tk.end || Date.now() - tk.at >= tk.dur)); if (i > -1) return [KTANK_X(i) + 13, KTANK_Y - 2];
   return null;
 }
+/* ---------- Blue Mountain: the slow island. From prestige 5 a letter brings you up to the Blue Mountains of Jamaica: Typica on
+   stone terraces, in the mist. Cherries ripen all the time into a pool on each terrace, 18 hours of it at most; past that they
+   overripen, worth less but never lost, so a visit a day gets most of it and two get all of it. The fog parts over one row at
+   a time: in a clearing you hand-pick ripe baskets, a tap each; in the fog a second tap strips a terrace blind, quicker but
+   40% underripe. A visit's picking rests as one batch of parchment on the barbecue for 8 hours (less with the mainland's wet
+   mills), then the grading table sorts its beans by size into barrels: No. 1, No. 2, No. 3 and Peaberry, with anything sent
+   unsorted going into a Select sack. A full barrel ships to the Osaka roastery's bins. There is no island money: grading earns
+   certification, and each level opens one thing. It all runs on the real clock and keeps through prestige ---------- */
+const BM_P = 5, bmOpen = () => S.prestige >= BM_P || !!(S.bm && S.bm.test);
+const BTER = (i) => ({ x: 6 + (i % 2) * 94, y: 70 + Math.floor(i / 2) * 48 }), BTER_W = 86, BTER_H = 40;   /* a terrace's corner, with its four Typica along it */
+const BBQ = (j) => ({ x: 6 + j * 46, y: 222 }), BBQ_W = 38, BBQ_H = 28;   /* a barbecue bay, where a batch rests in parchment */
+const BGTABLE = { x: 78, y: 276, w: 38, h: 26 };
+const BGRADES = ['n1', 'n2', 'n3', 'pb', 'sel'];
+const BBARREL = (g) => ({ x: 120 + BGRADES.indexOf(g) * 14, y: 276 });
+const BG = {   /* the grades: name, screen size, certification xp a kg, band colour, the certification it opens at */
+  n1: { name: 'No. 1', screen: 'screen 17–18', xp: 1, col: '#3E8036', lv: 1 }, n2: { name: 'No. 2', screen: 'screen 16', xp: 0.6, col: '#3A6AC8', lv: 1 },
+  n3: { name: 'No. 3', screen: 'screen 15', xp: 0.3, col: '#C8603A', lv: 2 }, pb: { name: 'Peaberry', screen: 'round', xp: 1.3, col: '#B02854', lv: 3 },
+  sel: { name: 'Select', screen: 'unsorted', xp: 0.15, col: '#8A7838', lv: 1 }
+};
+const BM_RATE = 1, BM_POOL_H = 18, BM_OVER_MAX = 18, BM_REST_H = 8, BM_BASKET = 2, BM_PICK_MS = 900, BM_BARREL = 30, BM_SACK = 60;   /* kg an hour a terrace, the ripe pool's hours, a basket, a hand-pick's time; barrels are 30 kg, Select goes in 60 kg jute sacks */
+const BM_CLEAR = 16e3, BM_GAP = 8e3;   /* a clearing sits on one row this long, the fog closes for a moment, then the next row clears */
+const BM_UNLOCKS = { 2: 'the No. 3 barrel', 3: 'the Peaberry barrel', 4: 'a fifth terrace', 5: 'the bean grader', 6: 'the mist forecast', 7: 'a fourth barbecue bay', 8: 'a sixth terrace', 9: 'a better grader', 10: 'the doctor bird', 11: 'the master grader', 12: 'the "Blue Mountain grader" title' };
+const bmNeed = (l) => 50 + 20 * l;   /* certification xp from l to l + 1: level 12 in about three weeks of two visits a day */
+const bmTerraces = () => 4 + (S.bm.lv >= 4 ? 1 : 0) + (S.bm.lv >= 8 ? 1 : 0);
+const bmBays = () => (S.bm.lv >= 7 ? 4 : 3);
+const bmGraders = () => (S.bm.lv >= 11 ? 3 : S.bm.lv >= 9 ? 2 : S.bm.lv >= 5 ? 1 : 0);
+const bmSorters = () => LOCS.reduce((n, l) => n + ((S.farms[l].build || {}).sorter || 0), 0);   /* the mainland's sorters, every farm's levels */
+const bmAuto = () => (bmGraders() ? Math.min(0.95, 0.25 * bmGraders() + 0.005 * bmSorters()) : 0);   /* the share of a tray the grader sorts by itself: about 40% at first on a prestige 5 farm, about 90% with the master grader */
+const bmRestMs = () => BM_REST_H * 3600e3 * (1 - 0.5 * wetCut());   /* the mainland's wet mills dry it quicker, up to 30% */
+const bmGradesOpen = () => BGRADES.filter((g) => S.bm.lv >= BG[g].lv);
+const bmTray = () => (S.bm.lv >= 3 ? 10 : S.bm.lv >= 2 ? 8 : 6);   /* a first tray of six beans and two barrels, the rest arrive over two levels */
+const bmCap = (g) => (g === 'sel' ? BM_SACK : BM_BARREL);
+const bmReady = (b) => Date.now() - b.at >= bmRestMs();
+const bmLeft = (b) => { const m = Math.max(0, Math.ceil((bmRestMs() - (Date.now() - b.at)) / 60e3)); return m >= 60 ? Math.floor(m / 60) + ' h ' + (m % 60) + ' min' : m + ' min'; };
+const bmRipe = () => S.bm.ter.slice(0, bmTerraces()).reduce((a, t) => a + t.pool + t.over, 0);
+let bmFog = null, bmPickT = 0, bmBlind = null, bmG = null, bmVisit = { c: 0, b: 0 };
+function bmFresh() {
+  const now = Date.now();
+  return { lv: 1, xp: 0, seen: false, last: now, visitAt: 0, ter: Array.from({ length: 6 }, (_, i) => ({ pool: i < 4 ? 8 : 0, over: 0 })), wash: null,
+    bbq: [{ kg: 24, u: 2, o: 0, at: now - BM_REST_H * 3600e3 }], bar: { n1: 0, n2: 0, n3: 0, pb: 0, sel: 0 }, bad: { n1: 0, n2: 0, n3: 0, pb: 0, sel: 0 },
+    ship: { n1: 0, n2: 0, n3: 0, pb: 0, sel: 0 }, trays: 0, clean: 0, picks: { clean: 0, blind: 0 }, tip: {} };   /* a ripe start, and a batch the last grader left resting, so the first visit both picks and grades */
+}
+const bmHere = () => scene() === 'bm' && !document.hidden;
+function goBm() { if (!bmOpen()) return; S.isle = 'bm'; S.farmSub = 'fields'; setTab('farm', true); }
+function bmXp(n) {
+  const B = S.bm; B.xp += n;
+  while (B.lv < 12 && B.xp >= bmNeed(B.lv)) {
+    B.xp -= bmNeed(B.lv); B.lv += 1; SFX.play('achieve');
+    if (B.lv === 10) { S.rev.pets = S.rev.pets || {}; S.rev.pets.doctorbird = true; }
+    if (B.lv === 12) S.sitems.title['bm:grader'] = true;
+    toast('Certification ' + B.lv + ': ' + BM_UNLOCKS[B.lv] + (B.lv === 10 ? ' follows your farmer now' : B.lv === 12 ? ', wear it in Looks' : ''));
+  }
+  if (B.lv >= 12) B.xp = Math.min(B.xp, bmNeed(12));
+}
+function bmTick() {
+  if (!bmOpen()) return;
+  if (!S.bm) S.bm = bmFresh();
+  const B = S.bm, now = Date.now(), dt = Math.max(0, Math.min(7 * 86400, (now - (B.last || now)) / 1000)); B.last = now;
+  if (dt > 0) B.ter.forEach((t, i) => {   /* the ripe pool fills; past 18 hours what ripens overripens */
+    if (i >= bmTerraces()) return;
+    const add = BM_RATE * dt / 3600, room = Math.max(0, BM_RATE * BM_POOL_H - t.pool);
+    t.pool += Math.min(add, room); t.over = Math.min(BM_OVER_MAX, t.over + Math.max(0, add - room));
+  });
+  if (bmHere()) { if (!bmFog) bmArrive(now); else if (now >= bmFog.at + BM_CLEAR + BM_GAP) bmFog = { row: bmNextRow(bmFog.row), at: bmFog.at + BM_CLEAR + BM_GAP }; }
+  else if (bmFog) { bmFog = null; bmSeal(); }   /* leaving the island: the visit's picking goes to rest */
+  if (B.wash && now - B.wash.at > 10 * 60e3) bmSeal();   /* a long visit rests in more than one batch */
+}
+function bmArrive(now) {
+  const B = S.bm;
+  if (now - (B.visitAt || 0) > 30 * 60e3) { BEACON.ev('bm_visit', { min: B.visitAt ? Math.min(100000, Math.round((now - B.visitAt) / 60e3)) : 0, p: S.prestige }); B.visitAt = now; }
+  bmFog = { row: bmNextRow(-1), at: now + (B.fogSeen ? 4000 + Math.random() * 4000 : 2500) }; B.fogSeen = true;   /* the first clearing comes within seconds */
+}
+function bmNextRow(was) {   /* the next row to clear: the ripest one that isn't this one */
+  const B = S.bm, rows = [0, 1, 2].filter((r) => r * 2 < bmTerraces() && r !== was);
+  const kg = (r) => [r * 2, r * 2 + 1].filter((i) => i < bmTerraces()).reduce((a, i) => a + B.ter[i].pool + B.ter[i].over, 0);
+  return rows.sort((a, b) => kg(b) - kg(a))[0] || 0;
+}
+const bmClear = (i) => !!bmFog && Math.floor(i / 2) === bmFog.row && Date.now() >= bmFog.at && Date.now() < bmFog.at + BM_CLEAR;
+function bmFogA(i, now) {   /* how thick the fog is over a terrace: 1 thick, 0 clear, with a soft fade either side of a clearing */
+  if (!bmFog || Math.floor(i / 2) !== bmFog.row) return 1;
+  const t = now - bmFog.at; if (t < -1200 || t > BM_CLEAR + 1200) return 1;
+  return t < 0 ? -t / 1200 : t > BM_CLEAR ? (t - BM_CLEAR) / 1200 : 0;
+}
+function bmSeal() {   /* the visit's picking goes onto the barbecue to rest, if a bay is free */
+  const B = S.bm; if (!B || !B.wash || B.bbq.length >= bmBays()) return;
+  B.bbq.push({ kg: B.wash.kg, u: B.wash.u, o: B.wash.o, at: Date.now() }); B.wash = null;
+  if (bmVisit.c || bmVisit.b) BEACON.ev('bm_pick', { m: bmVisit.c, out: bmVisit.b, p: S.prestige }); bmVisit = { c: 0, b: 0 };
+}
+/* picking */
+function bmPick(i) {
+  const B = S.bm, t = B.ter[i], at = BTER(i), now = Date.now();
+  if (t.pool + t.over < 0.5) { SFX.play('brush'); floats.push({ x: at.x + 43, y: at.y + 16, text: 'ripening: ' + fmtKg(t.pool + t.over) + ' kg so far', t: 0 }); return; }
+  if (bmClear(i)) {   /* a clearing: a basket of ripe cherries a tap, as fast as hands can pick */
+    if (now - bmPickT < BM_PICK_MS) return; bmPickT = now; bmBlind = null;
+    const ripe = Math.min(BM_BASKET, t.pool), over = Math.min(BM_BASKET - ripe, t.over);
+    t.pool -= ripe; t.over -= over; B.wash = B.wash || { kg: 0, u: 0, o: 0, at: now }; B.wash.kg += ripe + over; B.wash.o += over; B.picks.clean += 1; bmVisit.c += 1;
+    SFX.play('harvest'); floats.push({ x: at.x + 43, y: at.y + 10, text: '+' + fmtKg(ripe + over) + ' kg ' + (over ? 'overripe' : 'ripe'), t: 0 });
+    for (let k = 0; k < 6; k++) bursts.push({ x: at.x + 43, y: at.y + 20, vx: (rnd() - 0.5) * 50, vy: -30 - rnd() * 30, t: 0, c: k % 2 ? '#D42C30' : '#3E8036' });
+    return;
+  }
+  if (!(bmBlind && bmBlind.i === i && now - bmBlind.at < 2500)) { bmBlind = { i, at: now }; SFX.play('tick'); floats.push({ x: at.x + 43, y: at.y + 14, text: 'fog: tap again to strip it blind (40% underripe)', t: 0 }); return; }
+  bmBlind = null; const kg = t.pool, ov = t.over; t.pool = 0; t.over = 0;   /* stripped blind: all of it at once, ripe or not */
+  B.wash = B.wash || { kg: 0, u: 0, o: 0, at: now }; B.wash.kg += kg + ov; B.wash.u += kg * 0.4; B.wash.o += ov; B.picks.blind += 1; bmVisit.b += 1;
+  SFX.play('harvest'); floats.push({ x: at.x + 43, y: at.y + 10, text: '+' + fmtKg(kg + ov) + ' kg picked blind', t: 0 });
+  for (let k = 0; k < 12; k++) bursts.push({ x: at.x + 43, y: at.y + 20, vx: (rnd() - 0.5) * 80, vy: -30 - rnd() * 30, t: 0, c: k % 3 === 0 ? '#9CC048' : k % 2 ? '#D42C30' : '#3E8036' });
+}
+/* grading: a tray of the batch's beans, flicked by size into the barrels */
+function bmBeanGrade(b, open) {   /* a bean's true grade: ripe picks run large, underripe and overripe ones small */
+  const u = b.kg ? b.u / b.kg : 0, o = b.kg ? b.o / b.kg : 0, r0 = Math.max(0, 1 - u - o);
+  const w = { n1: 0.5 * r0 + 0.1 * u + 0.25 * o, n2: 0.32 * r0 + 0.3 * u + 0.4 * o, n3: 0.14 * r0 + 0.6 * u + 0.35 * o, pb: 0.04 * r0 };
+  const tot = open.reduce((a, g) => a + w[g], 0); let acc = 0, r = Math.random() * tot;
+  for (const g of open) { acc += w[g]; if (r < acc) return g; }
+  return open[0];
+}
+function bmGradeStart(j) {
+  const B = S.bm, b = B.bbq[j]; if (!b) return;
+  if (!bmReady(b)) { SFX.play('brush'); toast('Still resting in its parchment: ' + bmLeft(b) + ' to go'); return; }
+  const n = bmTray(), open = bmGradesOpen().filter((g) => g !== 'sel'), auto = Math.round(n * bmAuto());
+  bmG = { j, beans: Array.from({ length: n }, (_, k) => ({ g: bmBeanGrade(b, open), auto: k < auto, rot: Math.round((Math.random() - 0.5) * 30) })), k: auto, kg: b.kg / n, right: 0, wrong: 0, manual: n - auto, last: null };
+  bmG.beans.slice(0, auto).forEach((x) => { x.put = x.g; });
+  if (bmG.k >= n) bmGradeDone(); else showModal(bmGradeCard());
+}
+function bmGradeCard() {
+  const G = bmG, B = S.bm, open = bmGradesOpen().filter((g) => g !== 'sel'), bean = G.beans[G.k];
+  const dots = G.beans.map((x, k) => '<i style="display:inline-block;width:10px;height:10px;margin:1px;border-radius:5px;background:' + (x.put ? BG[x.put].col : k === G.k ? '#F2C04A' : '#D8D0BC') + '"></i>').join('');
+  const gauge = open.filter((g) => g !== 'pb').map((g) => '<div style="display:flex;align-items:center;gap:6px;font-size:12px"><span style="display:inline-block;height:6px;border-radius:3px;background:' + BG[g].col + ';width:' + { n1: 149, n2: 120, n3: 91 }[g] + 'px"></span>' + BG[g].name + '</div>').join('');
+  return '<h2>Grading table</h2>' + (B.trays ? '' : '<p class="note">Flick each bean into its barrel by size: the bars below are the screens. A round one is a peaberry. Nothing is lost: a wrong one just lowers that barrel\'s grade a little.</p>') +
+    (G.last ? '<p class="note">' + (G.last.ok ? '✓ ' + BG[G.last.g].name : 'That one was ' + BG[G.last.g].name + ': it went in ' + BG[G.last.put].name) + '</p>' : '') +
+    '<p style="margin:4px 0">' + dots + '</p><div style="display:flex;justify-content:center;align-items:center;height:150px"><img src="' + url('bm_bean_' + bean.g) + '" alt="A green bean, ' + BG[bean.g].screen + '" style="width:168px;image-rendering:pixelated;transform:rotate(' + bean.rot + 'deg)"></div>' +
+    '<div style="display:grid;gap:3px;justify-content:center;margin-bottom:6px">' + gauge + '</div>' +
+    '<div class="seg">' + open.map((g) => btn(BG[g].name, BG[g].screen, 'bm_g:' + g, true, g === 'n1' ? 'green' : g === 'pb' ? 'gold' : 'blue')).join('') + '</div>' +
+    '<p class="note">' + (G.manual < G.beans.length ? 'The grader sorted ' + (G.beans.length - G.manual) + ' of ' + G.beans.length + '. ' : '') + '<button type="button" class="linkbtn" data-act="bm_gsel">Send the rest unsorted as Select (worth less)</button></p>';
+}
+function bmGradeBean(g) {
+  const G = bmG; if (!G || G.k >= G.beans.length || !BG[g]) return;
+  const bean = G.beans[G.k], ok = bean.g === g;
+  bean.put = g; G.k += 1; G.last = { ok, g: bean.g, put: g }; if (ok) { G.right += 1; SFX.play('pop'); } else { G.wrong += 1; SFX.play('knock'); }
+  if (G.k >= G.beans.length) bmGradeDone(); else showModal(bmGradeCard(), true);
+}
+function bmGradeSelect() { const G = bmG; if (!G) return; G.beans.forEach((x) => { if (!x.put) { x.put = 'sel'; x.g = 'sel'; } }); G.k = G.beans.length; bmGradeDone(); }
+function bmGradeDone() {
+  const G = bmG, B = S.bm; if (!G || !B.bbq[G.j]) return;
+  let xp = 0; const got = {};
+  G.beans.forEach((x) => { B.bar[x.put] += G.kg; got[x.put] = (got[x.put] || 0) + G.kg; if (x.put === x.g) xp += G.kg * BG[x.g].xp; else B.bad[x.put] += G.kg; if (x.put === 'pb' && x.g === 'pb') B.pb = (B.pb || 0) + 1; });
+  const clean = G.manual >= 3 && !G.wrong && G.beans.every((x) => x.put !== 'sel');
+  if (clean) { xp *= 1.12; B.clean += 1; }   /* a tray sorted by hand without a slip: the hand's bonus */
+  B.bbq.splice(G.j, 1); B.trays += 1; bmXp(Math.round(xp)); bmSeal();
+  BEACON.ev('bm_grade', { m: G.manual, served: G.right, out: G.wrong, p: S.prestige });
+  const full = BGRADES.filter((g) => B.bar[g] >= bmCap(g)); bmG = null;
+  showModal('<h2>Tray graded</h2><p class="note">' + BGRADES.filter((g) => got[g]).map((g) => BG[g].name + ' +' + fmtKg(got[g]) + ' kg').join(' · ') + '</p><p class="note"><b>+' + Math.round(xp) + ' certification</b>' + (clean ? ' · a clean tray by hand, +12%' : '') + '</p>' +
+    (full.length ? '<p class="note">' + listAnd(full.map((g) => BG[g].name)) + (full.length > 1 ? ' are' : ' is') + ' full: tap ' + (full.length > 1 ? 'them' : 'it') + ' in the barrel store to ship to Osaka.</p>' : '') + '<button class="btn green" data-act="close">Done</button>', true);
+}
+/* barrels */
+function bmShip(g) {
+  const B = S.bm, cap = bmCap(g), at = BBARREL(g);
+  if (B.bar[g] < cap) { SFX.play('knock'); floats.push({ x: at.x + 6, y: at.y - 2, text: BG[g].name + ' ' + fmtKg(B.bar[g]) + ' / ' + cap + ' kg', t: 0 }); return false; }
+  const key = 'typica.bm_' + g;
+  if (!roasteryOpen() || !canBin(key)) { SFX.play('nope'); toast('All ' + ROAST_BINS + ' roastery bins are full. Roast or sell one first'); return false; }
+  const pure = 1 - Math.min(1, B.bad[g] / B.bar[g]), r = saleFor('typica', 'bm_' + g, cap, { raked: -Math.round((1 - pure) * 30) / 10 }), R = S.roastery, b = R.beans[key] = R.beans[key] || { kg: 0, coins: 0, pts: 0, cup: 0 };
+  b.cup = (b.cup * b.kg + r.cup * cap) / (b.kg + cap); b.kg += cap; b.coins += r.coins; b.pts += r.points;
+  B.bad[g] = Math.max(0, B.bad[g] - (1 - pure) * cap); B.bar[g] -= cap; B.ship[g] += 1;
+  SFX.play('stamp'); floats.push({ x: at.x + 6, y: at.y - 4, text: BG[g].name + (g === 'sel' ? ' sack' : ' barrel') + ' to Osaka', t: 0 });
+  BEACON.ev('bm_ship', { key: g, p: S.prestige });
+  if (!B.tip.ship) { B.tip.ship = true; toast('Shipped to the roastery bins in Osaka: roast it there, and the Counter may ask for it'); }
+  return true;
+}
+/* the map */
+function bmClick(lx, ly) {
+  const B = S.bm; bmWalk(lx, ly);
+  for (let i = 0; i < 6; i++) {
+    const at = BTER(i); if (lx < at.x || lx >= at.x + BTER_W || ly < at.y || ly >= at.y + BTER_H + 8) continue;
+    if (i >= bmTerraces()) { SFX.play('knock'); floats.push({ x: at.x + 43, y: at.y + 20, text: 'opens at certification ' + (i === 4 ? 4 : 8), t: 0 }); return; }
+    bmPick(i); return;
+  }
+  for (let j = 0; j < 4; j++) {
+    const at = BBQ(j); if (lx < at.x - 2 || lx >= at.x + BBQ_W + 4 || ly < at.y - 4 || ly >= at.y + BBQ_H + 6) continue;
+    if (j >= bmBays()) { SFX.play('knock'); floats.push({ x: at.x + 19, y: at.y + 12, text: 'a fourth bay at certification 7', t: 0 }); return; }
+    const b = B.bbq[j];
+    if (!b) { SFX.play('brush'); floats.push({ x: at.x + 19, y: at.y + 12, text: B.wash ? 'this visit\'s picking rests here' : 'what you pick rests here', t: 0 }); return; }
+    if (!bmReady(b)) { SFX.play('brush'); floats.push({ x: at.x + 19, y: at.y + 10, text: 'resting: ' + bmLeft(b), t: 0 }); return; }
+    bmGradeStart(j); return;
+  }
+  if (lx >= BGTABLE.x && lx < BGTABLE.x + BGTABLE.w && ly >= BGTABLE.y - 4 && ly < BGTABLE.y + BGTABLE.h + 6) {
+    const j = B.bbq.findIndex(bmReady); if (j > -1) bmGradeStart(j); else { SFX.play('brush'); floats.push({ x: BGTABLE.x + 19, y: BGTABLE.y + 6, text: B.bbq.length ? 'still resting: ' + bmLeft(B.bbq[0]) : 'no batch resting', t: 0 }); }
+    return;
+  }
+  for (const g of bmGradesOpen()) { const at = BBARREL(g); if (lx >= at.x - 1 && lx < at.x + 14 && ly >= at.y - 4 && ly < at.y + 26) { bmShip(g); return; } }
+}
+function bmWalk(lx, ly) {   /* your farmer takes the stone steps, then the terrace lip or the yard */
+  const me = S.bm && IN.bm.me; if (!me) return;
+  const lane = ly < 116 ? 68 : ly < 164 ? 116 : ly < 214 ? 164 : ly < 262 ? 214 : 262, x = Math.max(8, Math.min(W - 8, lx));
+  me.path = [{ x: 96, y: me.y }, { x: 96, y: lane }, { x, y: lane }];
+}
+IN.bm = { me: null };
+function drawBluemtn(time) {
+  const B = S.bm, bg = sceneBg('bluemtn'), now = Date.now(); fx.imageSmoothingEnabled = false;
+  if (bg.complete && bg.naturalWidth) fx.drawImage(bg, 0, 0); else { fx.fillStyle = '#6CA442'; fx.fillRect(0, 0, W, H); }
+  if (!B) return;
+  if (!IN.bm.me) { IN.bm.me = walker(96, 214); IN.bm.me.me = true; }
+  const me = IN.bm.me; if (!step(me, 1 / 60, 40)) me.walk = 0;
+  /* the terraces: four Typica each, showing how full the ripe pool is; overripe cherries darken on the branch */
+  for (let i = 0; i < 6; i++) {
+    const at = BTER(i), t = B.ter[i];
+    if (i >= bmTerraces()) { fx.fillStyle = 'rgba(40,30,20,0.35)'; fx.fillRect(at.x, at.y + 3, BTER_W, BTER_H - 3); continue; }
+    const full = (t.pool + t.over) / (BM_RATE * BM_POOL_H), st = full >= 0.6 ? 'ripe' : full >= 0.3 ? 'green' : full >= 0.1 ? 'flower' : 'young';
+    for (let k = 0; k < 4; k++) fx.drawImage(sprite('bush_typica_' + st), at.x + 3 + k * 21, at.y + 13);
+    if (t.over >= 1) { fx.fillStyle = '#4A1418'; for (let k = 0; k < Math.min(12, Math.round(t.over)); k++) fx.fillRect(at.x + 8 + (k * 7) % 70, at.y + 20 + (k * 5) % 12, 2, 2); }
+  }
+  /* the fog: a veil and drifting banks over every terrace but the clear row */
+  for (let i = 0; i < bmTerraces(); i++) {
+    const a = bmFogA(i, now), at = BTER(i); if (a <= 0.01) continue;
+    fx.fillStyle = 'rgba(222,230,240,' + (0.38 * a).toFixed(2) + ')'; fx.fillRect(at.x - 2, at.y, BTER_W + 4, BTER_H + 8);
+    for (let k = 0; k < 5; k++) {
+      const drift = (k * 37 + time * (5 + k) * (k % 2 ? 1 : -1)) % (BTER_W + 40), x = at.x - 20 + (drift < 0 ? drift + BTER_W + 40 : drift), y = at.y + 8 + (k % 3) * 12;
+      fx.fillStyle = 'rgba(240,244,250,' + (0.42 * a).toFixed(2) + ')'; fx.beginPath(); fx.ellipse(x, y, 22, 8, 0, 0, 7); fx.fill();
+    }
+  }
+  for (let k = 0; k < 4; k++) { const x = (k * 61 + time * 3) % (W + 60) - 30; fx.fillStyle = 'rgba(240,244,250,0.22)'; fx.beginPath(); fx.ellipse(x, 62 + (k % 2) * 6, 34, 6, 0, 0, 7); fx.fill(); }   /* mist always lies along the forest edge */
+  /* the barbecue: batches resting in parchment */
+  for (let j = 0; j < 4; j++) {
+    const at = BBQ(j), b = B.bbq[j];
+    if (j >= bmBays()) { fx.fillStyle = 'rgba(40,30,20,0.25)'; fx.fillRect(at.x, at.y, BBQ_W, BBQ_H); continue; }
+    if (!b) continue;
+    const ready = bmReady(b); fx.drawImage(sprite(ready ? 'bm_parch_1' : 'bm_parch_0'), at.x, at.y);
+    const u = Math.min(1, (now - b.at) / bmRestMs()); fx.fillStyle = '#2A1E14'; fx.fillRect(at.x + 2, at.y + BBQ_H + 1, BBQ_W - 4, 2); fx.fillStyle = ready ? '#F2C04A' : '#C8B080'; fx.fillRect(at.x + 2, at.y + BBQ_H + 1, Math.round((BBQ_W - 4) * u), 2);
+    if (ready && Math.floor(time * 3 + j) % 6 === 0) fx.drawImage(sprite('sparkle'), at.x + 28, at.y + 2);
+  }
+  if (B.wash && B.bbq.length < bmBays()) { const at = BBQ(B.bbq.length); for (let k = 0; k < Math.min(9, 2 + Math.floor(B.wash.kg / 6)); k++) fx.drawImage(sprite('bm_i_cherry'), at.x + 4 + (k % 3) * 10, at.y + 4 + Math.floor(k / 3) * 7); }   /* this visit's cherries, heaped in the bay they'll rest in */
+  if (B.bbq.some(bmReady)) for (let k = 0; k < 6; k++) fx.drawImage(sprite('bm_bean_' + ['n1', 'n2', 'n1', 'n3', 'n2', 'n1'][k]), BGTABLE.x + 3 + (k % 3) * 11, BGTABLE.y + 3 + Math.floor(k / 3) * 9);   /* a tray waiting on the table */
+  /* the barrel store: each grade's barrel, its band, how full it is */
+  for (const g of BGRADES) {
+    const at = BBARREL(g), open = B.lv >= BG[g].lv, cap = bmCap(g);
+    if (!open) fx.globalAlpha = 0.25;
+    if (g === 'sel') fx.drawImage(sprite('green_sack'), at.x - 1, at.y + 6); else { fx.drawImage(sprite('bm_barrel'), at.x, at.y); fx.fillStyle = BG[g].col; fx.fillRect(at.x + 1, at.y + 7, 11, 2); }
+    fx.globalAlpha = 1;
+    if (!open) continue;
+    const u = Math.min(1, B.bar[g] / cap); fx.fillStyle = '#2A1E14'; fx.fillRect(at.x + 1, at.y + 26, 12, 2); fx.fillStyle = u >= 1 ? '#F2C04A' : BG[g].col; fx.fillRect(at.x + 1, at.y + 26, Math.round(12 * u), 2);
+  }
+  drawGuy(me); drawPet(me, 'bm');
+  bursts.forEach((p) => { fx.fillStyle = p.c; fx.fillRect(Math.round(p.x), Math.round(p.y), 1, 1); });
+  const hr = S.minutes / 60, tint = hr >= 20 || hr < 5 ? 'rgba(30,40,110,0.34)' : hr >= 17.5 ? 'rgba(240,120,40,' + (0.08 + (hr - 17.5) * 0.06).toFixed(2) + ')' : hr < 7 ? 'rgba(240,150,170,0.14)' : null;
+  if (tint) { fx.fillStyle = tint; fx.fillRect(0, 0, W, H); }
+  ctx.imageSmoothingEnabled = false; ctx.drawImage(frame, 0, 0, W * 2, H * 2); ctx.textAlign = 'center';
+  nameTag(me.x, me.y);
+  ctx.font = '700 13px "Pixelify Sans", monospace';
+  const tag = (tx, x, y, bg2, fg) => { const w = ctx.measureText(tx).width + 10; ctx.fillStyle = bg2; ctx.fillRect(x * 2 - w / 2, y * 2 - 14, w, 18); ctx.fillStyle = fg; ctx.fillText(tx, x * 2, y * 2); };
+  if (bmFog) {
+    const t = now - bmFog.at, ry = 70 + bmFog.row * 48;
+    if (t >= 0 && t < BM_CLEAR) tag('CLEAR ' + Math.ceil((BM_CLEAR - t) / 1000) + 's', 96, ry + 6, '#3E2A1C', '#F2C04A');
+    else if (B.lv >= 6) { const nx = t < 0 ? bmFog : { row: bmNextRow(bmFog.row), at: bmFog.at + BM_CLEAR + BM_GAP }; tag('row ' + (nx.row + 1) + ' clears in ' + Math.max(0, Math.ceil((nx.at - now) / 1000)) + 's', 96, 70 + nx.row * 48 + 6, '#3E2A1C', '#FFF4DE'); }   /* the mist forecast */
+  }
+  B.bbq.forEach((b, j) => { if (j < bmBays() && bmReady(b)) tag('GRADE', BBQ(j).x + 19, BBQ(j).y + 2, '#3E2A1C', '#F2C04A'); });
+  for (const g of bmGradesOpen()) if (B.bar[g] >= bmCap(g) && Math.floor(time * 2) % 2) tag('SHIP', BBARREL(g).x + 6, BBARREL(g).y - 2, '#3E2A1C', '#F2C04A');
+  ctx.fillStyle = 'rgba(255,244,222,0.85)'; for (let i = bmTerraces(); i < 6; i++) { const at = BTER(i); ctx.fillText('CERT ' + (i === 4 ? 4 : 8), (at.x + 43) * 2, (at.y + 24) * 2); }
+  drawHint('bm', time);
+  drawFloats();
+}
+function bmHint() {   /* the map arrow: a rested batch, then a full barrel, then a clear row with cherries on it */
+  const B = S.bm; if (!B) return null;
+  let j = B.bbq.findIndex((b, k) => k < bmBays() && bmReady(b)); if (j > -1) return [BBQ(j).x + 19, BBQ(j).y + 4];
+  const g = bmGradesOpen().find((x) => B.bar[x] >= bmCap(x)); if (g) return [BBARREL(g).x + 6, BBARREL(g).y];
+  for (let i = 0; i < bmTerraces(); i++) if (bmClear(i) && B.ter[i].pool + B.ter[i].over >= 1) return [BTER(i).x + 43, BTER(i).y + 14];
+  return null;
+}
+/* the Farm tab while you're on the island */
+function bmPanel() {
+  const B = S.bm, sub = ['island', 'log'].includes(S.bmSub) ? S.bmSub : 'island';
+  let h = '<div class="seg">' + [['island', 'Island'], ['log', 'Log']].map(([k, t]) => '<button type="button" data-act="bm_sub:' + k + '" aria-pressed="' + (sub === k) + '">' + t + '</button>').join('') + '</div>';
+  if (sub === 'island') {
+    h += '<h2>Blue Mountain · certification ' + B.lv + '</h2><div class="bar"><i style="width:' + (B.lv >= 12 ? 100 : Math.round(B.xp / bmNeed(B.lv) * 100)) + '%"></i></div>';
+    h += '<p class="note"><b>Next:</b> ' + (B.lv < 12 ? 'certification ' + (B.lv + 1) + ' brings ' + BM_UNLOCKS[B.lv + 1] + ' (' + Math.max(0, bmNeed(B.lv) - Math.floor(B.xp)) + ' to go)' : 'fully certified') + '</p>';
+    h += help('bm', 'Pick ripe Typica when the fog clears, rest it on the barbecue, grade the beans by size into barrels for Osaka.', 'Cherries ripen on the terraces all the time, up to 18 hours\' worth; past that they overripen, still worth something. The fog parts over one row at a time: in a clearing every tap hand-picks a basket of ripe cherries. In the fog, a second tap strips a terrace blind, all at once, but 40% comes out underripe and grades small. What you pick rests in its parchment on the barbecue for ' + Math.round(bmRestMs() / 3600e3 * 10) / 10 + ' hours, then the grading table sorts it: flick each bean into No. 1, No. 2, No. 3 or Peaberry by size, or send the rest unsorted as Select. Grading earns certification; a full barrel ships to the Osaka roastery\'s bins. There is no island money and nothing is lost while you\'re away: once a day gets most of it, twice gets all of it.');
+    h += '<h3>Terraces ' + bmTerraces() + ' / 6</h3>' + B.ter.slice(0, bmTerraces()).map((t, i) => row(img('bush_typica_ripe', 28), 'Terrace ' + (i + 1), fmtKg(t.pool) + ' kg ripe' + (t.over >= 0.5 ? ' · ' + fmtKg(t.over) + ' kg overripe' : '') + (t.pool >= BM_RATE * BM_POOL_H - 0.01 ? ' · full' : ''), '')).join('');
+    if (B.wash) h += '<p class="note">Picked this visit: ' + fmtKg(B.wash.kg) + ' kg. It goes to rest on the barbecue when you leave' + (B.bbq.length >= bmBays() ? ', once a bay is free' : '') + '.</p>';
+    h += '<h3>Barbecue ' + B.bbq.length + ' / ' + bmBays() + '</h3>' + (B.bbq.length ? B.bbq.map((b, j) => row(img('bm_i_parch', 28), 'Batch ' + (j + 1) + ' · ' + fmtKg(b.kg) + ' kg', bmReady(b) ? 'rested: ready to grade' : 'resting · ' + bmLeft(b) + ' to go', bmReady(b) ? btn('Grade', '', 'bm_grade:' + j, true, 'gold') : '')).join('') : '<p class="note">Nothing resting. Pick some cherries.</p>');
+    h += '<h3>Barrel store</h3>' + bmGradesOpen().map((g) => { const pure = B.bar[g] ? Math.round((1 - Math.min(1, B.bad[g] / B.bar[g])) * 100) : 100;
+      return row(img(g === 'sel' ? 'green_sack' : 'bm_i_barrel', 28), BG[g].name + (g === 'sel' ? ' sack' : ' barrel'), fmtKg(B.bar[g]) + ' / ' + bmCap(g) + ' kg' + (pure < 100 ? ' · ' + pure + '% true to grade' : ''), btn('Ship', 'to Osaka', 'bm_ship:' + g, B.bar[g] >= bmCap(g), 'green')); }).join('');
+    h += '<p class="note">From the mainland: your sorters (' + bmSorters() + ' levels) ' + (bmGraders() ? 'help the bean grader sort ' + Math.round(bmAuto() * 100) + '% of every tray' : 'will help the bean grader from certification 5') + ', and your wet mills rest batches in ' + Math.round(bmRestMs() / 3600e3 * 10) / 10 + ' hours.</p>';
+  } else {
+    const picks = B.picks.clean + B.picks.blind;
+    h += '<h2>Log</h2>' + BGRADES.filter((g) => B.ship[g]).map((g) => row(img(g === 'sel' ? 'green_sack' : 'bm_i_barrel', 28), BG[g].name, B.ship[g] + (g === 'sel' ? ' sack' : ' barrel') + (B.ship[g] > 1 ? 's' : '') + ' shipped', '')).join('');
+    h += row(img('bm_i_seal', 28), 'Trays graded', B.trays + (B.clean ? ' · ' + B.clean + ' clean by hand' : ''), '');
+    h += row(img('bm_i_fog', 28), 'Picking', picks ? B.picks.clean + ' baskets in a clearing, ' + B.picks.blind + ' terraces stripped blind' : 'nothing picked yet', '');
+    h += row(img('bm_bean_pb', 28), 'Peaberries', B.pb ? B.pb + ' found' : 'A round bean, about 1 in 25', '');
+    h += '<h3>Certification</h3>' + Object.keys(BM_UNLOCKS).map((l) => row(img('bm_i_seal', 22), 'Certification ' + l, BM_UNLOCKS[l].replace(/^./, (c) => c.toUpperCase()), B.lv >= +l ? btn('Yours', '', 'noop', false, 'blue') : btn('Locked', '', 'noop', false))).join('');
+  }
+  return h;
+}
+function bmAct(a, v) {   /* the island's buttons */
+  const B = S.bm; if (!B) return;
+  if (a === 'bm_go') { closeModal(); goBm(); }
+  else if (a === 'bm_sub') { S.bmSub = v; SFX.play('tick'); }
+  else if (a === 'bm_grade') { closeModal(); bmGradeStart(+v); }
+  else if (a === 'bm_g') bmGradeBean(v);
+  else if (a === 'bm_gsel') bmGradeSelect();
+  else if (a === 'bm_ship') bmShip(v);
+}
+function bmIntro() {
+  const B = S.bm; if (!B || B.seen || !bmHere() || !$('modal').hidden) return;
+  B.seen = true; BEACON.ev('bm_open', { p: S.prestige, lvl: level() });
+  showModal(coachCard('Blue Mountain', 'A letter from Jamaica brought you up to the Blue Mountains: old Typica on stone terraces, in the mist. When the fog parts over a row, tap a terrace to hand-pick its ripe cherries, a basket a tap. In the fog you can strip one blind, quicker, but some come out underripe. What you pick rests on the barbecue, then you grade the beans by size into barrels for Osaka. Come back once or twice a day: the island waits for you.'));
+}
+function bmTease() {   /* halfway through prestige 4, a letter: the island is coming */
+  if (S.prestige !== 4 || S.bmTease || S.guide < GUIDE.length || level() < Math.ceil(prestigeNeed() / 2) || !$('modal').hidden) return;
+  S.bmTease = true; showModal(coachCard('A letter from Jamaica', 'Miss Pearl, who grows old Typica up in the Blue Mountains, writes that her terraces need a partner with steady hands. Reach prestige 5 and they\'re yours to look after.'));
+}
+const bmInfo = () => { const B = S.bm; return B ? { lv: B.lv, badge: 'Cert ' + B.lv, pct: B.lv >= 12 ? 100 : Math.round(B.xp / bmNeed(B.lv) * 100), text: 'Blue Mountain certification ' + B.lv + (B.lv < 12 ? ': ' + Math.max(0, bmNeed(B.lv) - Math.floor(B.xp)) + ' to go for ' + BM_UNLOCKS[B.lv + 1] : '') } : null; };
 /* ---------- player actions ---------- */
 cv.addEventListener('click', (e) => {
   const r = cv.getBoundingClientRect(), lx = (e.clientX - r.left) / r.width * W, ly = (e.clientY - r.top) / r.height * H;
   if (scene() === 'kona') { konaClick(lx, ly); return; }   /* random events stay on the mainland */
+  if (scene() === 'bm') { bmClick(lx, ly); return; }
   if (revClick(lx, ly)) return;   /* a random event's taps come first */
   if (scene() !== 'farm') { insideClick(lx, ly); return; }
   const f = S.farms[S.loc];
@@ -3923,10 +4238,10 @@ cv.addEventListener('click', (e) => {
 });
 function travel(dir) {
   if (S.pwalk === 4) { S.pwalk = 0; S.pwalkDone = true; }   /* the prestige walk's last arrow points here */
-  const ring = konaOpen() ? LOCS.concat(['kona']) : LOCS;   /* Kona Ridge comes after Osaka */
-  let i = ring.indexOf(S.isle && konaOpen() ? 'kona' : S.loc);
+  const ring = LOCS.concat(bmOpen() ? ['bm'] : [], konaOpen() ? ['kona'] : []);   /* the islands come after Osaka: Blue Mountain, then Kona Ridge */
+  let i = ring.indexOf(scene() === 'bm' ? 'bm' : scene() === 'kona' ? 'kona' : S.loc);
   i = (i + dir + ring.length) % ring.length;
-  if (ring[i] === 'kona') S.isle = true; else { S.isle = false; S.loc = ring[i]; }
+  if (ring[i] === 'kona') S.isle = true; else if (ring[i] === 'bm') S.isle = 'bm'; else { S.isle = false; S.loc = ring[i]; }
   if (tab === 'mill' || tab === 'roast') tab = 'farm';   /* the arrows lead back out to the farms */
   mapTab = 'farm'; if (sheetOpen) { $('panel').scrollTop = 0; showSheet(true); }   /* the menu stays as it was: open shows the new farm's page from its top, put away stays put away */
   refreshAll();
@@ -4236,7 +4551,7 @@ function prestige() {
   LOCS.forEach((l) => { if (FARM_LEVEL[l] && S.farms[l].unlocked && !(hasPerk('awake') && AWAKE.includes(l))) S.dormant[l] = wakeLevel(l, S.prestige); });
   setTimeout(() => checkSamples(), 300);
   if (S.prestige === KONA_P && !S.kona) setTimeout(() => showModal(coachCard('Kona Ridge', 'The trader\'s boat reaches a new island now: Kona Ridge, where coffee ferments in tanks with fruit. Tap the farm arrow past Osaka to sail there.')), 600);
-  if (S.prestige === 5 && !S.practiceTip) setTimeout(() => { S.practiceTip = true; showModal(coachCard('Coffee is a practice', 'The farm is grown: every field, building and hand is in place. From here Beju is a rhythm, not a race — the seasons, the Counter, the Cup of Excellence, and soon an island of your own. A little play every day goes furthest.')); }, 600);
+  if (S.prestige === 5 && !S.practiceTip) setTimeout(() => { S.practiceTip = true; showModal(coachCard('Coffee is a practice', 'The farm is grown: every field, building and hand is in place. From here Beju is a rhythm, not a race — the seasons, the Counter, the Cup of Excellence, and an island of your own: Blue Mountain, up in Jamaica\'s mist. A little play every day goes furthest.', 'Go to Blue Mountain', 'bm_go')); }, 600);
   const asleep = Object.keys(S.dormant);
   showModal('<i class="psum" hidden></i>' + avatar(S.look, 64) + '<h2>Prestige ' + S.prestige + '</h2>' + plate(S.name, S.look.crest, starsFor(S.prestige)) + '<p class="note">' + (S.prestige < TIERS.length ? 'New crest: <b>' + TIERS[t] + '</b>. Its nameplate and border are yours and already on.' : 'You are past the top tier: every prestige adds a star to your name.') + '</p>' + (perkAt(S.prestige) ? '<p class="rule"><b>New perk: ' + perkAt(S.prestige).name + '.</b> ' + perkAt(S.prestige).text + (PERK_LV[perkAt(S.prestige).id] ? ' It switches on at level ' + PERK_LV[perkAt(S.prestige).id] + '.' : '') + '</p>' : '') + (BUILD_CAPS[S.prestige] ? '<p class="rule"><b>Bigger farms:</b> buildings now go up to level ' + BUILD_CAPS[S.prestige] + '.</p>' : '') + skinPicker() +
     (asleep.length ? '<p class="note">' + asleep.map((l) => ART.locations[l].name.split(',')[0] + ' wakes at level ' + S.dormant[l]).join(', ') + '. ' + (() => { const o = LOCS.filter((l) => S.farms[l].unlocked && !S.dormant[l]).map(fname); return listAnd(o) + (o.length === 1 ? ' stays' : ' stay') + ' open.'; })() + '</p>' : '') + (kept ? '<p class="note">Your spare know-how became <b>' + kept + ' level' + (kept > 1 ? 's' : '') + ' of cupping research</b>: +' + S.research + '% know-how from every sale, for good.</p>' : '') + '<button class="btn green" data-act="close">Back to the farm</button>');
@@ -4757,6 +5072,7 @@ function renderPanel() {
   let h = '';
   h += eventBanner();
   if (tab === 'farm' && scene() === 'kona' && S.kona) { setHTML(P, h + konaPanel()); return; }   /* the island's own page */
+  if (tab === 'farm' && scene() === 'bm' && S.bm) { setHTML(P, h + bmPanel()); return; }
   const fsub = S.tabs.upgrades && ['upgrades', 'build', 'staff'].includes(S.farmSub) ? S.farmSub : 'fields';
   if (tab === 'farm') h += farmSubtabs(fsub, f);
   if (tab === 'farm' && fsub === 'fields') {
@@ -5055,7 +5371,9 @@ function renderPanel() {
     h += '<h3>Prestige</h3>' + help('prestige', 'Restart your level for a new crest. Coins, buildings and farms stay.', 'Prestige restarts your level for a new crest; coins, buildings, farms and unlocks stay. Each needs 8 more levels. Know-how you haven\'t spent becomes cupping research, so none is lost.');
     h += '<div class="bar"><i style="width:' + Math.min(100, Math.round(levelSpan()[1] / need * 100)) + '%"></i></div>';
     h += btn(ready ? 'Prestige to ' + (S.prestige + 1) : 'Prestige at level ' + need, ready ? (S.prestige + 1 < TIERS.length ? 'unlocks the ' + TIERS[S.prestige + 1] + ' crest' : 'adds a star') : 'you are level ' + level(), 'prestigeAsk', ready, 'green');
-    { const perks = Object.keys(BUILD_CAPS).map((p) => [+p, row(img('build_housing', 26), 'Bigger farms · prestige ' + p, 'Every building can go up to level ' + BUILD_CAPS[p] + '.', S.prestige >= +p ? btn('Yours', '', 'noop', false, 'blue') : btn('Locked', 'Prestige ' + p, 'noop', false))]).concat(Object.keys(PERKS).map((p) => [+p, row(img('i_cup', 26), PERKS[p].name + ' · prestige ' + p, PERKS[p].text, S.prestige >= +p ? btn('Yours', '', 'noop', false, 'blue') : btn('Locked', 'Prestige ' + p, 'noop', false))])).sort((a, b) => a[0] - b[0]);
+    { const perks = Object.keys(BUILD_CAPS).map((p) => [+p, row(img('build_housing', 26), 'Bigger farms · prestige ' + p, 'Every building can go up to level ' + BUILD_CAPS[p] + '.', S.prestige >= +p ? btn('Yours', '', 'noop', false, 'blue') : btn('Locked', 'Prestige ' + p, 'noop', false))]).concat(Object.keys(PERKS).map((p) => [+p, row(img('i_cup', 26), PERKS[p].name + ' · prestige ' + p, PERKS[p].text, S.prestige >= +p ? btn('Yours', '', 'noop', false, 'blue') : btn('Locked', 'Prestige ' + p, 'noop', false))]),
+        [[BM_P, row(img('bush_typica_ripe', 26), 'Blue Mountain · prestige ' + BM_P, 'An island of your own: Typica on terraces in the mist, graded by hand into barrels.', S.prestige >= BM_P ? btn('Go', '', 'bm_go', true, 'blue') : btn('Locked', 'Prestige ' + BM_P, 'noop', false))],
+         [KONA_P, row(img('k_i_tank', 26), 'Kona Ridge · prestige ' + KONA_P, 'The co-fermentation island: coffee and fruit in tanks, orders on the co-op boat.', S.prestige >= KONA_P ? btn('Go', '', 'k_go', true, 'blue') : btn('Locked', 'Prestige ' + KONA_P, 'noop', false))]]).sort((a, b) => a[0] - b[0]);
       const next = perks.filter(([p]) => p > S.prestige), owned = perks.length - next.length;   /* the next perk to come, with the rest behind a tap */
       h += '<p class="note"><b>Prestige perks</b> · ' + owned + ' of ' + perks.length + ' yours <button type="button" class="linkbtn" data-act="perksopen">' + (S.perksOpen ? 'hide' : 'see all') + '</button></p>' + (S.perksOpen ? perks.map((x) => x[1]).join('') : next.filter(([p]) => p === (next[0] || [0])[0]).map((x) => x[1]).join('')); }
     }
@@ -5179,6 +5497,7 @@ function renderPanel() {
     h += '<h3>Simulate a bejucoffee.com order</h3><div class="seg">' + Object.keys(COFFEES).map((k) => '<button type="button" data-act="order:' + k + '">' + COFFEES[k].name + '</button>').join('') + '</div>';
     h += '<div class="stamps">' + LOCS.map((l) => '<img src="' + url('stamp_' + l) + '" alt="' + ART.locations[l].name + (S.stamps[l] ? ', stamped' : ', not yet') + '" class="' + (S.stamps[l] ? '' : 'off') + ((S.goldStamps || {})[l] ? ' gold' : '') + '">').join('') + '</div>';
     h += '<h3>Resources</h3><div class="seg"><button type="button" data-act="add:coins">+1,000 coins</button><button type="button" data-act="add:bigcoins">+25,000 coins</button><button type="button" data-act="add:contracts">New contracts</button><button type="button" data-act="add:checkin">Next real day</button><button type="button" data-act="add:drop">Start a drop event</button><button type="button" data-act="add:season">End the season</button><button type="button" data-act="add:stars">+50 season stars</button><button type="button" data-act="add:guide">Restart guide</button><button type="button" data-act="add:points">+2,000 know-how</button><button type="button" data-act="add:cranes">+50 cranes</button><button type="button" data-act="add:vars">All varieties</button><button type="button" data-act="add:xp">+1 level</button><button type="button" data-act="add:cherries">Fill storage</button><button type="button" data-act="add:stamp">Next passport stamp</button><button type="button" data-act="add:sample">Next free sample</button><button type="button" data-act="add:days">+20 check-in days</button></div>';
+    h += '<h3>Blue Mountain</h3><div class="seg"><button type="button" data-act="bmtest:open">' + (bmOpen() ? 'Go to Blue Mountain' : 'Open Blue Mountain early') + '</button><button type="button" data-act="bmtest:ripe">Ripen every terrace</button><button type="button" data-act="bmtest:rest">Rest every batch</button><button type="button" data-act="bmtest:lv">+1 certification</button></div>';
     h += '<h3>Kona Ridge</h3><div class="seg"><button type="button" data-act="konatest:open">' + (konaOpen() ? 'Go to Kona Ridge' : 'Open Kona Ridge early') + '</button><button type="button" data-act="konatest:shells">+500 shells</button><button type="button" data-act="konatest:lv">+1 island level</button><button type="button" data-act="konatest:stock">+ash, compost, fruit, cherries</button></div>';
     h += '<h3>Random events</h3><div class="seg">' + Object.keys(REVS).map((k) => '<button type="button" data-act="revtest:' + k + '">' + REVS[k].name + '</button>' + (REVS[k].rareCos ? '<button type="button" data-act="revtest:' + k + '.rare">' + REVS[k].name + ' (rare)</button>' : '')).join('') + '</div>';
     h += '<h3>Time</h3><div class="seg"><button type="button" data-act="away:1">Away 1 h</button><button type="button" data-act="away:4">Away 4 h</button><button type="button" data-act="away:12">Away 12 h</button><button type="button" data-act="day">Next day</button></div>';
@@ -5207,7 +5526,7 @@ document.addEventListener('click', (e) => {
   const f = S.farms[S.loc];
   if (a === 'close') { SFX.play('close'); closeModal(); return; }
   if (a === 'pcer') { SFX.play('page'); $('pcer').hidden = true; if (S.pwalk === 3) { dropPrestigeCard(); setTab('looks'); setTimeout(() => showModal(coachCard('Looks', 'Every prestige lets you pick one new outfit. Tap one to keep it.')), 300); } return; }
-  if (!TEST_TOOLS && ['add', 'order', 'away', 'day', 'speed', 'season', 'revtest', 'konatest'].includes(a)) return;   /* no cheats in the public game */
+  if (!TEST_TOOLS && ['add', 'order', 'away', 'day', 'speed', 'season', 'revtest', 'konatest', 'bmtest'].includes(a)) return;   /* no cheats in the public game */
   const wallet = S.coins + S.points + S.cranes, decorOwned = S.decor[v] !== undefined;
   setTimeout(() => {   /* sound for the action, once its effect is known */
     const spent = S.coins + S.points + S.cranes < wallet;
@@ -5218,6 +5537,7 @@ document.addEventListener('click', (e) => {
   if (a === 'hire') { if (f.workers.length < maxPickers(f) && spend('coins', hireCost())) { addWorker(f); guideStep('hire'); } }   /* the new picker walks onto the farm */
   else if (a === 'tab') setTab(v);
   else if (a.startsWith('k_')) konaAct(a, v);
+  else if (a.startsWith('bm_')) bmAct(a, v);
   else if (a === 'sheetmin') { SFX.play('click'); showSheet(false); }
   else if (a === 'coachgo') { closeModal(); if (v === 'ranks') S.rankSub = 'board'; if (v === 'season') { S.rankSub = 'season'; setTab('ranks'); return; } setTab(v); }
   else if (a === 'seasonhow') S.seasonHow = !S.seasonHow;
@@ -5411,6 +5731,7 @@ document.addEventListener('click', (e) => {
     if (v === 'cherries') { const vv = S.farms[S.loc].beds[0]; S.cherries[vv] = (S.cherries[vv] || 0) + (cap() - stored()); }
   }
   else if (a === 'away') away(+v);
+  else if (a === 'bmtest') { if (!S.bm) S.bm = bmFresh(); if (v === 'open') { S.bm.test = true; goBm(); } if (v === 'rest') S.bm.bbq.forEach((b) => { b.at -= 24 * 3600e3; }); if (v === 'lv') bmXp(bmNeed(S.bm.lv) - S.bm.xp); if (v === 'ripe') S.bm.ter.forEach((t) => { t.pool = BM_RATE * BM_POOL_H; }); }
   else if (a === 'konatest') { if (!S.kona) S.kona = konaFresh(); if (v === 'open') { S.kona.test = true; goKona(); } if (v === 'shells') S.kona.shells += 500; if (v === 'lv') kXp(kNeed(S.kona.lv) - S.kona.xp); if (v === 'stock') { S.kona.ash += 30; S.kona.compost += 10; S.kona.fruit.mango += 60; const vv = S.kona.plots[0].v; S.kona.cherries[vv] = (S.kona.cherries[vv] || 0) + 400; } }
   else if (a === 'day') { S.minutes = 1439.9; }
   else if (a === 'speed') S.speed = +v;
@@ -5426,7 +5747,7 @@ function farmLvInfo() {   /* this farm's own level and its next milestone, once 
   return { lv, badge: 'Lv ' + lv, pct: Math.round(next ? (lv - (prev ? prev.lv : 0)) / (next.lv - (prev ? prev.lv : 0)) * 100 : 100),
     text: nm + ' farm level ' + lv + '. ' + (next ? 'Next at ' + next.lv + ': ' + next.label(S.loc) + '.' : 'Every milestone reached.') + ' Buildings, a manager, the fourth field and mastery raise it.' };
 }
-const barLvInfo = () => (scene() === 'farm' ? farmLvInfo() : scene() === 'roast' ? repInfo() : scene() === 'kona' ? konaInfo() : null);
+const barLvInfo = () => (scene() === 'farm' ? farmLvInfo() : scene() === 'roast' ? repInfo() : scene() === 'kona' ? konaInfo() : scene() === 'bm' ? bmInfo() : null);
 function refreshHud() {
   const L = ART.locations[S.loc], sea = season(S.loc);
   $('locName').textContent = L.name;
@@ -5441,9 +5762,10 @@ function refreshHud() {
   { const E = (S.rev || {}).cur, d = E && revMap(E) === 'farm' && E.loc !== S.loc ? (LOCS.indexOf(E.loc) - LOCS.indexOf(S.loc) + LOCS.length) % LOCS.length : 0;   /* the arrow the short way to a farm with trouble */
     $('nextLoc').classList.toggle('evt', d > 0 && d <= LOCS.length / 2); $('prevLoc').classList.toggle('evt', d > LOCS.length / 2); }
   if (sc === 'mill') { $('locName').textContent = 'Dry mill'; $('locBeds').textContent = S.lots.length + ' / ' + racks() + ' racks in use · ' + (boatLeft() ? 'boat: ' + fmt(boatLeft()) + ' kg to go' : fmtKg(stored()) + ' kg of cherries waiting'); }   /* the trader's boat, while it waits */
+  if (sc === 'bm') { const B = S.bm; $('locName').textContent = 'Blue Mountains, Jamaica'; $('locBeds').textContent = B ? fmtKg(bmRipe()) + ' kg ripe · ' + B.bbq.filter(bmReady).length + ' to grade · ' + bmGradesOpen().filter((g) => B.bar[g] >= bmCap(g)).length + ' to ship' : ''; }
   if (sc === 'kona') { const K = S.kona; $('locName').textContent = 'Kona Ridge, Hawaiʻi'; $('locBeds').textContent = K ? fmt(K.shells) + ' shells · ' + fmt(K.ash) + ' ash · ' + fmt(K.bags) + ' bags' : ''; }
   if (sc === 'roast') { $('locName').textContent = 'Roastery, Osaka'; $('locBeds').textContent = S.roastery.roasters.length + ' / ' + roasterCount() + ' roasting · ' + S.roastery.bags.length + ' bags on the shelf'; }
-  const lab = sc === 'mill' ? 'Your dry mill: lots drying on raised racks. Tap a rack to cup its lot, or to sell it once it is dry.' : sc === 'roast' ? 'Your roastery. Tap a free roaster to roast your largest green coffee at its best roast, and tap a roaster at first crack.' : 'Your farm seen from above. Tap shrubs with ripe cherries to pick them.';
+  const lab = sc === 'mill' ? 'Your dry mill: lots drying on raised racks. Tap a rack to cup its lot, or to sell it once it is dry.' : sc === 'roast' ? 'Your roastery. Tap a free roaster to roast your largest green coffee at its best roast, and tap a roaster at first crack.' : sc === 'bm' ? 'Blue Mountain: terraces of Typica in the mist. Tap a terrace when the fog clears over its row to pick, a rested batch on the barbecue to grade it, and a full barrel to ship it.' : 'Your farm seen from above. Tap shrubs with ripe cherries to pick them.';
   if (cv.getAttribute('aria-label') !== lab) cv.setAttribute('aria-label', lab);
   const mh = maxHearts();
   const hshow = Math.min(mh, 10);   /* ten hearts drawn, the rest as a number */
@@ -5456,7 +5778,7 @@ function refreshHud() {
   $('hudCoins').innerHTML = icon('i_coin') + fmt(S.coins);
   $('hudCranes').innerHTML = icon('i_crane') + S.cranes;
   const full = stored() >= cap();
-  $('hudStore').innerHTML = icon('i_cherry') + '<span style="color:' + (full ? '#FF9A8A' : '#FFF4DE') + '">' + fmt(stored()) + '/' + fmt(cap()) + '</span>';
+  $('hudStore').innerHTML = icon('i_cherry') + '<span style="color:' + (full ? '#FF9A8A' : '#FFF4DE') + '">' + fmt(stored()) + '/' + fmt(cap()) + '</span>'; $('hudStore').style.display = scene() === 'bm' ? 'none' : '';   /* mainland storage means nothing up the mountain, and its pill would sit on the top terrace on a small phone */
   const mins = Math.floor(S.minutes), hr = mins / 60, night = hr >= 19 || hr < 6;
   $('clock').textContent = String(Math.floor(hr)).padStart(2, '0') + ':' + String(mins % 60).padStart(2, '0');
   $('day').textContent = S.day;
@@ -6002,10 +6324,10 @@ function loop(t) {
   playBehind();
   if (scene() !== mapScene) { mapScene = scene(); mapFocus(); }   /* each scene opens where its work is */
   const dt = Math.min(0.05, (t - last) / 1000); last = t;
-  tick(dt); revTick(dt); counterTick(dt); konaTick(); draw(t / 1000);
+  tick(dt); revTick(dt); counterTick(dt); konaTick(); bmTick(); draw(t / 1000);
   uiT += dt; saveT += dt;
   if (toastT > 0) { toastT -= dt; if (toastT <= 0) { if (toastQ.length) toast(toastQ.shift()); else $('toast').hidden = true; } }
-  if (uiT > 0.5) { uiT = 0; refreshHud(); syncMusic(); if (!panelBusy()) { if (!(document.activeElement && document.activeElement.matches('#panel select, #panel input, #panel textarea'))) renderPanel();   /* a menu or box you're using stays open while you use it */ checkTabs(); renderTabs(); renderGuide(); } harvestSync(); coopSync(); coeTick(); konaIntro(); }
+  if (uiT > 0.5) { uiT = 0; refreshHud(); syncMusic(); if (!panelBusy()) { if (!(document.activeElement && document.activeElement.matches('#panel select, #panel input, #panel textarea'))) renderPanel();   /* a menu or box you're using stays open while you use it */ checkTabs(); renderTabs(); renderGuide(); } harvestSync(); coopSync(); coeTick(); konaIntro(); bmIntro(); bmTease(); }
   if (saveT > 5) { saveT = 0; save(); }
   requestAnimationFrame(loop);
 }
@@ -6033,7 +6355,7 @@ function audioStart() {   /* browsers only allow sound after a tap, so everythin
   SFX.unlock(); Cozy.init(SFX.context()); syncMusic();
 }
 document.addEventListener('pointerdown', audioStart, true);
-const trackFor = () => (scene() === 'roast' ? 'roastery' : scene() === 'kona' ? 'kona' : S.loc);   /* every farm plays its own theme, open or not; the roastery has its own kissaten jazz */
+const trackFor = () => (scene() === 'roast' ? 'roastery' : scene() === 'kona' ? 'kona' : scene() === 'bm' ? 'bluemtn' : S.loc);   /* every farm plays its own theme, open or not; the roastery has its own kissaten jazz */
 function syncMusic() {
   Cozy.setVolume(S.musicVol); Cozy.setEnabled(S.music);
   const hr = S.minutes / 60; Cozy.setNight(hr >= 19 || hr < 6);

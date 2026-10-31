@@ -71,6 +71,18 @@ const SONGS = [
         lead: ['B5:8 A5:4 F#5:4', 'A5:8 F#5:4 D5:4', 'F#5:6 E5:2 D5:4 B4:4', 'E5:12 -:4', 'D5:4 E5:4 B5:6 A5:2', 'F#5:8 E5:4 D5:4', 'E5:4 F#5:2 E5:2 B4:4 D5:4', 'E5:8 D5:4 A4:4'] }
     }, form: ['intro', 'A', 'B', 'A'] },
 
+  { id: 'bluemtn', farm: 'Blue Mountains, Jamaica', title: 'Mento in the Mist', blurb: 'Mento lullaby · F major',
+    about: 'Early morning on the terraces, before the fog lifts. Mento is Jamaica\'s own country music, older than ska and reggae: a banjo or a fife sings over guitar chops on the off-beat, a rhumba box thumbs the bass and a shaker keeps time. Here a breathy melodica, the sound of Jamaican music from the hills to the studio, carries a slow, sing-song tune.',
+    parts: ['Melodica lead, breathy and a little wobbly', 'Guitar chops on every off-beat', 'A soft rhumba-box bass', 'A brushed shaker'],
+    bpm: 74, beat: 4, bar: 16, lead: { duty: 0.25, decay: 7, floor: 0.68, vib: 7, vibRate: 5.2, chorus: 6, gain: 0.13 }, arp: { style: 'cumbia', duty: 0.5, gain: 0.045 }, bass: { style: 'lake', gain: 0.18 }, noise: { style: 'lake', gain: 0.03 },
+    sections: {
+      intro: { name: 'Intro', chords: [['F'], ['C7']], lead: ['-:16', '-:8 C5:4 D5:4'] },
+      A: { name: 'A', chords: [['F'], ['Bb'], ['F'], ['C7'], ['F'], ['Bb'], ['C7'], ['F']],
+        lead: ['F5:4 A5:2 F5:2 C5:8', 'D5:4 F5:2 D5:2 Bb4:8', 'A4:2 C5:2 F5:4 E5:2 D5:2 C5:4', 'E5:4 G5:4 E5:2 D5:2 C5:4', 'F5:4 A5:2 C6:2 A5:8', 'Bb5:4 A5:2 G5:2 F5:4 D5:4', 'C5:4 E5:2 G5:2 Bb5:4 E5:4', 'F5:12 -:4'] },
+      B: { name: 'B', chords: [['Bb'], ['F'], ['Gm'], ['C7'], ['Bb'], ['F'], ['Gm', 'C7'], ['F']],
+        lead: ['D5:6 F5:2 Bb5:8', 'A5:4 F5:2 A5:2 C6:8', 'Bb5:4 G5:2 Bb5:2 D5:8', 'C5:4 E5:4 G5:6 -:2', 'F5:2 G5:2 Bb5:4 A5:2 G5:2 F5:4', 'A5:6 F5:2 C5:8', 'D5:4 Bb4:4 E5:4 G5:4', 'F5:8 C5:4 A4:4'] }
+    }, form: ['intro', 'A', 'B', 'A'] },
+
   { id: 'kona', farm: 'Kona Ridge, Hawaiʻi', title: 'Kona Moon', blurb: 'Slack-key lullaby · G major',
     about: 'Late afternoon on the ridge. Hawaiian slack-key guitar is tuned open and played gently, the strings let ring; here a sliding steel guitar sings the tune over a soft ukulele strum, with the hollow knock of an ipu gourd drum and the swish of a shaker, unhurried and a little swung.',
     parts: ['Sliding steel guitar lead', 'Ukulele strum, down and up', 'Ipu gourd drum and a soft shaker', 'Warm pad and a round bass'],

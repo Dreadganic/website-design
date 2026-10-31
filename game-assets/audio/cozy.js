@@ -16,6 +16,7 @@ const STYLE = {
   toba:      { tempo: 0.88, lead: 'flute',      comp: 'hasapi', perc: 'gong',     about: 'A bamboo flute floats over the plucked hasapi lute, with a far-off gong every two bars.' },
   turrialba: { tempo: 0.82, lead: 'mallet',     comp: 'mallet', perc: null,       about: 'Soft marimba mallets roll the long notes, swaying between 6/8 and 3/4.' },
   osaka:     { tempo: 0.9,  lead: 'shakuhachi', comp: 'koto',   perc: 'taiko',    about: 'A breathy shakuhachi over rolled koto chords and strings, with taiko heard from across the valley.' },
+  bluemtn:   { tempo: 0.82, lead: 'melodica',   comp: 'offbeat', perc: 'shaker',  about: 'A breathy melodica over soft guitar upstrokes on the off-beat and a shaker, slow as the mist lifting.' },
   kona:      { tempo: 0.84, lead: 'steel',      comp: 'uke',    perc: 'ipu',      swing: 0.18, about: 'A sliding steel guitar sings over a soft ukulele strum, with the knock of an ipu gourd and a shaker, a little swung.' },
   roastery:  { tempo: 0.86, lead: 'vibes',      comp: 'jazz',   perc: 'brush',    walk: true, swing: 0.32, about: 'Vibraphone over Rhodes shells, a walking upright bass and brushes, swung lazily like a kissaten record.' }
 };

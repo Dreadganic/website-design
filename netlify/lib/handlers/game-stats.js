@@ -52,6 +52,11 @@ exports.handler = async (event) => {
     ret["d" + dd] = { cohort, returned: back, rate: cohort ? Math.round((1000 * back) / cohort) / 10 : null };
   }
 
+  /* Blue Mountain: how often players come back (the slow clock's aim is about twice a day), and whether waiting for a clearing stays a real choice (aim: 55 to 75% of picks) */
+  const bmPicks = events.filter((e) => e.e === "bm_pick"), bmClean = bmPicks.reduce((a, e) => a + (e.m || 0), 0), bmBlind = bmPicks.reduce((a, e) => a + (e.out || 0), 0);
+  const bmGaps = events.filter((e) => e.e === "bm_visit" && e.min > 0).map((e) => e.min), bmShips = {};
+  for (const e of events) if (e.e === "bm_ship" && e.key) bmShips[e.key] = (bmShips[e.key] || 0) + 1;
+
   /* feature usage */
   const counterSessions = events.filter((e) => e.e === "counter_close");
   const away = events.filter((e) => e.e === "away_collect").map((e) => e.h).filter((n) => n > 0);
@@ -66,6 +71,7 @@ exports.handler = async (event) => {
     players, events: events.length, counts,
     sessions: { started: counts.session_start || 0, ended: ends.length, medianLenSec: median(ends) },
     retention: ret,
+    bm: { opened: counts.bm_open || 0, visits: counts.bm_visit || 0, medianGapMin: median(bmGaps), cleanShare: bmClean + bmBlind ? Math.round((1000 * bmClean) / (bmClean + bmBlind)) / 10 : null, trays: counts.bm_grade || 0, ships: bmShips },
     counter: { closes: counterSessions.length, medianServed: median(counterSessions.map((e) => e.served || 0)), medianWalkouts: median(counterSessions.map((e) => e.out || 0)) },
     away: { sessions: away.length, medianHours: median(away) },
     bags, prestigeByP, p5Plus: starts.filter((e) => (e.p || 0) >= 5).length,

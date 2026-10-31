@@ -12,6 +12,7 @@ const FIELDS = {   /* field: [type, cap] — unknown or oversized fields are dro
   len: ["int", 172800], h: ["num", 24], p: ["int", 99], lvl: ["int", 999], min: ["int", 100000], gap: ["int", 2592000000],
   served: ["int", 999], out: ["int", 999], coins: ["int", 1e12], rep: ["int", 1000000], m: ["int", 999], t: ["string", 40], key: ["string", 40], reg: ["string", 10], pc: ["string", 12]
 };
+NAMES.push("bm_open", "bm_visit", "bm_pick", "bm_grade", "bm_ship");   /* Blue Mountain: arrivals, gaps between visits, clean and blind picks, trays, barrels */
 
 exports.handler = async (event) => {
   const deps = exports.__deps;

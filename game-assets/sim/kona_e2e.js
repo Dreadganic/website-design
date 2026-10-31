@@ -22,14 +22,16 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
 
   /* locked before prestige 6 */
   await setup(5); await clean();
+  await E(() => { const T = window.__T; T.bmTick(); T.S.bm.seen = true; T.travel(1); }); await g.waitForTimeout(150);   /* Blue Mountain (prestige 5) comes after Osaka */
+  ok(await K(() => window.__T.scene === 'bm'), 'at prestige 5 the arrow after Osaka goes to Blue Mountain');
   await E(() => window.__T.travel(1)); await g.waitForTimeout(150);
-  ok(await K(() => window.__T.scene === 'farm' && window.__T.S.loc === 'mogiana'), 'before prestige 6 the arrows go from Osaka back to Mogiana');
+  ok(await K(() => window.__T.scene === 'farm' && window.__T.S.loc === 'mogiana'), 'before prestige 6 the next arrow goes from Blue Mountain back to Mogiana');
   ok(!(await K(() => /Kona Ridge/.test(document.getElementById('panel').innerHTML + document.body.innerText.slice(0, 0)))), 'no Kona Ridge before prestige 6');
 
-  /* prestige 6: Osaka's next arrow is Kona Ridge */
+  /* prestige 6: Kona Ridge closes the ring of farms and islands */
   await setup(6); await clean();
-  await E(() => document.getElementById('nextLoc').click()); await g.waitForTimeout(400);
-  ok(await K(() => window.__T.scene === 'kona'), 'from Osaka the next arrow goes to Kona Ridge');
+  await E(() => { const T = window.__T; T.S.loc = 'mogiana'; T.setTab('farm', true); document.getElementById('prevLoc').click(); }); await g.waitForTimeout(400);
+  ok(await K(() => window.__T.scene === 'kona'), 'Kona Ridge comes last in the ring, after Blue Mountain: the arrow back from Mogiana');
   await E(() => window.__T.konaTick()); await g.waitForTimeout(700);
   ok(await K(() => !!window.__T.S.kona && window.__T.S.kona.plots.length === 8), 'the island starts with its eight plots');
   ok(await K(() => !document.getElementById('modal').hidden && /Kona Ridge/.test(document.getElementById('modalCard').innerText)), 'Rosa welcomes you to the island');
