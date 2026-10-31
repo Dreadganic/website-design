@@ -30,6 +30,7 @@ python3 game-assets/sim/mktest.py /tmp/beju-farm.html /tmp/test.html          # 
 node game-assets/sim/ui_sweep.js /tmp/test.html fresh /tmp/sweep fresh       # or a run.js output instead of "fresh"; then [width] [height] [prep js]
 node game-assets/sim/online_e2e.js /tmp/test.html /tmp/online                 # the real functions behind a local server, two browser devices
 node game-assets/sim/names_e2e.js /tmp/test.html /tmp/names                   # the name window, unique names, renames and the offline copy (24 checks)
+node game-assets/sim/save_gate_e2e.js /tmp/test.html                           # an idle open tab uploads its save every 30 minutes, any tap or key makes the next one go (8 checks)
 node game-assets/sim/returning_e2e.js /tmp/test.html /tmp/returning          # a save closed 2 minutes, 8 hours and 3 days ago starts a running farm, welcome-back card, every tab (17 checks; every other suite loads a save written that moment)
 node game-assets/sim/notes_e2e.js /tmp/t_fn.html /tmp/notes                   # co-op order size and Claim, every Claim button, the request rack, the Shop lock, the farm bar, farms and the menu (needs API '/fn/', as for community_e2e.js)
 node game-assets/sim/events_e2e.js /tmp/test.html /tmp/events                 # random events: when they start, harm, real taps, keepsakes, letting go, reload mid-event, catching up, sound (40 checks)
