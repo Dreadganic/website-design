@@ -183,6 +183,30 @@ const ok = (c, msg) => { if (c) pass++; else { fail++; console.log('FAIL ' + msg
   ok(await E(() => window.__T.S.rev.pets.doctorbird === true), 'so does the doctor bird');
   ok(await E(() => window.__T.titleText('bm:grader') === 'Blue Mountain grader'), 'the title has its name');
   ok(!errs.length, 'no page errors' + (errs.length ? ': ' + errs.slice(0, 3).join(' | ') : ''));
+
+  /* coming back to the island: a save left on Blue Mountain mid-visit, opened 2 minutes, 8 hours and 3 days later */
+  const save = await E(() => { const T = window.__T, S = T.S, B = S.bm; S.isle = 'bm'; B.ter.forEach((t) => { t.pool = 3; t.over = 0; }); B.wash = { kg: 8, u: 0, o: 0, at: Date.now() };
+    B.bbq = [{ kg: 20, u: 0, o: 0, at: Date.now() }]; T.save(); return JSON.parse(localStorage.getItem('beju-farm-save-v3')); });
+  for (const [label, mins] of [['2 minutes', 2], ['8 hours', 480], ['3 days', 4320]]) {
+    const c = await b.newContext({ viewport: { width: 390, height: 844 } }), p = await c.newPage(), pe = [];
+    p.on('pageerror', (e) => pe.push(e.message));
+    const back = Date.now() - mins * 60e3, st = JSON.parse(JSON.stringify(save)); st.last = back; st.bm.last = back; st.bm.wash.at = back; st.bm.bbq[0].at = back;
+    await c.addInitScript((x) => { if (!sessionStorage.getItem('seeded')) { localStorage.clear(); localStorage.setItem('beju-farm-save-v3', JSON.stringify(x)); sessionStorage.setItem('seeded', '1'); } }, st);
+    await p.goto('file://' + file); await p.waitForTimeout(1500);
+    const r = await p.evaluate(() => { const T = window.__T; if (!T) return null; const B = T.S.bm; return { sc: T.scene, t: T.S.minutesTotal, pool: B.ter[0].pool, over: B.ter[0].over, wash: !!B.wash, bays: B.bbq.length, ready: B.bbq.filter((x) => Date.now() - x.at >= T.bmRestMs()).length }; });
+    ok(r && !pe.length, 'back after ' + label + ': the page starts up on the island' + (pe.length ? ': ' + pe.join(' | ') : r ? '' : ' (stopped early)'));
+    if (!r) { await c.close(); continue; }
+    await p.waitForTimeout(1000);
+    ok((await p.evaluate(() => window.__T.S.minutesTotal)) > r.t && r.sc === 'bm', 'back after ' + label + ': still on Blue Mountain, the clock running');
+    const want = Math.min(18, 3 + mins / 60);
+    ok(Math.abs(r.pool - want) < 0.1 && (mins < 4320 || r.over === 18), 'back after ' + label + ': the terraces ripened while away (' + r.pool.toFixed(1) + ' kg ripe, ' + r.over.toFixed(1) + ' overripe)');
+    ok(mins < 30 ? r.wash || r.bays === 2 : !r.wash && r.bays === 2, 'back after ' + label + ': the half-picked basket ' + (mins < 30 ? 'is still there to finish' : 'went to rest with the rest'));
+    ok(mins >= 480 ? r.ready >= 1 : r.ready === 0, 'back after ' + label + ': ' + (mins >= 480 ? 'the batch has rested and waits to be graded' : 'the batch is still resting'));
+    await p.evaluate(() => { const T = window.__T; for (let i = 0; i < 12; i++) T.closeModal(); document.getElementById('modal').hidden = true; T.setTab('farm'); T.renderPanel(); });
+    const ptxt = await p.evaluate(() => document.getElementById('panel').innerText.replace(/\s+/g, ' '));
+    ok(/^Island Log /.test(ptxt) && /Blue Mountain · certification|Trays graded/.test(ptxt) && !pe.length, 'back after ' + label + ': the island page opens, on the tab you left it');
+    await c.close();
+  }
   console.log(pass + ' passed, ' + fail + ' failed');
   await b.close(); process.exit(fail ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(1); });

@@ -42,7 +42,7 @@ node game-assets/sim/events_layout.js /tmp/test.html /tmp/evlayout              
 ```
 python3 game-assets/play/build.py /tmp/beju-farm.html
 python3 game-assets/sim/mktest.py /tmp/beju-farm.html /tmp/test.html
-node game-assets/sim/bluemtn_e2e.js /tmp/test.html /tmp/bm        # opening, the ripe pool and time away, clearings, clean and blind picks, resting, grading, every certification, shipping, the Counter, imports, saving (64 checks)
+node game-assets/sim/bluemtn_e2e.js /tmp/test.html /tmp/bm        # opening, the ripe pool and time away, clearings, clean and blind picks, resting, grading, every certification, shipping, the Counter, imports, saving, and coming back to the island after 2 minutes, 8 hours and 3 days (82 checks)
 node game-assets/sim/bluemtn_layout.js /tmp/test.html /tmp/bmlay  # every terrace, bay, the grading table and the barrels, clear of the interface on six phone sizes
 node game-assets/sim/bluemtn_pace.js /tmp/test.html 28            # 28 days of visits on four schedules: certification by day, seconds a visit, value next to twice a day
 ```
