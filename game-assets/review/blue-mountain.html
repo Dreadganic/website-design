@@ -1,0 +1,51 @@
+<!doctype html><meta charset="utf-8"><title>Blue Mountain — design and build note (T2.6 + T3.1)</title>
+<style>body{max-width:720px;margin:40px auto;font:16px/1.6 Georgia,serif;color:#2A2118;padding:0 16px}h1,h2,h3{font-family:Avenir,Helvetica,sans-serif}code{background:#F2EDE4;padding:1px 5px;border-radius:4px}li{margin:6px 0}table{border-collapse:collapse;font:14px/1.4 Avenir,Helvetica,sans-serif;width:100%;margin:8px 0}td,th{border-bottom:1px solid #E4DCCD;padding:4px 6px;text-align:left;vertical-align:top}.ask{background:#F7F1E6;border-left:4px solid #C9A86A;padding:8px 14px;margin:14px 0}</style>
+<h1>Blue Mountain</h1>
+<p><i>T2.6 design + T3.1 build. Decided with Jordan on 31 Oct 2026: <b>prestige 5</b>, the same art pipeline as Kona, the gameplay calls made from research checked against how the game plays today. Built, tested and paced; it ships when you merge it.</i></p>
+
+<p><b>In one line:</b> misty terraces where ripe cherries show when the fog lifts, beans graded by size into wooden barrels, and a clock slow enough that the island is a once- or twice-a-day ritual, not a session.</p>
+
+<h2>Why prestige 5: what the game does there today</h2>
+<p>The pacing bot (5 buildings a farm) reaches P5 at 7.3 h of active play and P6 at 22.0 h. <b>P5 → P6 is 14.7 hours with 17 purchases in it</b>: a median of 47 minutes between them, the longest gap 2 h 26 min, while the level crawls from 31 to 49. The casual bot (three 10-minute sessions a day) spends about 12 calendar days there. That is the emptiest stretch in the game, it sits exactly where Rosa says "coffee is a practice", and a twice-a-day island fills it without touching the mainland's pace. Kona at P6 stays the fast counterweight.</p>
+
+<h2>The island formula, next to Kona</h2>
+<table>
+<tr><th></th><th>Kona Ridge (P6)</th><th>Blue Mountain (P5)</th></tr>
+<tr><td>New verb</td><td>Vent and pull a ferment on the second</td><td><b>Pick in the clearing</b>, basket by basket, or strip a terrace blind in the fog</td></tr>
+<tr><td>New conversion</td><td>Fruit × coffee → co-ferment</td><td><b>Bean size → grade</b>: No. 1, No. 2, No. 3, Peaberry into barrels, Select into a jute sack</td></tr>
+<tr><td>Rhythm</td><td>30-second loop</td><td><b>Slow clock</b>: an 18-hour ripe pool, an 8-hour rest</td></tr>
+<tr><td>Imports</td><td>Mill pulp → compost</td><td><b>Sorters</b> (the grader's share) and <b>wet mills</b> (a shorter rest, 30% at most)</td></tr>
+<tr><td>Exports</td><td>Co-ferments → Osaka bins</td><td>Barrels → Osaka bins as <code>typica.bm_*</code>; the Counter can ask for them</td></tr>
+<tr><td>Money</td><td>Shells and a shop</td><td><b>None.</b> Certification 1–12, one unlock a level</td></tr>
+</table>
+
+<h2>The gameplay calls, and the evidence behind them</h2>
+<ul>
+<li><b>No island money: certification levels.</b> Hay Day's Town (reputation levels) and Cookie Clicker's minigames open by level; extra currencies show up as player drop-off where they appear, and players call stacks of them "mobile free to play vibes". Kona's shop ran at about 6 h instead of 20 because income grew while prices didn't. Blue Mountain's levels come from grading, which the real clock limits, so they can't run away. The page always says what the next level brings.</li>
+<li><b>Nothing is lost while you're away.</b> FarmVille's withering crops are the textbook anti-pattern; Hay Day sells "the crops never die". Each terrace ripens continuously into a pool of 18 hours; past that, cherries overripen (they grade smaller, never vanish), capped. Measured with the real code over several runs: <b>once a day earns 84–94%</b> of twice a day's certification by day 14 and 93–95% of the coins; a third visit adds next to nothing.</li>
+<li><b>Clearings with limited capacity.</b> If waiting cost nothing it would always win. A clearing sits on one row for 16 s, a basket (2 kg) a tap, one tap every 0.9 s: enough to clear a twice-a-day pool, not a once-a-day one. Blind is one confirmed tap (the first tap shows the cost: "40% underripe"), all at once. Measured: <b>all blind earns 75–82% of the certification and 88–92% of the coins in about a quarter of the time</b>, a real trade. The beacon reports the share; the aim is 55–75% of picks in clearings.</li>
+<li><b>Grading has a painless skip.</b> Trays of 6 beans and two barrels at first, 10 beans and four barrels by certification 3, no timer. A wrong flick goes in anyway and lowers that barrel's "true to grade" (and its cup a little); "Send the rest as Select" always works. A clean tray by hand earns +12%. The grader arrives at certification 5 and, with a P5 farm's sorters, sorts about 40% of each tray; with the master grader (certification 11) about 90%, so the chore fades out over about two weeks while a hand-sorted tray still pays a little more.</li>
+<li><b>Onboarding in three prompts.</b> Rosa's card on arrival, one how-to line on the first tray, one note on the first shipment. The first clearing comes within 3 seconds, and a rested batch is waiting so the first visit both picks and grades. A letter halfway through P4 teases it; Ranks › Prestige lists it.</li>
+</ul>
+
+<h2>Pacing, measured (<code>sim/bluemtn_pace.js</code>, 28 days, a P5 farm; ranges across runs, since beans grade at random)</h2>
+<table>
+<tr><th>Schedule</th><th>Certification day 7 / 14 / 21</th><th>A visit</th><th>vs twice a day</th></tr>
+<tr><td>Twice a day</td><td>6 / 10 / 12 (12 on day 17–18)</td><td>~68 s picking + grading</td><td>100%</td></tr>
+<tr><td>Once a day</td><td>5 / 9 / 12</td><td>~124 s (two clearing passes)</td><td>84–94% cert, 93–95% coins</td></tr>
+<tr><td>Three a day</td><td>6 / 10 / 12</td><td>~59 s</td><td>97–107% (a third visit adds next to nothing)</td></tr>
+<tr><td>Twice, all blind</td><td>5 / 9 / 12</td><td>~17 s</td><td>75–82% cert, 88–92% coins</td></tr>
+</table>
+<p>A No. 1 barrel lands in a bin as 30 kg at cup 94 worth about 6,000 coins green; Typica's value (3.2) sits beside Geisha's, so Blue Mountain prices as the premium coffee it is without moving the mainland's economy.</p>
+
+<h2>The real place</h2>
+<p>Typica, washed, rested in parchment (for weeks in Jamaica; 8 hours here). Graded by screen: No. 1 (17–18), No. 2 (16), No. 3 (15–16), Peaberry; it ships in wooden barrels of 15, 30 or 70 kg, while Select goes in jute bags, which is why the game's Select is a sack. The coffee patios are called <i>barbecues</i> in Jamaica. The music, "Mento in the Mist", is in the style of mento, Jamaica's country music before ska, with a melodica lead. The doctor bird (certification 10) is the red-billed streamertail, Jamaica's national bird.</p>
+
+<h2>Measuring it (the events came first)</h2>
+<p><code>bm_open</code>, <code>bm_visit</code> (minutes since the last visit), <code>bm_pick</code> (clean baskets, blind terraces), <code>bm_grade</code> (by hand, right, wrong), <code>bm_ship</code> (grade). <code>game-stats</code> returns <code>bm: { opened, visits, medianGapMin, cleanShare, trays, ships }</code>. Rebalance if <code>cleanShare</code> leaves 55–85%, or if the median gap shows people visiting much less than daily. One more from the research: if the median player reaches P6 in under 7 days, hold Kona until certification 4.</p>
+
+<div class="ask"><b>For you</b>
+<ol>
+<li><b>Playtest:</b> Settings › Test tools › Blue Mountain: "Open Blue Mountain early", "Ripen every terrace", "Rest every batch", "+1 certification". One session covers both islands (Kona's buttons are just below).</li>
+<li><b>A real Jamaica Blue Mountain bag</b>: see the sourcing note in the PR. If you stock it, adding <code>typica.bm_n1</code> to the real-bag cards (T1.3) is a one-line follow-up.</li>
+</ol></div>

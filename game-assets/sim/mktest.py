@@ -6,5 +6,7 @@ hook="window.__T = { toast, roastGuest, tickRoast, get IN() { return IN; }, get 
 a="requestAnimationFrame(loop);\nif (needsName()) askName();"
 assert t.count(a)==1
 t=t.replace(a,hook+a)
+bm="Object.assign(window.__T, { bmTick, bmPick, bmClick, bmGradeStart, bmGradeBean, bmGradeSelect, bmShip, bmXp, bmFresh, goBm, bmOpen, bmClear, bmHint, bmAuto, bmRestMs, bmNeed, bmInfo, bmPanel, bmSeal, bmTease, BTER, BBQ, BBARREL, BGTABLE, BM_CLEAR, saleFor, ctAction, LOCS, VAR, titleText }); Object.defineProperty(window.__T, 'bmFog', { get: () => bmFog, set: (v) => { bmFog = v; } }); Object.defineProperty(window.__T, 'bmG', { get: () => bmG });\n"   # Blue Mountain, for bluemtn_e2e.js
+t=t.replace(a,bm+a)
 if '<meta charset' not in t: t=t.replace('<head>','<head><meta charset="utf-8">',1)
 open(sys.argv[2],'w').write(t); print('test ok')
