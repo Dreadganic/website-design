@@ -1,0 +1,36 @@
+<!doctype html><meta charset="utf-8"><title>One currency a screen — audit note (T2.7)</title>
+<style>body{max-width:720px;margin:40px auto;font:16px/1.6 Georgia,serif;color:#2A2118;padding:0 16px}h1,h2{font-family:Avenir,Helvetica,sans-serif}code{background:#F2EDE4;padding:1px 5px;border-radius:4px}li{margin:6px 0}table{border-collapse:collapse;font:14px/1.4 Avenir,Helvetica,sans-serif;width:100%}td,th{border-bottom:1px solid #E4DCCD;padding:4px 6px;text-align:left;vertical-align:top}</style>
+<h1>One currency a screen</h1>
+<p><i>Phase 2 · T2.7 · the anti-goal "no new currency: one per screen, island money stays on the island", measured on every screen and turned into a check that fails when a new screen breaks it.</i></p>
+
+<h2>How it was measured</h2>
+<p><code>sim/currency_audit.js</code> opens all 26 tabs, sub-pages and Kona pages on a prestige 6 farm with every tab open. On each one it reads every button: a button with a number and a currency word is a <b>price</b>. Rewards (<code>+60 know-how</code>, <code>Claim 10 cranes</code>) don't count. Mentions in the text are listed separately, since naming a reward isn't asking you to spend. The currencies are coins, know-how, cranes, season stars and Kona's shells.</p>
+
+<h2>Result: the game already keeps the rule</h2>
+<table>
+<tr><th>Spends</th><th>Screens</th></tr>
+<tr><td>coins</td><td>Farm › Upgrades, Build, Staff</td></tr>
+<tr><td>know-how</td><td>Unlock › Coffees, Processes, Research</td></tr>
+<tr><td>cranes</td><td>Unlock › Farms (Osaka), Shop › Boosts, Farmer</td></tr>
+<tr><td>shells</td><td>Kona › Shop, and nowhere else</td></tr>
+<tr><td>nothing</td><td>Mill, Roast, Counter, Daily, all of Ranks, Looks, Real coffee, Kona › Island and Log</td></tr>
+<tr><td><b>two</b></td><td>Farm › Fields, Shop › Farm style, Shop › Roastery (below)</td></tr>
+</table>
+<p><b>Island money stays on the island:</b> shells appear only on Kona's pages, and no Kona page prices anything in coins, know-how or cranes. A planted coin price in the Kona shop is caught (<code>mainland money on the island</code>).</p>
+
+<h2>The three mixes, and why they stay for now</h2>
+<ul>
+<li><b>Farm › Fields: estate stages cost coins <i>and</i> know-how</b> on one button. This is the only two-currency price in the game, and it's on purpose: estates are the late-game sink for both, and the card names both amounts.</li>
+<li><b>Shop › Farm style: building styles for cranes, decor for coins.</b> These are two sections, each opening with its own wallet line (<i>"[your] cranes. Buy a style once…"</i>, <i>"[your] coins. Buy once…"</i>), so in practice each section has one currency.</li>
+<li><b>Shop › Roastery: two Beju brand pieces for cranes</b> (the Beju label, 10, and the gold noren, 20). Everything else is coins or earned.</li>
+</ul>
+<p>The audit lists these three by name with their reason (<code>MIXED</code>), so it passes on today's game. Any other screen that adds a second price, or any shells off the island, fails it.</p>
+
+<h2>Your call (no change made)</h2>
+<ul>
+<li><b>Roastery crane pieces and shop charm.</b> Every roastery cosmetic adds +1% to bag prices (up to +20%), so the two crane pieces are, technically, cranes buying a sliver of power. The design rule is "cranes buy identity, never power." Options: leave it (it's 2% and capped), keep crane-bought pieces out of the charm count, or price them in coins. It's an economy decision, so I haven't touched it.</li>
+<li><b>Farm style → two sub-tabs?</b> Splitting Decor into its own Shop tab would make it strictly one currency a screen with no price changes, at the cost of a sixth Shop tab on a phone. I'd leave it.</li>
+</ul>
+
+<h2>Run it</h2>
+<p><code>node game-assets/sim/currency_audit.js /tmp/test.html [out.json]</code>: it prints one line a screen, and exits 1 on a new mix or a page error. Add a line to <code>MIXED</code> only with a reason.</p>
