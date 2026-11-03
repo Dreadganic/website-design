@@ -30,8 +30,18 @@ export default async (request) => {
   }
 };
 
+/* Where it runs: every page, the images, the game and any unknown path, where turning a scraper away saves bandwidth (20 credits
+   a GB on Netlify) and scanners get a tiny reply. Not on the files every browser loads with a page but bots rarely want (hashed
+   JS and CSS, icons, manifests, config.js, the game's service worker): Netlify bills each run as a web request, so skipping them
+   cuts about half the runs of a first visit, and a probe of those folders still just gets the 1.2 KB 404 page. The functions
+   (/.netlify/*) have their own checks. netlify/tests/block-bots.test.js keeps every real file served. */
 export const config = {
   path: "/*",
-  excludedPath: ["/.netlify/*"],
+  excludedPath: [
+    "/.netlify/*",
+    "/assets/*",
+    "/favicon.ico", "/favicon.svg", "/apple-touch-icon.png", "/android-chrome-192.png", "/app-icon-512.png", "/site.webmanifest",
+    "/config.js", "/farm/sw.js", "/farm/manifest.webmanifest",
+  ],
   onError: "bypass",
 };
