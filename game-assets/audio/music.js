@@ -95,6 +95,18 @@ const SONGS = [
         lead: ['E5:6 G5:2 A5:8', 'G5:4 E5:2 D5:2 B4:8', 'B4:4 D5:4 G5:4 E5:4', 'F#5:8 D5:4 -:4', 'E5:4 G5:4 A5:4 G5:4', 'D5:6 B4:2 G4:8', 'A4:4 C5:4 D5:4 F#5:4', 'G5:12 -:4'] }
     }, form: ['intro', 'A', 'B', 'A'] },
 
+  { id: 'harbour', farm: 'The harbour', title: 'Trade Winds', blurb: 'Harbour shanty · D major',
+    about: 'Sundown on the quay, the boat in from the islands. A gentle shanty for the trade-wind route between coffee islands: soft steel-drum mallets carry the tune over a lazy nylon strum and a shaker, the way music drifts out of a harbour bar with the doors open.',
+    parts: ['Steel-drum mallet lead', 'Nylon guitar strum', 'Round, rolling bass', 'A soft shaker'],
+    bpm: 84, beat: 4, bar: 16, lead: { duty: 0.5, decay: 6, floor: 0.6, vib: 6, vibRate: 5, gain: 0.13 }, arp: { style: 'cumbia', duty: 0.5, gain: 0.045 }, bass: { style: 'lake', gain: 0.17 }, noise: { style: 'lake', gain: 0.03 },
+    sections: {
+      intro: { name: 'Intro', chords: [['D'], ['A7']], lead: ['-:16', '-:8 A4:4 B4:4'] },
+      A: { name: 'A', chords: [['D'], ['G'], ['D'], ['A'], ['D'], ['G'], ['A7'], ['D']],
+        lead: ['D5:4 F#5:4 A5:6 F#5:2', 'G5:4 B5:4 A5:4 G5:4', 'F#5:6 E5:2 D5:8', 'E5:4 F#5:2 G5:2 E5:8', 'D5:4 F#5:4 A5:4 D6:4', 'B5:4 A5:2 G5:2 B5:8', 'A5:4 G5:2 F#5:2 E5:4 C#5:4', 'D5:12 -:4'] },
+      B: { name: 'B', chords: [['G'], ['D'], ['Em'], ['A'], ['G'], ['D'], ['Em', 'A7'], ['D']],
+        lead: ['B5:6 A5:2 G5:8', 'F#5:4 A5:4 D6:8', 'E5:4 G5:4 B5:4 G5:4', 'A5:12 -:4', 'G5:4 B5:2 A5:2 G5:4 F#5:4', 'F#5:6 E5:2 D5:8', 'E5:4 G5:4 C#5:4 E5:4', 'D5:8 A4:4 F#4:4'] }
+    }, form: ['intro', 'A', 'B', 'A'] },
+
   { id: 'turrialba', farm: 'Turrialba, Costa Rica', title: 'Marimba del Volcán', blurb: 'Guanacaste marimba · 6/8 and 3/4',
     about: 'The marimba is Costa Rica’s national instrument, and Guanacaste music sways between 6/8 and 3/4, a feel called sesquiáltera. Long notes shimmer with marimba tremolo rolls, and the bass flips between the two metres from bar to bar.',
     parts: ['Marimba lead with tremolo rolls', 'Lower marimba ostinato', 'Bass that alternates 6/8 and 3/4', 'Shaker and rim on the shifting beats'],

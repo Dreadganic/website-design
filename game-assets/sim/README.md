@@ -49,4 +49,14 @@ node game-assets/sim/bluemtn_e2e.js /tmp/test.html /tmp/bm        # opening, the
 node game-assets/sim/bluemtn_layout.js /tmp/test.html /tmp/bmlay  # every terrace, bay, the grading table and the barrels, clear of the interface on six phone sizes
 node game-assets/sim/bluemtn_pace.js /tmp/test.html 28            # 28 days of visits on four schedules: certification by day, seconds a visit, value next to twice a day
 ```
-The design, the research behind the numbers and the measured pacing are in `game-assets/review/blue-mountain.html`. Test tools in Settings › Test tools open the island early, ripen the terraces, rest the batches and add a certification.
+The design, the research behind the numbers and the measured pacing are in `game-assets/review/blue-mountain.html`.
+
+## The Island Route (prestige 5): the harbour, cowries, the board and voyages
+```
+python3 game-assets/play/build.py /tmp/beju-farm.html
+python3 game-assets/sim/mktest.py /tmp/beju-farm.html /tmp/test.html
+node game-assets/sim/islands_e2e.js /tmp/test.html /tmp/isl        # the harbour opening, Captain Ama, the ledger's 56 finds and their hooks, every board project, voyages (bags, hours, the lighthouse, the second hold, bins or the shed), the bottle, Miss Pearl, Uncle Kimo, the island shelf, old saves (shells into cowries), a reload (78 checks)
+node game-assets/sim/islands_layout.js /tmp/test.html /tmp/isllay  # every harbour spot, Miss Pearl and Uncle Kimo, clear of the interface on six phone sizes
+node game-assets/sim/kona_pace.js /tmp/test.html 6                 # Kona in real time: what the co-op boat pays a minute, the island level, tools and cowries
+```
+The design is the "Island chain" tab of the next-features doc. Test tools in Settings › Test tools › The harbour open it early, add cowries, bring the boat home and wash up a bottle. Test tools in Settings › Test tools open the island early, ripen the terraces, rest the batches and add a certification.

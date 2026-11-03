@@ -2267,6 +2267,295 @@ def scene_bluemtn():
 
 scene_bluemtn(); img.save(os.path.join(HERE, "bg", "bluemtn.png")); rendered[("bluemtn", "")] = img.copy()
 
+
+SEA = ["#D4F0F2", "#A8DCE6", "#7CC4D8", "#5CAEC8", "#4A9CBC", "#3A84A8", "#2E6E92"]   # the harbour's water, from the hazy horizon to the deep by the quay
+GRANITE = ["#C8C4BA", "#A6A298", "#86827A", "#66625C", "#4A4642"]
+
+
+def scene_harbour():
+    """The harbour, from prestige 5, past Osaka: open sea with the other islands on the horizon (the Blue Mountains on the
+    left, Kona's volcano on the right, far islands between), a lighthouse on a granite point, a long timber pier out to deep
+    water where the boat moors, a little slipway beach, then the stone quay with the shed of crates, the harbour board and
+    the harbour office, and a cobbled lane down to the path home. The game draws the boat, the gap in an unmended pier, the
+    lit lamp, Captain Ama and the projects (HB_* in template.html use the same spots)."""
+    new_scene(SEA[4])
+    rnd = random.Random(91)
+    # the sky, a few soft clouds
+    for y in range(0, 30):
+        for x in range(W):
+            put(x, y, "#9CCCE8" if y < 8 else "#AAD4EC" if y < 15 else "#BCDEF0" if y < 22 else "#CCE6F2")
+    for (cx, cy, s) in [(30, 7, 1.0), (104, 4, 1.3), (160, 9, 0.9), (70, 13, 0.7)]:
+        for k in range(7):
+            ellipse(cx + (k - 3) * 5 * s, cy + (1 if k in (0, 6) else 0), 5 * s, 3 * s, "#FFFFFF")
+        for x in range(int(cx - 17 * s), int(cx + 17 * s)):
+            put(x, cy + 3 * s, "#E2EEF4")
+    # the other islands, hazy on the horizon: the Blue Mountains left, Kona's volcano right, three far ones between
+    for x in range(0, 70):
+        top = 18 - 5 * math.sin(x * 0.09 + 0.4) - 3 * math.sin(x * 0.23) - (5 if 18 < x < 44 else 0) * math.sin((x - 18) / 26 * math.pi)
+        for y in range(int(top), 31):
+            put(x, y, "#8CA6C4" if y < top + 2 else "#7C98BA" if (x + y) % 7 else "#86A0C0")
+    for x in range(0, 50):
+        top = 23 - 2 * math.sin(x * 0.2)
+        for y in range(int(top), 31):
+            put(x, y, "#6E8CB0")
+    for x in range(126, W):
+        half = (x - 172) / 1.0
+        top = 13 + abs(x - 172) * 0.42 + (math.sin(x * 0.7) * 0.6)
+        if abs(x - 172) < 4:
+            top = 13 + math.sin(x) * 0.4
+        for y in range(int(top), 31):
+            put(x, y, "#8A96A8" if (x < 172 and y < top + 3) else "#78869C" if (x + y) % 6 else "#7E8CA2")
+    for k in range(9):   # a thin plume from Kona's summit
+        put(172 + k * 0.6, 12 - k, "#E8ECEE", 150 - k * 12); put(173 + k * 0.6, 12 - k, "#F4F6F6", 120 - k * 10)
+    for (cx, w, h) in [(84, 9, 4), (102, 5, 3), (121, 7, 3)]:
+        for x in range(cx - w, cx + w + 1):
+            top = 29 - h * math.cos((x - cx) / (w + 1) * math.pi / 2)
+            for y in range(int(top), 31):
+                put(x, y, "#9EB6CC")
+    put(84, 24, "#7E9AB2"); put(83, 23, "#7E9AB2"); put(85, 23, "#7E9AB2")   # a palm on the far island
+    # the sea: hazy near the horizon, deep blue by the quay, with wave strokes
+    for y in range(30, 208):
+        for x in range(W):
+            band = 0 if y < 32 else 1 if y < 44 else 2 if y < 74 else 3 if y < 122 else 4 if y < 172 else 5
+            jitter = (x * 7 + y * 13) % 11 == 0
+            put(x, y, SEA[min(6, band + 1)] if jitter and y > 44 else SEA[band])
+    for _ in range(220):
+        x, y = rnd.randrange(W), rnd.randrange(34, 206)
+        n = 2 if y < 70 else 3 if y < 140 else 4
+        for k in range(n):
+            put(x + k, y, SEA[max(0, (1 if y < 70 else 2 if y < 140 else 3) - 1)])
+        if y > 90 and rnd.random() < 0.4:
+            for k in range(n):
+                put(x + k + 1, y + 1, SEA[6])
+    for (bx_, by_) in [(70, 84), (156, 70), (88, 150)]:   # buoys marking the channel
+        ellipse(bx_, by_ + 2, 4, 1.5, SEA[6]); fill(bx_ - 2, by_ - 5, 5, 7, OUT); fill(bx_ - 1, by_ - 4, 3, 2, "#C8402C"); fill(bx_ - 1, by_ - 2, 3, 2, "#F8F4EC"); fill(bx_ - 1, by_, 3, 1, "#C8402C"); put(bx_, by_ - 6, OUT)
+        for k in (-4, 4):
+            put(bx_ + k, by_ + 3, "#F4FAFA")
+    # the lighthouse point: a granite headland, the tower with red bands, the gallery, the lamp room and a keeper's hut
+    for y in range(110, 208):
+        for x in range(0, 60):
+            edge = 46 - (y - 110) * 0.05 + math.sin(y * 0.3) * 3 + (10 if y > 186 else 0) * ((y - 186) / 22)
+            if x < edge and not (y < 128 and x > 32 + (y - 110) * 0.8):
+                g = GRANITE[1] if (x * 3 + y * 5) % 17 < 9 else GRANITE[2]
+                if (x + y * 2) % 23 == 0:
+                    g = GRANITE[3]
+                put(x, y, g)
+    for (rx, ry, r) in [(42, 132, 5), (48, 160, 6), (36, 190, 5), (8, 118, 6), (54, 196, 4), (24, 202, 5)]:
+        for yy in range(int(ry - r), int(ry + r * 0.7) + 1):
+            for xx in range(int(rx - r), int(rx + r) + 1):
+                d = ((xx + 0.5 - rx) / r) ** 2 + ((yy + 0.5 - ry) / (r * 0.8)) ** 2
+                if d <= 1:
+                    put(xx, yy, GRANITE[0] if yy < ry - r * 0.3 and xx < rx else GRANITE[3] if d > 0.7 else GRANITE[1])
+    for (gx, gy, gw) in [(4, 114, 22), (2, 168, 18), (30, 176, 10)]:   # thrift and grass on the headland's top
+        for y in range(gy, gy + 8):
+            for x in range(gx, gx + gw - abs(y - gy - 4)):
+                put(x, y, LUSH[2] if (x + y) % 3 else LUSH[3])
+        for k in range(4):
+            put(gx + 3 + k * 4, gy + 2 + (k % 2) * 3, "#F08AA8"); put(gx + 4 + k * 4, gy + 2 + (k % 2) * 3, "#FFFFFF")
+    for k in range(40):   # a worn path from the quay up to the lighthouse door
+        t = k / 39
+        x, y = 30 + t * -9 + math.sin(t * 5) * 4, 206 - t * 70
+        for d in (-1, 0, 1):
+            put(x + d, y, "#D8CCB0" if d == 0 else "#C4B898")
+    for y in range(114, 206, 3):   # surf where the rocks meet the sea
+        x = 47 - (y - 110) * 0.05 + math.sin(y * 0.3) * 3 + (10 if y > 186 else 0) * ((y - 186) / 22)
+        put(x + 1, y, "#F4FAFA"); put(x + 2, y + 1, "#E4F6F8", 180)
+    soft_shadow(10, 152, 24)
+    for y in range(62, 152):   # the tower, wider at its foot
+        half = 6 + (y - 62) * 0.035
+        for x in range(int(21 - half), int(21 + half) + 1):
+            band = (y - 62) % 28 < 7
+            edge = x <= 21 - half + 0.6 or x >= 21 + half - 0.6
+            shade = x > 21 + half * 0.35
+            put(x, y, OUT if edge else ("#A82E26" if shade else "#C8402C") if band else ("#D8D4CC" if shade else "#F4F2EC"))
+    fill(13, 58, 17, 4, OUT); fill(14, 59, 15, 2, "#5E4A3A")   # the gallery
+    for x in range(14, 29, 2):
+        put(x, 57, OUT)
+    fill(16, 49, 11, 9, OUT); fill(17, 50, 9, 7, "#4A5A6A"); fill(18, 51, 2, 5, "#7A8A9A")   # the lamp room, dark until it's lit
+    for y in range(43, 49):   # the red dome and a little vane
+        for x in range(21 - (y - 42), 22 + (y - 42)):
+            put(x, y, "#A82E26" if x > 21 else "#C8402C")
+    put(21, 41, OUT); put(21, 42, OUT); put(20, 40, OUT); put(22, 40, OUT)
+    fill(19, 128, 5, 8, "#5E3A24"); put(21, 127, OUT)   # the tower door
+    front_roof(30, 140, 18, 6, ["#C8603A", "#A84A2C", "#7A3420"])   # the keeper's hut
+    for y in range(146, 160):
+        for x in range(31, 47):
+            put(x, y, OUT if x in (31, 46) or y == 159 else "#F2EEE4" if (x + y) % 7 else "#E2DCCC")
+    fill(35, 150, 4, 4, "#4A6A8A"); fill(41, 152, 3, 7, "#5E3A24")
+    # the slipway: a little sandy beach on the right where the sea runs up, a rowboat pulled out and some pots
+    for y in range(150, 208):
+        for x in range(146, W):
+            shore = 150 + (W - x) * 0.4 + math.sin(x * 0.25) * 2
+            if y >= shore:
+                wet = y < shore + 3
+                put(x, y, "#C8B488" if wet else "#F2E2B4" if (x + y) % 5 else "#E2CC94")
+            elif y >= shore - 2:
+                put(x, y, "#F4FAFA" if (x + y) % 3 else "#D4F0F2")
+    shadow_ellipse(182, 176, 10, 3, 50)
+    for y in range(166, 176):   # the rowboat, upside down on the sand
+        half = 8 - abs(y - 171) * 0.6
+        for x in range(int(182 - half), int(182 + half) + 1):
+            put(x, y, OUT if abs(x - 182) >= half - 0.8 or y in (166, 175) else "#2E6E92" if y < 169 else "#F2E8D4" if y < 171 else "#3A84A8")
+    for (cx, cy) in [(158, 186), (166, 196)]:   # lobster pots
+        fill(cx - 4, cy - 3, 8, 6, OUT); fill(cx - 3, cy - 2, 6, 4, "#B29462")
+        for x in range(cx - 3, cx + 3, 2):
+            put(x, cy - 2, "#76603A"); put(x, cy, "#76603A")
+    for (sx, sy, c) in [(176, 186, "#FFF0E4"), (184, 194, "#F2A8A0"), (154, 200, "#FFF0E4"), (188, 182, "#E8DCC8")]:
+        put(sx, sy, c); put(sx + 1, sy, c); put(sx, sy - 1, OUT)
+    # the pier: timber planks out to deep water, posts on both sides with their reflections, bollards and a lantern at the end
+    for y in range(104, 208):
+        for x in range(110, 130):
+            if x in (110, 129):
+                put(x, y, WOOD[4])
+            elif x in (111, 128):
+                put(x, y, WOOD[3])
+            else:
+                plank = (y - 104) % 3
+                put(x, y, WOOD[4] if plank == 2 and (x * 3 + y) % 5 else WOOD[1] if plank == 0 else WOOD[2])
+    for y in range(108, 206, 9):
+        for x in (108, 130):
+            fill(x, y, 2, 3, WOOD[4]); put(x, y, WOOD[3])
+            for k in range(1, 5):
+                put(x + (k % 2), y + 2 + k, SEA[6], 160)
+    for (bx, by) in [(112, 106), (126, 106)]:
+        fill(bx - 1, by - 1, 3, 3, "#2A2420"); put(bx, by - 1, "#5A5250")
+    fill(119, 96, 2, 10, "#2A2420"); fill(117, 93, 6, 4, "#2A2420"); fill(118, 94, 4, 2, "#F2C04A")   # the lantern
+    # the quay: a stone coping along the water, bollards and a coil of rope, then big flagstones
+    for y in range(204, 210):
+        for x in range(0, W):
+            if 110 <= x < 130 and y < 207:
+                continue
+            put(x, y, OUT if y == 209 else GRANITE[3] if y == 204 or x % 12 == 0 else GRANITE[1] if y < 207 else GRANITE[2])
+    for x in range(0, W, 3):
+        put(x, 203, "#F4FAFA", 150)
+    for bx in (58, 98, 140):
+        fill(bx - 2, 206, 5, 4, "#2A2420"); fill(bx - 1, 205, 3, 1, "#4A4440")
+    for k in range(10):   # a coil of rope by the pier
+        a = k / 10 * math.tau
+        put(94 + math.cos(a) * 3, 214 + math.sin(a) * 2, "#C8B080"); put(94 + math.cos(a) * 2, 214 + math.sin(a) * 1.3, "#A8905A")
+    for y in range(210, 262):
+        for x in range(W):
+            j = (x + (6 if ((y - 210) // 9) % 2 else 0)) % 14 == 0 or (y - 210) % 9 == 0
+            c = STONE[3] if j else STONE[1] if (x * 5 + y * 3) % 19 else STONE[2]
+            if not j and (x * 11 + y * 7) % 41 == 0:
+                c = "#8AA06A"   # moss in a joint
+            put(x, y, c)
+    for _ in range(40):
+        x, y = rnd.randrange(W), rnd.randrange(212, 260)
+        put(x, y, LUSH[2]); put(x + 1, y - 1, LUSH[1])
+    # the shed: an open lean-to with a tin roof, crates, barrels and a sack inside (the game adds the coffee waiting for a bin)
+    soft_shadow(2, 256, 44)
+    tin_roof(0, 208, 48, 8, ["#9AA4AA", "#7E888E", "#5E666C"])
+    for (px_, h_) in [(2, 40), (44, 40)]:
+        R(px_, 216, 2, h_, WOOD[4]); put(px_ + 1, 216, WOOD[2])
+    fill(4, 216, 40, 40, "#6A5A48")
+    for y in range(216, 256):
+        for x in range(4, 44):
+            put(x, y, "#5E4E3E" if (x + y) % 6 else "#54463A")
+    for (cx, cy) in [(6, 228), (18, 228), (12, 218)]:   # stacked crates
+        fill(cx, cy, 12, 10, OUT); fill(cx + 1, cy + 1, 10, 8, WOOD[1]); fill(cx + 1, cy + 4, 10, 1, WOOD[3]); put(cx + 5, cy + 2, "#3E7A4A"); put(cx + 6, cy + 2, "#3E7A4A")
+    for (cx, cy) in [(34, 230), (36, 222)]:   # barrels
+        ellipse(cx, cy, 5, 6, OUT); ellipse(cx, cy, 4, 5, WOOD[2]); fill(cx - 4, cy - 2, 9, 1, "#4A4440"); fill(cx - 4, cy + 2, 9, 1, "#4A4440")
+    jute_sack(6, 240, 12, 8, "#3E7A4A")
+    # the harbour board: two posts, a small roof and a cork board of pinned notices
+    soft_shadow(52, 246, 34)
+    for px_ in (52, 82):
+        R(px_, 214, 2, 32, WOOD[4]); put(px_ + 1, 214, WOOD[2])
+    fill(50, 210, 36, 4, "#7A3420"); fill(51, 211, 34, 2, "#A84A2C")
+    fill(53, 215, 30, 22, OUT); fill(54, 216, 28, 20, "#C8A070")
+    for (nx, ny, w_, h_, c) in [(56, 218, 8, 7, "#F8F4EC"), (66, 217, 7, 6, "#F2D878"), (75, 219, 6, 8, "#DCEAF4"), (57, 227, 9, 7, "#F2E8D4"), (68, 226, 10, 8, "#F8F4EC")]:
+        fill(nx, ny, w_, h_, c)
+        for k in range(1, h_ - 1, 2):
+            fill(nx + 1, ny + k, w_ - 2, 1, "#B8A88A")
+        put(nx + w_ // 2, ny, "#C8302C")
+    # the harbour office: whitewashed, a terracotta roof, a blue door, the chart in the window, a ship's wheel and a sign
+    soft_shadow(142, 256, 48)
+    front_roof(140, 206, 52, 10, ["#C8603A", "#A84A2C", "#7A3420"])
+    for y in range(216, 256):
+        for x in range(142, 190):
+            put(x, y, OUT if x in (142, 189) or y == 255 else "#F4F0E6" if (x * 3 + y) % 11 else "#E6E0D2")
+    fill(160, 234, 11, 21, OUT); fill(161, 235, 9, 20, "#3A6A9A"); fill(162, 236, 7, 8, "#4A7AAA"); put(168, 246, "#F2C04A")   # the door
+    fill(145, 223, 13, 11, OUT); fill(146, 224, 11, 9, "#E8DCB8")   # the window, with the chart pinned up inside
+    for k in range(5):
+        put(147 + k * 2, 226 + (k % 2), "#3A84A8"); put(148 + k * 2, 230 - (k % 2), "#C8402C")
+    fill(151, 224, 1, 9, "#7A6A50"); fill(146, 228, 11, 1, "#7A6A50")
+    fill(156, 218, 20, 6, OUT); fill(157, 219, 18, 4, "#2E4A6A")   # the sign, with an anchor
+    put(166, 219, "#F2E8D4"); put(166, 220, "#F2E8D4"); put(166, 221, "#F2E8D4"); put(165, 222, "#F2E8D4"); put(167, 222, "#F2E8D4"); put(164, 221, "#F2E8D4"); put(168, 221, "#F2E8D4"); put(165, 219, "#F2E8D4"); put(167, 219, "#F2E8D4")
+    for k in range(12):   # a ship's wheel on the wall
+        a = k / 12 * math.tau
+        put(181 + math.cos(a) * 4, 230 + math.sin(a) * 4, WOOD[3])
+        if k % 2 == 0:
+            put(181 + math.cos(a) * 6, 230 + math.sin(a) * 6, WOOD[4])
+    ellipse(181, 230, 1.5, 1.5, WOOD[4])
+    for (cx, c) in [(174, "#E8384A"), (150, "#F08AA8")]:   # pots of bougainvillea by the walls
+        fill(cx - 3, 250, 6, 5, "#B85A30"); fill(cx - 2, 251, 4, 3, "#C8703C")
+        for k in range(7):
+            put(cx - 3 + (k * 5) % 7, 246 + (k * 3) % 4, c); put(cx - 2 + (k * 3) % 5, 248, LUSH[3])
+    # the lane: warm cobbles down to the path home, palms and flowers, a café table and a fruit stall
+    for y in range(262, H):
+        for x in range(W):
+            row = (y - 262) // 4
+            j = (y - 262) % 4 == 3 or (x + (2 if row % 2 else 0)) % 5 == 4
+            path = abs(x - 96 - math.sin(y * 0.05) * 6) < 16
+            c = "#9A8A78" if j else ("#D8C8A8" if (x + y) % 7 else "#CCB898") if path else ("#B8A890" if (x * 3 + y) % 9 else "#AA9A82")
+            put(x, y, c)
+    for x in range(W):
+        put(x, 262, "#6A625A")
+    shadow_ellipse(28, 304, 14, 3, 50)   # the café table under a striped umbrella
+    for y in range(282, 288):
+        for x in range(int(28 - (y - 280) * 2.4), int(28 + (y - 280) * 2.4) + 1):
+            put(x, y, "#F2E8D4" if ((x - 28) // 3) % 2 else "#3E7A4A")
+    R(27, 288, 2, 14, "#5E5650")
+    fill(20, 296, 16, 2, WOOD[3]); fill(22, 298, 2, 6, WOOD[4]); fill(32, 298, 2, 6, WOOD[4])
+    fill(25, 293, 3, 3, "#F8F4EC"); put(26, 292, "#B8A88A")   # a cup
+    shadow_ellipse(168, 300, 18, 3, 50)   # a fruit stall: a cart of mangoes, pineapples and lemons from the islands
+    fill(150, 286, 36, 12, OUT); fill(151, 287, 34, 10, WOOD[2])
+    for (fx_, fy_, c) in [(154, 284, "#F08A30"), (159, 283, "#F08A30"), (165, 284, "#F2C04A"), (170, 283, "#F2C04A"), (176, 284, "#F2D838"), (181, 283, "#F2D838")]:
+        ellipse(fx_, fy_, 2.6, 2.2, c); put(fx_ - 1, fy_ - 1, "#FFF4B0")
+    ellipse(156, 298, 3, 3, OUT); ellipse(156, 298, 2, 2, WOOD[3]); ellipse(180, 298, 3, 3, OUT); ellipse(180, 298, 2, 2, WOOD[3])
+    for (lx, ly) in [(56, 268), (138, 268)]:   # lamp posts along the quay
+        R(lx, ly, 1, 22, "#2A2420"); fill(lx - 2, ly - 4, 5, 4, "#2A2420"); fill(lx - 1, ly - 3, 3, 2, "#F2E0A0")
+    for x in range(57, 139):   # bunting between the lamp posts, little flags in every colour
+        y = 266 + (1 - ((x - 98) / 41) ** 2) * 6
+        put(x, y, "#5E5650")
+        if (x - 57) % 6 == 2:
+            c = ["#C8402C", "#F2C04A", "#3E7A4A", "#3A84A8", "#F08AA8"][((x - 57) // 6) % 5]
+            for k in range(4):
+                for j in range(-((3 - k) // 2), (3 - k) // 2 + 1):
+                    put(x + j, y + 1 + k, c)
+    soft_shadow(66, 304, 24)   # a bench, with the harbour cat asleep on it
+    fill(66, 296, 24, 3, WOOD[2]); fill(66, 299, 24, 1, WOOD[4]); fill(66, 292, 24, 2, WOOD[1]); fill(67, 300, 2, 4, OUT); fill(87, 300, 2, 4, OUT)
+    ellipse(80, 294, 4, 2.2, "#E8A050"); put(77, 292, "#E8A050"); put(78, 292, "#E8A050"); put(77, 291, OUT); put(83, 293, "#C8803A"); put(84, 294, "#C8803A")
+    fill(40, 280, 9, 11, OUT); fill(41, 281, 7, 9, "#2E3A34")   # the café's chalkboard
+    for k in range(3):
+        fill(42, 283 + k * 2, 5 - k, 1, "#E8E4DC")
+    put(41, 291, OUT); put(47, 291, OUT); put(40, 292, OUT); put(48, 292, OUT)
+    for (cx, cy) in [(142, 296), (147, 300)]:   # barrels by the fruit cart
+        ellipse(cx, cy, 4, 5, OUT); ellipse(cx, cy, 3, 4, WOOD[2]); fill(cx - 3, cy - 2, 7, 1, "#4A4440"); fill(cx - 3, cy + 2, 7, 1, "#4A4440")
+    for px_ in (2, 112, 186):   # planters along the quay edge
+        fill(px_, 264, 6, 5, "#B85A30"); fill(px_ + 1, 265, 4, 3, "#C8703C")
+        for k in range(5):
+            put(px_ + k + 1, 263 - (k % 2), ["#E8384A", "#F2D838", "#F08AA8"][k % 3]); put(px_ + k, 262, LUSH[3])
+    for y in range(336, H):   # a low stone wall along the bottom, the gap in it the road home
+        for x in range(W):
+            if abs(x - 96 - math.sin(y * 0.05) * 6) < 18:
+                continue
+            j = (x + (3 if (y - 336) % 6 < 3 else 0)) % 7 == 0 or (y - 336) % 6 == 0
+            put(x, y, STONE[3] if j else STONE[1] if (x + y) % 5 else STONE[2])
+    for x in range(W):
+        if abs(x - 96 - math.sin(336 * 0.05) * 6) >= 18:
+            put(x, 335, OUT)
+    for _ in range(26):   # weeds between the cobbles
+        x, y = rnd.randrange(W), rnd.randrange(272, 334)
+        if abs(x - 96) > 18:
+            put(x, y, LUSH[2]); put(x + 1, y, LUSH[3])
+    palm(10, 312, 10, 92, LUSH); palm(184, 318, 9, 93, LUSH)
+    for (fx_, fy_, c) in [(44, 330, "#E8384A"), (64, 342, "#F2D838"), (130, 336, "#F08AA8"), (150, 346, "#FFF4E8"), (110, 344, "#E8384A")]:
+        k_flower(fx_, fy_, c)
+
+
+scene_harbour(); img.save(os.path.join(HERE, "bg", "harbour.png")); rendered[("harbour", "")] = img.copy()
+
 scene_mill(); img.save(os.path.join(HERE, "bg", "mill.png")); rendered[("mill", "")] = img.copy()
 for _room in ROOMS:
     scene_roastery(_room); img.save(os.path.join(HERE, "bg", "roastery.png" if _room == "brick" else "roastery-%s.png" % _room)); rendered[("roastery", _room)] = img.copy()
@@ -3994,6 +4283,83 @@ for _k, (_rows, _pal) in KICONS.items():
 add_layer("k_nene", 12, 12, grid_art([   # the nene, the Hawaiian goose: black head, buff cheek, barred grey-brown body
     "...oo.......", "..okko......", "..okyo......", "..okko......", "...oko......", "...okoooo...", "..obbbbbbo..", ".obgbgbgbbo.", ".obbbbbbbbo.", "..obgbgbbo..", "...oooooo...", "....y..y...."],
     {"o": OUT, "k": "#2A2420", "y": "#E8C890", "b": "#9A8670", "g": "#6E5E4C"}))
+
+# ---------------- the Island Route: the harbour's boat and pieces, and the cowrie ----------------
+add_grid("i_cowrie", [   # a cowrie shell: a glossy dome, cream with toffee spots
+    "..........",
+    "...oooo...",
+    "..owwwwo..",
+    ".owhwswwo.",
+    ".owwswwso.",
+    ".oswwwsto.",
+    ".owwstwwo.",
+    "..otwwto..",
+    "...oooo...",
+    ".........."], {"o": OUT, "w": "#FFF4E0", "h": "#FFFFFF", "s": "#C8885A", "t": "#E2C49A"})
+add_grid("hb_boat", [   # the island boat at its mooring: a green-hulled trading sloop, mainsail half up, the Beju flag at the masthead
+    "................ooo.....................",
+    "...............oggwo....................",
+    "...............oggo.....................",
+    "...............oo.......................",
+    "...............oo.......................",
+    "..............ooso......................",
+    ".............oswso......................",
+    "............oswwso......................",
+    "...........oswwwso......................",
+    "..........oswwwwso......................",
+    ".........oswwwwwso......................",
+    "........oswwwwwwso......................",
+    ".......oswwwwwwwso......................",
+    "......oswwwwwwwwso.........ooooooo......",
+    ".....osssssssssssso.......owwwwwwwo.....",
+    "...............oo.........owddwddwo.....",
+    "..ooooooooooooooooooooooooooooooooooooo.",
+    ".ohhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhho",
+    "obbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbo",
+    "orrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrro",
+    "oggggggggggggggggggggggggggggggggggggggo",
+    ".oggggggggggggggggggggggggggggggggggggo.",
+    "..oGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGo..",
+    "...oooooooooooooooooooooooooooooooooo...",
+    "..wW.wW...wW..wW......wW.wW....wW.wW....",
+    "........................................",
+    "........................................",
+    "........................................"], {"o": OUT, "g": "#3E7A4A", "G": "#2E5E38", "s": "#D8D0BC", "w": "#F8F4EC", "W": "#A8DCE6", "d": "#4A7AAA", "h": "#C08C50", "b": "#9C6C3C", "r": "#C8402C"})
+add_grid("hb_sail", [   # the boat far out at sea: a sail and a sliver of hull
+    "......o.....",
+    ".....oo.....",
+    "....ows.....",
+    "...owws.....",
+    "..owwws.....",
+    ".owwwws.....",
+    "owwwwwso....",
+    "...o........",
+    "oooooooooo..",
+    ".oggggggo...",
+    "..oooooo....",
+    "............"], {"o": OUT, "w": "#F8F4EC", "s": "#D8D0BC", "g": "#3E7A4A"})
+for _f, _rows in enumerate([["gggggggggo..", "gggwwgggggo.", "ggwwwwggggo.", "gggwwgggggo.", "gggggggggo..", "oooooooo...."],
+                            ["ggggggggggo.", "ggwwgggggggo", "gwwwwggggggo", "ggwwgggggggo", "ggggggggggo.", "ooooooooo..."]]):
+    add_grid("hb_flag_%d" % _f, _rows, {"o": OUT, "g": "#3E7A4A", "w": "#F2E8D4"})   # the Beju flag, a coffee bean on green, flapping
+add_grid("hb_crate", [   # a crate of island coffee for the Counter, stencilled with a cowrie
+    "oooooooooooo",
+    "oaaaaaaaaaao",
+    "oabbbbbbbbao",
+    "oaaaaaaaaaao",
+    "oabbbwwbbbao",
+    "oabbwsswbbao",
+    "oabbbwwbbbao",
+    "oaaaaaaaaaao",
+    "oabbbbbbbbao",
+    "oooooooooooo"], {"o": OUT, "a": "#9C6C3C", "b": "#C08C50", "w": "#FFF4E0", "s": "#C8885A"})
+add_grid("hb_pennant", ["o.....", "orrr..", "orrrrr", "orrr..", "o.....", "o....."], {"o": OUT, "r": "#C8402C"})
+add_grid("hb_bottle", [   # a bottle washed up, a rolled note inside
+    "...ooooo.",
+    "ooogwwgco",
+    "oggwwwggo",
+    "ooogggggo",
+    "...ooooo.",
+    "........."], {"o": OUT, "g": "#5CB0A4", "w": "#F8F0D8", "c": "#B8865A"})
 
 # ---------------- Blue Mountain: barrels, the graded beans, parchment, the doctor bird and the island's icons ----------------
 def bm_barrel(p):   # a Blue Mountain export barrel: oak staves, three iron hoops (the game paints the grade's band and number)

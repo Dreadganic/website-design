@@ -35,7 +35,9 @@ const ok = (c, msg) => { if (c) pass++; else { fail++; console.log('FAIL ' + msg
   ok(await E(() => window.__T.bmOpen() && !!window.__T.S.bm && window.__T.S.bm.lv === 1), 'opens at prestige 5 with certification 1');
   ok(await E(() => !Object.keys(window.__T.S).includes('kona') || !window.__T.S.kona), 'Kona Ridge still waits for prestige 6');
   await E(() => { const T = window.__T, S = T.S; S.loc = 'osaka'; S.isle = false; T.travel(1); });
-  ok(await E(() => window.__T.scene === 'bm'), 'from Osaka the next arrow is Blue Mountain');
+  ok(await E(() => window.__T.scene === 'hb'), 'from Osaka the next arrow is the harbour (the Island Route opens with the island)');
+  await E(() => window.__T.travel(1));
+  ok(await E(() => window.__T.scene === 'bm'), 'and the next is Blue Mountain');
   await E(() => window.__T.travel(1));
   ok(await E(() => window.__T.scene === 'farm' && window.__T.S.loc === 'mogiana'), 'and then round to Mogiana (no Kona yet)');
   await E(() => window.__T.goBm()); await g.waitForTimeout(900);
@@ -162,7 +164,7 @@ const ok = (c, msg) => { if (c) pass++; else { fail++; console.log('FAIL ' + msg
   ok(await E(() => window.__T.S.bm.bar.n1 === 1 && window.__T.S.bm.ship.n1 === 1), 'what\'s left stays for the next barrel');
   ok(await E(() => { const q = window.__T.BEACON.last(); return q && q.e === 'bm_ship' && q.key === 'n1'; }), 'bm_ship says which grade');
   await E(() => { const S = window.__T.S; ['a.washed', 'b.washed', 'c.washed', 'd.washed'].forEach((k) => { S.roastery.beans[k] = { kg: 5, coins: 1, pts: 0, cup: 84 }; }); S.bm.bar.n2 = 30; });
-  ok(!(await E(() => window.__T.bmShip('n2'))) && await E(() => window.__T.S.bm.bar.n2 === 30 && !window.__T.S.roastery.beans['typica.bm_n2']), 'with the bins full the barrel waits, nothing lost');
+  { const c0 = await E(() => window.__T.S.coins); ok(await E(() => window.__T.bmShip('n2')) && await E((c) => window.__T.S.bm.bar.n2 === 0 && !window.__T.S.roastery.beans['typica.bm_n2'] && window.__T.S.coins > c, c0), 'with the bins full the island boat buys the barrel green instead, nothing lost'); }
   ok(/Blue Mtn/.test(await E(() => { const S = window.__T.S; S.roastery.beans = {}; return window.__T.ctAction({ key: 'typica.bm_n1', n: 2, got: 0, profile: 'medium' }, false); })), 'a Counter order for Blue Mountain coffee points to the island');
 
   /* the panel, the log, the perks list */
@@ -174,7 +176,7 @@ const ok = (c, msg) => { if (c) pass++; else { fail++; console.log('FAIL ' + msg
   txt = await E(() => document.getElementById('panel').innerText);
   ok(/Trays graded/.test(txt) && /Certification 12/.test(txt) && !/undefined|NaN/.test(txt), 'the log: trays, picking, every certification');
   await E(() => { const T = window.__T, S = T.S; S.rankSub = 'prestige'; S.perksOpen = true; T.setTab('ranks'); T.renderPanel(); }); await g.waitForTimeout(200);
-  ok(/Blue Mountain · prestige 5/.test(await E(() => document.getElementById('panel').innerText)), 'Ranks › Prestige lists the island at prestige 5');
+  ok(/Blue Mountain and the harbour · prestige 5/.test(await E(() => document.getElementById('panel').innerText)), 'Ranks › Prestige lists the island at prestige 5');
 
   /* saving, reloading, prestige */
   await E(() => { const T = window.__T; T.S.bm.trays = 42; T.save(); });
