@@ -7036,7 +7036,7 @@ async function online() {
     if (claim) { const r = await api('game-claim', 'POST', { session_id: claim }); if (r.status === 200 && !r.data.again) applyGrant(r.data); else if (r.status !== 200) toast(r.data.error === 'claimed_by_another_player' ? 'That order is linked to another farm' : 'Could not link that order yet'); history.replaceState(null, '', location.pathname); }
     const ev = await api('game-events');
     const live = ev.status === 200 && ev.data.events.find((x) => x.live);
-    if (live && (!S.event || S.event.id !== live.id)) startDrop(live.id, live);
+    if (live && (!S.event || S.event.id !== live.id)) { if (S.guide < GUIDE.length) NET.dropLater = live; else startDrop(live.id, live); }   /* a new farmer meets Rosa first: the drop waits for the lessons to end */
     NET.status = 'online'; onlineTries = 0; cloudSync(); await visitSync(true); await nameSync(); await submitScore(); syncSamples(); harvestSync(true); coopSync(true);
     const gr = await api('game-grants', 'POST', {}).catch(() => null);
     if (gr && gr.status === 200) gr.data.grants.forEach((g) => { if (g.reason === 'gift') { S.cranes += g.cranes; NET.giftsAt = 0; SFX.play('crane'); toast('A friend opened your gift: +' + g.cranes + ' cranes'); } else applyGrant({ cranes: g.cranes, bonus: g.bonus, reason: g.reason, coffees: [], order: g.order + (g.reason === 'subscription' ? ' (subscription renewal)' : '') }); });
@@ -7044,6 +7044,10 @@ async function online() {
   finally { NET.trying = false; }
 }
 addEventListener('online', () => { if (API && NET.status !== 'online') { onlineTries = 0; online(); } });
+function dropLater() {   /* a drop held back during Rosa's lessons arrives once they're done and no window is open, if it's still on */
+  const d = NET.dropLater; if (!d || S.guide < GUIDE.length || !$('modal').hidden) return;
+  NET.dropLater = null; if (Date.parse(d.ends) > Date.now() && (!S.event || S.event.id !== d.id)) startDrop(d.id, d);
+}
 async function cloudSync(force) {
   if (!API || !NET.acct || NET.status !== 'online' || NET.hold) return;
   if (!force && (document.hidden || Date.now() - NET.lastSync < 180000)) return;   /* usage: a save every 3 minutes while the tab is in view; leaving the tab saves once */
@@ -7530,7 +7534,7 @@ function loop(t) {
   tick(dt); revTick(dt); counterTick(dt); konaTick(); bmTick(); draw(t / 1000);
   uiT += dt; saveT += dt;
   if (toastT > 0) { toastT -= dt; if (toastT <= 0) { if (toastQ.length) toast(toastQ.shift()); else $('toast').hidden = true; } }
-  if (uiT > 0.5) { uiT = 0; refreshHud(); syncMusic(); if (!panelBusy()) { if (!(document.activeElement && document.activeElement.matches('#panel select, #panel input, #panel textarea'))) renderPanel();   /* a menu or box you're using stays open while you use it */ checkTabs(); renderTabs(); renderGuide(); } harvestSync(); coopSync(); coeTick(); konaIntro(); bmIntro(); bmTease(); }
+  if (uiT > 0.5) { uiT = 0; refreshHud(); syncMusic(); if (!panelBusy()) { if (!(document.activeElement && document.activeElement.matches('#panel select, #panel input, #panel textarea'))) renderPanel();   /* a menu or box you're using stays open while you use it */ checkTabs(); renderTabs(); renderGuide(); } harvestSync(); coopSync(); coeTick(); konaIntro(); bmIntro(); bmTease(); dropLater(); }
   if (saveT > 5) { saveT = 0; save(); }
   requestAnimationFrame(loop);
 }

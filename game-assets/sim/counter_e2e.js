@@ -10,7 +10,7 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
 (async () => {
   const b = await chromium.launch({ executablePath: process.env.PW_CHROMIUM || '/opt/pw-browsers/chromium' });
   const g = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, hasTouch: true }); const errs = []; g.on('pageerror', (e) => errs.push(e.message));
-  await g.addInitScript(() => { try { if (!sessionStorage.getItem('keep')) localStorage.clear(); } catch (e) {} });
+  /* a fresh browser starts with empty storage; no wipe-on-load script, which could miss its flag on a reload and wipe the save */
   await g.goto('file://' + file); await g.waitForTimeout(800);
   const E = (f, a) => g.evaluate(f, a);
   const clean = () => E(() => { const T = window.__T; (T.modalQueue || []).length = 0; for (let i = 0; i < 8; i++) T.closeModal(); document.getElementById('modal').hidden = true; document.getElementById('toast').hidden = true; T.S.nav = null; T.S.navSeen = new Proxy({}, { get: () => true }); });
@@ -108,7 +108,7 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
   ok(Math.abs((await E(() => window.__T.S.counter.sess.t)) - t0) < 1, 'time away doesn\'t run the session clock');
 
   /* reload mid-session keeps it */
-  await E(() => { sessionStorage.setItem('keep', '1'); const T = window.__T; T.act('noop'); }); await E(() => { window.dispatchEvent(new Event('pagehide')); });
+  await E(() => { const T = window.__T; T.act('noop'); }); await E(() => { window.dispatchEvent(new Event('pagehide')); });
   await E(() => { const S = window.__T.S; localStorage.setItem('beju-farm-save-v3', JSON.stringify(S, (k, v) => (k === 'target' || k === 'claim' || k === 'path') ? undefined : v)); });
   await g.reload(); await g.waitForTimeout(900); await clean();
   ok(await E(() => window.__T.ctOpen()), 'a reload keeps the session open');
@@ -167,7 +167,8 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
   ok(await E(() => !!document.querySelector('[data-act="tab:mill"]') && !document.querySelector('[data-act^="ctreq:"]')), 'no foreman yet: the card sends you to the Mill');
   await reqSetup(true); await g.waitForTimeout(200); await clean();
   ok(await E(() => !!document.querySelector('[data-act="ctreq:yellowbourbon.natural"]')), 'with a foreman: a Request button instead');
-  await E(() => { const T = window.__T, S = T.S; S.cherries = { caturra: 99999 }; for (let k = 0; k < 4; k++) { S.minutesTotal += 999; T.staffTick(); } S.cherries.yellowbourbon = 400; T.renderPanel(); }); await g.waitForTimeout(150); await clean();
+  await E(() => { const T = window.__T, S = T.S; S.request = null; S.reqNext = Date.now() + 864e5; S.lots = []; S.cherries = { caturra: 99999 }; for (let k = 0; k < 4; k++) { S.minutesTotal += 999; T.staffTick(); } S.cherries.yellowbourbon = 400; T.renderPanel(); });
+  /* racks emptied first: the game's own minute tick may already have started the pre-order's coffee for the board, which would leave Request nothing to do. And no regular's lot request: one waiting would rightly keep the free rack for you */ await g.waitForTimeout(150); await clean();
   ok(await E(() => window.__T.S.lots.length === window.__T.racks() - 1), 'the foreman has filled all but the rack he keeps free');
   await g.click('[data-act="ctreq:yellowbourbon.natural"]'); await g.waitForTimeout(200);
   ok(await E(() => window.__T.S.roastery.want['yellowbourbon.natural'] === true), 'Request asks for it');
@@ -175,7 +176,7 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
   ok(await E(() => /Requested/.test(document.getElementById('panel').innerText)), 'the card says Requested');
   await E(() => { const T = window.__T, S = T.S; for (let k = 0; k < 4; k++) { S.minutesTotal += 999; T.staffTick(); } });
   ok(await E(() => window.__T.S.lots.some((l) => l.v === 'yellowbourbon' && l.method === 'natural')), 'the foreman starts a lot of it, in its process');
-  ok(await E(() => window.__T.S.lots.length === window.__T.racks()), 'the request may use the rack he keeps free');
+  ok(await E(() => window.__T.S.lots.length === window.__T.racks()), 'the request may use the rack he keeps free' + await E(() => { const T = window.__T, S = T.S; return S.lots.length === T.racks() ? '' : ' (' + S.lots.length + ' of ' + T.racks() + ' racks: ' + S.lots.map((l) => l.v.slice(0, 3) + '.' + l.method.slice(0, 3) + (l.left > 0 ? '' : ' dry')).join(', ') + '; want ' + JSON.stringify(S.roastery.want) + '; request ' + JSON.stringify(S.request && [S.request.v, S.request.m]) + '; event ' + (S.rev.cur && S.rev.cur.id) + '; cherries ' + JSON.stringify(S.cherries) + ')'; }));
   await E(() => { const T = window.__T, S = T.S; S.lots.forEach((l) => { if (l.v === 'yellowbourbon') l.left = 0; }); T.act('noop'); T.roasteryTick(); });
   await E(() => { const T = window.__T; for (let i = 0; i < 3; i++) T.counterTick(0.1); }); await g.waitForTimeout(600);
   ok(await E(() => !!window.__T.S.roastery.beans['yellowbourbon.natural'] && !window.__T.S.roastery.want['yellowbourbon.natural']), 'once dry it goes to a roastery bin');

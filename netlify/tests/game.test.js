@@ -265,6 +265,37 @@ test("scores: the board reads every row once per 15 s, and your own post shows s
   store.get = get;
 });
 
+const coldScore = () => {   /* a second function instance: the same store, its own empty row cache */
+  delete require.cache[require.resolve("../lib/handlers/game-score")];
+  const h = require("../lib/handlers/game-score"); Object.defineProperty(h, "__deps", { get: deps, configurable: true }); return h;
+};
+test("scores: an instance that just started trusts the shared snapshot, but your own newest row is always in your rank and on your board", async () => {
+  const a = await newPlayer(), b = await newPlayer();
+  const s = (pts) => ({ name: "Farmer", prestige: 0, seasonP: 0, seasonKh: pts, seasonStars: 1, level: G.levelFor(pts), points: pts });
+  assert.equal((await call(score, "POST", s(100), a)).body.rank, 1);   /* the first request built the snapshot, before a's row */
+  const cold = coldScore();
+  const r = await call(cold, "POST", s(200), b);
+  assert.ok(r.body.rank >= 1, "b's first post on a new instance comes back ranked, not 0: " + r.body.rank);
+  const v = await call(coldScore(), "GET", undefined, b, { mode: "season" });
+  assert.ok(v.body.me && v.body.me.rank >= 1, "and b's own board shows b, though the snapshot predates b's row");
+  clock += 61e3;
+  assert.equal((await call(cold, "GET", undefined, a, { mode: "season" })).body.players, 2, "a minute on, the snapshot is rebuilt and has everyone");
+});
+
+test("seasons: the final board reads every row fresh, not a snapshot or cache from before the last posts", async () => {
+  clock = Date.parse("2026-11-30T14:59:00Z");   /* a minute before December in Japan */
+  const a = await newPlayer(), b = await newPlayer();
+  const s = (st) => ({ name: "Farmer", prestige: 0, seasonP: 0, seasonKh: 10, seasonStars: st, level: 1, points: 0 });
+  await call(score, "POST", s(5), a);   /* the snapshot is taken before a's row lands */
+  const cold = coldScore();
+  clock += 50e3; await call(cold, "POST", s(9), b);   /* this instance caches the snapshot, which has no a, plus b */
+  clock = Date.parse("2026-11-30T15:00:10Z");   /* December: the first request comes to that instance, its cache 20 s old */
+  await call(cold, "GET", undefined, a, { mode: "season" });
+  const fin = await call(cold, "GET", undefined, a, { mode: "final", season: "2026-11" });
+  assert.deepEqual(fin.body.top.map((x) => x.seasonStars), [9, 5], "both November rows are on the final board");
+  assert.equal(fin.body.me.rank, 2);
+});
+
 test("scores: in the welcome window a farm that grew offline joins with its progress, once", async () => {
   process.env.GAME_WELCOME_UNTIL = "2026-11-30T23:59:59+09:00";
   const s = (p, sp, pts, extra) => Object.assign({ name: "Farmer", prestige: p, seasonP: sp, seasonKh: pts, level: G.levelFor(pts), points: pts }, extra || {});

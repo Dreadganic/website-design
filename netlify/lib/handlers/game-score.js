@@ -4,16 +4,17 @@
    The leaderboard. All time ranks by prestige, then level, then points; the season board ranks by season stars, then by who reached that total first (so a bigger farm doesn't win ties).
    The first request of a new season saves the last season's final board as seasons/<key>, before any player's row moves on to the new season.
    Each submission must be possible since the last one, except that a player who started their farm again (reset: true) may start their row again too.
-   Every row is read at most once a minute (a shared snapshot, board/rows), then kept per instance for ROWS_MS, so a busy board stays cheap. */
+   Every row is read at most once a minute (a shared snapshot, board/rows), then kept per instance for ROWS_MS, so a busy board stays cheap.
+   Your own newest row is always on the board you post to or look at, and the once-a-month final board reads every row fresh. */
 const G = require("../game");
 
 const rankSort = (key) => (a, b) => b[key] - a[key] || b.level - a.level || b.points - a.points;
 const seasonSort = (a, b) => (b.seasonStars || 0) - (a.seasonStars || 0) || (a.starsAt || Infinity) - (b.starsAt || Infinity) || (b.seasonKh || 0) - (a.seasonKh || 0);
 const ROWS_MS = 30e3, SNAP_MS = 60e3, SNAP = "board/rows", rowCache = new Map(), LIVE = {};   /* keyed by store, so tests with their own stores never share rows */
-async function allRows(store, ck, now) {
+async function allRows(store, ck, now, fresh) {   /* fresh: past the cache and the snapshot, for the final board */
   const c = rowCache.get(ck);
-  if (c && now - c.at < ROWS_MS) return c.rows;
-  const snap = await store.get(SNAP);   /* one shared copy of every row, rebuilt by whichever instance finds it old: a board read is one Blobs read, not one per player */
+  if (!fresh && c && now - c.at < ROWS_MS) return c.rows;
+  const snap = fresh ? null : await store.get(SNAP);   /* one shared copy of every row, rebuilt by whichever instance finds it old: a board read is one Blobs read, not one per player */
   if (snap && now - snap.at < SNAP_MS && Array.isArray(snap.rows)) { rowCache.set(ck, { at: now, rows: snap.rows.slice() }); return rowCache.get(ck).rows; }
   const keys = await store.list("scores/");
   const rows = (await Promise.all(keys.map((k) => store.get(k)))).filter(Boolean);
@@ -22,8 +23,8 @@ async function allRows(store, ck, now) {
   return rows;
 }
 const keepRow = (ck, row) => { const c = rowCache.get(ck); if (!c) return; const i = c.rows.findIndex((r) => r.id === row.id); if (i > -1) c.rows[i] = row; else c.rows.push(row); };
-async function boardFor(store, mode, season, ck, now) {
-  const rows = await allRows(store, ck, now);
+async function boardFor(store, mode, season, ck, now, fresh) {
+  const rows = await allRows(store, ck, now, fresh);
   const named = rows.filter((r) => !G.genericName(r.name));   /* rows from before names had to be chosen ("You") wait until their farm picks one */
   if (mode === "counter") return named.filter((r) => r.season === season && r.cseason === season && r.cserved > 0).sort((a, b) => b.cserved - a.cserved || (b.crate || 0) - (a.crate || 0));   /* this season's customers served, the rating breaking ties */
   const live = mode === "all" ? named : named.filter((r) => r.season === season && (mode !== "rookie" || r.firstSeason === season));
@@ -35,7 +36,7 @@ const publicRow = (r, i) => ({ pin: pinOf(r), rank: i + 1, name: r.name, prestig
 async function closeSeason(store, season, now, ck) {   /* save last season's final standings once, while every row still holds them */
   const prev = G.prevSeason(season), key = "seasons/" + prev;
   if (await store.get(key)) return;
-  const rows = (await boardFor(store, "season", prev, ck, now)).map((r) => ({ id: r.id, name: r.name, prestige: r.prestige, seasonP: r.seasonP, seasonKh: r.seasonKh || 0, seasonStars: r.seasonStars || 0, level: r.level, points: r.points, look: r.look, starsAt: r.starsAt || 0, firstSeason: r.firstSeason || "", season: r.season }));
+  const rows = (await boardFor(store, "season", prev, ck, now, true)).map((r) => ({ id: r.id, name: r.name, prestige: r.prestige, seasonP: r.seasonP, seasonKh: r.seasonKh || 0, seasonStars: r.seasonStars || 0, level: r.level, points: r.points, look: r.look, starsAt: r.starsAt || 0, firstSeason: r.firstSeason || "", season: r.season }));
   await store.set(key, { season: prev, closedAt: now, rows });
 }
 
@@ -56,8 +57,12 @@ exports.handler = async (event) => {
       return G.json(200, { season: q.season, mode: "final", players: done.rows.length, top: done.rows.slice(0, 50).map(publicRow), me: mine > -1 ? Object.assign(publicRow(done.rows[mine], mine), { rookieRank: rk > -1 ? rk + 1 : null }) : null }, { "Cache-Control": me ? "private, no-store" : "public, max-age=300" });
     }
     const mode = q.mode === "all" ? "all" : q.mode === "rookie" ? "rookie" : q.mode === "counter" ? "counter" : "season";
-    const list = await boardFor(store, mode, season, ck, now), me = await G.authed(event, store);
-    const mine = me ? list.findIndex((r) => r.id === me.id) : -1;
+    const me = await G.authed(event, store);
+    let list = await boardFor(store, mode, season, ck, now), mine = me ? list.findIndex((r) => r.id === me.id) : -1;
+    if (me && mine < 0) {   /* a snapshot under a minute old can miss your newest row; your own board never does */
+      const own = await store.get("scores/" + me.id);
+      if (own) { keepRow(ck, own); list = await boardFor(store, mode, season, ck, now); mine = list.findIndex((r) => r.id === me.id); }
+    }
     return G.json(200, { season, mode, players: list.length, top: list.slice(0, 50).map(publicRow), me: mine > -1 ? Object.assign(publicRow(list[mine], mine), { trophies: list[mine].trophies || [] }) : null }, { "Cache-Control": me ? "private, no-store" : "public, max-age=30" });
   }
   if (event.httpMethod !== "POST") return G.json(405, { error: "method_not_allowed" });
@@ -81,7 +86,7 @@ exports.handler = async (event) => {
   if (row.look.charm === "founder" && !founder) row.look.charm = "";   /* the Founding farmer charm is only for the launch season's farmers */
   if (row.look.pin && !(me.trophies || []).some((t) => t.id === row.look.pin)) row.look.pin = "";   /* only a trophy you hold can be pinned */
   row.trophies = G.publicTrophies(me.trophies);
-  await store.set(key, row); keepRow(ck, row);
+  await store.set(key, row); await allRows(store, ck, now); keepRow(ck, row);   /* the rows first: on an instance that just started, your new row would otherwise miss the rank you get back */
   const list = await boardFor(store, "season", season, ck, now);
   return G.json(200, { ok: true, rank: list.findIndex((r) => r.id === me.id) + 1, players: list.length, name });
 };

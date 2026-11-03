@@ -5,7 +5,8 @@ const http = require('http'), fs = require('fs'), path = require('path');
 const N = path.join(__dirname, '../../netlify/');
 const G = require(N + 'lib/game'); const store = G.memoryStore();
 const fns = {};
-['game-account', 'game-save', 'game-score', 'game-visit', 'game-events', 'game-grants', 'game-samples', 'game-claim', 'game-harvest', 'game-coop', 'game-coe', 'game-checkin', 'game-gift', 'game-link', 'game-name'].forEach((n) => { fns[n] = require(N + 'lib/handlers/' + n); Object.defineProperty(fns[n], '__deps', { get: () => ({ store, now: Date.now() }), configurable: true }); });
+const DROP = { events: [{ id: 'pinknat', name: 'Huila Pink Bourbon Natural', variety: 'pinkbourbon', method: 'natural', note: 'A limited natural from Huila.', starts: new Date(Date.now() - 864e5).toISOString(), ends: new Date(Date.now() + 6 * 864e5).toISOString() }] };   /* a drop is always on during this test, as it is some weeks for real */
+['game-account', 'game-save', 'game-score', 'game-visit', 'game-events', 'game-grants', 'game-samples', 'game-claim', 'game-harvest', 'game-coop', 'game-coe', 'game-checkin', 'game-gift', 'game-link', 'game-name'].forEach((n) => { fns[n] = require(N + 'lib/handlers/' + n); Object.defineProperty(fns[n], '__deps', { get: () => ({ store, now: Date.now(), events: DROP }), configurable: true }); });
 const file = path.resolve(process.argv[2]), html = fs.readFileSync(file, 'utf8');
 const srv = http.createServer((req, res) => {
   const u = new URL(req.url, 'http://localhost');
@@ -47,7 +48,11 @@ const ok = (c, msg) => { console.log((c ? 'PASS ' : 'FAIL ') + msg); if (!c) pro
   ok(await holder('Mika') === idA, 'the server holds Mika for this farm');
   ok(await A.evaluate(() => window.__T.S.name === 'Mika' && window.__T.S.nameOk === 'Mika'), 'the farm is called Mika');
   await A.waitForTimeout(800);
-  ok(/Rosa/i.test(await modal(A)), 'then Rosa\'s first lesson starts: ' + (await modal(A)).slice(0, 40));
+  ok(/Rosa/i.test(await modal(A)), 'then Rosa\'s first lesson starts, though a drop is on: ' + (await modal(A)).slice(0, 40));
+  ok(await A.evaluate(() => !window.__T.S.event), 'the drop waits until the lessons are done');
+  await A.evaluate(() => { const T = window.__T; T.S.guide = T.GUIDE.length; for (let i = 0; i < 6; i++) T.closeModal(); }); await A.waitForTimeout(1200);
+  ok(/New drop: Huila Pink Bourbon/.test(await modal(A)) && await A.evaluate(() => window.__T.S.event && window.__T.S.event.id === 'pinknat'), 'once they are, the drop arrives: ' + (await modal(A)).slice(0, 40));
+  await A.evaluate(() => { for (let i = 0; i < 6; i++) window.__T.closeModal(); });
 
   // a second farmer can't take it, whatever the capitals and spaces
   const B = await dev();
@@ -60,6 +65,7 @@ const ok = (c, msg) => { console.log((c ? 'PASS ' : 'FAIL ') + msg); if (!c) pro
 
   // renaming in Settings: a taken name is refused, a free one frees the old
   await B.evaluate(() => { const T = window.__T; T.S.guide = T.GUIDE.length; T.S.cranes = 100; for (let i = 0; i < 6; i++) T.closeModal(); });
+  await B.waitForTimeout(1200); await B.evaluate(() => { for (let i = 0; i < 6; i++) window.__T.closeModal(); });   /* B's held-back drop card arrives now; put it away */
   await B.click('#gearBtn'); await B.waitForTimeout(400);
   ok(await B.evaluate(() => !!document.querySelector('#panel #nameIn')), 'Settings has the name box');
   await type(B, '#nameIn', 'mika');
@@ -75,9 +81,14 @@ const ok = (c, msg) => { console.log((c ? 'PASS ' : 'FAIL ') + msg); if (!c) pro
 
   // the board shows both, once each
   await A.evaluate(() => { window.__T.NET.lastScore = ''; window.__T.NET.lastKey = ''; }); await B.evaluate(() => { window.__T.NET.lastScore = ''; window.__T.NET.lastKey = ''; });
-  await A.waitForTimeout(16500);   /* scores go up every 15 s, and the board's row cache is 15 s */
-  const names = (await fns['game-score'].handler({ httpMethod: 'GET', headers: {}, queryStringParameters: { mode: 'season' } })).body;
-  ok(JSON.stringify(JSON.parse(names).top.map((r) => r.name).sort()) === '["Ken","Mika"]', 'the board: ' + JSON.parse(names).top.map((r) => r.name).join(', '));
+  /* scores go up on a 30 s timer and at least 15 s apart (a rename straight after a score waits for the next one), and the board's
+     row cache holds 30 s: poll for up to 75 s instead of guessing one wait */
+  let board = '';
+  for (const t0 = Date.now(); Date.now() - t0 < 75e3; await A.waitForTimeout(3000)) {
+    board = JSON.parse((await fns['game-score'].handler({ httpMethod: 'GET', headers: {}, queryStringParameters: { mode: 'season' } })).body).top.map((r) => r.name).sort().join(', ');
+    if (board === 'Ken, Mika') break;
+  }
+  ok(board === 'Ken, Mika', 'the board shows Ken and Mika, once each: ' + board);
 
   // a farm named while offline, whose name someone took meanwhile, is asked again when it comes online
   const C = await dev();

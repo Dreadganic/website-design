@@ -12,13 +12,13 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
 (async () => {
   const b = await chromium.launch({ executablePath: process.env.PW_CHROMIUM || '/opt/pw-browsers/chromium' });
   const g = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, hasTouch: true }); const errs = []; g.on('pageerror', (e) => errs.push(e.message));
-  await g.addInitScript(() => { try { if (!sessionStorage.getItem('keep')) localStorage.clear(); } catch (e) {} });
+  /* a fresh browser starts with empty storage; no wipe-on-load script, which could miss its flag on a reload and wipe the save */
   await g.goto('file://' + file); await g.waitForTimeout(800);
   const E = (f, a) => g.evaluate(f, a);
   const clean = () => E(() => { const T = window.__T; for (let i = 0; i < 8; i++) T.closeModal(); document.getElementById('modal').hidden = true; document.getElementById('toast').hidden = true; T.S.nav = null; T.S.navSeen = new Proxy({}, { get: () => true }); });
   const tapMap = async (x, y) => { await clean(); const p = await E(([x, y]) => { const r = document.getElementById('cv').getBoundingClientRect(), k = r.width / 192; return [r.left + x * k, r.top + y * k]; }, [x, y]); await g.mouse.click(p[0], p[1]); await g.waitForTimeout(120); };
   const K = (f, a) => E(f, a);
-  const setup = (p) => E((p) => { const T = window.__T, S = T.S; S.name = S.nameOk = 'Tess'; S.guide = T.GUIDE.length; S.prestige = p; S.pwalkDone = true; Object.keys(S.tabs).forEach((k) => { S.tabs[k] = true; }); S.rev.cur = null; T.revSess = 0; S.loc = 'osaka'; S.isle = false; T.setTab('farm', true); }, p);
+  const setup = (p) => E((p) => { /* today's check-in is done: its card would otherwise pop up 400 ms after the first tap, over the map */ const T = window.__T, S = T.S, d = new Date(); S.checkin.last = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); S.name = S.nameOk = 'Tess'; S.guide = T.GUIDE.length; S.prestige = p; S.pwalkDone = true; Object.keys(S.tabs).forEach((k) => { S.tabs[k] = true; }); S.rev.cur = null; T.revSess = 0; S.loc = 'osaka'; S.isle = false; T.setTab('farm', true); }, p);
 
   /* locked before prestige 6 */
   await setup(5); await clean();
@@ -171,7 +171,6 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
   ok(await K((l) => window.__T.S.kona.lv === l && window.__T.S.prestige === 7, lv), 'prestige keeps the island');
   const shK = await K(() => window.__T.S.kona.shells);
   await E(() => { window.__T.goKona(); });
-  await E(() => { sessionStorage.setItem('keep', '1'); }); await E(() => { window.__T.act && 0; });
   await g.evaluate(() => { const ev = new Event('visibilitychange'); Object.defineProperty(document, 'hidden', { value: true, configurable: true }); document.dispatchEvent(ev); });
   await E(() => window.__T.save()); await g.waitForTimeout(400); await g.reload(); await g.waitForTimeout(1200);
   ok(await K(([l, s0]) => !!window.__T.S.kona && window.__T.S.kona.lv === l && window.__T.S.kona.shells >= s0 && !!window.__T.S.kona.boat, [lv, shK]), 'a reload keeps the island, its shells and its boat');

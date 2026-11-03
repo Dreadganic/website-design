@@ -8,11 +8,12 @@ const ok = (c, msg) => { console.log((c ? 'PASS ' : 'FAIL ') + msg); if (!c) pro
 (async () => {
   const b = await chromium.launch({ executablePath: process.env.PW_CHROMIUM || '/opt/pw-browsers/chromium', args: ['--autoplay-policy=no-user-gesture-required'] });
   const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: false });
-  const p = await ctx.newPage(); const errs = []; p.on('pageerror', (e) => errs.push(e.message)); p.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); });
+  const p = await ctx.newPage(); const errs = []; p.on('pageerror', (e) => errs.push(e.message)); p.on('console', (m) => { if (m.type() === 'error' && !/favicon/.test((m.location() || {}).url || '')) errs.push(m.text()); });   /* a local test page has no /favicon.svg */
   await p.goto('file://' + file); await p.waitForTimeout(800);
   const clean = () => p.evaluate(() => { const T = window.__T; for (let i = 0; i < 8; i++) T.closeModal(); document.getElementById('modal').hidden = true; });
   // a farmer past the lessons, at prestige 1 with the roastery open
-  await p.evaluate(() => { const T = window.__T, S = T.S; S.name = S.nameOk = 'Tess'; S.guide = T.GUIDE.length; S.prestige = 1; S.lv.racks = 3; Object.keys(S.tabs).forEach((k) => { S.tabs[k] = true; }); S.nav = null; S.navSeen = new Proxy({}, { get: () => true }); S.pwalkDone = true; });
+  await p.evaluate(() => { const T = window.__T, S = T.S, d = new Date(); S.checkin.last = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();   /* today's check-in is done: its card would pop up 400 ms after the first tap and hide the guide arrow */
+    S.name = S.nameOk = 'Tess'; S.guide = T.GUIDE.length; S.prestige = 1; S.lv.racks = 3; Object.keys(S.tabs).forEach((k) => { S.tabs[k] = true; }); S.nav = null; S.navSeen = new Proxy({}, { get: () => true }); S.pwalkDone = true; });
   for (let k = 0; k < 3; k++) { await clean(); await p.waitForTimeout(200); }
   await p.mouse.click(5, 300);   /* the first tap starts the sound */
   const E = () => p.evaluate(() => JSON.parse(JSON.stringify(window.__T.S.rev.cur)));

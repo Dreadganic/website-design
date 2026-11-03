@@ -92,11 +92,12 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   ok(await A.evaluate(() => window.__T.S.coins) === 999999, 'device A loads the newer farm');
 
   // names: the leaderboard's rules up front
-  await settle(A); await A.evaluate(() => { const T = window.__T; T.S.rankSub = 'board'; T.setTab('ranks'); }); await A.waitForTimeout(300);
+  await settle(A); await A.evaluate(() => { const T = window.__T; T.S.cranes = 200; T.S.rankSub = 'board'; T.setTab('ranks'); }); await A.waitForTimeout(300);   /* a new name costs 50 cranes */
   await A.fill('#nameIn', 'x'); await tap(A, '[data-act="rename"]'); await A.waitForTimeout(150);
   ok(/at least 2/.test(await toastTxt(A)), 'a one-letter name is refused with a reason');
   await A.waitForTimeout(2800); await A.fill('#nameIn', 'Mika <b>'); await tap(A, '[data-act="rename"]'); await A.waitForTimeout(150);
   ok(await A.evaluate(() => window.__T.S.name) === 'Mika b', 'markup is stripped from names: ' + await A.evaluate(() => window.__T.S.name));
+  ok(await A.evaluate(() => window.__T.S.cranes) === 150, 'and the new name took 50 cranes');
 
   // reset: the leaderboard row starts again
   await store.set('scores/' + playerA, Object.assign((await store.get('scores/' + playerA)) || { id: playerA, name: 'Mika', look: {} }, { prestige: 3, level: 5, points: 3000, season: G.seasonKey(Date.now()), at: Date.now() - 60e3, prestigeAt: Date.now() - 864e5 }));

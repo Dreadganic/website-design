@@ -8,7 +8,7 @@ fs.mkdirSync(outDir, { recursive: true });
 (async () => {
   const b = await chromium.launch({ executablePath: process.env.PW_CHROMIUM || '/opt/pw-browsers/chromium' });
   const g = await b.newPage({ viewport: { width: +W, height: +H }, deviceScaleFactor: 1, hasTouch: true });
-  const errs = []; g.on('pageerror', (e) => errs.push(e.message)); g.on('console', (m) => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
+  const errs = []; g.on('pageerror', (e) => errs.push(e.message)); g.on('console', (m) => { if (m.type() === 'error' && !/favicon/.test((m.location() || {}).url || '')) errs.push('console: ' + m.text()); });   /* a local test page has no /favicon.svg */
   let state = null;
   if (stateFile !== 'fresh') { const d = JSON.parse(fs.readFileSync(stateFile, 'utf8')); state = d.final || d; state.last = Date.now(); }
   await g.addInitScript((st) => { try { localStorage.clear(); if (st) localStorage.setItem('beju-farm-save-v3', JSON.stringify(st)); } catch (e) {} }, state);

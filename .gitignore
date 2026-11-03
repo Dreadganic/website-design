@@ -2,3 +2,6 @@ node_modules/
 game-assets/sim/*.html
 game-assets/sim/*.json
 game-assets/sim/audit/policy_audit.js
+
+# community_e2e.js screenshots
+game-assets/sim/arr/
