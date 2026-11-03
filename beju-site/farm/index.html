@@ -28,6 +28,17 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-
 .flvbar { position: absolute; left: 10px; right: 10px; bottom: 2px; height: 3px; border-radius: 2px; background: rgba(0, 0, 0, 0.08); overflow: hidden; pointer-events: none; }
 .flvbar i { display: block; height: 100%; background: var(--leaf); }
 .arrow.evt { background: #F2C04A; box-shadow: 0 0 0 2px #E8602A; }
+.top .name { cursor: pointer; }
+.top .name b::after { content: ' ▾'; font-size: 12px; color: var(--muted); }
+.top .name.call b::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 4px; background: #E8602A; margin-right: 5px; vertical-align: middle; }
+.places { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 6px 0 8px; }
+.places h3 { grid-column: 1 / -1; margin: 6px 0 0; }
+.place { display: flex; align-items: center; gap: 8px; padding: 6px; border: 2px solid var(--edge); border-radius: 8px; background: var(--paper-2); color: var(--ink); text-align: left; cursor: pointer; font: inherit; min-height: 52px; }
+.place img { width: 30px; height: 30px; object-fit: contain; image-rendering: pixelated; flex: none; }
+.place b { display: block; font-size: 13px; line-height: 1.15; }
+.place small { display: block; font-size: 11px; color: var(--muted); line-height: 1.2; }
+.place.here { border-color: #3E8036; background: #E5F4E4; }
+.place.call small { color: #B8401C; font-weight: 700; }
 .arrow { width: 38px; height: 38px; border: 2px solid var(--edge); border-radius: 8px; background: var(--paper-2); color: var(--ink); font-size: 16px; font-weight: 700; cursor: pointer; }
 .chip { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 5px; color: #fff; white-space: nowrap; }
 .stage { --sw: min(100cqw, 100cqh * var(--ar) / 0.6); position: relative; width: var(--sw); height: min(100cqh, var(--sw) / (var(--ar))); border-radius: 8px; overflow: hidden; box-shadow: 0 0 0 3px #1E140C; background: #5E7A2C; }   /* the map fills the column like the bars above and below it; a scene taller than the room scrolls (no more than 40% of it out of view, even on a phone held sideways) */
@@ -5910,7 +5921,35 @@ function travel(dir) {
   refreshAll();
 }
 $('prevLoc').addEventListener('click', () => travel(-1));
-$('locTap').addEventListener('click', () => { const fl = barLvInfo(); if (fl) { SFX.play('tick'); toast(fl.text); } });
+$('locTap').addEventListener('click', () => { SFX.play('tick'); showModal(placesCard()); });   /* tap the name: every farm and island in one list, with what needs you at each */
+const placeHere = () => (['hb', 'bm', 'kona'].includes(scene()) ? scene() : S.loc);
+function placeStatus(id) {   /* [what to show under a place's name, true when something there needs you] */
+  if (id === 'hb') { const R = S.route; if (!R) return ['', false]; if (R.voy.some((v) => v.home)) return ['the boat is home', true]; if (R.bottle) return ['a bottle washed up', true];
+    if (BOARD.some((b) => !bdState(b))) return [routeCw() + ' cowries: a project to build', true]; const v = R.voy[0]; return [v ? VOY[v.to].name + ', ' + voyLeft(v.end - Date.now()) : routeCw() + ' cowries', false]; }
+  if (id === 'bm') { const B = S.bm; if (!B) return ['', false]; const g = B.bbq.filter((b, j) => j < bmBays() && bmReady(b)).length, f = bmGradesOpen().filter((x) => B.bar[x] >= bmCap(x)).length;
+    return g || f ? [[g ? g + ' to grade' : '', f ? f + ' to ship' : ''].filter(Boolean).join(' · '), true] : [fmtKg(bmRipe()) + ' kg ripe', false]; }
+  if (id === 'kona') { const K = S.kona; if (!K) return ['', false]; const n = K.tanks.filter((tk, j) => tk && j < kTanks() && (kVentDue(tk) || tk.end || Date.now() - tk.at >= tk.dur)).length;
+    return n ? [n + ' tank' + (n > 1 ? 's' : '') + ' to pull', true] : ['level ' + K.lv + ' · ' + K.tanks.filter(Boolean).length + ' fermenting', false]; }
+  const E = (S.rev || {}).cur; if (E && revMap(E) === 'farm' && E.loc === id) return ['trouble on the farm!', true];
+  if (golden && golden.loc === id) return ['a golden bush', true];
+  if (S.dormant[id]) return ['resting until level ' + S.dormant[id], false];
+  const c = CHORE_AT[id]; if (c && c.ok()) return [{ mogiana: 'the patio needs raking', gedeo: 'a ceremony is ready', osaka: 'the koi are hungry' }[id] || 'a chore is ready', true];
+  return ['farm level ' + farmLevel(S.farms[id]), false];
+}
+function placesCard() {
+  const here = placeHere(), farms = LOCS.filter((l) => S.farms[l].unlocked), isles = [hbOpen() && 'hb', bmOpen() && 'bm', konaOpen() && 'kona'].filter(Boolean);
+  const name = (id) => (id === 'hb' ? 'The harbour' : id === 'bm' ? 'Blue Mountain' : id === 'kona' ? 'Kona Ridge' : ART.locations[id].name.split(',')[0]);
+  const pic = (id) => (id === 'hb' ? 'i_cowrie' : id === 'bm' ? 'bush_typica_ripe' : id === 'kona' ? 'k_i_tank' : 'stamp_' + id);
+  const tile = (id) => { const [t, call] = placeStatus(id); return '<button type="button" class="place' + (id === here ? ' here' : '') + (call && id !== here ? ' call' : '') + '" data-act="goplace:' + id + '">' + img(pic(id), 30) + '<span><b>' + name(id) + (id === here ? ' · here' : '') + '</b><small>' + t + '</small></span></button>'; };
+  const fl = barLvInfo();
+  return '<h2>Where to?</h2>' + (fl ? '<p class="note">' + fl.text + '</p>' : '') + '<div class="places"><h3>Farms</h3>' + farms.map(tile).join('') + (isles.length ? '<h3>The islands</h3>' + isles.map(tile).join('') : '') + '</div><button class="btn" data-act="close">Stay here</button>';
+}
+function goPlace(id) {   /* travel straight to a farm or an island, the same way the arrows do */
+  if (id === 'kona') { if (!konaOpen()) return; S.isle = true; } else if (id === 'bm' || id === 'hb') { if (!(id === 'bm' ? bmOpen() : hbOpen())) return; S.isle = id; } else if (LOCS.includes(id) && S.farms[id].unlocked) { S.isle = false; S.loc = id; } else return;
+  if (tab === 'mill' || tab === 'roast') tab = 'farm';
+  mapTab = 'farm'; if (sheetOpen) { $('panel').scrollTop = 0; showSheet(true); }
+  refreshAll();
+}
 const HUD_GO = {   /* tap a number on the map to go where it's spent; each only once that page is open */
   hudLevel: () => (level() >= prestigeNeed() && S.tabs.ranks ? (S.rankSub = 'prestige', 'ranks') : S.tabs.unlock ? 'unlock' : null),
   hudCoins: () => (S.tabs.upgrades ? (S.farmSub = 'upgrades', 'farm') : null),
@@ -7207,6 +7246,7 @@ document.addEventListener('click', (e) => {
   else if (a.startsWith('k_')) konaAct(a, v);
   else if (a.startsWith('bm_')) bmAct(a, v);
   else if (a.startsWith('hb_')) hbAct(a, v);
+  else if (a === 'goplace') { closeModal(); goPlace(v); }
   else if (a === 'sheetmin') { SFX.play('click'); showSheet(false); }
   else if (a === 'coachgo') { closeModal(); if (v === 'ranks') S.rankSub = 'board'; if (v === 'season') { S.rankSub = 'season'; setTab('ranks'); return; } setTab(v); }
   else if (a === 'seasonhow') S.seasonHow = !S.seasonHow;
@@ -7431,6 +7471,7 @@ function refreshHud() {
     if (on) { const t = fl.badge; if ($('locLv').textContent !== t) $('locLv').textContent = t; $('locLvBar').firstChild.style.width = fl.pct + '%'; $('locTap').setAttribute('aria-label', fl.text); } else $('locTap').removeAttribute('aria-label'); }
   { const E = (S.rev || {}).cur, d = E && revMap(E) === 'farm' && E.loc !== S.loc ? (LOCS.indexOf(E.loc) - LOCS.indexOf(S.loc) + LOCS.length) % LOCS.length : 0;   /* the arrow the short way to a farm with trouble */
     $('nextLoc').classList.toggle('evt', d > 0 && d <= LOCS.length / 2); $('prevLoc').classList.toggle('evt', d > LOCS.length / 2); }
+  $('locTap').classList.toggle('call', [...LOCS.filter((l) => S.farms[l].unlocked), hbOpen() && 'hb', bmOpen() && 'bm', konaOpen() && 'kona'].some((id) => id && id !== placeHere() && placeStatus(id)[1]));   /* a dot by the name: somewhere else needs you */
   if (sc === 'mill') { $('locName').textContent = 'Dry mill'; $('locBeds').textContent = S.lots.length + ' / ' + racks() + ' racks in use · ' + (boatLeft() ? 'boat: ' + fmt(boatLeft()) + ' kg to go' : fmtKg(stored()) + ' kg of cherries waiting'); }   /* the trader's boat, while it waits */
   if (sc === 'hb') { const R = S.route; $('locName').textContent = 'The harbour'; $('locBeds').textContent = R ? fmt(routeCw()) + ' cowries to spend · ' + (R.voy.length ? R.voy.map((v) => v.home ? VOY[v.to].name + ': home' : VOY[v.to].name + ' ' + voyLeft(v.end - Date.now())).join(' · ') : bdOn('pier') ? 'the boat is in' : 'the pier needs mending') : ''; }
   if (sc === 'bm') { const B = S.bm; $('locName').textContent = 'Blue Mountains, Jamaica'; $('locBeds').textContent = B ? fmtKg(bmRipe()) + ' kg ripe · ' + B.bbq.filter(bmReady).length + ' to grade · ' + bmGradesOpen().filter((g) => B.bar[g] >= bmCap(g)).length + ' to ship' : ''; }

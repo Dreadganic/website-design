@@ -58,5 +58,6 @@ python3 game-assets/sim/mktest.py /tmp/beju-farm.html /tmp/test.html
 node game-assets/sim/islands_e2e.js /tmp/test.html /tmp/isl        # the harbour opening, Captain Ama, the ledger's 56 finds and their hooks, every board project, voyages (bags, hours, the lighthouse, the second hold, bins or the shed), the bottle, Miss Pearl, Uncle Kimo, the island shelf, old saves (shells into cowries), a reload (78 checks)
 node game-assets/sim/islands_layout.js /tmp/test.html /tmp/isllay  # every harbour spot, Miss Pearl and Uncle Kimo, clear of the interface on six phone sizes
 node game-assets/sim/kona_pace.js /tmp/test.html 6                 # Kona in real time: what the co-op boat pays a minute, the island level, tools and cowries
+node game-assets/sim/nav_e2e.js /tmp/test.html /tmp/nav             # getting around: "Where to?" from the place name, one-tap travel, the dot when another place needs you (10 checks)
 ```
 The design is the "Island chain" tab of the next-features doc. Test tools in Settings › Test tools › The harbour open it early, add cowries, bring the boat home and wash up a bottle. Test tools in Settings › Test tools open the island early, ripen the terraces, rest the batches and add a certification.
