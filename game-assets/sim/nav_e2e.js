@@ -34,6 +34,14 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
   ok(await E(() => window.__T.scene === 'bm' && !document.getElementById('locTap').classList.contains('call')), 'once you\'re there, the dot goes');
   await clean(); await E(() => window.__T.travel(1)); await g.waitForTimeout(150);
   ok(await E(() => window.__T.scene === 'kona'), 'the arrows still step through in order');
+  const swipeOn = async (x0, x1) => { await E(([a, b2]) => { const sc = document.getElementById('scroller'), r = sc.getBoundingClientRect(), y = r.top + r.height / 2, mk = (x) => new Touch({ identifier: 1, target: sc, clientX: x, clientY: y });
+    sc.dispatchEvent(new TouchEvent('touchstart', { touches: [mk(a)], changedTouches: [mk(a)], bubbles: true })); sc.dispatchEvent(new TouchEvent('touchend', { touches: [], changedTouches: [mk(b2)], bubbles: true })); }, [x0, x1]); await g.waitForTimeout(200); };
+  await clean(); await swipeOn(300, 120);
+  ok(await E(() => window.__T.scene === 'farm' && window.__T.S.loc === 'mogiana'), 'swiping left on the map goes to the next place (Kona round to Mogiana)');
+  await swipeOn(100, 300);
+  ok(await E(() => window.__T.scene === 'kona'), 'swiping right goes back');
+  await swipeOn(200, 230);
+  ok(await E(() => window.__T.scene === 'kona'), 'a small drag doesn\'t travel');
   ok(!errs.length, 'no page errors' + (errs.length ? ': ' + errs.slice(0, 3).join(' | ') : ''));
   console.log(pass + ' passed, ' + fail + ' failed');
   await b.close(); process.exit(fail ? 1 : 0);
