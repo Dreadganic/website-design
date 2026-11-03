@@ -131,6 +131,18 @@ const SONGS = [
         lead: ['C6:6 B5:2 G5:8', 'B5:4 G5:4 E5:8', 'C5:4 E5:4 F5:4 E5:4', 'B4:12 -:4', 'F5:6 G5:2 C6:8', 'B5:4 G5:2 F5:2 E5:8', 'F5:4 G5:4 B5:4 C6:4', 'B5:8 G5:4 E5:4'] }
     }, form: ['intro', 'A', 'B', 'A'] },
 
+  { id: 'galapagos', farm: 'Galápagos, the highlands', title: 'Pasillo de la Garúa', blurb: 'Ecuadorian pasillo · E minor, 3/4',
+    about: 'Mist over the highlands of San Cristóbal. The Galápagos belong to Ecuador, and the pasillo is Ecuador\'s own slow waltz, wistful and sung to the guitar. Here a breathy flute, like the Andean quena, carries the tune over a guitar that sways between three beats and two.',
+    parts: ['Breathy quena-style flute', 'Nylon guitar on the waltz', 'Bass that sways between 3/4 and 6/8', 'A soft shaker'],
+    bpm: 96, beat: 4, bar: 12, lead: { duty: 0.5, decay: 8, floor: 0.6, vib: 10, vibRate: 5, gain: 0.13 }, arp: { style: 'six', duty: 0.25, gain: 0.05 }, bass: { style: 'sesqui', gain: 0.18 }, noise: { style: 'marimba', gain: 0.03 },
+    sections: {
+      intro: { name: 'Intro', chords: [['Em'], ['B7']], lead: ['-:12', '-:6 B4:3 D#5:3'] },
+      A: { name: 'A', chords: [['Em'], ['B7'], ['Em'], ['E7'], ['Am'], ['Em'], ['B7'], ['Em']],
+        lead: ['B4:4 E5:4 G5:4', 'F#5:6 E5:2 D#5:4', 'E5:8 B4:4', 'G#4:4 B4:4 D5:4', 'C5:6 E5:2 A5:4', 'G5:4 F#5:4 E5:4', 'D#5:4 F#5:4 A5:4', 'G5:8 -:4'] },
+      B: { name: 'B', chords: [['G'], ['D'], ['Em'], ['B7'], ['C'], ['G'], ['Am', 'B7'], ['Em']],
+        lead: ['D5:4 G5:4 B5:4', 'A5:6 F#5:2 D5:4', 'E5:4 G5:4 B5:4', 'A5:8 F#5:4', 'G5:4 E5:4 C5:4', 'D5:4 G5:4 B5:4', 'C6:4 B5:4 A5:2 F#5:2', 'E5:12'] }
+    }, form: ['intro', 'A', 'B', 'A'] },
+
   { id: 'turrialba', farm: 'Turrialba, Costa Rica', title: 'Marimba del Volcán', blurb: 'Guanacaste marimba · 6/8 and 3/4',
     about: 'The marimba is Costa Rica’s national instrument, and Guanacaste music sways between 6/8 and 3/4, a feel called sesquiáltera. Long notes shimmer with marimba tremolo rolls, and the bass flips between the two metres from bar to bar.',
     parts: ['Marimba lead with tremolo rolls', 'Lower marimba ostinato', 'Bass that alternates 6/8 and 3/4', 'Shaker and rim on the shifting beats'],

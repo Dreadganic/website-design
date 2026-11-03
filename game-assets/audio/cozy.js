@@ -20,6 +20,7 @@ const STYLE = {
   kona:      { tempo: 0.84, lead: 'steel',      comp: 'uke',    perc: 'ipu',      swing: 0.18, about: 'A sliding steel guitar sings over a soft ukulele strum, with the knock of an ipu gourd and a shaker, a little swung.' },
   reunion:   { tempo: 0.86, lead: 'krar',       comp: 'offbeat', perc: 'shaker',  about: 'A plucked lead bends into each note like the bobre bow, over soft off-beat strums and a kayamb shuffle, rolling in 6/8.' },
   bali:      { tempo: 0.84, lead: 'vibes',      comp: 'mallet', perc: 'gong',     about: 'Bronze-bright vibes ring the pelog tune over soft rolling mallets, with a far-off gong closing every two bars, like a gamelan heard through the rain.' },
+  galapagos: { tempo: 0.86, lead: 'flute',      comp: 'bossa',  perc: 'shaker',   about: 'A breathy quena flute sings the pasillo over a nylon guitar marking the waltz and a soft shaker, like an evening in the Ecuadorian highlands.' },
   harbour:   { tempo: 0.84, lead: 'mallet',     comp: 'bossa',  perc: 'shaker',   swing: 0.12, about: 'Soft steel-drum mallets carry a shanty over a lazy nylon strum and a shaker, like a quay at sundown with the boat in.' },
   roastery:  { tempo: 0.86, lead: 'vibes',      comp: 'jazz',   perc: 'brush',    walk: true, swing: 0.32, about: 'Vibraphone over Rhodes shells, a walking upright bass and brushes, swung lazily like a kissaten record.' }
 };

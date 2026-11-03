@@ -8,7 +8,9 @@ const CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";   /* no 0/O, 1/I/L, so cod
 const newCode = () => Array.from({ length: 6 }, () => CODE_CHARS[require("crypto").randomInt(CODE_CHARS.length)]).join("");
 const CHEERS_PER_DAY = 30;   /* how many farms one visitor can cheer in a day */
 const POSTCARDS = ["lovely", "bloom", "roast", "coffee", "farm", "wow"];   /* T2.4: the six preset compliments; a postcard rides a Cheers, so the same limits apply */
+const PHOTOS = ["sgf", "mgf", "stf", "wbf", "cf", "lgf", "vf", "sbf", "wpf", "ltf", "mtf", "mgr", "dove", "warb", "liz", "mock", "fly", "tort", "racer", "frig", "rail", "hawk", "crake", "owl"].map((k) => "g_" + k);   /* a Galápagos field-guide photo can ride a Cheers too (the game offers only ones you've taken) */
 
+exports.PHOTOS = PHOTOS;   /* for the test that keeps this list in step with the game's field guide */
 exports.handler = async (event) => {
   const deps = exports.__deps;
   const store = G.stores(event, deps), now = (deps && deps.now) || Date.now(), day = G.dayJST(now);
@@ -47,7 +49,7 @@ exports.handler = async (event) => {
     if (mine.n >= CHEERS_PER_DAY) return G.json(429, { error: "enough_today" });
     const farm = await store.get("farms/" + id);
     if (!farm) return G.json(404, { error: "no_farm" });
-    const b = G.parse(event) || {}, pc = POSTCARDS.includes(b.pc) ? b.pc : null;   /* T2.4: a postcard rides the Cheers */
+    const b = G.parse(event) || {}, pc = POSTCARDS.includes(b.pc) || PHOTOS.includes(b.pc) ? b.pc : null;   /* T2.4: a postcard rides the Cheers */
     if (pc) {
       const ck = "cards/" + id, cards = (await store.get(ck)) || { items: [] };
       const srow = (await store.get("scores/" + me.id)) || {};

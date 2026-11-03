@@ -535,7 +535,7 @@ const BUILD = {
   compost: { base: 900, sub: (n) => '+' + (10 * n) + '% growth on this farm' },
   wetmill: { base: 1200, sub: (n) => 'Washed lots dry ' + Math.round(wetCut(withHere('wetmill', n)) * 100) + '% faster, counting every farm\'s wet mill (up to 60%)' },
   drybeds: { base: 2000, sub: (n) => Math.floor(withHere('drybeds', n) / 3) + ' racks in the mill from ' + withHere('drybeds', n) + ' levels of drying beds, counting every farm (a rack per 3 levels)' },
-  shade: { base: 2500, sub: (n) => '+' + shadeCup(withHere('shade', n)).toFixed(1) + ' cup score on every lot, counting every farm\'s shade trees (up to +4)' },
+  shade: { base: 2500, sub: (n) => '+' + shadeCup(withHere('shade', n)).toFixed(1) + ' cup score on every lot, counting every farm\'s shade trees (up to +' + (4 * gaShade()).toFixed(1).replace(/\.0$/, '') + ')' },
   sorter: { base: 3500, sub: (n) => (3 * n) + '% chance a lot sorts out as a peaberry lot worth double' }
 };
 /* buildings go to level 5, and prestige makes room for more: 7 from prestige 4, 9 from 6, 10 from 8 */
@@ -752,7 +752,7 @@ const RACK_COUNT = 5, RACK_KG = [0, 200, 300, 400, 500, 600, 750, 900, 1100, 130
 const rackCap = () => RACK_KG[Math.min(S.lv.racks, RACK_KG.length - 1)];
 const upGated = (k) => (k === 'storage' && STORE[S.lv.storage] && STORE[S.lv.storage].p > S.prestige) || (k === 'racks' && (RACK_GATE[S.lv.racks + 1] || 0) > S.prestige);
 /* shade trees and wet mills add up across farms with diminishing returns, so every level counts towards +4 cup and 60% faster washed drying */
-const shadeCup = (n) => 4 * (1 - Math.pow(0.85, n === undefined ? sumBuild('shade') : n));
+const shadeCup = (n) => 4 * gaShade() * (1 - Math.pow(0.85, n === undefined ? sumBuild('shade') : n));   /* Galápagos's plants page: shade trees count 10% more */
 const wetCut = (n) => 0.6 * (1 - Math.pow(0.85, n === undefined ? sumBuild('wetmill') : n));
 const withHere = (k, n) => sumBuild(k) - ((S.farms[S.loc].build || {})[k] || 0) + n;   /* the all-farm total if this farm's building were at level n */
 /* managers */
@@ -1095,6 +1095,7 @@ const titleText = (k) => { if (!k) return ''; const [a, b] = k.split(':');
   if (a === 'route') return b === 'islander' ? 'Islander' : '';
   if (a === 're') return b === 'keeper' ? 'Pointu keeper' : '';
   if (a === 'ba') return b === 'rain' ? 'Rain-tamer' : '';
+  if (a === 'ga') return b === 'nat' ? 'Naturalist' : '';
   if (a === 'bm') return b === 'grader' ? 'Blue Mountain grader' : '';
   return ART.seasons[String(+k.slice(5))] ? theme(k).title + ' ' + k.slice(0, 4) : ''; };
 /* the cupping notebook: every coffee and process pair you sell earns stars at 1, 25 and 250 lots; each star adds +0.5 cup score to that pair */
@@ -1953,7 +1954,8 @@ const TASK_KINDS = {
   age: { text: 'Lay a lot down in the Turrialba cellar', goal: 1, img: 'stamp_turrialba', slot: 2, est: 'turrialba', group: 'estate', ok: () => estOn('turrialba', 2) },
   ktank: { text: 'Pull 3 perfect tanks at Kona Ridge', goal: 3, img: 'k_i_tank', slot: 2, go: 'kona', group: 'estate', ok: () => konaOpen() && !!S.kona },
   rcherry: { text: 'Pick 60 Pointu cherries on Réunion', goal: 60, img: 're_i_seed', slot: 2, go: 're', group: 'estate', ok: () => isleOpen('re') && !!S.re },
-  bstorm: { text: 'Weather a storm on Bali', goal: 1, img: 'ba_i_storm', slot: 2, go: 'ba', group: 'estate', ok: () => isleOpen('ba') && !!S.ba }
+  bstorm: { text: 'Weather a storm on Bali', goal: 1, img: 'ba_i_storm', slot: 2, go: 'ba', group: 'estate', ok: () => isleOpen('ba') && !!S.ba },
+  gtrail: { text: 'Finish 2 tortoise trails in Galápagos', goal: 2, img: 'ga_tort_sm', slot: 2, go: 'ga', group: 'estate', ok: () => isleOpen('ga') && !!S.ga }
 };
 /* weekly tasks: three bigger goals for the real week, aimed at the newer features, with bigger rewards and no season stars */
 const WEEK_KINDS = {
@@ -2400,7 +2402,7 @@ Object.assign(REVS, {
       const free = f.shrubs.map((s, i) => i).filter((i) => !revInBox(f.shrubs[i].x + 9, f.shrubs[i].y + 6, [SCARE_AT[0], SCARE_AT[1], 16, 22], 4));
       const pick = free.sort((a, b) => (f.shrubs[b].p >= 1) - (f.shrubs[a].p >= 1) || Math.random() - 0.5);
       E.n = S.prestige < 2 ? 6 : S.prestige < 4 ? 8 : 10; E.c = pick.slice(0, E.n).map((i) => ({ i, t: 5 + Math.random() * 20 }));
-      if (E.rare) E.c[0].mag = true; E.waved = false; E.stay = S.prestige >= 3 ? 3 : 2;
+      if (E.rare) E.c[0].mag = true; E.waved = false; E.stay = gaOwls() ? 1 : S.prestige >= 3 ? 3 : 2;   /* hawk perches from Galápagos: one stays, and the flock strips half as fast */
     },
     valid: (E) => S.farms[E.loc].unlocked && !S.dormant[E.loc], here: farmHere,
     cbox: (E, c) => { const s = S.farms[E.loc].shrubs[c.i]; return s ? [s.x + 4, s.y + 1, 10, 9] : [0, 0, 0, 0]; },
@@ -2410,7 +2412,7 @@ Object.assign(REVS, {
     how: (E) => (E.waved ? 'Shoo the crows that stayed (' + E.c.length + ' left)' : 'Wave the scarecrow to scare them off'),
     tick(E, d) {   /* each crow strips its bush every 40 s or so, then hops to another ripe one; the first go is soon */
       const f = S.farms[E.loc];
-      E.c.forEach((c) => { if ((c.t -= d) > 0) return; c.t = 40 + Math.random() * 10; const s = f.shrubs[c.i]; if (s && s.p >= 1) s.p = 0;
+      E.c.forEach((c) => { if ((c.t -= d) > 0) return; c.t = (40 + Math.random() * 10) * (gaOwls() ? 2 : 1); const s = f.shrubs[c.i]; if (s && s.p >= 1) s.p = 0;
         const to = f.shrubs.map((x, i) => i).filter((i) => f.shrubs[i].p >= 1 && !E.c.some((o) => o.i === i) && !revInBox(f.shrubs[i].x + 9, f.shrubs[i].y + 6, [SCARE_AT[0], SCARE_AT[1], 16, 22], 4)); if (to.length) c.i = to[Math.floor(Math.random() * to.length)]; });
     },
     draw(E, time) {
@@ -2442,7 +2444,7 @@ Object.assign(REVS, {
     done: 'crows gone!', gone: (E) => 'The crows had their fill at ' + fname(E.loc) + ' and flew off'
   },
   rats: { name: 'Storehouse rats', short: 'Rats', map: 'mill', cos: 'catflap', rareCos: 'crown', ok: () => racks() >= 3,
-    start(E) { E.tails = [0, 1, 2, 3, 4, 5].sort(() => Math.random() - 0.5).slice(0, 3); E.set = []; E.hop = 5; if (E.rare) E.king = true; },
+    start(E) { E.tails = [0, 1, 2, 3, 4, 5].sort(() => Math.random() - 0.5).slice(0, gaOwls() ? 2 : 3); E.set = []; E.hop = 5; if (E.rare) E.king = true; },
     valid: () => true, here: () => scene() === 'mill',
     kx: (E) => 134 + Math.sin(E.t * 0.5) * 22,
     box: (E) => (E.king ? [82, 266, 100, 35] : [82, 284, 100, 17]),
@@ -2451,7 +2453,7 @@ Object.assign(REVS, {
     how: (E) => 'Trap the holes with a tail (' + E.set.length + '/' + E.tails.length + ')' + (E.king ? ' and the king' : ''),
     tick(E, d) {
       S.lots.forEach((l) => { if (l.left <= 0) l.kg *= 1 - 0.02 * d / 60; });   /* the dried lots waiting on the racks lose 2% a minute */
-      if (S.prestige >= 3 && (E.hop -= d) <= 0) {   /* from prestige 3 a tail ducks into another hole now and then */
+      if (S.prestige >= 3 && !gaOwls() && (E.hop -= d) <= 0) {   /* owl boxes from Galápagos keep them still */   /* from prestige 3 a tail ducks into another hole now and then */
         E.hop = 5; const live = E.tails.filter((j) => !E.set.includes(j)), empty = [0, 1, 2, 3, 4, 5].filter((j) => !E.tails.includes(j));
         if (live.length && empty.length) E.tails[E.tails.indexOf(live[Math.floor(Math.random() * live.length)])] = empty[Math.floor(Math.random() * empty.length)];
       }
@@ -2612,10 +2614,11 @@ Object.assign(REV_COSM, {
   candles: { name: 'Café candles', pic: 'ev_candle_0', where: 'on the roastery café tables', own: () => S.rev.show.candles !== undefined, give() { S.rev.show.candles = true; }, on: () => !!S.rev.show.candles, flip() { S.rev.show.candles = !S.rev.show.candles; } },
   firebell: { name: 'Brass fire bell', pic: 'ev_firebell', where: 'on the roastery wall', own: () => S.rev.show.firebell !== undefined, give() { S.rev.show.firebell = true; }, on: () => !!S.rev.show.firebell, flip() { S.rev.show.firebell = !S.rev.show.firebell; } },
   scorch: { name: 'Fire roast drum plate', pic: 'ev_scorch', where: 'on your first roaster', own: () => S.rev.show.scorch !== undefined, give() { S.rev.show.scorch = true; }, on: () => !!S.rev.show.scorch, flip() { S.rev.show.scorch = !S.rev.show.scorch; } },
-  shutters: { name: 'Storm shutters', pic: 'ev_shutters', where: 'on the roastery windows', own: () => S.rev.show.shutters !== undefined, give() { S.rev.show.shutters = true; }, on: () => !!S.rev.show.shutters, flip() { S.rev.show.shutters = !S.rev.show.shutters; } }
+  shutters: { name: 'Storm shutters', pic: 'ev_shutters', where: 'on the roastery windows', own: () => S.rev.show.shutters !== undefined, give() { S.rev.show.shutters = true; }, on: () => !!S.rev.show.shutters, flip() { S.rev.show.shutters = !S.rev.show.shutters; } },
+  fossils: { name: 'Fossil display', pic: 'ga_fossils', where: 'by the farmhouse on every farm', own: () => S.rev.show.fossils !== undefined, give() { S.rev.show.fossils = true; }, on: () => !!S.rev.show.fossils, flip() { S.rev.show.fossils = !S.rev.show.fossils; } }   /* from Galápagos's fossils page */
 });
 /* companions: one in 100 stopped events brings one you don't have yet, to follow your farmer */
-const REV_PETS = { piglet: ['Piglet', 'ev_piglet'], capuchin: ['Capuchin', 'ev_capuchin'], crow: ['Tame crow', 'ev_crow_sit'], millcat: ['Mill cat', 'ev_millcat'], dalmatian: ['Fire-station dalmatian', 'ev_dalmatian'], doctorbird: ['Doctor bird', 'bm_bird'], nene: ['Nēnē goose', 'k_nene', true], tuittuit: ['Tuit-tuit', 're_bird'], duck: ['Paddy duck', 'ba_duck'] };   /* the third flag: bought, never found */
+const REV_PETS = { piglet: ['Piglet', 'ev_piglet'], capuchin: ['Capuchin', 'ev_capuchin'], crow: ['Tame crow', 'ev_crow_sit'], millcat: ['Mill cat', 'ev_millcat'], dalmatian: ['Fire-station dalmatian', 'ev_dalmatian'], doctorbird: ['Doctor bird', 'bm_bird'], nene: ['Nēnē goose', 'k_nene', true], tuittuit: ['Tuit-tuit', 're_bird'], duck: ['Paddy duck', 'ba_duck'], tortoise: ['Young tortoise', 'ga_tort_sm'] };   /* the third flag: bought, never found */
 const petTrail = { sc: '', pts: [] }, PET_GAP = 13;
 const petsOut = () => Object.keys(REV_PETS).filter((k) => (S.rev.pets || {})[k] && !(S.rev.petHide || {})[k]);
 function drawPet(o, sc) {   /* your companions follow your farmer in a train, each one walking in the footsteps of the one ahead */
@@ -2634,6 +2637,7 @@ function revDecor(sc, time) {   /* the keepsakes on each map */
   if (sc === 'farm') {
     if (sh.seedling) { fx.fillStyle = '#3E2A1C'; fx.fillRect(178, 94, 14, 6); fx.fillStyle = '#B85A30'; fx.fillRect(179, 95, 12, 4); fx.drawImage(sprite('ev_bush_silver'), 176, 74); }
     if (sh.plush) fx.drawImage(sprite('ev_plush'), 85, 80);
+    if (sh.fossils) fx.drawImage(sprite('ga_fossils'), 156, 82);   /* Galápagos's fossils page: a little case of them by the farmhouse */
     if (sh.capuchin) { const s = ART.sprites[storeSprite(S.lv.storage)], y = s.rows.findIndex((r) => /[^.]/.test(r)); if (S.lv.storage >= 4) fx.drawImage(sprite('ev_capuchin'), STORE_AT.x + 24, STORE_AT.y + y - 10); else fx.drawImage(sprite('ev_capuchin'), 84, 68); }
     if (sh.scarecrow || sh.magpie) { if (sh.scarecrow) fx.drawImage(sprite('ev_scarecrow_0'), 88, 202); else { fx.fillStyle = '#76502A'; fx.fillRect(95, 210, 2, 14); } if (sh.scarecrow) { fx.fillStyle = '#8A6440'; fx.fillRect(93, 213, 2, 2); fx.fillStyle = '#4878C8'; fx.fillRect(99, 214, 2, 1); } if (sh.magpie) fx.drawImage(sprite('ev_magpie_sit'), 90, sh.scarecrow ? 195 : 202); }
   } else if (sc === 'mill') {
@@ -4670,10 +4674,11 @@ const hbInfo = () => { const R = S.route; return R ? { lv: routeFound(), badge: 
    prestige and sailed there once. Each has its own level (its skill, 1 to 30), map, music and daily task, leans on one of your
    mainland buildings and gives one lasting thing back. Shared plumbing here; each island's own code follows. Rare finds are
    tuned to about 15 minutes of island play a day, and each is guaranteed by about two and a half times its odds ---------- */
-const ISLE_IDS = ['re', 'ba'];
+const ISLE_IDS = ['re', 'ba', 'ga'];
 const ISLE_INFO = {
   re: { name: 'Réunion', where: 'Réunion · the Pointu nursery', voy: 'reunion', p: 6, cost: 6, pic: 'bush_pointu_ripe', board: 'Settle the Pointu nursery', open: 'Réunion opens: Tante Lise\'s nursery of Bourbon Pointu, past Kona on the arrows', perk: 'Tante Lise\'s Pointu nursery: shifts you get better at, and Bourbon Pointu for your farms. Sail there, then open it from the harbour board.' },
-  ba: { name: 'Bali', where: 'Bali · the Kintamani co-op', voy: 'bali', p: 6, cost: 9, pic: 'ba_i_storm', board: 'Join the Kintamani co-op', open: 'Bali opens: Wayan\'s co-op on Mount Batur, where a storm blows in off the lake every 40 minutes, past Réunion on the arrows', perk: 'Wayan\'s co-op on Mount Batur: storms to weather for draws from the co-op pool, and a fifth roastery bin at level 15. Sail there, then open it from the harbour board.' }
+  ba: { name: 'Bali', where: 'Bali · the Kintamani co-op', voy: 'bali', p: 6, cost: 9, pic: 'ba_i_storm', board: 'Join the Kintamani co-op', open: 'Bali opens: Wayan\'s co-op on Mount Batur, where a storm blows in off the lake every 40 minutes, past Réunion on the arrows', perk: 'Wayan\'s co-op on Mount Batur: storms to weather for draws from the co-op pool, and a fifth roastery bin at level 15. Sail there, then open it from the harbour board.' },
+  ga: { name: 'Galápagos', where: 'Galápagos · the highlands', voy: 'galapagos', p: 7, cost: 12, pic: 'ga_i_guide', board: 'Join Dr. Inés\'s field camp', open: 'Galápagos opens: Dr. Inés\'s camp in the San Cristóbal highlands, past Bali on the arrows', perk: 'Dr. Inés\'s field camp: camera traps, tortoise trails and a field guide of 46 entries, every page you complete giving something back for good. Sail there, then open it from the harbour board.' }
 };
 const isleOpen = (id) => !!(S.route && S.route.bd['isle_' + id]) || !!(S[id] && S[id].test);
 const isleNeed = (l) => 40 + 15 * l;   /* island xp from l to l + 1: level 20 in about two to three weeks of regular visits, 30 in about five */
@@ -4925,7 +4930,7 @@ ISLE_FN.re = { fresh: reFresh, tick: reTick, draw: drawReunion, click: reClick, 
    a fifth roastery bin in Osaka. A storm waits while you're away ---------- */
 const BA_BUSH = (i) => ({ x: 15 + (i % 3) * 62 + (Math.floor(i / 3) % 2) * 18, y: 90 + Math.floor(i / 3) * 32 }), BA_BUSHES = 12;   /* x: the bush's middle; y: the terrace it stands on */
 const BA_BED = (j) => ({ x: 8 + j * 46, y: 204 }), BA_BED_W = 38, BA_BED_H = 22, BA_BED_KG = 8;
-const BA_ROPE = { x: 96, y: 240 }, BA_BARN = { x: 28, y: 278, w: 136, h: 32 }, BA_ROOF = { x: 24, y: 256, w: 144, h: 22 }, BA_LEAKS = [{ x: 56, y: 268 }, { x: 96, y: 263 }, { x: 136, y: 268 }], BA_WAYAN = { x: 178, y: 300 };
+const BA_ROPE = { x: 96, y: 240 }, BA_BARN = { x: 28, y: 278, w: 136, h: 32 }, BA_ROOF = { x: 24, y: 256, w: 144, h: 22 }, BA_LEAKS = [{ x: 56, y: 268 }, { x: 96, y: 266 }, { x: 136, y: 268 }], BA_WAYAN = { x: 178, y: 300 };
 const BA_STORM = 240e3, BA_CHARGE = 40 * 60e3, BA_REGROW = 12e3;   /* the sky fills in 4 minutes; a storm banks every 40; a picked bush ripens again in 12 s */
 const BA_FIT = [['hat', 'Bamboo hat'], ['cape', 'Palm-leaf rain cape'], ['sarong', 'Batik sarong'], ['boots', 'Rain boots']];
 const WAYAN_LOOK = { shirt: ['#F4F0E4', '#D8D0BC', '#B8A060'], hat: ['#F4F0E4', '#D8D0BC', '#C8402C'] };
@@ -5270,6 +5275,317 @@ function baIntro() {
 const baHud = () => { const B = S.ba, st = B && B.st; return ['Bali · Kintamani co-op', !B ? '' : st ? (st.brk ? 'the rain falls · ' + st.brk.taps + ' glints' : 'barn ' + Math.floor(st.barn) + '/' + st.target + ' · storm ' + Math.floor(st.t / BA_STORM * 100) + '% · ' + st.basket + '/' + baBasket() + ' kg') : B.charge ? B.charge + ' storm' + (B.charge > 1 ? 's' : '') + ' banked · tap the barn' : 'level ' + B.lv + ' · the next storm in ' + voyLeft(baNextMs())]; };
 const baStatus = () => { const B = S.ba; if (!B) return ['', false]; if (B.st) return ['a storm waiting for you: barn ' + Math.floor(B.st.barn) + '/' + B.st.target, true]; return B.charge ? [B.charge + ' storm' + (B.charge > 1 ? 's' : '') + ' banked', B.charge >= baMax()] : ['the next storm in ' + voyLeft(baNextMs()), false]; };
 ISLE_FN.ba = { fresh: baFresh, tick: baTick, draw: drawBali, click: baClick, hint: baHint, panel: baPanel, act: baAct, intro: baIntro, hud: baHud, status: baStatus, track: 'bali' };
+/* ---------- Galápagos: the Naturalist's Highlands, Dr. Inés's field camp in the highlands of San Cristóbal. Two rhythms: camera
+   traps you set on the trails, each with a photo for the field guide 50 minutes later; and tortoise trails, a one-minute hunt
+   where you follow a giant tortoise for 4 to 6 steps by picking, from three signs, the one its clue describes (a wrong pick and
+   the trail goes cold) until you find it munching and see what it dug up: a seedling, a fossil or a curio. The field guide has
+   46 entries on five pages, and a new entry brings a field note worth some minutes of your farm's know-how by its rarity.
+   Every page completed gives something back for good. Your farms' shade trees bring rarer birds into the photos. The camp's
+   patio slowly fills with shade-grown San Cristóbal coffee for the Osaka bins. Traps and tracks wait while you're away ---------- */
+const GA_TRAPS = [{ x: 14, y: 76, at: 'the lagoon' }, { x: 134, y: 84, at: 'the guava' }, { x: 8, y: 146, at: 'the scalesia' }, { x: 80, y: 98, at: 'the meadow' }, { x: 182, y: 136, at: 'the fern gully' }, { x: 128, y: 210, at: 'the coffee rows' }, { x: 126, y: 146, at: 'the lava wall' }, { x: 150, y: 250, at: 'the prickly pear' }];   /* the post's foot; four, six from level 10, eight from 20 */
+const GA_SPOTS = { lagoon: { x: 100, y: 74 }, guava: { x: 170, y: 94 }, scalesia: { x: 36, y: 132 }, meadow: { x: 104, y: 120 }, ferns: { x: 158, y: 138 }, wall: { x: 54, y: 146 }, coffee: { x: 62, y: 206 }, cactus: { x: 166, y: 262 } };   /* where a trail's signs show */
+const GA_CLUES = { lagoon: ['The tracks go down to the water', 'Mud on the stones: it has been drinking at the lagoon'], guava: ['Half-eaten guavas lead the way', 'Something has been feasting on the guava'], scalesia: ['Fresh scrapes under the daisy trees', 'It has rested in the shade of the scalesia'], meadow: ['A path of flattened grass across the meadow', 'The tracks cross the open grass'], ferns: ['Crushed fronds down in the fern gully', 'The tree ferns are bent where it pushed through'], wall: ['Scrapes along the black stone wall', 'It has been nosing along the old lava wall'], coffee: ['Nibbled leaves between the coffee rows', 'The tracks wander under the shade trees'], cactus: ['A bitten pad on the prickly pear', 'It has been eating the cactus'] };
+const GA_PATIO = { x: 18, y: 272, w: 54, h: 24 }, GA_HEAD = { x: 96, y: 288 }, GA_INES = { x: 178, y: 318 };
+const GA_TRACK_MAX = 4, GA_POOL_MAX = 30;
+const INES_LOOK = { shirt: ['#C8B888', '#A89868', '#4E7E3A'], hat: ['#D8CCA4', '#B8A878', '#5E5040'] };
+const GA_PAGES = [['finch', 'Finches'], ['bird', 'Birds and reptiles'], ['plant', 'Plants'], ['fossil', 'Fossils'], ['curio', 'Curios']], GA_TIERS = ['Common', 'Uncommon', 'Rare', 'Very rare'];
+const GA_GUIDE = [   /* id, page, rarity (0 common to 3 very rare), name, picture, note */
+  ['sgf', 'finch', 0, 'Small ground finch', 'ga_sgf', 'The commonest finch on the islands, picking small seeds off the ground'],
+  ['mgf', 'finch', 0, 'Medium ground finch', 'ga_mgf', 'Its beak grows deeper after dry years, when only hard seeds are left'],
+  ['stf', 'finch', 0, 'Small tree finch', 'ga_stf', 'Hunts small insects up in the scalesia'],
+  ['wbf', 'finch', 0, 'Grey warbler-finch', 'ga_wbf', 'So slim-billed it was once taken for a warbler'],
+  ['cf', 'finch', 1, 'Common cactus finch', 'ga_cf', 'Probes prickly-pear flowers with its long bill'],
+  ['lgf', 'finch', 1, 'Large ground finch', 'ga_lgf', 'The biggest beak of all, for the hardest seeds'],
+  ['vf', 'finch', 1, 'Vegetarian finch', 'ga_vf', 'Eats buds, leaves and fruit, unlike its cousins'],
+  ['sbf', 'finch', 1, 'Sharp-beaked ground finch', 'ga_sbf', 'A highland finch with a fine, pointed bill'],
+  ['wpf', 'finch', 2, 'Woodpecker finch', 'ga_wpf', 'Uses a cactus spine as a tool to winkle grubs out of bark'],
+  ['ltf', 'finch', 2, 'Large tree finch', 'ga_ltf', 'Strips bark with a stout, parrot-like bill'],
+  ['mtf', 'finch', 2, 'Medium tree finch', 'ga_mtf', 'It lives only on Floreana. What is it doing here?'],
+  ['mgr', 'finch', 3, 'Mangrove finch', 'ga_mf', 'One of the rarest birds in the world, from the mangroves of Isabela'],
+  ['dove', 'bird', 0, 'Galápagos dove', 'ga_dove', 'Walks the trails unafraid, a bright blue ring round each eye'],
+  ['warb', 'bird', 0, 'Yellow warbler', 'ga_warb', 'The males wear a little rusty cap'],
+  ['liz', 'bird', 0, 'Lava lizard', 'ga_lizard', 'Basks on warm rocks; the females have bright red throats'],
+  ['mock', 'bird', 1, 'San Cristóbal mockingbird', 'ga_mock', 'Found only here. Mockingbirds got Darwin thinking about how species change'],
+  ['fly', 'bird', 1, 'Galápagos flycatcher', 'ga_fly', 'Sometimes it perches on the camera trap itself'],
+  ['tort', 'bird', 1, 'Giant tortoise', 'ga_tort_0', 'San Cristóbal\'s own tortoises, grazing the highland meadows'],
+  ['racer', 'bird', 1, 'Galápagos racer', 'ga_racer', 'A slim, shy snake, harmless to people'],
+  ['frig', 'bird', 2, 'Frigatebird at El Junco', 'ga_frig', 'Frigatebirds fly up to the lagoon to rinse the salt from their wings'],
+  ['rail', 'bird', 2, 'Galápagos rail', 'ga_rail', 'A tiny, secretive rail of the damp highland grass'],
+  ['hawk', 'bird', 2, 'Galápagos hawk', 'ga_hawk', 'Gone from San Cristóbal for a century; this one came back to look'],
+  ['crake', 'bird', 2, 'Paint-billed crake', 'ga_crake', 'Its red and yellow bill looks freshly painted'],
+  ['owl', 'bird', 3, 'Short-eared owl', 'ga_owl', 'Where there are no hawks, it hunts by day'],
+  ['scal', 'plant', 0, 'Scalesia seedling', 'ga_scal', 'A daisy that grew into a tree: whole forests of it in the highlands'],
+  ['guava', 'plant', 0, 'Guava sprout', 'ga_guava', 'Tortoises love the fruit and spread the seeds, for better or worse'],
+  ['mic', 'plant', 0, 'Miconia', 'ga_mic', 'A shrub found only in these highlands, red under its leaves'],
+  ['tom', 'plant', 1, 'Galápagos tomato', 'ga_tom', 'Wild tomatoes whose seeds sprout best after a tortoise has eaten them'],
+  ['pass', 'plant', 1, 'Passion flower', 'ga_pass', 'Its fruit is a favourite of finches and tortoises alike'],
+  ['cott', 'plant', 1, 'Galápagos cotton', 'ga_cott', 'Finches line their nests with its fluff'],
+  ['fern', 'plant', 2, 'Tree fern', 'ga_fern', 'A fern taller than you, from the wettest gullies'],
+  ['orch', 'plant', 3, 'Highland orchid', 'ga_orch', 'A tiny orchid on a mossy branch, almost never seen'],
+  ['snail', 'fossil', 0, 'Fossil sea snail', 'ga_snail', 'From an old sea floor, lifted up as the island grew'],
+  ['clam', 'fossil', 0, 'Fossil clam', 'ga_clam', 'Ribbed, and older than the lava around it'],
+  ['spine', 'fossil', 0, 'Sea urchin spine', 'ga_spine', 'Pencil urchins still drop these on the shore below'],
+  ['tooth', 'fossil', 1, 'Shark tooth', 'ga_tooth', 'All of this was under the sea once'],
+  ['coral', 'fossil', 1, 'Coral fragment', 'ga_coral', 'From a reef long since lifted into the hills'],
+  ['jaw', 'fossil', 2, 'Rice rat jaw', 'ga_jaw', 'From a native rice rat that died out long ago'],
+  ['plate', 'fossil', 3, 'Old tortoise shell plate', 'ga_plate', 'From a tortoise that walked these hills centuries ago'],
+  ['bottle', 'curio', 0, 'Old bottle', 'ga_bottle', 'Green glass, from a passing ship long ago'],
+  ['pipe', 'curio', 0, 'Clay pipe', 'ga_pipe', 'A sailor\'s pipe, the stem snapped off'],
+  ['button', 'curio', 0, 'Whaler\'s button', 'ga_button', 'Whaling ships stopped here for water and, sadly, tortoises'],
+  ['coin', 'curio', 1, 'Hacienda coin', 'ga_coin', 'The old sugar estate up here minted its own money'],
+  ['nail', 'curio', 1, 'Ship\'s nail', 'ga_nail', 'Square and hand-forged, from a ship\'s timbers'],
+  ['ball', 'curio', 2, 'Musket ball', 'ga_ball', 'Pirates once hid in these islands between raids'],
+  ['comp', 'curio', 3, 'Brass compass', 'ga_comp', 'Someone lost their way here. The needle still points north']
+];
+const GA_BY = {}; GA_GUIDE.forEach((e) => { GA_BY[e[0]] = e; });
+const GA_PAGE_FIND = { finch: 'ga_finches', bird: 'ga_birds', plant: 'ga_plants', fossil: 'ga_fossils', curio: 'ga_curios' };
+const GA_PAGE_GIFT = { finch: 'two photos from every trap', bird: 'owl boxes and hawk perches on your farms: fewer rats, and the crows give up sooner', plant: 'shade trees that count 10% more towards cup score on your farms', fossil: 'a fossil display by every farmhouse', curio: 'Dr. Inés\'s field hat for your pickers (Looks)' };
+ISLE_UNLOCKS.ga = { 5: 'fresh tracks every 25 minutes', 10: 'six camera traps', 15: 'a hint once a trail: ask Dr. Inés', 20: 'eight camera traps', 25: 'photos develop in 40 minutes', 30: 'the "Naturalist" title' };
+ISLE_GRANT.ga = (l) => {
+  if (l === 15) routeFind('ga_l15', true);
+  if (l === 30) S.sitems.title['ga:nat'] = true;
+};
+isleAdd('ga', [
+  ['ga_photo', 'A first trap photo', 'Collect a camera trap in Galápagos'],
+  ['ga_trail', 'A first tortoise found', 'Follow a tortoise trail to its end'],
+  ['ga_finches', 'The finches page', 'Every finch in the field guide'], ['ga_birds', 'The birds and reptiles page', 'Every bird and reptile in the field guide'],
+  ['ga_plants', 'The plants page', 'Every plant in the field guide'], ['ga_fossils', 'The fossils page', 'Every fossil in the field guide'], ['ga_curios', 'The curios page', 'Every curio in the field guide'],
+  ['ga_rare', 'A very rare sighting', 'A very rare entry for the field guide'],
+  ['ga_fifty', '50 tortoises found', 'Follow 50 tortoise trails to the end'],
+  ['ga_pet', 'The young tortoise', 'Now and then a young tortoise follows you home from a trail'],
+  ['ga_l15', 'Naturalist level 15', 'Set traps and follow trails in Galápagos'], ['ga_l30', 'Naturalist level 30', 'Set traps and follow trails in Galápagos']
+]);
+function gaPageDone(pg) { const G = S.ga; return !!G && GA_GUIDE.every((e) => e[1] !== pg || G.got[e[0]]); }   /* function declarations, so the farms can ask before this point */
+function gaOwls() { return !!(S.ga && gaPageDone('bird')); }   /* the birds and reptiles page: owl boxes and hawk perches at home */
+function gaShade() { return S.ga && gaPageDone('plant') ? 1.1 : 1; }   /* the plants page: shade trees count 10% more */
+const gaTrapN = () => (S.ga.lv >= 20 ? 8 : S.ga.lv >= 10 ? 6 : 4);
+const gaDevMs = () => (S.ga.lv >= 25 ? 40 : 50) * 60e3;
+const gaTrackMs = () => (S.ga.lv >= 5 ? 25 : 30) * 60e3;
+const gaPool = () => Math.min(GA_POOL_MAX, S.ga.pool + (Date.now() - S.ga.poolAt) / 3600e3 * 2);   /* shade-grown San Cristóbal on the patio: 2 kg an hour, up to 30 */
+const gaFound = (pg) => GA_GUIDE.filter((e) => (!pg || e[1] === pg) && S.ga.got[e[0]]).length;
+const gaLeft = (t) => (t.at ? Math.max(0, gaDevMs() - (Date.now() - t.at)) : -1);   /* -1 not set, 0 a photo waiting, else ms to go */
+function gaFresh() { return { lv: 1, xp: 0, seen: false, got: {}, dry: {}, traps: Array.from({ length: 8 }, () => ({ at: 0 })), tracks: 1, tracksAt: Date.now(), tr: null, pool: 8, poolAt: Date.now(), photos: 0, trails: 0, cold: 0, shipped: 0 }; }
+const gaHere = () => scene() === 'ga' && !document.hidden;
+const gaNextMs = () => Math.max(0, gaTrackMs() - (Date.now() - S.ga.tracksAt));
+function gaBank() {   /* fresh tracks: one every 30 minutes (25 from level 5), up to four, waiting while you're away */
+  const G = S.ga, now = Date.now();
+  if (G.tracks >= GA_TRACK_MAX) { G.tracksAt = now; return; }
+  const n = Math.floor((now - G.tracksAt) / gaTrackMs()); if (n <= 0) return;
+  G.tracks = Math.min(GA_TRACK_MAX, G.tracks + n); G.tracksAt = G.tracks >= GA_TRACK_MAX ? now : G.tracksAt + n * gaTrackMs();
+}
+function gaRoll(src) {   /* what a photo shows or a tortoise digs up: a rarity, then an entry (half the time one you haven't got); each very rare one is sure by its 120th roll */
+  const G = S.ga, pages = src === 'photo' ? ['finch', 'bird'] : ['plant', 'fossil', 'curio'];
+  const vr = GA_GUIDE.filter((e) => pages.includes(e[1]) && e[2] === 3 && !G.got[e[0]]);
+  vr.forEach((e) => { G.dry[e[0]] = (G.dry[e[0]] || 0) + 1; });
+  const due = vr.find((e) => G.dry[e[0]] >= 120); if (due) return due;
+  const page = src === 'trail' ? pages[Math.floor(Math.random() * pages.length)] : null, pool = GA_GUIDE.filter((e) => (page ? e[1] === page : pages.includes(e[1])));
+  const s = src === 'photo' ? Math.min(1, sumBuild('shade') / 24) : 0, w = [0.55, 0.28, 0.13 * (1 + 0.5 * s), (src === 'trail' ? 0.06 : 0.04) * (1 + 0.5 * s)];   /* very rare: a photo in 25, a find in 17 (trails are fewer); shade trees at home bring rarer birds */
+  let r = Math.random() * w.reduce((a, b) => a + b, 0), tier = 0; while (tier < 3 && r >= w[tier]) { r -= w[tier]; tier += 1; }
+  const es = pool.filter((e) => e[2] === tier), fresh = es.filter((e) => !G.got[e[0]]), from = fresh.length && Math.random() < 0.5 ? fresh : es;
+  return from[Math.floor(Math.random() * from.length)];
+}
+function gaLog(e) {   /* into the field guide: a field note for a new entry (5, 15, 30 or 60 minutes of your farm's know-how by rarity; a minute for a repeat) */
+  const G = S.ga, isNew = !G.got[e[0]], mins = isNew ? [5, 15, 30, 60][e[2]] : 1, pts = Math.max(mins * 20, Math.round(rateX * mins));
+  G.got[e[0]] = (G.got[e[0]] || 0) + 1; earn({ points: pts });
+  const got = [];
+  if (isNew && e[2] === 3 && routeFind('ga_rare', true)) got.push('a cowrie for a very rare sighting');
+  if (isNew && gaPageDone(e[1])) {
+    if (routeFind(GA_PAGE_FIND[e[1]], true)) got.push('a cowrie for the ' + GA_PAGES.find((p) => p[0] === e[1])[1].toLowerCase() + ' page');
+    if (e[1] === 'fossil' && S.rev.show.fossils === undefined) S.rev.show.fossils = true;
+    if (e[1] === 'curio') S.hats.ev_ga_field = true;
+    got.push(GA_PAGE_GIFT[e[1]]);
+    SFX.play('fanfare');
+  }
+  return { isNew, pts, got };
+}
+function gaTrap(i) {   /* a trap: set it, or collect its photo and set it again */
+  const G = S.ga, t = G.traps[i], a = GA_TRAPS[i], say = (tx) => floats.push({ x: a.x, y: a.y - 18, text: tx, t: 0 });
+  if (i >= gaTrapN()) { SFX.play('brush'); say('another trap here at level ' + (i < 6 ? 10 : 20)); return false; }
+  const left = gaLeft(t);
+  if (left < 0) { t.at = Date.now(); SFX.play('click'); say('set: a photo in ' + Math.round(gaDevMs() / 60e3) + ' min'); if (!G.tipTrap) { G.tipTrap = true; toast('Traps take a photo for the field guide in ' + Math.round(gaDevMs() / 60e3) + ' minutes and wait for you. Collecting one sets it again'); } return true; }
+  if (left > 0) { SFX.play('brush'); say('developing: ' + Math.ceil(left / 60e3) + ' min'); return false; }
+  const n = gaPageDone('finch') ? 2 : 1; let xp = 0; const news = [], got = [];
+  for (let k = 0; k < n; k++) {
+    const e = gaRoll('photo'), r = gaLog(e); xp += [3, 6, 12, 24][e[2]]; got.push(...r.got);
+    IN.ga.pops.push({ x: a.x, y: a.y - 16 - k * 12, spr: e[4], t: 0, label: (r.isNew ? 'NEW: ' : '') + e[3] });
+    if (r.isNew) news.push(e);
+  }
+  t.at = Date.now(); G.photos += n; SFX.play(news.length ? 'ding' : 'page');
+  if (routeFind('ga_photo', true)) got.unshift('a cowrie for your first photo');
+  isleXp('ga', xp);
+  const vr = news.find((e) => e[2] === 3);
+  if (vr) showModal('<h2>A very rare sighting!</h2>' + img(vr[4], 64) + '<p class="note"><b>' + vr[3] + '</b>, on the trap at ' + a.at + '. ' + vr[5] + '.</p><p class="note">A field note: +' + fmt(Math.max(1200, Math.round(rateX * 60))) + ' know-how.' + (got.length ? ' Also: ' + listAnd(got) + '.' : '') + '</p><button class="btn green" data-act="close">Into the guide</button>', true);
+  else if (news.length || got.length) toast((news.length ? 'New for the field guide: ' + listAnd(news.map((e) => e[3] + ' (' + GA_TIERS[e[2]].toLowerCase() + ')')) : 'The field guide') + (got.length ? '. ' + listAnd(got).replace(/^./, (x) => x.toUpperCase()) : ''));
+  return true;
+}
+function gaTrailStart() {
+  const G = S.ga; if (!G || G.tr) return false;
+  gaBank(); if (G.tracks < 1) { SFX.play('nope'); floats.push({ x: GA_HEAD.x, y: GA_HEAD.y - 18, text: 'no fresh tracks: more in ' + voyLeft(gaNextMs()), t: 0 }); return false; }
+  G.tracks -= 1;
+  G.tr = { n: 4 + Math.floor(Math.random() * 3), k: 0, at: '', opts: [], right: '', clue: '', hint: false, used: false };
+  gaStep(G.tr); SFX.play('steps');
+  if (!G.tipTrail) { G.tipTrail = true; toast('Read the clue at the top, then tap the sign it describes. A wrong pick and the trail goes cold'); }
+  return true;
+}
+function gaStep(tr) {   /* the next three signs: one where the clue says the tortoise went */
+  const ks = Object.keys(GA_SPOTS).filter((k) => k !== tr.at), right = ks[Math.floor(Math.random() * ks.length)], rest = ks.filter((k) => k !== right).sort(() => Math.random() - 0.5).slice(0, 2);
+  tr.right = right; tr.opts = [right].concat(rest).sort(() => Math.random() - 0.5); tr.clue = pickOf(GA_CLUES[right]); tr.hint = false;
+}
+function gaSign(k) {   /* a tap on a sign */
+  const G = S.ga, tr = G.tr, p = GA_SPOTS[k]; if (!tr || !tr.opts.includes(k)) return false;
+  if (k !== tr.right) { gaTrailEnd(false, k); return true; }
+  tr.k += 1; tr.at = k; SFX.play('steps');
+  if (tr.k >= tr.n) { gaTrailEnd(true, k); return true; }
+  floats.push({ x: p.x, y: p.y - 10, text: 'the trail goes on: ' + tr.k + ' of ' + tr.n, t: 0 }); gaStep(tr);
+  return true;
+}
+function gaTrailEnd(ok, k) {   /* found it munching, with what it dug up; or the trail went cold */
+  const G = S.ga, tr = G.tr; if (!tr) return; G.tr = null;
+  const p = GA_SPOTS[k] || GA_SPOTS.meadow;
+  BEACON.ev('isle_run', { key: 'ga', m: tr.k, t: ok ? 'found' : 'cold', p: S.prestige });
+  if (!ok) { G.cold += 1; SFX.play('nope'); floats.push({ x: p.x, y: p.y - 10, text: 'the trail goes cold', t: 0 }); if (tr.k) isleXp('ga', 5 * tr.k); IN.ga.tort = null; return; }
+  IN.ga.tort = { x: p.x, y: p.y, t: 0 };
+  const e = gaRoll('trail'), r = gaLog(e), xp = 5 * tr.n + [6, 12, 24, 48][e[2]], got = r.got.slice();
+  G.trails += 1; task('gtrail', 1);
+  if (routeFind('ga_trail', true)) got.unshift('a cowrie for your first tortoise');
+  if (G.trails >= 50 && routeFind('ga_fifty', true)) got.push('a cowrie for 50 tortoises found');
+  if (islePet(G, 'tortoise', 100, 250)) { routeFind('ga_pet', true); got.push('a young tortoise has decided to follow you home (Looks › companions)'); }
+  isleXp('ga', xp); SFX.play('achieve');
+  showModal('<h2>Found her!</h2>' + img('ga_tort_0', 64) + '<p class="note">A giant tortoise, after ' + tr.n + ' steps. She has dug up ' + (e[1] === 'plant' ? 'a seedling' : e[1] === 'fossil' ? 'a fossil' : 'a curio') + ':</p>' +
+    '<div class="row"><div class="art">' + img(e[4], 40) + '</div><div class="grow"><b>' + e[3] + '</b><span>' + GA_TIERS[e[2]] + (r.isNew ? ' · new for the field guide' : ' · ' + G.got[e[0]] + ' found') + '. ' + e[5] + '.</span></div></div>' +
+    '<p class="note">+' + xp + ' naturalist xp · a field note: +' + fmt(r.pts) + ' know-how</p>' + (got.length ? '<p class="note"><b>Also:</b> ' + listAnd(got) + '.</p>' : '') + '<button class="btn green" data-act="close">¡Qué bonita!</button>', true);
+}
+function gaPatio() {
+  const G = S.ga, kg = Math.floor(gaPool()), say = (t) => floats.push({ x: GA_PATIO.x + 27, y: GA_PATIO.y - 2, text: t, t: 0 });
+  if (kg < 5) { SFX.play('brush'); say('drying: ' + kg + ' kg so far, 2 more an hour'); return false; }
+  const lot = { key: 'caturra.isl_galapagos', kg, raked: 1.2 }; let where;
+  if (isleBin(lot)) where = 'to the roastery bins in Osaka'; else if (S.route && S.route.shed.length < 3) { S.route.shed.push(lot); where = 'to the harbour shed, until a bin is free'; } else where = 'sold green: +' + fmt(isleSell(lot).coins) + ' coins';
+  G.pool = 0; G.poolAt = Date.now(); G.shipped += kg; SFX.play('thud'); say(kg + ' kg of San Cristóbal ' + where);
+  return true;
+}
+function gaInes() {
+  const G = S.ga, tr = G.tr;
+  if (tr && G.lv >= 15 && !tr.used) { tr.used = true; tr.hint = true; SFX.play('ding'); floats.push({ x: GA_INES.x - 30, y: GA_INES.y - 26, text: 'That one, I think!', t: 0 }); return; }
+  if (tr) { SFX.play('tick'); floats.push({ x: GA_INES.x - 30, y: GA_INES.y - 26, text: G.lv >= 15 ? 'One hint a trail, I\'m afraid!' : 'Read the clue: where did she go?', t: 0 }); return; }
+  const ready = G.traps.filter((t, i) => i < gaTrapN() && gaLeft(t) === 0).length;
+  const say = (ready ? ready + ' trap' + (ready > 1 ? 's have photos' : ' has a photo') + ' waiting. ' : '') + (G.tracks ? 'Fresh tortoise tracks at the trailhead, ' + G.tracks + ' trail' + (G.tracks > 1 ? 's' : '') + ' to follow. ' : 'No fresh tracks yet: more in ' + voyLeft(gaNextMs()) + '. ') + 'The field guide has ' + gaFound() + ' of ' + GA_GUIDE.length + '.';
+  SFX.play('tick'); showModal(npcCard('Dr. Inés', INES_LOOK, 'Galápagos', say + ' ' + pickOf(['Shade-grown coffee is bird-friendly coffee: the more shade trees on your farms, the rarer the birds in your photos.', 'Darwin landed on San Cristóbal first, in 1835. He wasn\'t much of a botanist, but he kept everything.', 'The tortoises dig everywhere. Half my fossils came out of their wallows.', 'El Junco is one of the only freshwater lakes in the islands. The frigatebirds know it.', 'Every finch here is a cousin of every other. Look at the beaks.'])));
+}
+function gaClick(lx, ly) {
+  const G = S.ga; if (!G) return; const tr = G.tr;
+  if (Math.abs(lx - GA_INES.x) < 9 && ly > GA_INES.y - 30 && ly < GA_INES.y + 3) { gaInes(); return; }   /* her, or the HINT over her head */
+  gaWalk(lx, ly);
+  if (tr) for (const k of tr.opts) { const p = GA_SPOTS[k]; if (Math.abs(lx - p.x) < 11 && ly >= p.y - 9 && ly < p.y + 15) { gaSign(k); return; }   /* the sign, or its TRACKS label */ }
+  for (let i = 0; i < 8; i++) { const a = GA_TRAPS[i]; if (i < gaTrapN() && Math.abs(lx - a.x) < 8 && ly >= a.y - 22 && ly < a.y + 3) { gaTrap(i); return; }   /* the trap, or its PHOTO or SET label */ }
+  if (Math.abs(lx - GA_HEAD.x) < 12 && ly >= GA_HEAD.y - 26 && ly < GA_HEAD.y + 10) { if (tr) { SFX.play('brush'); floats.push({ x: GA_HEAD.x, y: GA_HEAD.y - 18, text: 'follow the signs: ' + tr.clue.toLowerCase(), t: 0 }); } else gaTrailStart(); return; }
+  if (lx >= GA_PATIO.x && lx < GA_PATIO.x + GA_PATIO.w && ly >= GA_PATIO.y && ly < GA_PATIO.y + GA_PATIO.h) { gaPatio(); return; }
+  const w = IN.ga.wand; if (w && !tr && Math.abs(lx - w.x) < 12 && Math.abs(ly - w.y + 6) < 8) { SFX.play('tick'); floats.push({ x: w.x, y: w.y - 16, text: 'a giant tortoise, grazing', t: 0 }); }
+}
+function gaWalk(lx, ly) { const me = IN.ga.me; if (!me) return; me.path = [{ x: Math.max(8, Math.min(W - 8, lx)), y: Math.max(80, Math.min(340, ly + 6)) }]; }
+function gaHint() {   /* the arrow: a photo waiting, a trap to set, fresh tracks, a full patio; never the answer on a trail */
+  const G = S.ga; if (!G || G.tr) return null;
+  const me = IN.ga.me, near = (is) => is.sort((a, b) => (me ? Math.hypot(GA_TRAPS[a].x - me.x, GA_TRAPS[a].y - me.y) - Math.hypot(GA_TRAPS[b].x - me.x, GA_TRAPS[b].y - me.y) : a - b))[0];
+  const live = [...Array(gaTrapN()).keys()], ready = live.filter((i) => gaLeft(G.traps[i]) === 0), unset = live.filter((i) => gaLeft(G.traps[i]) < 0);
+  const i = ready.length ? near(ready) : unset.length ? near(unset) : -1; if (i > -1) return [GA_TRAPS[i].x, GA_TRAPS[i].y - 14];
+  if (G.tracks > 0) return [GA_HEAD.x, GA_HEAD.y - 12];
+  if (gaPool() >= 20) return [GA_PATIO.x + 27, GA_PATIO.y + 4];
+  return null;
+}
+function gaTick() {
+  if (!isleOpen('ga')) return;
+  if (!S.ga) S.ga = gaFresh();
+  gaBank();
+}
+IN.ga = { me: null, ines: null, pops: [], tort: null, wand: null };
+function drawGalapagos(time) {
+  const G = S.ga, bg = sceneBg('galapagos'), now = Date.now(); fx.imageSmoothingEnabled = false;
+  if (bg.complete && bg.naturalWidth) fx.drawImage(bg, 0, 0); else { fx.fillStyle = '#5A9C3C'; fx.fillRect(0, 0, W, H); }
+  if (!G) return;
+  if (!IN.ga.me) { IN.ga.me = walker(96, 330); IN.ga.me.me = true; }
+  if (!IN.ga.ines) IN.ga.ines = walker(GA_INES.x, GA_INES.y, INES_LOOK);
+  if (!IN.ga.wand) IN.ga.wand = { x: 84, y: 132, dir: 1 };
+  const me = IN.ga.me; if (!step(me, 1 / 60, 60)) me.walk = 0;
+  const tr = G.tr, pool = gaPool();
+  if (pool >= 1) { const u = pool / GA_POOL_MAX, w_ = Math.round((GA_PATIO.w - 4) * u); fx.fillStyle = '#6A4A30'; fx.fillRect(GA_PATIO.x + 2, GA_PATIO.y + 3, w_, GA_PATIO.h - 6); fx.fillStyle = 'rgba(0,0,0,0.18)'; for (let y = GA_PATIO.y + 3; y < GA_PATIO.y + GA_PATIO.h - 3; y += 2) for (let x = GA_PATIO.x + 2 + ((y >> 1) % 2); x < GA_PATIO.x + 2 + w_; x += 3) fx.fillRect(x, y, 1, 1); }
+  const wd = IN.ga.wand; if (!tr && !IN.ga.tort) { wd.x += wd.dir * 0.05; if (wd.x > 124 || wd.x < 76) wd.dir *= -1; fx.save(); if (wd.dir < 0) { fx.translate(Math.round(wd.x) * 2, 0); fx.scale(-1, 1); } fx.drawImage(sprite('ga_tort_' + (Math.floor(time * 2) % 2)), Math.round(wd.x) - 11, wd.y - 13); fx.restore(); }
+  if (IN.ga.tort) { const t = IN.ga.tort; t.t += 1 / 60; fx.drawImage(sprite('ga_tort_' + (Math.floor(time * 1.5) % 2)), t.x - 11, t.y - 12); if (t.t > 8) IN.ga.tort = null; }
+  for (let i = 0; i < gaTrapN(); i++) {   /* the traps: grey while unset, a slow red light while it waits, a quick green one with a photo */
+    const a = GA_TRAPS[i], left = gaLeft(G.traps[i]);
+    fx.drawImage(sprite('ga_trap'), a.x - 5, a.y - 12);
+    fx.fillStyle = left < 0 ? '#8A8A8A' : left > 0 ? (Math.floor(time) % 2 ? '#E83A30' : '#8A2A20') : (Math.floor(time * 4) % 2 ? '#7CF06A' : '#3A8A30'); fx.fillRect(a.x + 2, a.y - 11, 1, 1);
+  }
+  if (tr) tr.opts.forEach((k) => { const p = GA_SPOTS[k]; fx.drawImage(sprite('ga_sign'), p.x - 5, p.y - 3); if (tr.hint && k === tr.right && Math.floor(time * 4) % 2) fx.drawImage(sprite('sparkle'), p.x - 4, p.y - 12); });
+  drawGuy(IN.ga.ines); drawGuy(me); drawPet(me, 'ga');
+  IN.ga.pops = IN.ga.pops.filter((q) => (q.t += 1 / 60) < 2.6);
+  IN.ga.pops.forEach((q) => { const sp = sprite(q.spr), k = Math.min(1, q.t * 3); fx.globalAlpha = q.t > 2 ? Math.max(0, (2.6 - q.t) / 0.6) : 1; fx.fillStyle = '#F4F0E4'; fx.fillRect(Math.round(q.x - sp.width / 2) - 2, Math.round(q.y - sp.height - 6 * k) - 2, sp.width + 4, sp.height + 4); fx.drawImage(sp, Math.round(q.x - sp.width / 2), Math.round(q.y - sp.height - 6 * k)); fx.globalAlpha = 1; });
+  bursts.forEach((p) => { fx.fillStyle = p.c; fx.fillRect(Math.round(p.x), Math.round(p.y), 1, 1); });
+  const hr = S.minutes / 60, tint = hr >= 20 || hr < 5 ? 'rgba(30,40,110,0.34)' : hr >= 17.5 ? 'rgba(240,120,40,' + (0.08 + (hr - 17.5) * 0.06).toFixed(2) + ')' : hr < 7 ? 'rgba(240,150,170,0.14)' : null;
+  if (tint) { fx.fillStyle = tint; fx.fillRect(0, 0, W, H); }
+  ctx.imageSmoothingEnabled = false; ctx.drawImage(frame, 0, 0, W * 2, H * 2); ctx.textAlign = 'center';
+  nameTag(me.x, me.y);
+  ctx.font = '700 13px "Pixelify Sans", monospace';
+  const tag = (tx, x, y, bg2, fg) => { const w = ctx.measureText(tx).width + 10; ctx.fillStyle = bg2; ctx.fillRect(Math.max(2, Math.min(W * 2 - w - 2, x * 2 - w / 2)), y * 2 - 14, w, 18); ctx.fillStyle = fg; ctx.fillText(tx, Math.max(2 + w / 2, Math.min(W * 2 - w / 2 - 2, x * 2)), y * 2); };
+  for (let i = 0; i < gaTrapN(); i++) { const a = GA_TRAPS[i], left = gaLeft(G.traps[i]); if (left === 0) tag('PHOTO', a.x, a.y - 14, '#3E2A1C', '#F2C04A'); else if (left < 0) tag('SET', a.x, a.y - 14, '#3E2A1C', '#FFF4DE'); }
+  IN.ga.pops.forEach((q) => { if (q.t < 2) { ctx.font = '700 11px "Pixelify Sans", monospace'; tag(q.label.toUpperCase(), q.x, q.y + 6, '#3E2A1C', /^NEW/.test(q.label) ? '#7CF06A' : '#FFF4DE'); ctx.font = '700 13px "Pixelify Sans", monospace'; } });
+  if (tr) {
+    ctx.font = '700 11px "Pixelify Sans", monospace';
+    tag('STEP ' + (tr.k + 1) + ' OF ' + tr.n + ': ' + tr.clue.toUpperCase(), 96, 166, '#3E2A1C', '#FFF4DE');
+    ctx.font = '700 13px "Pixelify Sans", monospace';
+    tr.opts.forEach((k) => tag('TRACKS', GA_SPOTS[k].x, GA_SPOTS[k].y + 12, '#3E2A1C', '#C8B080'));
+    if (G.lv >= 15 && !tr.used) tag('HINT', GA_INES.x, GA_INES.y - 26, '#3E2A1C', '#F2C04A');
+  } else if (G.tracks) tag('TRAIL' + (G.tracks > 1 ? ' ×' + G.tracks : ''), GA_HEAD.x, GA_HEAD.y - 16, '#3E2A1C', '#F2C04A');
+  if (pool >= 5) tag('COFFEE ' + Math.floor(pool) + ' KG', GA_PATIO.x + 27, GA_PATIO.y + 15, '#3E2A1C', pool >= 20 ? '#F2C04A' : '#FFF4DE');
+  drawHint('ga', time);
+  drawFloats();
+}
+function gaGuideRows(pg) {   /* a page of the field guide: what you've found, and the rarity of what you haven't */
+  const G = S.ga, es = GA_GUIDE.filter((e) => e[1] === pg), done = gaPageDone(pg);
+  return '<p class="note">' + (done ? '<b style="color:#3A8A30">Complete:</b> ' + GA_PAGE_GIFT[pg] + '.' : es.filter((e) => G.got[e[0]]).length + ' of ' + es.length + ' found. Complete it for ' + GA_PAGE_GIFT[pg] + '.') + '</p>' +
+    es.map((e) => G.got[e[0]] ? row(img(e[4], 30), e[3], GA_TIERS[e[2]] + ' · ' + G.got[e[0]] + ' found · ' + e[5], '') : row('<img src="' + url(e[4]) + '" alt="" style="width:30px;filter:brightness(0);opacity:.28">', '???', GA_TIERS[e[2]] + ' · ' + (pg === 'finch' || pg === 'bird' ? 'from a camera trap' : 'dug up by a tortoise'), '')).join('') +
+    (pg === 'fossil' && S.rev.show.fossils !== undefined ? '<div class="seg">' + btn(S.rev.show.fossils ? 'Hide the fossil display' : 'Show the fossil display', 'on every farm', 'revshow:fossils', true, 'blue') + '</div>' : '');
+}
+function gaPanel() {
+  const G = S.ga, sub = ['high', 'guide', 'log'].includes(S.gaSub) ? S.gaSub : 'high', tr = G.tr;
+  let h = '<div class="seg">' + [['high', 'Highlands'], ['guide', 'Field guide'], ['log', 'Log']].map(([k, t]) => '<button type="button" data-act="ga_sub:' + k + '" aria-pressed="' + (sub === k) + '">' + t + '</button>').join('') + '</div>';
+  h += '<h2>Galápagos · level ' + G.lv + '</h2><div class="bar"><i style="width:' + (G.lv >= 30 ? 100 : Math.round(G.xp / isleNeed(G.lv) * 100)) + '%"></i></div>';
+  if (sub === 'high') {
+    const nx = Object.keys(ISLE_UNLOCKS.ga).map(Number).find((l) => l > G.lv);
+    h += '<p class="note"><b>Next:</b> ' + (nx ? 'level ' + nx + ' brings ' + ISLE_UNLOCKS.ga[nx] : 'Dr. Inés has taught you everything') + '</p>';
+    h += help('ga', 'Set camera traps for photos, follow tortoise trails for finds, and fill Dr. Inés\'s field guide.', 'Camera traps: tap one to set it; ' + Math.round(gaDevMs() / 60e3) + ' minutes later it has a photo for the field guide, and collecting it sets it again. You have ' + gaTrapN() + ' traps, six from level 10 and eight from 20. Tortoise trails: fresh tracks turn up at the trailhead every ' + Math.round(gaTrackMs() / 60e3) + ' minutes, up to four. Follow one for 4 to 6 steps: each step, the clue at the top says where the tortoise went, and three signs show on the map. Tap the right one; a wrong pick and the trail goes cold. At the end she has dug something up: a seedling, a fossil or a curio. The field guide has ' + GA_GUIDE.length + ' entries on five pages. A new entry brings a field note worth 5, 15, 30 or 60 minutes of your farm\'s know-how by its rarity, and each page you complete gives something back for good. The patio dries 2 kg of shade-grown San Cristóbal coffee an hour, up to 30, for the Osaka bins. Traps, tracks and the patio wait while you\'re away.');
+    if (tr) h += '<h3>On a trail</h3>' + row(img('ga_sign', 28), 'Step ' + (tr.k + 1) + ' of ' + tr.n, tr.clue + '. Tap the sign it describes on the map.' + (G.lv >= 15 && !tr.used ? ' Dr. Inés can give you one hint.' : ''), '');
+    h += row(img('ga_tort_sm', 28), 'Tortoise trails', G.tracks + ' of ' + GA_TRACK_MAX + ' fresh tracks' + (G.tracks < GA_TRACK_MAX ? ' · more in ' + voyLeft(gaNextMs()) : '') + ' · ' + G.trails + ' found', tr ? '' : btn('Follow one', 'at the trailhead', 'ga_trail', G.tracks > 0, 'green'));
+    h += '<h3>Camera traps</h3>' + GA_TRAPS.slice(0, gaTrapN()).map((a, i) => { const left = gaLeft(G.traps[i]); return row(img('ga_trap', 24), 'By ' + a.at, left < 0 ? 'not set' : left > 0 ? 'a photo in ' + Math.ceil(left / 60e3) + ' min' : 'a photo waiting', ''); }).join('');
+    h += row('<span style="display:inline-block;width:28px;height:18px;background:#6A4A30;border-radius:3px"></span>', 'The patio', Math.floor(gaPool()) + ' of ' + GA_POOL_MAX + ' kg of shade-grown San Cristóbal', btn('Bag it', 'for the bins', 'ga_patio', gaPool() >= 5, 'gold'));
+    h += '<p class="note">From your farms: your shade trees (' + sumBuild('shade') + ' levels) bring ' + (sumBuild('shade') >= 24 ? 'half again as many' : Math.round(50 * Math.min(1, sumBuild('shade') / 24)) + '% more') + ' rare and very rare birds into the photos.</p>';
+  } else if (sub === 'guide') {
+    const pg = GA_PAGES.some((p) => p[0] === S.gaPage) ? S.gaPage : 'finch';
+    h += '<p class="note">The field guide: <b>' + gaFound() + ' of ' + GA_GUIDE.length + '</b> entries.</p><div class="seg">' + GA_PAGES.map(([k, t]) => '<button type="button" data-act="ga_page:' + k + '" aria-pressed="' + (pg === k) + '"' + (gaPageDone(k) ? ' style="color:#3A8A30"' : '') + '>' + t + ' ' + gaFound(k) + '/' + GA_GUIDE.filter((e) => e[1] === k).length + '</button>').join('') + '</div>';
+    h += gaGuideRows(pg);
+  } else {
+    h += row(img('ga_i_photo', 28), 'Photos', fmt(G.photos) + ' taken', '');
+    h += row(img('ga_tort_sm', 28), 'Trails', G.trails + ' tortoises found · ' + G.cold + ' trails gone cold', '');
+    h += row(img('green_sack', 28), 'Shade-grown coffee', fmt(G.shipped) + ' kg bagged', '');
+    h += row(img('ga_tort_sm', 28), 'The young tortoise', (S.rev.pets || {}).tortoise ? 'follows you home' : 'now and then one follows you home from a trail', '');
+    h += '<h3>Levels</h3>' + Object.keys(ISLE_UNLOCKS.ga).map((l) => row(img('ga_i_guide', 22), 'Level ' + l, ISLE_UNLOCKS.ga[l].replace(/^./, (x) => x.toUpperCase()), G.lv >= +l ? btn('Yours', '', 'noop', false, 'blue') : btn('Locked', '', 'noop', false))).join('');
+  }
+  return h;
+}
+function gaAct(a, v) {
+  if (a === 'ga_go') { closeModal(); goIsle('ga'); return; }
+  const G = S.ga; if (!G) return;
+  if (a === 'ga_sub') { S.gaSub = v; SFX.play('tick'); }
+  else if (a === 'ga_page') { S.gaPage = v; SFX.play('page'); }
+  else if (a === 'ga_trail') { if (gaTrailStart()) setTab('farm', true); }
+  else if (a === 'ga_patio') gaPatio();
+}
+function gaIntro() {
+  const G = S.ga; if (!G || G.seen || !gaHere() || !$('modal').hidden) return;
+  G.seen = true; BEACON.ev('isle_open', { key: 'ga', p: S.prestige });
+  showModal(npcCard('Dr. Inés', INES_LOOK, 'Galápagos', '¡Hola, and welcome to the highlands! I\'m writing a field guide to them, and I could use a hand. Set the camera traps along the trails, and come back for the photos. When you see fresh tortoise tracks at the trailhead, follow them: read the signs, and see what she has dug up. Every page of the guide we finish, I\'ll send something home with you. And the coffee drying on the patio is yours, shade-grown, like it should be.'));
+}
+const gaHud = () => { const G = S.ga, tr = G && G.tr; if (!G) return ['Galápagos · the highlands', '']; if (tr) return ['Galápagos · the highlands', 'step ' + (tr.k + 1) + ' of ' + tr.n + ': ' + tr.clue.toLowerCase()]; const ready = G.traps.filter((t, i) => i < gaTrapN() && gaLeft(t) === 0).length; return ['Galápagos · the highlands', (ready ? ready + ' photo' + (ready > 1 ? 's' : '') + ' waiting · ' : '') + (G.tracks ? G.tracks + ' trail' + (G.tracks > 1 ? 's' : '') + ' · ' : '') + 'guide ' + gaFound() + '/' + GA_GUIDE.length]; };
+const gaStatus = () => { const G = S.ga; if (!G) return ['', false]; const ready = G.traps.filter((t, i) => i < gaTrapN() && gaLeft(t) === 0).length; return [(ready ? ready + ' photo' + (ready > 1 ? 's' : '') + ' waiting · ' : '') + (G.tracks ? G.tracks + ' fresh track' + (G.tracks > 1 ? 's' : '') + ' · ' : '') + 'guide ' + gaFound() + '/' + GA_GUIDE.length, !!G.tr || ready >= Math.min(4, gaTrapN()) || G.tracks >= GA_TRACK_MAX]; };
+ISLE_FN.ga = { fresh: gaFresh, tick: gaTick, draw: drawGalapagos, click: gaClick, hint: gaHint, panel: gaPanel, act: gaAct, intro: gaIntro, hud: gaHud, status: gaStatus, track: 'galapagos' };
 /* ---------- player actions ---------- */
 let swipe = null, swipedAt = 0;   /* a quick sideways swipe on the map travels like the arrows: left for the next place, right for the one before */
 scroller.addEventListener('touchstart', (e) => { const t = e.touches[0]; swipe = e.touches.length === 1 ? { x: t.clientX, y: t.clientY, at: Date.now() } : null; }, { passive: true });
@@ -6026,7 +6342,7 @@ function placeArrow(t, pt) {   /* a bouncing arrow over what to tap; on the farm
   arrow.hidden = false; arrow.style.left = Math.round(x - 11) + 'px'; arrow.style.top = Math.round(y - 26) + 'px';
 }
 addEventListener('scroll', () => { if (!$('garrow').hidden) renderGuide(); }, { passive: true });
-const MAP_FOCUS = { farm: 0.3, mill: 0.2, roast: 0, hb: 0.55, re: 0.5, ba: 0.5 };   /* where a scene taller than the screen opens: the share of what's out of view that sits above the top (fields, racks, the roaster bays and shelf) */
+const MAP_FOCUS = { farm: 0.3, mill: 0.2, roast: 0, hb: 0.55, re: 0.5, ba: 0.5, ga: 0.55 };   /* where a scene taller than the screen opens: the share of what's out of view that sits above the top (fields, racks, the roaster bays and shelf) */
 let mapScene = '';
 function mapFocus() {   /* a random event on this map: centred, whatever made the map move (a new scene, a resize) */
   const room = scroller.scrollHeight - scroller.clientHeight, E = (S.rev || {}).cur, b = E && REVS[E.id].here(E) ? REVS[E.id].box(E) : null;
@@ -6545,7 +6861,7 @@ function renderPanel() {
     h += ownStrip(cAll.filter(cOwn).map((id) => [chipImg(url(bodyOf(normLook({ crest: S.look.crest, skin: S.look.skin, bg: S.look.bg, char: id })) + 'down_0', skinLook(S.look.skin))), ART.chars[id] ? ART.chars[id].name : 'Farmer', 'char:' + id, S.look.char === id ? 'on' : 'no']), 'Tap a farmer to play as them.') + '<div class="grid2">' + cAll.filter((id) => !cOwn(id)).map((id) => { const c = ART.chars[id];
       return '<div class="tile">' + avatar({ crest: S.look.crest, skin: S.look.skin, bg: S.look.bg, char: id }, 56) + '<b>' + c.name + '</b><span>From ' + c.from + '</span>' + btn('Buy', c.cost + ' cranes', 'buychar:' + id, S.cranes >= c.cost) + '</div>';
     }).join('') + '</div>';
-    const hatKeys = Object.keys(ART.hats).filter((k) => !(k.startsWith('s_') || k.startsWith('ev_')) || S.hats[k]), hatName = (k) => ({ straw: 'Straw', beju: 'Beju green', sakura: 'Sakura', indigo: 'Indigo', harvest: 'Harvest orange', ev_bee: 'Beekeeper', ev_re_straw: 'Nursery straw', ev_ba_bamboo: 'Bamboo hat' })[k] || themeById(k).name + ' (season)', hatPic = (k) => url('worker_down_0', { hat: ART.hats[k] });
+    const hatKeys = Object.keys(ART.hats).filter((k) => !(k.startsWith('s_') || k.startsWith('ev_')) || S.hats[k]), hatName = (k) => ({ straw: 'Straw', beju: 'Beju green', sakura: 'Sakura', indigo: 'Indigo', harvest: 'Harvest orange', ev_bee: 'Beekeeper', ev_re_straw: 'Nursery straw', ev_ba_bamboo: 'Bamboo hat', ev_ga_field: 'Field hat' })[k] || themeById(k).name + ' (season)', hatPic = (k) => url('worker_down_0', { hat: ART.hats[k] });
     h += '<h3>Picker hats</h3><p class="note">Hats for your pickers, bought with cranes.</p>' + ownStrip(hatKeys.filter((k) => S.hats[k]).map((k) => [chipImg(hatPic(k)), hatName(k), 'hat:' + k, S.hat === k ? 'on' : 'no']), 'Tap a hat for your pickers to wear it.') + '<div class="grid2">' + hatKeys.filter((k) => !S.hats[k]).map((k) => {
       const cost = { straw: 0, beju: 15, sakura: 20, indigo: 15, harvest: 20 }[k];
       return '<div class="tile"><div style="display:flex;align-items:center;gap:6px"><img src="' + hatPic(k) + '" alt="" style="width:32px;image-rendering:pixelated"><b>' + hatName(k) + '</b></div>' + btn('Buy', cost + ' cranes', 'buyhat:' + k, S.cranes >= cost) + '</div>';
@@ -6618,6 +6934,7 @@ function renderPanel() {
     h += '<h3>Resources</h3><div class="seg"><button type="button" data-act="add:coins">+1,000 coins</button><button type="button" data-act="add:bigcoins">+25,000 coins</button><button type="button" data-act="add:contracts">New contracts</button><button type="button" data-act="add:checkin">Next real day</button><button type="button" data-act="add:drop">Start a drop event</button><button type="button" data-act="add:season">End the season</button><button type="button" data-act="add:stars">+50 season stars</button><button type="button" data-act="add:guide">Restart guide</button><button type="button" data-act="add:points">+2,000 know-how</button><button type="button" data-act="add:cranes">+50 cranes</button><button type="button" data-act="add:vars">All varieties</button><button type="button" data-act="add:xp">+1 level</button><button type="button" data-act="add:cherries">Fill storage</button><button type="button" data-act="add:stamp">Next passport stamp</button><button type="button" data-act="add:sample">Next free sample</button><button type="button" data-act="add:days">+20 check-in days</button></div>';
     h += '<h3>Réunion</h3><div class="seg"><button type="button" data-act="retest:open">' + (isleOpen('re') ? 'Go to Réunion' : 'Open Réunion early') + '</button><button type="button" data-act="retest:lv">+1 nursery level</button><button type="button" data-act="retest:grow">Grow every seedling a stage</button></div>';
     h += '<h3>Bali</h3><div class="seg"><button type="button" data-act="batest:open">' + (isleOpen('ba') ? 'Go to Bali' : 'Open Bali early') + '</button><button type="button" data-act="batest:lv">+1 monsoon level</button><button type="button" data-act="batest:charge">Bank a storm</button><button type="button" data-act="batest:dry">Dry every bed</button><button type="button" data-act="batest:fill">Fill the barn</button></div>';
+    h += '<h3>Galápagos</h3><div class="seg"><button type="button" data-act="gatest:open">' + (isleOpen('ga') ? 'Go to Galápagos' : 'Open Galápagos early') + '</button><button type="button" data-act="gatest:lv">+1 naturalist level</button><button type="button" data-act="gatest:photos">Develop every trap</button><button type="button" data-act="gatest:tracks">Fresh tracks</button><button type="button" data-act="gatest:guide">Fill the guide but one</button></div>';
     h += '<h3>The harbour</h3><div class="seg"><button type="button" data-act="hbtest:open">' + (hbOpen() ? 'Go to the harbour' : 'Open the harbour early') + '</button><button type="button" data-act="hbtest:cw">+5 cowries</button><button type="button" data-act="hbtest:home">Bring the boat home</button><button type="button" data-act="hbtest:bottle">A bottle washes up</button></div>';
     h += '<h3>Blue Mountain</h3><div class="seg"><button type="button" data-act="bmtest:open">' + (bmOpen() ? 'Go to Blue Mountain' : 'Open Blue Mountain early') + '</button><button type="button" data-act="bmtest:ripe">Ripen every terrace</button><button type="button" data-act="bmtest:rest">Rest every batch</button><button type="button" data-act="bmtest:lv">+1 certification</button></div>';
     h += '<h3>Kona Ridge</h3><div class="seg"><button type="button" data-act="konatest:open">' + (konaOpen() ? 'Go to Kona Ridge' : 'Open Kona Ridge early') + '</button><button type="button" data-act="konatest:shells">+5 cowries</button><button type="button" data-act="konatest:lv">+1 island level</button><button type="button" data-act="konatest:stock">+ash, compost, fruit, cherries</button></div>';
@@ -6856,6 +7173,7 @@ document.addEventListener('click', (e) => {
     if (v === 'cherries') { const vv = S.farms[S.loc].beds[0]; S.cherries[vv] = (S.cherries[vv] || 0) + (cap() - stored()); }
   }
   else if (a === 'away') away(+v);
+  else if (a === 'gatest') { if (!S.ga) S.ga = gaFresh(); const G = S.ga; if (v === 'open') { G.test = true; goIsle('ga'); } if (v === 'lv') isleXp('ga', isleNeed(G.lv) - G.xp); if (v === 'photos') G.traps.forEach((t) => { t.at = t.at ? t.at - 3 * 3600e3 : Date.now() - 3 * 3600e3; }); if (v === 'tracks') G.tracks = GA_TRACK_MAX; if (v === 'guide') GA_GUIDE.slice(0, -1).forEach((e) => { G.got[e[0]] = G.got[e[0]] || 1; }); }
   else if (a === 'batest') { if (!S.ba) S.ba = baFresh(); const B = S.ba; if (v === 'open') { B.test = true; goIsle('ba'); } if (v === 'lv') isleXp('ba', isleNeed(B.lv) - B.xp); if (v === 'charge') B.charge = Math.min(baMax(), B.charge + 1); if (v === 'dry' && B.st) B.st.beds.forEach((b) => { if (b.kg > 0) b.dry = baDryMs(); }); if (v === 'fill' && B.st && !B.st.brk) { B.st.barn = B.st.target; baBreak(B.st); } }
   else if (a === 'retest') { if (!S.re) S.re = reFresh(); if (v === 'open') { S.re.test = true; goIsle('re'); } if (v === 'lv') isleXp('re', isleNeed(S.re.lv) - S.re.xp); if (v === 'grow' && S.re.sh) S.re.sh.beds.forEach((b) => { if (b && !b.dead && b.st < 3) { b.wet = true; b.at -= reStageMs(); } }); }
   else if (a === 'hbtest') { if (!S.bm) S.bm = bmFresh(); if (v === 'open') { S.bm.test = true; if (!S.route) S.route = routeFresh(); goHb(); } if (!S.route) return; if (v === 'cw') routeGive(5, 'Test cowries'); if (v === 'home') S.route.voy.forEach((x) => { x.end = Date.now() - 1; }); if (v === 'bottle') S.route.bottle = true; }
@@ -7175,6 +7493,8 @@ function harvestCard() {   /* the Daily tab's Harvest Day section: the next one,
 /* ---------- cooperatives and the Co-op Derby (server: game-coop) ---------- */
 const DERBY_KINDS = ['sell', 'cup', 'golden', 'contract', 'roast', 'boat'];
 const STICKERS = { hello: ['Hello!', 'worker_down_0'], thanks: ['Thanks!', 'i_heart'], nice: ['Nice one!', 'sparkle'], onit: ['On it!', 'i_cherry'], washed: ['Need washed', 'proc_washed'], natural: ['Need natural', 'proc_natural'], honey: ['Need honey', 'proc_honey'], roast: ['Roasting!', 'roaster_0'], golden: ['Golden bush!', 'i_coin'], prestige: ['Prestige soon', 'i_trophy'], harvest: ['Harvest Day!', 'deco_harvest'], night: ['Good night', 'crane_fly_0'] };
+const cardOf = (k) => POSTCARDS[k] || (/^g_/.test(k || '') && GA_BY[k.slice(2)] ? ['A photo from Galápagos: ' + GA_BY[k.slice(2)][3], GA_BY[k.slice(2)][4]] : POSTCARDS.lovely);   /* a preset compliment, or a field-guide photo */
+const gaCards = () => (S.ga ? GA_GUIDE.filter((e) => (e[1] === 'finch' || e[1] === 'bird') && S.ga.got[e[0]]).sort((a, b) => b[2] - a[2]).slice(0, 3).map((e) => 'g_' + e[0]) : []);   /* your three rarest Galápagos photos ride a Cheers too */
 const POSTCARDS = { lovely: ['What a lovely farm!', 'i_heart'], bloom: ['The cherries look happy', 'i_cherry'], roast: ['That roastery smells amazing', 'roaster_0'], coffee: ['Save me a cup', 'sh_mug'], farm: ['Your harvest is inspiring', 'green_sack'], wow: ['Farm goals!', 'i_trophy'] };   /* T2.4: the six compliments, one tap on a visit */
 const coopOK = () => !!API && S.guide >= GUIDE.length && (S.prestige >= 2 || (S.prestige >= 1 && level() >= 6) || !!S.coopName);   /* co-ops open at level 6 after the first prestige (level 9 already brings Ranks, the season and farm visits) */
 function coopAdd(method, green) {   /* green coffee sold: the 7-day log for the co-op estimate, and the week's co-op order */
@@ -7402,7 +7722,7 @@ async function showVisit(fresh) {
     '<div class="seg visit-farms">' + Object.keys(v.farm.farms).map((l) => '<button type="button" data-act="visitloc:' + l + '" aria-pressed="' + (l === loc) + '">' + fname(l) + '</button>').join('') + (v.farm.rst ? '<button type="button" data-act="visitloc:roast" aria-pressed="' + roast + '">Roastery</button>' : '') + '</div>' +
     (tro.length ? '<div class="trow">' + tro.map((t) => trophyImg(t, 'tro')).join('') + '</div>' : '') +
     (est ? '<p class="note">Estates: ' + est + '</p>' : '') + '<p class="note">Farm code ' + v.code + '</p>' +
-    (mine ? '<p class="note">This is how visitors see your farm.</p>' + (v.cards && v.cards.length ? '<p class="note"><b>Postcards on your keepsake shelf:</b></p><div class="stickers">' + v.cards.slice(-5).map((c2) => '<span><img src="' + url((POSTCARDS[c2.pc] || POSTCARDS.lovely)[1]) + '" alt=""><b>' + c2.name + '</b> ' + (POSTCARDS[c2.pc] || POSTCARDS.lovely)[0] + '</span>').join('') + '</div>' : '') : '<p class="note">Leave a compliment — ' + (done ? 'you left one today' : 'one a day for each farm') + ':</p><div class="stickers">' + Object.keys(POSTCARDS).map((k2) => '<button type="button" class="btn" data-act="cheers:' + v.code + ':' + k2 + '"' + (done ? ' disabled' : '') + '><img src="' + url(POSTCARDS[k2][1]) + '" alt="">' + POSTCARDS[k2][0] + '</button>').join('') + '</div>') + '<button class="btn" data-act="close">Leave</button></div>', !fresh);
+    (mine ? '<p class="note">This is how visitors see your farm.</p>' + (v.cards && v.cards.length ? '<p class="note"><b>Postcards on your keepsake shelf:</b></p><div class="stickers">' + v.cards.slice(-5).map((c2) => '<span><img src="' + url(cardOf(c2.pc)[1]) + '" alt=""><b>' + c2.name + '</b> ' + cardOf(c2.pc)[0] + '</span>').join('') + '</div>' : '') : '<p class="note">Leave a compliment — ' + (done ? 'you left one today' : 'one a day for each farm') + ':</p><div class="stickers">' + Object.keys(POSTCARDS).concat(gaCards()).map((k2) => '<button type="button" class="btn" data-act="cheers:' + v.code + ':' + k2 + '"' + (done ? ' disabled' : '') + '><img src="' + url(cardOf(k2)[1]) + '" alt="">' + cardOf(k2)[0] + '</button>').join('') + '</div>') + '<button class="btn" data-act="close">Leave</button></div>', !fresh);
   if (NET.visitFx.length && !NET.visitFxOn) { NET.visitFxOn = true; requestAnimationFrame(visitFxLoop); }
 }
 function visitFxLoop() {   /* a visited farm's effects, drawn over its still picture while the card is open */

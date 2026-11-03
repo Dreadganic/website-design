@@ -236,6 +236,10 @@ test("visits: a postcard rides a Cheers, unknown cards are dropped, and the host
   assert.equal(seen.body.cards.length, 5, "the keepsake shelf keeps the last five");
   assert.deepEqual(seen.body.cards.map((c) => c.pc), ["wow", "wow", "wow", "wow", "wow"], "the oldest card falls off at five");
   assert.equal(seen.body.cards[0].name, "Ben");
+  clock += 86400e3;
+  assert.equal((await call(visit, "POST", { pc: "g_owl" }, b, { code })).body.pc, "g_owl", "a Galápagos photo rides a Cheers as a postcard");
+  clock += 86400e3;
+  assert.equal((await call(visit, "POST", { pc: "g_dodo" }, b, { code })).body.pc, null, "but not a photo that isn't in the field guide");
 });
 
 test("scores: a farm started again may start its row again, and nobody else can lower it", async () => {

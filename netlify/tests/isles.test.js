@@ -28,3 +28,11 @@ test("island events are accepted and summed per island: opened, runs and the med
   assert.deepStrictEqual(s.body.isles, { re: { opened: 1, runs: 3, medianScore: 65 }, ba: { opened: 1, runs: 2, medianScore: 131 } });
   delete process.env.STATS_KEY;
 });
+
+test("the photo postcards the server accepts are exactly the field guide's photos in the game", () => {
+  const fs = require("node:fs"), path = require("node:path");
+  const src = fs.readFileSync(path.join(__dirname, "../../game-assets/play/template.html"), "utf8");
+  const ids = [...src.matchAll(/\['([a-z]+)', '(finch|bird)', [0-3], /g)].map((m) => "g_" + m[1]);
+  assert.strictEqual(ids.length, 24);
+  assert.deepStrictEqual(ids.slice().sort(), require("../lib/handlers/game-visit").PHOTOS.slice().sort());
+});

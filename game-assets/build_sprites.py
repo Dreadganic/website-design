@@ -2778,7 +2778,128 @@ def scene_bali():
     R(25, 330, 2, 10, WOOD[3])
 
 
+def scene_galapagos():
+    """Galápagos, the highlands of San Cristóbal (prestige 7, from the harbour board): garúa mist over the ridge, El Junco, the
+    crater lagoon where frigatebirds rinse the salt from their wings, guava on the rim, the scalesia grove, an open meadow and a
+    fern gully, an old lava wall, coffee under shade trees, a prickly pear, and Dr. Inés's field camp: the drying patio, the
+    trailhead and her tent. The game draws the camera traps, the signs on a trail, the tortoises, the coffee on the patio and
+    Dr. Inés (GA_* in template.html use the same spots)."""
+    lush = GRASS["lush"]
+    new_scene(lush[2])
+    rnd = random.Random(151)
+    nz = noise(152)
+    for y in range(H):
+        for x in range(W):
+            v = nz(x, y)
+            put(x, y, rnd.choice(lush[1:4]) if rnd.random() < 0.1 else lush[1] if v > 1.6 else lush[3] if v < 0.5 else lush[2])
+    for y in range(0, 30):   # garúa: a pale, misty sky
+        for x in range(W):
+            put(x, y, "#DCE6E4" if y < 10 else "#CCDCDA" if y < 20 else "#BCD0CE")
+    for x in range(W):   # the ridge behind, soft in the mist
+        top = 20 - 6 * math.sin(x * 0.03 + 1.1) - 2 * math.sin(x * 0.11)
+        for y in range(int(top), 34):
+            put(x, y, "#9AB2A6" if y < top + 2 else "#86A094")
+    for y in (6, 13, 22):   # drifting bands of mist
+        for x in range(W):
+            if (x * 3 + y) % 7:
+                put(x, y + (x // 29) % 2, "#F2F6F4", 120)
+    vol = DIRT["volcanic"]
+    def trail(pts, w=3):   # the dark volcanic trails, worn between the habitats
+        for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
+            n = int(max(abs(x1 - x0), abs(y1 - y0))) + 1
+            for k in range(n + 1):
+                cx, cy = x0 + (x1 - x0) * k / n, y0 + (y1 - y0) * k / n
+                for dy in range(-w, w + 1):
+                    for dx in range(-w, w + 1):
+                        if dx * dx + dy * dy <= w * w:
+                            put(cx + dx, cy + dy, vol[1] if (int(cx + dx) + int(cy + dy)) % 5 else vol[2])
+    trail([(96, 352), (98, 320), (94, 300), (98, 268), (96, 250), (92, 220), (98, 190), (96, 160), (98, 130), (100, 100), (102, 76)])
+    trail([(96, 250), (60, 236), (36, 214)], 2)
+    trail([(98, 160), (60, 150), (34, 140), (20, 120)], 2)
+    trail([(98, 130), (130, 134), (160, 140), (176, 120)], 2)
+    trail([(100, 92), (130, 88), (158, 86), (176, 66)], 2)
+    trail([(98, 222), (140, 240), (164, 262)], 2)
+    # El Junco: the crater lagoon, ringed by its grassy rim
+    ellipse(60, 56, 50, 21, lush[4]); ellipse(60, 56, 47, 19, lush[3])
+    ellipse(60, 57, 43, 15, "#4A7884"); ellipse(60, 57, 39, 13, "#5A8A94")
+    for x in range(24, 96, 6):
+        put(x + (x % 4), 54 + (x % 5), "#A8CCD0")
+    ellipse(48, 52, 8, 1.2, "#8CB4BC"); ellipse(76, 61, 6, 1, "#8CB4BC")
+    # guava on the rim: round bushes with yellow fruit
+    for (gx, gy, s) in [(146, 48, 11), (172, 56, 11), (134, 70, 9), (186, 78, 8)]:
+        cluster(gx, gy, s, s - 2, ["#B8D068", "#94B84C", "#74A03C", "#568430", "#3C6626", "#284A1C"], 1500 + gx, blobs=10, br=(3, 4.5))
+        for k in range(4):
+            ellipse(gx - 5 + (k * 5) % 11, gy - 2 + (k * 3) % 7, 1.3, 1.3, "#E8D040"); put(gx - 6 + (k * 5) % 11, gy - 3 + (k * 3) % 7, "#FFF4A0")
+    # the meadow: lighter grass and small flowers
+    for y in range(96, 144):
+        for x in range(68, 134):
+            if ((x - 100) / 33) ** 2 + ((y - 120) / 24) ** 2 < 1 and (x * 7 + y * 3) % 4:
+                put(x, y, lush[1] if (x + y) % 3 else lush[0])
+    for k in range(12):
+        fx_, fy_ = 74 + (k * 13) % 54, 102 + (k * 7) % 34
+        put(fx_, fy_, "#F2D838"); put(fx_ + 1, fy_, "#FFFFFF")
+    # the scalesia grove: daisy trees, flat umbrella crowns on thin pale trunks
+    for (sx, sy) in [(12, 92), (36, 84), (24, 112), (52, 106), (8, 128)]:
+        R(sx - 1, sy, 2, 20, "#8A7A5E"); R(sx, sy, 1, 20, "#A8987A")
+        cluster(sx, sy - 2, 13, 6, ["#9CC078", "#7EA85E", "#62904A", "#4A783C", "#365E2E", "#244420"], 1550 + sx, blobs=12, br=(3, 4.5))
+    # the fern gully: tree ferns, fronds radiating from each crown
+    for (tx, ty) in [(148, 102), (170, 118), (184, 98), (156, 124)]:
+        R(tx, ty, 2, 14, "#5A4630"); R(tx, ty, 1, 14, "#6E5A40")
+        for a in range(10):
+            ang = a * math.tau / 10
+            for d in range(1, 10):
+                put(tx + 1 + math.cos(ang) * d, ty + math.sin(ang) * d * 0.45 - abs(math.cos(ang)) * d * 0.2, "#3E7A3A" if d % 2 else "#5A9C4A")
+    # an old lava wall across the slope, with a gap for the trail
+    for x in list(range(0, 86)) + list(range(108, W)):
+        h = 4 + (x * 7) % 3
+        for y in range(155 - h, 156):
+            put(x, y, "#2E2A2A" if (x // 4 + y) % 3 else "#46403E")
+        put(x, 155 - h, "#5E5652")
+    # coffee under shade trees: three rows, red with ripe cherries
+    for r in range(3):
+        y0 = 176 + r * 24
+        for x in range(8, 150, 9):
+            if abs(x - 96) < 7:
+                continue   # the trail runs through
+            cluster(x + (r % 2) * 4, y0, 5, 4, COFFEE, 1600 + r * 40 + x, blobs=5, br=(2, 3))
+            for k in range(3):
+                put(x - 2 + (r % 2) * 4 + k * 2, y0 + (k % 2), "#D8402C")
+    for (sx, sy) in [(30, 168), (122, 192), (58, 214)]:   # the shade trees over them
+        R(sx - 1, sy, 3, 18, WOOD[3])
+        cluster(sx, sy - 4, 15, 8, ["#8CB860", "#6EA04A", "#548A3C", "#3E7032", "#2C5626", "#1C3C1A"], 1650 + sx, blobs=14, br=(3, 5))
+    # a giant prickly pear: a thick trunk and flat pads
+    R(170, 226, 4, 26, "#7A6A4E"); R(171, 226, 2, 26, "#948262")
+    for (cx, cy, rx, ry) in [(166, 222, 6, 4), (178, 216, 5, 4), (170, 210, 5, 4), (162, 212, 4, 3), (180, 228, 4, 3)]:
+        ellipse(cx, cy, rx + 1, ry + 1, "#2E5A2A"); ellipse(cx, cy, rx, ry, "#5E9A48"); ellipse(cx - 1, cy - 1, rx - 2, ry - 2, "#7EB45C")
+        put(cx, cy, "#F2E8C0"); put(cx + 2, cy - 1, "#F2E8C0")
+    # the camp: the drying patio for the coffee, the trailhead post, Dr. Inés's tent
+    soft_shadow(18, 296, 54)
+    fill(18, 272, 54, 24, "#9A9488"); fill(19, 273, 52, 22, "#B4AEA0")
+    for x in range(19, 71, 6):
+        fill(x, 273, 1, 22, "#A6A092")
+    R(95, 280, 2, 16, WOOD[4]); R(95, 280, 1, 16, WOOD[2])   # the trailhead post and its board
+    fill(86, 274, 20, 9, WOOD[4]); fill(87, 275, 18, 7, WOOD[1])
+    ellipse(96, 278, 4, 2, "#6A5A3C"); put(100, 278, "#6A5A3C"); put(101, 277, "#6A5A3C"); put(93, 280, "#6A5A3C"); put(99, 280, "#6A5A3C")   # a tortoise burnt into it
+    soft_shadow(112, 306, 56)
+    for y in range(276, 306):   # the canvas tent, an A-frame
+        half = (y - 274) * 0.95
+        for x in range(int(140 - half), int(140 + half) + 1):
+            if 112 <= x <= 168:
+                put(x, y, "#D8CCA8" if (x + y) % 6 else "#C4B890")
+    for y in range(276, 306):
+        half = (y - 274) * 0.95
+        put(140 - half, y, "#8A7A58"); put(140 + half, y, "#8A7A58")
+    for y in range(290, 306):   # the open flap, dark inside
+        w_ = (y - 290) * 0.5
+        for x in range(int(140 - w_), int(140 + w_) + 1):
+            put(x, y, "#4A3E2E")
+    R(139, 274, 2, 4, WOOD[4])
+    for k in range(10):   # guy ropes
+        put(114 - k * 0.2, 296 + k, "#8A7A58"); put(166 + k * 0.2, 296 + k, "#8A7A58")
+
+
 scene_bali(); img.save(os.path.join(HERE, "bg", "bali.png")); rendered[("bali", "")] = img.copy()
+scene_galapagos(); img.save(os.path.join(HERE, "bg", "galapagos.png")); rendered[("galapagos", "")] = img.copy()
 
 scene_mill(); img.save(os.path.join(HERE, "bg", "mill.png")); rendered[("mill", "")] = img.copy()
 for _room in ROOMS:
@@ -4649,6 +4770,261 @@ add_grid("ba_i_rake", [   # the golden rake
     "...oyo....",
     "...oyo....",
     "....o....."], {"o": OUT, "y": "#F2C04A"})
+
+# ---------------- Galápagos: camera traps, tracks, tortoises, and the field guide's 46 entries ----------------
+def ga_icon(name, w, h, paint, outline=True):   # paints on a blank canvas, then rings it with the outline colour
+    c = {}
+    paint(lambda x, y, col: c.__setitem__((int(x), int(y)), col) if 0 <= int(x) < w and 0 <= int(y) < h else None)
+    if outline:
+        edge = {}
+        for (x, y) in c:
+            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                q = (x + dx, y + dy)
+                if q not in c and 0 <= q[0] < w and 0 <= q[1] < h:
+                    edge[q] = OUT
+        c.update(edge)
+    add_layer(name, w, h, lambda p: [p(x, y, col) for (x, y), col in c.items()])
+
+
+def ga_disc(p, cx, cy, rx, ry, col):
+    for y in range(int(cy - ry - 1), int(cy + ry) + 2):
+        for x in range(int(cx - rx - 1), int(cx + rx) + 2):
+            if ((x + 0.5 - cx) / rx) ** 2 + ((y + 0.5 - cy) / ry) ** 2 <= 1:
+                p(x, y, col)
+
+
+def ga_bird(name, body, belly, head, beak="small", beakc="#3A3028", tail=3, legs="#4A3A2A", extra=None):   # a perched bird facing right
+    def f(p):
+        for k in range(tail):
+            p(3 - k, 6 - k // 2, body); p(3 - k, 7 - k // 2, body)
+        for y in range(11):
+            for x in range(14):
+                dx, dy = (x + 0.5 - 6) / 3.6, (y + 0.5 - 6.5) / 2.6
+                if dx * dx + dy * dy <= 1:
+                    p(x, y, belly if (dy > 0.1 and dx > -0.3) else body)
+        for y in range(11):
+            for x in range(14):
+                if (x + 0.5 - 8.6) ** 2 + (y + 0.5 - 4) ** 2 <= 4.6:
+                    p(x, y, head)
+        p(9, 3, "#141414")
+        b = {"big": [(10, 3), (11, 3), (10, 4), (11, 4), (12, 4), (10, 5), (11, 5)], "small": [(10, 4), (11, 4)], "thin": [(10, 4), (11, 4), (12, 4)],
+             "long": [(10, 4), (11, 4), (12, 4), (13, 5)], "hook": [(10, 3), (11, 3), (12, 4), (11, 4), (12, 5)], "stout": [(10, 3), (11, 3), (10, 4), (11, 4), (12, 4)]}[beak]
+        for (x, y) in b:
+            p(x, y, beakc)
+        p(6, 9, legs); p(8, 9, legs)
+        if extra:
+            extra(p)
+    ga_icon(name, 15, 11, f)
+
+
+FINCH_DARK, FINCH_OLIVE = ("#2E2A28", "#4A423C"), ("#7A7448", "#C8C094")
+ga_bird("ga_sgf", "#2E2A28", "#4A423C", "#2E2A28", "small", "#1E1A18")                     # small ground finch
+ga_bird("ga_mgf", "#3A3430", "#5A524A", "#3A3430", "stout", "#2A2420")                     # medium ground finch
+ga_bird("ga_stf", "#7A7448", "#C8C094", "#6A6440", "small", "#4A4030")                     # small tree finch
+ga_bird("ga_wbf", "#8A8C74", "#D4D2BC", "#8A8C74", "thin", "#4A4438")                      # warbler finch
+ga_bird("ga_cf", "#2A2624", "#3E3834", "#2A2624", "long", "#1E1A18")                       # cactus finch
+ga_bird("ga_lgf", "#26221E", "#3A342E", "#26221E", "big", "#1E1A18")                       # large ground finch
+ga_bird("ga_vf", "#6E7244", "#B8B488", "#2E2A28", "stout", "#3A3028")                      # vegetarian finch
+ga_bird("ga_sbf", "#3E3A34", "#5E564C", "#3E3A34", "thin", "#2A2420")                      # sharp-beaked ground finch
+ga_bird("ga_wpf", "#7E6E4A", "#C0B08C", "#7E6E4A", "long", "#4A4030", extra=lambda p: [p(13 + k, 5 + k // 2, "#D8C890") for k in range(2)])   # woodpecker finch, with its cactus spine
+ga_bird("ga_ltf", "#6E6A42", "#BEB88C", "#3A3630", "big", "#3A3028")                       # large tree finch
+ga_bird("ga_mtf", "#727046", "#C4BE90", "#4E4A3A", "stout", "#3A3028")                     # medium tree finch
+ga_bird("ga_mf", "#6E5E44", "#B8A47E", "#6E5E44", "thin", "#4A4030", extra=lambda p: [p(6 + k, 7 + k % 2, "#6E5E44") for k in range(0, 4, 2)])   # mangrove finch, streaked
+ga_bird("ga_dove", "#A8765A", "#D4A486", "#A8765A", "small", "#2A2420", 3, "#C8402C", extra=lambda p: p(9, 4, "#4AA0D8"))   # Galápagos dove: the blue eye-ring
+ga_bird("ga_warb", "#E2C83C", "#F4E070", "#E2C83C", "thin", "#4A4030", extra=lambda p: [p(8, 2, "#C8402C"), p(9, 2, "#C8402C")])   # yellow warbler, the male's red cap
+ga_bird("ga_mock", "#8A7A66", "#E4DCCC", "#8A7A66", "long", "#2A2420", 5)                   # San Cristóbal mockingbird
+ga_bird("ga_fly", "#8A6A4A", "#E8D070", "#6E5A48", "small", "#2A2420", extra=lambda p: [p(8, 1, "#6E5A48"), p(9, 1, "#6E5A48")])   # Galápagos flycatcher, crested
+ga_bird("ga_frig", "#1E1C22", "#2A2830", "#1E1C22", "hook", "#6A6A70", 5, extra=lambda p: [p(9, 6, "#E8302A"), p(10, 6, "#E8302A"), p(9, 7, "#E8302A"), p(10, 7, "#C8201A")])   # a frigatebird at the lagoon, the male's red pouch
+ga_bird("ga_hawk", "#4A3424", "#7A5A3C", "#4A3424", "hook", "#2A2420", 4, "#E8C040")       # Galápagos hawk
+ga_bird("ga_rail", "#3A2E2A", "#4A3E3A", "#3A2E2A", "small", "#2A2420", 2, "#8A4A2A", extra=lambda p: [p(5, 6, "#F4F0E4"), p(7, 7, "#F4F0E4"), p(9, 3, "#C8302A")])   # Galápagos rail, white-spotted, red-eyed
+ga_bird("ga_crake", "#7A6A58", "#9A8E7E", "#5E5E62", "small", "#E85030", 2, "#C8A040", extra=lambda p: p(10, 3, "#F2C04A"))   # paint-billed crake
+
+
+def ga_owl(p):   # the short-eared owl: round, tufted, yellow-eyed
+    ga_disc(p, 7, 6.5, 4.5, 4.2, "#B08A5A")
+    ga_disc(p, 7, 7.5, 3.4, 3.2, "#D8BC8C")
+    for (x, y) in [(5, 6), (9, 6)]:
+        p(x, y, "#F2D038"); p(x, y + 1, "#141414")
+    p(7, 8, "#3A3028"); p(4, 2, "#8A6A44"); p(10, 2, "#8A6A44")
+    for x in (5, 7, 9):
+        p(x, 10, "#8A6A44")
+ga_icon("ga_owl", 15, 12, ga_owl)
+
+
+def ga_lizard(p):   # a lava lizard, the female's red throat, tail curled up
+    for x in range(3, 11):
+        p(x, 6, "#8A7A5E"); p(x, 7, "#6E6048")
+    for k in range(5):
+        p(2 - k // 2, 6 - k, "#8A7A5E")
+    p(11, 6, "#8A7A5E"); p(12, 6, "#8A7A5E"); p(11, 7, "#D8402C"); p(12, 7, "#D8402C"); p(12, 5, "#141414")
+    for (x, y) in [(4, 8), (9, 8), (5, 9), (10, 9)]:
+        p(x, y, "#6E6048")
+    for x in range(4, 10, 2):
+        p(x, 6, "#C8B880")
+ga_icon("ga_lizard", 15, 11, ga_lizard)
+
+
+def ga_racer(p):   # a Galápagos racer, a slim striped snake in an S
+    pts = [(2, 8), (3, 8), (4, 7), (5, 6), (6, 6), (7, 7), (8, 8), (9, 8), (10, 7), (11, 6), (12, 5), (12, 4)]
+    for k, (x, y) in enumerate(pts):
+        p(x, y, "#6E5236" if k % 3 else "#C8A060"); p(x, y + 1, "#4E3A26")
+    p(13, 4, "#6E5236"); p(13, 5, "#6E5236"); p(13, 4, "#141414")
+ga_icon("ga_racer", 15, 11, ga_racer)
+
+
+def ga_tort(frame, big=True):   # a giant tortoise walking right: a high domed shell of plates, a long neck
+    def f(p):
+        if big:
+            cx, cy, rx, ry, bot, hl, vt, vb = 9.5, 9, 8.5, 7.8, 8, 4, (5, 9, 13), (3, 7, 11, 15)
+        else:
+            cx, cy, rx, ry, bot, hl, vt, vb = 5, 5, 4.6, 4.2, 4, 2, (5,), (3, 7)
+        for y in range(0, bot + 1):
+            for x in range(0, 23):
+                if ((x + 0.5 - cx) / rx) ** 2 + ((y + 0.5 - cy) / ry) ** 2 <= 1:
+                    c = "#6E624C"
+                    if y == hl or (y < hl and x in vt) or (y > hl and x in vb):
+                        c = "#4A4234"
+                    elif y < hl and (x - 1) in vt or y == 1:
+                        c = "#8A7E64"
+                    if y == bot:
+                        c = "#4A4234" if x % 2 else "#5A503E"
+                    p(x, y, c)
+        nx = int(cx + rx) - (1 if big else 0)
+        neck = [(nx, bot - 2), (nx + 1, bot - 2), (nx + 2, bot - 3), (nx, bot - 1), (nx + 1, bot - 1), (nx + 2, bot - 2)] if big else [(nx, bot - 1), (nx + 1, bot - 1), (nx + 1, bot - 2)]
+        for (x, y) in neck:
+            p(x, y, "#7A6E58")
+        hx_, hy = (nx + 3, bot - 4) if big else (nx + 2, bot - 3)
+        for (x, y) in [(hx_, hy), (hx_ + 1, hy), (hx_, hy + 1), (hx_ + 1, hy + 1), (hx_ + 2, hy + 1)] if big else [(hx_, hy), (hx_, hy + 1), (hx_ + 1, hy + 1)]:
+            p(x, y, "#7A6E58")
+        p(hx_ + (1 if big else 0), hy, "#141414")
+        legs = (4, 13) if big else (2, 7)
+        for k, lx in enumerate(legs):
+            off = (frame + k) % 2
+            for y in range(bot + 1, bot + (4 if big else 3)):
+                p(lx + off, y, "#6A604C"); p(lx + off + 1, y, "#6A604C")
+                if big:
+                    p(lx + off + 2, y, "#5E5442")
+    return f
+ga_icon("ga_tort_0", 23, 14, ga_tort(0)); ga_icon("ga_tort_1", 23, 14, ga_tort(1))
+ga_icon("ga_tort_sm", 13, 9, ga_tort(0, False))
+
+
+def ga_sprig(name, leaf, leaf2, stem="#5A7A3A", fruit=None, flower=None, fern=False):   # the plants page: a seedling or sprig
+    def f(p):
+        if fern:
+            for y in range(4, 12):
+                p(6, y, stem)
+            for y in range(2, 11):
+                for k in range(1, 4 - y // 4 + 1):
+                    p(6 - k, y + k // 2, leaf if k % 2 else leaf2); p(6 + k, y + k // 2, leaf2 if k % 2 else leaf)
+            for (x, y) in [(6, 1), (7, 1), (8, 2), (8, 3), (7, 3)]:
+                p(x, y, leaf)
+            return
+        for y in range(3, 12):
+            p(6, y, stem)
+        def lf(x0, y0, d, n, c):   # a leaf reaching out and up from the stem
+            for k in range(n):
+                x, y = x0 + d * (k + 1), y0 - (k + 1) // 2
+                p(x, y, c)
+                if 0 < k < n - 1:
+                    p(x, y + 1, c)
+        lf(6, 10, -1, 5, leaf); lf(6, 9, 1, 5, leaf2); lf(6, 7, -1, 4, leaf2); lf(6, 6, 1, 4, leaf)
+        if fruit:
+            for (x, y) in [(1, 8), (11, 7), (2, 5)]:
+                p(x, y, fruit); p(x, y + 1, fruit)
+        if flower:
+            c1, c2 = flower
+            for (x, y) in [(6, 0), (5, 1), (7, 1), (6, 2), (4, 1), (8, 1)]:
+                p(x, y, c1)
+            p(6, 1, c2)
+    ga_icon(name, 13, 13, f)
+
+
+ga_sprig("ga_scal", "#7EA85E", "#5E8E4A", flower=("#F4F0E4", "#F2D038"))                   # scalesia, a daisy tree
+ga_sprig("ga_guava", "#74A03C", "#568430", fruit="#E8D040")                                # guava
+ga_sprig("ga_mic", "#6A9A48", "#B8484C", stem="#8A3A3E")                                   # miconia, its leaves red underneath
+ga_sprig("ga_tom", "#6A9A48", "#4E7E3A", fruit="#E8602A")                                  # Galápagos tomato
+ga_sprig("ga_pass", "#6A9A48", "#4E7E3A", flower=("#B888D8", "#F4F0E4"))                   # passion flower
+ga_sprig("ga_cott", "#6A9A48", "#4E7E3A", flower=("#F4F0E4", "#F2D038"))                   # Galápagos cotton
+ga_sprig("ga_fern", "#3E7A3A", "#5A9C4A", stem="#5A4630", fern=True)                       # a tree fern
+ga_sprig("ga_orch", "#6A9A48", "#4E7E3A", flower=("#E888B8", "#F4F0E4"))                   # an orchid
+
+
+def ga_small(name, paint):
+    ga_icon(name, 13, 13, paint)
+
+
+STONE_ = ["#E4DCC8", "#C8BEA4", "#A89E86", "#867C66"]
+ga_small("ga_snail", lambda p: [ga_disc(p, 6, 6.5, 4.5, 4, STONE_[1]), ga_disc(p, 6, 6.5, 3, 2.6, STONE_[2]), ga_disc(p, 6.5, 6.5, 1.5, 1.3, STONE_[3]), p(10, 4, STONE_[1]), p(11, 3, STONE_[1])])   # a fossil sea snail
+ga_small("ga_clam", lambda p: [ga_disc(p, 6.5, 6.5, 5, 4, STONE_[1])] + [p(6 + d, y, STONE_[3]) for d in (-3, 0, 3) for y in range(4, 10)])   # a fossil clam, ribbed
+ga_small("ga_spine", lambda p: [p(3 + k, 9 - k // 2, STONE_[2] if k % 2 else STONE_[1]) for k in range(8)] + [ga_disc(p, 10.5, 5, 1.8, 1.6, STONE_[1])])   # a sea urchin's spine
+ga_small("ga_tooth", lambda p: [p(x, y, "#5E5A5A" if (x + y) % 3 else "#7A7676") for y in range(2, 11) for x in range(6 - (y - 1) // 2, 7 + (y - 1) // 2)] + [p(x, 11, "#A89884") for x in range(2, 11)])   # a shark's tooth
+ga_small("ga_coral", lambda p: [p(6, y, "#E8D8C8") for y in range(4, 12)] + [p(6 - k, 7 - k, "#E8D8C8") for k in range(4)] + [p(6 + k, 6 - k, "#D8C8B8") for k in range(4)] + [p(8, 9 - k, "#D8C8B8") for k in range(3)])   # a coral fragment
+ga_small("ga_jaw", lambda p: [p(x, 8, "#E8E0CC") for x in range(2, 11)] + [p(x, 9, "#C8BEA8") for x in range(2, 11)] + [p(2, y, "#E8E0CC") for y in range(5, 9)] + [p(x, 7, "#F4F0E4") for x in range(5, 10, 2)])   # a rice rat's jaw
+ga_small("ga_plate", lambda p: [p(x, y, "#6E5E46" if (abs(x - 6) + abs(y - 6)) < 4 else "#8A7858") for y in range(2, 11) for x in range(2, 11) if abs(x - 6) + abs(y - 6) * 0.7 <= 5.2])   # a tortoise shell plate
+ga_small("ga_bottle", lambda p: [p(x, y, "#3E8A5A" if x < 7 else "#2E6E46") for y in range(5, 12) for x in range(4, 9)] + [p(x, y, "#3E8A5A") for y in range(1, 5) for x in (5, 6)] + [p(4, 6, "#9ED8B0")])   # an old bottle
+ga_small("ga_pipe", lambda p: [p(x, 5, "#E8E0D0") for x in range(1, 9)] + [p(x, y, "#E8E0D0") for y in range(4, 9) for x in range(8, 11)] + [p(9, 4, "#5A4A3A")])   # a clay pipe
+ga_small("ga_button", lambda p: [ga_disc(p, 6.5, 6.5, 4.5, 4.5, "#C8962C"), ga_disc(p, 6.5, 6.5, 3, 3, "#E8B84A"), p(6, 4, "#8A6420"), p(6, 5, "#8A6420"), p(6, 6, "#8A6420"), p(6, 7, "#8A6420"), p(5, 8, "#8A6420"), p(7, 8, "#8A6420"), p(5, 5, "#8A6420"), p(7, 5, "#8A6420")])   # a whaler's button, an anchor on it
+ga_small("ga_coin", lambda p: [ga_disc(p, 6.5, 6.5, 4.5, 4.5, "#A85A30"), ga_disc(p, 6.5, 6.5, 3, 3, "#C8784A"), p(6, 6, "#7A3A1C"), p(7, 6, "#7A3A1C"), p(6, 7, "#7A3A1C")])   # the old hacienda's own coin
+ga_small("ga_nail", lambda p: [p(6, y, "#6A6460" if y % 2 else "#86807A") for y in range(3, 12)] + [p(x, 2, "#5A5450") for x in range(4, 9)])   # a ship's nail
+ga_small("ga_ball", lambda p: [ga_disc(p, 6.5, 6.5, 3.5, 3.5, "#6E6E74"), p(5, 5, "#A8A8B0")])   # a lead musket ball
+ga_small("ga_comp", lambda p: [ga_disc(p, 6.5, 6.5, 5, 5, "#B8862C"), ga_disc(p, 6.5, 6.5, 3.6, 3.6, "#F4ECD4"), p(6, 4, "#C8302A"), p(6, 5, "#C8302A"), p(6, 7, "#3E3A3A"), p(6, 8, "#3E3A3A"), p(6, 6, "#141414")])   # a brass compass
+
+add_grid("ga_trap", [   # a camera trap on a post: the game lights it red while it waits, green when there's a photo
+    ".oooooooo.",
+    "occccccco.",
+    "ocllcccco.",
+    "oclLlccco.",
+    "occlcccco.",
+    ".oooooooo.",
+    "....ow....",
+    "....ow....",
+    "....ow....",
+    "....ow....",
+    "...owwo...",
+    "..oooooo.."], {"o": OUT, "c": "#5E6A44", "l": "#1E2A34", "L": "#8CC8E8", "w": "#9C6C3C"})
+add_grid("ga_sign", [   # fresh tortoise tracks in the mud, the sign the game puts down on a trail
+    ".mm....mm..",
+    "mMMm..mMMm.",
+    ".mm....mm..",
+    "...mm....mm",
+    "..mMMm..mMM",
+    "...mm....mm"], {"m": "#4A3A2A", "M": "#2E2418"})
+add_grid("ga_i_guide", [   # the field guide
+    ".ooooooooo",
+    "oGGGGGGGgo",
+    "oGgggggGgo",
+    "oGgwwwgGgo",
+    "oGgggggGgo",
+    "oGGGGGGGgo",
+    "oGGGGGGGgo",
+    ".ooooooooo"], {"o": OUT, "G": "#4E7E3A", "g": "#6A9A48", "w": "#F4F0E4"})
+add_grid("ga_i_photo", [   # a photo from a trap
+    "oooooooooo",
+    "owwwwwwwwo",
+    "owssssssww",
+    "owsgggsswo",
+    "owsgggsswo",
+    "owssssssww",
+    "owwwwwwwwo",
+    "oooooooooo"], {"o": OUT, "w": "#F4F0E4", "s": "#8CC8E8", "g": "#5E9A48"})
+def ga_display(p):   # the fossils page's keepsake: a little glass case of fossils on legs, for every farm
+    for x in range(1, 17):
+        p(x, 1, OUT); p(x, 10, OUT)
+    for y in range(1, 11):
+        p(1, y, OUT); p(16, y, OUT)
+    for y in range(2, 10):
+        for x in range(2, 16):
+            p(x, y, "#CFE4E6" if (x + y) % 5 else "#E8F4F4")
+    for x in range(2, 16):
+        p(x, 9, "#9C6C3C")
+    ga_disc(p, 5, 7, 2, 1.6, "#C8BEA4"); p(5, 7, "#867C66")
+    for x in range(8, 12):
+        p(x, 8, "#E8E0CC")
+    p(13, 6, "#5E5A5A"); p(13, 7, "#5E5A5A"); p(12, 8, "#5E5A5A"); p(14, 8, "#5E5A5A")
+    for y in range(11, 14):
+        p(3, y, "#76502A"); p(14, y, "#76502A")
+add_layer("ga_fossils", 18, 14, ga_display)
 
 # ---------------- Blue Mountain: barrels, the graded beans, parchment, the doctor bird and the island's icons ----------------
 def bm_barrel(p):   # a Blue Mountain export barrel: oak staves, three iron hoops (the game paints the grade's band and number)

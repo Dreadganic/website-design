@@ -143,11 +143,11 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
 
   /* the co-op pool: tools, then the rare draws and their guarantees */
   const rolls = (r, f) => E(([r, f]) => { const T = window.__T, B = T.S.ba, mr = Math.random; Math.random = () => r; new Function('T', 'B', f)(T, B); B.charge = 1; T.baStart(); B.st.barn = B.st.target; T.baBreak(B.st); T.baStep(31000); Math.random = mr; return true; }, [r, f]);
-  await rolls(0.05, '');
+  await rolls(0.05, 'B.tools = {};');   /* earlier storms drew at random: start these checks from a clean pool */
   ok(await E(() => window.__T.S.ba.tools.basket && window.__T.S.ba.tools.rake), 'storm tools: a bigger basket and a quicker rake, uncommon draws');
   ok(await E(() => window.__T.baBasket() === 6 && window.__T.baDryMs() === 15000), 'the bigger basket holds 2 kg more; with the quicker rake beds dry in 15 seconds');
   await clean();
-  await rolls(0.99, 'B.fitDry = 99;');
+  await rolls(0.99, 'B.fit = {}; B.fitDry = 99;');
   ok(await E(() => window.__T.baOutfit() === 1 && window.__T.S.ba.fitDry < 99), 'an outfit piece is sure by the 100th draw without one');
   await rolls(0.01, 'B.fitDry = 0;');
   ok(await E(() => window.__T.baOutfit() === 4 && window.__T.S.hats.ev_ba_bamboo && window.__T.S.route.got.ba_outfit), 'a 1-in-40 draw gives a piece you don\'t have: the full outfit, the bamboo hat in Looks, and a find');
