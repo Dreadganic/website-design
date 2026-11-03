@@ -33,7 +33,7 @@ These are **suggested defaults written for Beju**. Change anything that doesn't 
 
 **Drag-and-drop deploys don't include functions**, so payments won't work that way. Use one of these:
 
-- **Git (recommended):** put this folder in a GitHub repository. In Netlify, choose **Add new site → Import an existing project** and pick the repository. Netlify reads `netlify.toml`, so there's nothing to fill in. Every later change you push goes live by itself.
+- **Git (recommended):** put this folder in a GitHub repository. In Netlify, choose **Add new site → Import an existing project** and pick the repository. Netlify reads `netlify.toml`, so there's nothing to fill in. A push to `main` goes live only when a commit message in it contains `[deploy]` (or a pull request's title does, when you merge it): each production deploy costs 15 Netlify credits, so changes wait and go out together. To publish without a new commit, use a Netlify build hook or **Deploys → Trigger deploy → Clear cache and deploy site**. Deploy Previews of pull requests are free and unaffected. The rule is in `netlify/deploy-gate.sh`.
 - **Netlify CLI:** install Node.js, then run `npm install -g netlify-cli`, `netlify login` and `netlify deploy --prod` from inside this folder.
 
 Then:

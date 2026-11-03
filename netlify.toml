@@ -3,8 +3,13 @@
 [build]
   publish = "beju-site"
   functions = "netlify/functions"
-  # Only build when the site or the functions changed: work in game-assets/, docs and tests does not cost a deploy.
+  # Deploy Previews and branch deploys (free): only build when the site or the functions changed.
   ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- beju-site netlify/functions netlify/edge-functions netlify/lib netlify.toml package.json package-lock.json"
+
+[context.production]
+  # Production deploys cost 15 credits each, so a push to main publishes only when a commit message in it says [deploy].
+  # Build hooks and "Clear cache and deploy site" always publish. See netlify/deploy-gate.sh.
+  ignore = "bash netlify/deploy-gate.sh"
 
 [functions]
   node_bundler = "esbuild"
