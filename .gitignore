@@ -5,3 +5,8 @@ game-assets/sim/audit/policy_audit.js
 
 # community_e2e.js screenshots
 game-assets/sim/arr/
+
+# screenshots the community and notes browser tests write to the folder they run from
+/arr/
+/coop-claim.png
+/farm-bar.png
