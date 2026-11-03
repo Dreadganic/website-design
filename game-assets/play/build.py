@@ -9,7 +9,7 @@ ev = json.load(open(os.path.join(ROOT, "events", "event-sprites.json")))   # ran
 art["sprites"] = dict(art["sprites"], **{"ev_" + k: v for k, v in ev.items()})
 art["sprites"].update({"deco_ev_vane": ev["weathervane_iron"], "deco_ev_vanegold": ev["weathervane"], "rp_evbell": ev["bell"], "rp_evreview": ev["review"], "charm_evlens": ev["lens"]})
 art["sprites"].update({"sh_" + k: v for k, v in json.load(open(os.path.join(ROOT, "storefront", "shop-sprites.json"))).items()})   # the roastery counter: sign, stars, mugs, cards
-art["hats"] = dict(art["hats"], ev_bee=["#F8F4EC", "#D8D0BC", "#A89C84"])
+art["hats"] = dict(art["hats"], ev_bee=["#F8F4EC", "#D8D0BC", "#A89C84"], ev_re_straw=["#F2E2A8", "#D8BC6C", "#C8402C"], ev_ba_bamboo=["#E8D49A", "#C8A858", "#8A6A30"], ev_ga_field=["#D8CCA4", "#B8A878", "#5E5040"])   # the islands' hats: the nursery straw (Réunion), the monsoon bamboo hat (Bali), Dr. Inés's field hat (Galápagos)
 bgs = {}
 for f in sorted(os.listdir(os.path.join(ROOT, "bg"))):
     if f.endswith(".png"):

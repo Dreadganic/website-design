@@ -107,6 +107,18 @@ const SONGS = [
         lead: ['B5:6 A5:2 G5:8', 'F#5:4 A5:4 D6:8', 'E5:4 G5:4 B5:4 G5:4', 'A5:12 -:4', 'G5:4 B5:2 A5:2 G5:4 F#5:4', 'F#5:6 E5:2 D5:8', 'E5:4 G5:4 C#5:4 E5:4', 'D5:8 A4:4 F#4:4'] }
     }, form: ['intro', 'A', 'B', 'A'] },
 
+  { id: 'reunion', farm: 'Réunion, the Pointu nursery', title: 'Sous le Piton', blurb: 'Maloya lullaby · G major, 6/8',
+    about: 'Morning in the nursery under the volcano. Maloya is Réunion\'s own music, born on the plantations: the kayamb shaker, the big roulèr drum and the bobre, a bow with one string. Here a plucked lead stands in for the bobre over a rolling 6/8, a kayamb shuffle and a soft drum.',
+    parts: ['Plucked lead, like the bobre bow', 'Rolling 6/8 strum', 'Kayamb shaker and a soft roulèr drum', 'Warm bass'],
+    bpm: 70, beat: 6, bar: 12, lead: { duty: 0.25, decay: 2.5, floor: 0.3, vib: 12, vibRate: 5, bend: 40, gain: 0.16 }, arp: { style: 'six', duty: 0.25, gain: 0.05 }, bass: { style: 'six', gain: 0.18 }, noise: { style: 'kebero', gain: 0.035 },
+    sections: {
+      intro: { name: 'Intro', chords: [['G'], ['D']], lead: ['-:12', '-:6 D5:2 E5:2 F#5:2'] },
+      A: { name: 'A', chords: [['G'], ['C'], ['G'], ['D'], ['G'], ['C'], ['D'], ['G']],
+        lead: ['G5:4 F#5:2 E5:4 D5:2', 'E5:2 G5:2 A5:2 G5:6', 'B5:4 A5:2 G5:2 D5:4', 'E5:2 F#5:2 G5:2 A5:6', 'B5:4 C6:2 B5:2 G5:4', 'A5:4 G5:2 E5:2 C5:4', 'D5:2 E5:2 F#5:2 A5:2 G5:2 F#5:2', 'G5:9 -:3'] },
+      B: { name: 'B', chords: [['Em'], ['C'], ['G'], ['D'], ['Em'], ['C'], ['Am', 'D'], ['G']],
+        lead: ['E5:6 G5:4 B5:2', 'C6:6 B5:2 A5:4', 'B5:4 G5:2 D5:2 G5:4', 'A5:9 -:3', 'G5:4 B5:2 E6:4 D6:2', 'C6:4 A5:2 G5:2 E5:4', 'A5:2 B5:2 C6:2 D6:2 C6:2 A5:2', 'G5:12'] }
+    }, form: ['intro', 'A', 'B', 'A'] },
+
   { id: 'turrialba', farm: 'Turrialba, Costa Rica', title: 'Marimba del Volcán', blurb: 'Guanacaste marimba · 6/8 and 3/4',
     about: 'The marimba is Costa Rica’s national instrument, and Guanacaste music sways between 6/8 and 3/4, a feel called sesquiáltera. Long notes shimmer with marimba tremolo rolls, and the bass flips between the two metres from bar to bar.',
     parts: ['Marimba lead with tremolo rolls', 'Lower marimba ostinato', 'Bass that alternates 6/8 and 3/4', 'Shaker and rim on the shifting beats'],

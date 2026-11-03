@@ -13,7 +13,8 @@ const FIELDS = {   /* field: [type, cap] — unknown or oversized fields are dro
   served: ["int", 999], out: ["int", 999], coins: ["int", 1e12], rep: ["int", 1000000], m: ["int", 999], t: ["string", 40], key: ["string", 40], reg: ["string", 10], pc: ["string", 12]
 };
 NAMES.push("bm_open", "bm_visit", "bm_pick", "bm_grade", "bm_ship");   /* Blue Mountain: arrivals, gaps between visits, clean and blind picks, trays, barrels */
-NAMES.push("route_find", "route_board", "route_voyage");   /* the Island Route: cowries found, harbour board projects, voyages sailed and home */
+NAMES.push("route_find", "route_board", "route_voyage");
+NAMES.push("isle_open", "isle_run");   /* the newer islands: first arrivals, and each run (a nursery shift, a storm, a trail) with its score */   /* the Island Route: cowries found, harbour board projects, voyages sailed and home */
 
 exports.handler = async (event) => {
   const deps = exports.__deps;

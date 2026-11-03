@@ -2556,6 +2556,127 @@ def scene_harbour():
 
 scene_harbour(); img.save(os.path.join(HERE, "bg", "harbour.png")); rendered[("harbour", "")] = img.copy()
 
+
+def scene_reunion():
+    """Réunion, the Pointu nursery (prestige 6, from the harbour board): green cirque walls with waterfalls and the Piton de la
+    Fournaise behind, Tante Lise's Creole house with lacework eaves and vanilla on the posts top left, the seedling shed top right,
+    twenty nursery beds in four columns under a shade net, the rain cistern and the sack in the yard, then a black-sand path down
+    between a flamboyant tree and bananas. The game draws the seedlings, the mist, the can and Tante Lise (RE_* in template.html
+    use the same spots)."""
+    lush = GRASS["lush"]
+    new_scene(lush[2])
+    rnd = random.Random(101)
+    nz = noise(102)
+    for y in range(H):
+        for x in range(W):
+            v = nz(x, y)
+            put(x, y, rnd.choice(lush[1:4]) if rnd.random() < 0.1 else lush[1] if v > 1.6 else lush[3] if v < 0.5 else lush[2])
+    for y in range(0, 26):   # sky over the cirques
+        for x in range(W):
+            put(x, y, "#A6D2EE" if y < 9 else "#B8DCF0" if y < 18 else "#CCE6F2")
+    for x in range(124, 176):   # the Piton de la Fournaise far behind, with a fresh lava thread
+        top = 7 + abs(x - 150) * 0.55
+        for y in range(int(top), 24):
+            put(x, y, "#9A6A52" if x < 150 else "#7A503E")
+    for y in range(8, 22):
+        put(150 + math.sin(y) * 1.3, y, "#F2702A"); put(151 + math.sin(y) * 1.3, y, "#FFC060")
+    for k, (base, amp, col, lit) in enumerate([(22, 10, "#6A9466", "#84AC78"), (32, 12, "#4E8048", "#66985A"), (46, 9, "#346436", "#4C7E44")]):   # three folded cirque walls
+        for x in range(W):
+            top = base - amp * abs(math.sin(x * (0.05 + k * 0.02) + k)) - (6 if k == 0 and 116 < x < 176 else 0)
+            for y in range(int(top), 68):
+                put(x, y, lit if math.sin(x * 0.5 + y * 0.2 + k) > 0.55 else col)
+    for wx in (36, 98, 172):   # waterfalls down the walls, with spray at the foot
+        for y in range(30 if wx != 172 else 40, 64):
+            put(wx + math.sin(y * 0.3), y, "#EEF8FA"); put(wx + 1 + math.sin(y * 0.3), y, "#BEE4EE")
+        ellipse(wx + 1, 64, 4, 1.5, "#E8F6FA")
+    for x in range(0, W, 9):   # tree ferns along the foot of the walls
+        k_fern(x + rnd.randint(0, 4), 66 + rnd.randint(-1, 2), 1100 + x)
+    # Tante Lise's Creole house: pastel walls, a red tin roof, white lacework along the eaves, vanilla up the corner post
+    soft_shadow(8, 106, 60)
+    tin_roof(6, 70, 64, 10, ["#C8402C", "#A8342A", "#7A2620"])
+    for x in range(7, 69, 3):
+        put(x, 80, "#FFFFFF"); put(x + 1, 80, "#FFFFFF"); put(x + 1, 81, "#FFFFFF"); put(x, 82, "#E8E8E8")
+    for y in range(82, 106):
+        for x in range(9, 67):
+            put(x, y, OUT if x in (9, 66) or y == 105 else "#B8E0C8" if (x + y) % 9 else "#A8D4BA")
+    for wx in (14, 50):
+        fill(wx, 86, 9, 10, OUT); fill(wx + 1, 87, 7, 8, "#F2C04A"); fill(wx + 4, 87, 1, 8, OUT); fill(wx - 1, 96, 11, 1, "#7A4A2A")
+    fill(29, 88, 12, 17, OUT); fill(30, 89, 10, 16, "#7A4A2A"); fill(31, 90, 8, 6, "#8E5A34"); put(38, 98, "#F2C04A")
+    fill(24, 105, 22, 2, "#C8B898")
+    for k in range(10):   # vanilla vine with pale flowers
+        put(67 + (k % 2), 82 + k * 2, LUSH[3]); put(68, 83 + k * 2, LUSH[2])
+        if k % 3 == 1:
+            put(69, 83 + k * 2, "#F2EAB8")
+    # the seedling shed: a lean-to with trays of seedlings on a bench (tap it to start a shift)
+    soft_shadow(136, 108, 50)
+    tin_roof(134, 72, 54, 8, ["#9AA4AA", "#7E888E", "#5E666C"])
+    for y in range(80, 108):
+        for x in range(136, 186):
+            plank = (y - 80) % 5
+            put(x, y, WOOD[4] if x in (136, 185) or plank == 4 else WOOD[1] if plank == 0 else WOOD[2] if (x * 5 + y) % 23 else WOOD[3])
+    fill(139, 84, 44, 12, "#3A2A1C")
+    for i in range(3):
+        fill(140 + i * 15, 94, 13, 6, OUT); fill(141 + i * 15, 95, 11, 4, "#7A4A2A")
+        for k in range(4):
+            put(142 + i * 15 + k * 3, 93, LUSH[1]); put(142 + i * 15 + k * 3, 92, LUSH[0]); put(143 + i * 15 + k * 3, 93, LUSH[2])
+    for (sx, sy) in [(142, 100), (166, 100)]:
+        jute_sack(sx, sy, 12, 7, "#3E7A4A")
+    # the nursery: twenty raised beds of dark soil under a shade net on posts
+    for y in range(110, 262):
+        for x in range(4, 188):
+            put(x, y, "#3A3028" if (x + y) % 9 else "#463A30")
+    for i in range(20):
+        bx, by = 10 + (i % 4) * 44, 116 + (i // 4) * 29
+        fill(bx, by, 38, 24, "#5E3822"); fill(bx + 1, by + 1, 36, 22, "#7A4A2A")
+        for k in range(5):
+            fill(bx + 3, by + 3 + k * 4, 32, 1, "#6A3E24")
+        for k in range(3):
+            put(bx + 4 + k * 13, by + 20, "#8E5A34")
+    for px_ in (4, 94, 186):   # the shade net's posts and its fine mesh
+        R(px_, 108, 2, 156, "#4A3A2A"); put(px_, 108, "#6A5A4A")
+    for x in range(4, 188, 3):
+        for y in range(110, 262, 3):
+            put(x, y, "#1E1A16", 60)
+    for x in range(4, 188):
+        put(x, 109, "#2A2420"); put(x, 110, "#4A3A2A")
+    # the yard: worn black-stone ground, the rain cistern, the sack, a potting bench
+    for y in range(262, 314):
+        for x in range(W):
+            put(x, y, "#3A3430" if (x * 3 + y) % 7 else "#4A423E")
+    for x in range(W):
+        put(x, 262, "#2A2420")
+    soft_shadow(10, 299, 32)
+    for y in range(268, 299):   # the cistern: a stone tank with rainwater, a spout and a pipe down from the shed roof
+        for x in range(10, 42):
+            edge = x in (10, 41) or y in (268, 298)
+            put(x, y, OUT if edge else "#8A8278" if (x + y) % 6 else "#7A7268")
+    fill(12, 270, 28, 4, "#5CB0C4"); fill(13, 270, 12, 1, "#9ED8E2")
+    for k in range(4):
+        fill(12 + k * 8, 276, 1, 21, "#6A645C")
+    fill(40, 284, 6, 3, "#B4C0C8"); put(45, 287, "#86CCD8")
+    fill(84, 300, 30, 2, "#2A2420")   # where the sack stands
+    for (sx, sy) in [(86, 284), (98, 288)]:
+        jute_sack(sx, sy, 13, 10, "#3E7A4A")
+    fill(150, 270, 34, 12, WOOD[2]); fill(150, 270, 34, 2, WOOD[1]); fill(152, 282, 2, 12, WOOD[4]); fill(180, 282, 2, 12, WOOD[4])   # a potting bench
+    for k in range(5):
+        fill(153 + k * 6, 266, 4, 4, "#B85A30"); put(154 + k * 6, 264, LUSH[1]); put(155 + k * 6, 265, LUSH[2])
+    # down the hill: grass, a black-sand path, a flamboyant tree in red bloom, bananas and hibiscus
+    for y in range(314, H):
+        for x in range(W):
+            put(x, y, lush[2] if (x + y) % 5 else lush[3])
+    for y in range(314, H):
+        cx = 96 + math.sin(y * 0.08) * 6
+        for x in range(int(cx - 9), int(cx + 10)):
+            put(x, y, "#3A3634" if (x + y) % 4 else "#4A4644")
+    cluster(168, 322, 15, 9, ["#F48A6A", "#E8483A", "#C8302A", "#8A2420", "#5E1814"], 1201, blobs=14, br=(3, 5))
+    R(167, 330, 3, 14, WOOD[4])
+    paddle_plant(20, 326, 10, 1202, LUSH)
+    for (fx_, fy_, c) in [(40, 330, "#E8384A"), (58, 344, "#F08AA8"), (128, 340, "#FFF4E8"), (146, 348, "#E8384A"), (118, 324, "#F2C04A")]:
+        k_flower(fx_, fy_, c)
+
+
+scene_reunion(); img.save(os.path.join(HERE, "bg", "reunion.png")); rendered[("reunion", "")] = img.copy()
+
 scene_mill(); img.save(os.path.join(HERE, "bg", "mill.png")); rendered[("mill", "")] = img.copy()
 for _room in ROOMS:
     scene_roastery(_room); img.save(os.path.join(HERE, "bg", "roastery.png" if _room == "brick" else "roastery-%s.png" % _room)); rendered[("roastery", _room)] = img.copy()
@@ -2573,6 +2694,7 @@ VARIETIES = {
     "heirloom":       ("Ethiopian heirloom", ["#E888A0", "#9E2040", "#561028"], ["#C8DC80", "#94B444", "#5E7A28"], ["#6A9C50", "#4A823C", "#346A30", "#245226", "#183C1C", "#10281A"], (0.95, 1.0, 0.85)),
     "geisha":         ("Geisha",         ["#F0A0B8", "#B02854", "#64102E"], ["#D8E890", "#A8C850", "#6E8A30"], ["#A8C070", "#7EA856", "#5A9040", "#3E7434", "#2A5426", "#1A381A"], (0.8, 1.22, 0.9)),
     "typica":         ("Typica",         ["#F49C8C", "#D42C30", "#7E1418"], ["#D0E488", "#9CC048", "#64822C"], ["#9CBC66", "#74A04C", "#548638", "#3C6C30", "#285024", "#18381A"], (0.85, 1.25, 0.85)),   # Blue Mountain's only: tall and open
+    "pointu":         ("Bourbon Pointu", ["#F48A6A", "#D8402C", "#86201A"], ["#D8E890", "#A8C850", "#6E8A30"], ["#8EB060", "#6A984A", "#4E7E3A", "#36622E", "#244622", "#163018"], (0.75, 1.15, 0.8)),   # Réunion's, from the nursery: slender, laurel-leaved, conical
 }
 S = {}
 
@@ -4360,6 +4482,38 @@ add_grid("hb_bottle", [   # a bottle washed up, a rolled note inside
     "ooogggggo",
     "...ooooo.",
     "........."], {"o": OUT, "g": "#5CB0A4", "w": "#F8F0D8", "c": "#B8865A"})
+
+# ---------------- Réunion: the nursery's pieces, the tuit-tuit ----------------
+add_grid("re_drop", ["..o..", ".obo.", "obwbo", "obbbo", ".ooo."], {"o": OUT, "b": "#5CB0C4", "w": "#E4F6F8"})   # a drop: this seedling wants misting
+add_grid("re_can", [   # the mister: a copper watering can
+    "...........",
+    "..ooooo....",
+    ".occccco..o",
+    "occcccccooc",
+    "occwcccccco",
+    "occcccccco.",
+    "occcccccco.",
+    ".oooooooo..",
+    "..........."], {"o": OUT, "c": "#C87848", "w": "#FFD8B0"})
+add_grid("re_bird", [   # the tuit-tuit, Réunion's cuckooshrike: grey with a pale belly, a little crest
+    "....oo....",
+    "...oggo...",
+    "..oggwgo..",
+    "..ogggo...",
+    ".ogllggo..",
+    "oglllggoo.",
+    ".olllggggo",
+    "..ooooooo.",
+    "...y..y..."], {"o": OUT, "g": "#7E8890", "w": "#F4F0E4", "l": "#D8D4C8", "y": "#C8A060"})
+add_grid("re_i_seed", [   # a seedling in a pot, for the panel
+    "....gg....",
+    "...gGg.g..",
+    "....gGgg..",
+    ".....g....",
+    "..oooooo..",
+    "..obbbbo..",
+    "...obbo...",
+    "...oooo..."], {"o": OUT, "g": "#7EB84C", "G": "#4E8A30", "b": "#B85A30"})
 
 # ---------------- Blue Mountain: barrels, the graded beans, parchment, the doctor bird and the island's icons ----------------
 def bm_barrel(p):   # a Blue Mountain export barrel: oak staves, three iron hoops (the game paints the grade's band and number)

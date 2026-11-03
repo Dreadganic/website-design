@@ -527,6 +527,7 @@ const VAR = {
   heirloom: { cost: 30000, kg: 3, speed: 0.9, value: 1.8, cup: { washed: 2 }, perk: 'Floral: sells ×1.8, +2 cup score washed.' },
   geisha: { cost: 60000, kg: 2, speed: 0.6, value: 3, cup: { washed: 3, natural: 3, honey: 3 }, perk: 'Rare: sells ×3 and cups high, but 2 kg a pick and slow. Free with the Osaka garden.' }
 };
+Object.defineProperty(VAR, 'pointu', { value: { cost: 0, kg: 2, speed: 0.75, value: 2.4, cup: { washed: 2, natural: 1.5, honey: 1.5 }, perk: 'Bourbon Pointu, from Tante Lise\'s nursery on Réunion: slender and sweet, low in caffeine, slow to grow. Sells ×2.4.' }, enumerable: false });   /* Réunion's: it joins your farms at nursery level 20 */
 Object.defineProperty(VAR, 'typica', { value: { cost: 0, kg: 3, speed: 0.7, value: 3.2, perk: 'Blue Mountain\'s old Typica: tall, slow and sweet. It grows only on the island.' }, enumerable: false });   /* Blue Mountain's own: hidden from every mainland list, like Kona's co-ferments */
 /* farm buildings: per farm, three levels each, bought with coins; they stand in the lots along the fence */
 const BUILD = {
@@ -1092,6 +1093,7 @@ const titleText = (k) => { if (!k) return ''; const [a, b] = k.split(':');
   if (a === 'ct') return b === 'nbr' ? 'Neighbourhood roaster' : b === 'conf' ? 'Counter confidant' : '';
   if (a === 'kona') return b === 'master' ? 'Fermentation master' : '';
   if (a === 'route') return b === 'islander' ? 'Islander' : '';
+  if (a === 're') return b === 'keeper' ? 'Pointu keeper' : '';
   if (a === 'bm') return b === 'grader' ? 'Blue Mountain grader' : '';
   return ART.seasons[String(+k.slice(5))] ? theme(k).title + ' ' + k.slice(0, 4) : ''; };
 /* the cupping notebook: every coffee and process pair you sell earns stars at 1, 25 and 250 lots; each star adds +0.5 cup score to that pair */
@@ -1884,7 +1886,9 @@ function plant(f) {
 }
 function replantBed(f, bed, v) {
   f.beds[bed] = v; S.planted = S.planted || {}; S.planted[v] = true;
-  f.shrubs.forEach((s, i) => { if (Math.floor(i / 8) === bed) { s.v = v; s.p = 0; if (s.claim) { s.claim.target = null; s.claim.state = 'seek'; s.claim = null; } } });
+  if (v === 'pointu') routeFind('re_pointu');
+  const start = S.re && S.re.lv >= 10 ? 0.5 : 0;   /* nursery-raised seedlings from Réunion start half grown */
+  f.shrubs.forEach((s, i) => { if (Math.floor(i / 8) === bed) { s.v = v; s.p = start; if (s.claim) { s.claim.target = null; s.claim.state = 'seek'; s.claim = null; } } });
 }
 function addWorker(f) {
   const n = f.workers.length;
@@ -1945,7 +1949,8 @@ const TASK_KINDS = {
   koi: { text: 'Feed the koi in the Osaka garden', goal: 1, img: 'stamp_osaka', slot: 2, est: 'osaka', group: 'estate', ok: () => estOn('osaka', 1) },
   rake: { text: 'Rake the Mogiana patio', goal: 1, img: 'stamp_mogiana', slot: 2, est: 'mogiana', group: 'estate', ok: () => estOn('mogiana', 1) },
   age: { text: 'Lay a lot down in the Turrialba cellar', goal: 1, img: 'stamp_turrialba', slot: 2, est: 'turrialba', group: 'estate', ok: () => estOn('turrialba', 2) },
-  ktank: { text: 'Pull 3 perfect tanks at Kona Ridge', goal: 3, img: 'k_i_tank', slot: 2, go: 'kona', group: 'estate', ok: () => konaOpen() && !!S.kona }
+  ktank: { text: 'Pull 3 perfect tanks at Kona Ridge', goal: 3, img: 'k_i_tank', slot: 2, go: 'kona', group: 'estate', ok: () => konaOpen() && !!S.kona },
+  rcherry: { text: 'Pick 60 Pointu cherries on Réunion', goal: 60, img: 're_i_seed', slot: 2, go: 're', group: 'estate', ok: () => isleOpen('re') && !!S.re }
 };
 /* weekly tasks: three bigger goals for the real week, aimed at the newer features, with bigger rewards and no season stars */
 const WEEK_KINDS = {
@@ -2607,7 +2612,7 @@ Object.assign(REV_COSM, {
   shutters: { name: 'Storm shutters', pic: 'ev_shutters', where: 'on the roastery windows', own: () => S.rev.show.shutters !== undefined, give() { S.rev.show.shutters = true; }, on: () => !!S.rev.show.shutters, flip() { S.rev.show.shutters = !S.rev.show.shutters; } }
 });
 /* companions: one in 100 stopped events brings one you don't have yet, to follow your farmer */
-const REV_PETS = { piglet: ['Piglet', 'ev_piglet'], capuchin: ['Capuchin', 'ev_capuchin'], crow: ['Tame crow', 'ev_crow_sit'], millcat: ['Mill cat', 'ev_millcat'], dalmatian: ['Fire-station dalmatian', 'ev_dalmatian'], doctorbird: ['Doctor bird', 'bm_bird'], nene: ['Nēnē goose', 'k_nene', true] };   /* the third flag: bought, never found */
+const REV_PETS = { piglet: ['Piglet', 'ev_piglet'], capuchin: ['Capuchin', 'ev_capuchin'], crow: ['Tame crow', 'ev_crow_sit'], millcat: ['Mill cat', 'ev_millcat'], dalmatian: ['Fire-station dalmatian', 'ev_dalmatian'], doctorbird: ['Doctor bird', 'bm_bird'], nene: ['Nēnē goose', 'k_nene', true], tuittuit: ['Tuit-tuit', 're_bird'] };   /* the third flag: bought, never found */
 const petTrail = { sc: '', pts: [] }, PET_GAP = 13;
 const petsOut = () => Object.keys(REV_PETS).filter((k) => (S.rev.pets || {})[k] && !(S.rev.petHide || {})[k]);
 function drawPet(o, sc) {   /* your companions follow your farmer in a train, each one walking in the footsteps of the one ahead */
@@ -2794,6 +2799,7 @@ function hintAt(sc) {   /* where the map arrow points, in scene pixels, or null 
   if (sc === 'kona') return konaHint();
   if (sc === 'bm') return bmHint();
   if (sc === 'hb') return hbHint();
+  if (ISLE_IDS.includes(sc)) return ISLE_FN[sc].hint();
   if (sc === 'farm') {
     const f = S.farms[S.loc], g = golden && golden.loc === S.loc && f.shrubs[golden.i]; if (g) return [g.x + 9, g.y - 2];
     const c = choreHere(); return c ? c.at : null;
@@ -2941,7 +2947,7 @@ function draw(time) {
 /* ---------- the mill yard and the roastery: what the stage shows on the Mill tab ---------- */
 const MAP_TABS = ['farm', 'mill', 'roast'];
 let mapTab = 'farm';   /* the map on screen: the Farm, Mill and Roast tabs move it; the other tabs open over it */
-const scene = () => (mapTab === 'mill' ? 'mill' : mapTab === 'roast' && roasteryOpen() ? 'roast' : S.isle === 'hb' ? (hbOpen() ? 'hb' : 'farm') : S.isle === 'bm' ? (bmOpen() ? 'bm' : 'farm') : S.isle && konaOpen() ? 'kona' : 'farm');   /* the Farm tab shows the island you're on */
+const scene = () => (mapTab === 'mill' ? 'mill' : mapTab === 'roast' && roasteryOpen() ? 'roast' : ISLE_IDS.includes(S.isle) ? (isleOpen(S.isle) ? S.isle : 'farm') : S.isle === 'hb' ? (hbOpen() ? 'hb' : 'farm') : S.isle === 'bm' ? (bmOpen() ? 'bm' : 'farm') : S.isle && konaOpen() ? 'kona' : 'farm');   /* the Farm tab shows the island you're on */
 const sceneImgs = {};
 function sceneBg(k) { if (!sceneImgs[k]) { const im = new Image(); im.src = BGS[k]; sceneImgs[k] = im; } return sceneImgs[k]; }
 const RACK_SHOWN = 32, RACK_GAPS = [50, 96, 142], TRUCK = { x: 54, y: 90 }, CUP_TABLE = { x: 56, y: 70 };   /* the cupping table sits mid-patio, clear of the counters */
@@ -3449,6 +3455,7 @@ function drawInside(sc, time) {
   if (sc === 'kona') { drawKona(time); return; }
   if (sc === 'bm') { drawBluemtn(time); return; }
   if (sc === 'hb') { drawHarbour(time); return; }
+  if (ISLE_IDS.includes(sc)) { ISLE_FN[sc].draw(time); return; }
   const room = S.rcos.on.room, b = sceneBg(sc === 'roast' ? (room && room !== 'brick' ? 'roastery-' + room : 'roastery') : 'mill');
   fx.imageSmoothingEnabled = false;
   if (b.complete && b.naturalWidth) fx.drawImage(b, 0, 0); else { fx.fillStyle = '#C89A64'; fx.fillRect(0, 0, W, H); }
@@ -4413,6 +4420,8 @@ function bdState(b) {   /* why a project can't be built yet, or '' */
   if (b.id === 'kona' && konaOpen()) return 'done';
   if (b.isle === 'kona' && !konaOpen()) return 'Chart the passage to Kona first';
   if (b.need && !R.bd[b.need]) return BOARD_BY[b.need].name + ' first';
+  if (b.p && S.prestige < b.p) return 'Opens at prestige ' + b.p;
+  if (b.voy && !(R.vdone || {})[b.voy]) return 'Sail to ' + VOY[b.voy].name + ' first';
   return R.cw < b.cost ? 'cowries' : '';
 }
 function bdBuild(id) {
@@ -4422,6 +4431,7 @@ function bdBuild(id) {
   R.cw -= b.cost; R.bd[id] = Date.now(); SFX.play('achieve');
   BEACON.ev('route_board', { key: id, m: Object.keys(R.bd).length, p: S.prestige });
   if (id === 'flag') S.sitems.title['route:islander'] = true;
+  if (id.startsWith('isle_') && ISLE_FN[id.slice(5)] && !S[id.slice(5)]) S[id.slice(5)] = ISLE_FN[id.slice(5)].fresh();   /* a new island opens */
   if (id === 'pier') hbBurst(HB_PIER.x + 8, HB_PIER.gap0 + 8, '#C08C50');
   if (id === 'light') hbBurst(HB_LAMP.x, HB_LAMP.y, '#F2C04A');
   showModal(npcCard('Captain Ama', AMA_LOOK, b.name, 'Done! ' + b.text + '.' + (id === 'pier' ? ' Tap the boat to choose a voyage.' : id === 'kona' ? ' Kona Ridge is past Blue Mountain on the arrows: sail over whenever you like.' : id === 'flag' ? ' Wear the title in Looks.' : b.isle === 'bm' ? ' See it at Blue Mountain.' : b.isle === 'kona' ? ' See it at Kona Ridge.' : '')));
@@ -4610,7 +4620,7 @@ function hbLedgerCard() { return '<h2>The ledger</h2>' + hbLedgerRows() + '<butt
 function hbLedgerRows() {
   const R = S.route;
   return '<p class="note">Captain Ama keeps a ledger of every cowrie on the route: <b>' + routeFound() + ' of ' + LEDGER.length + '</b> found. Each one is found once, so you\'ll need all four places.</p>' +
-    ['hb', 'bm', 'kona', 'farm'].map((isle) => { const es = LEDGER.filter((e) => e.isle === isle), grp = { bm: [/^bm_c\d+$/, 'Certifications 2 to 12'], kona: [/^k_l\d+$/, 'Every fifth island level'] }[isle];
+    ['hb', 'bm', 'kona', ...ISLE_IDS, 'farm'].map((isle) => { const es = LEDGER.filter((e) => e.isle === isle), grp = { bm: [/^bm_c\d+$/, 'Certifications 2 to 12'], kona: [/^k_l\d+$/, 'Every fifth island level'] }[isle];
       const line = (e) => { const got = !!R.got[e.id], lost = /^bm_lost/.test(e.id) && got ? PEARL_LOST[+e.id.slice(7) - 1][2] : e.id === 'hb_bottle' && got ? BOTTLE_NOTE : '';
         return '<p class="note" style="margin:2px 0">' + (got ? '<b>✓ ' + e.name + '</b>' + (lost ? ': <i>"' + lost.replace(/"/g, '\'') + '"</i>' : '') : '· ' + e.hint) + '</p>'; };
       const ladder = grp ? es.filter((e) => grp[0].test(e.id)) : [], n = ladder.filter((e) => R.got[e.id]).length;   /* the level finds as one line, not eleven */
@@ -4653,6 +4663,253 @@ function hbIntro() {
   showModal(npcCard('Captain Ama', AMA_LOOK, 'The harbour', '"Welcome to the island route. Every island out there hides cowrie shells, the one treasure we all trade in: Blue Mountain, Kona, the islands past the horizon, even your own farm. My ledger lists them all. Here\'s your first, for coming. Spend cowries on the board by the shed, and start with my pier: a storm took a stretch of it, and the boat can\'t sail till it\'s mended."' + (R.migN ? ' (Your work on the islands so far found ' + R.migN + ' more.)' : '')));
 }
 const hbInfo = () => { const R = S.route; return R ? { lv: routeFound(), badge: routeFound() + ' / ' + LEDGER.length, pct: Math.round(routeFound() / LEDGER.length * 100), text: 'The Island Route: ' + routeFound() + ' of ' + LEDGER.length + ' cowries found, ' + routeCw() + ' to spend on the harbour board' } : null; };
+/* ---------- the new islands, after the Island Route: voyage islands that the harbour board opens once you've reached their
+   prestige and sailed there once. Each has its own level (its skill, 1 to 30), map, music and daily task, leans on one of your
+   mainland buildings and gives one lasting thing back. Shared plumbing here; each island's own code follows. Rare finds are
+   tuned to about 15 minutes of island play a day, and each is guaranteed by about two and a half times its odds ---------- */
+const ISLE_IDS = ['re'];
+const ISLE_INFO = {
+  re: { name: 'Réunion', where: 'Réunion · the Pointu nursery', voy: 'reunion', p: 6, cost: 6, pic: 'bush_pointu_ripe', board: 'Settle the Pointu nursery', open: 'Réunion opens: Tante Lise\'s nursery of Bourbon Pointu, past Kona on the arrows', perk: 'Tante Lise\'s Pointu nursery: shifts you get better at, and Bourbon Pointu for your farms. Sail there, then open it from the harbour board.' }
+};
+const isleOpen = (id) => !!(S.route && S.route.bd['isle_' + id]) || !!(S[id] && S[id].test);
+const isleNeed = (l) => 40 + 15 * l;   /* island xp from l to l + 1: level 20 in about two to three weeks of regular visits, 30 in about five */
+const ISLE_UNLOCKS = {}, ISLE_GRANT = {}, ISLE_FN = {};   /* ISLE_FN: each island's own tick, draw, click, hint, panel, act, intro, top bar and status */
+function isleXp(id, n) {
+  const I = S[id]; if (!I || !(n > 0)) return;
+  I.xp += n; const opened = [];
+  while (I.lv < 30 && I.xp >= isleNeed(I.lv)) {
+    I.xp -= isleNeed(I.lv); I.lv += 1;
+    if (ISLE_UNLOCKS[id][I.lv]) opened.push(ISLE_UNLOCKS[id][I.lv]);
+    ISLE_GRANT[id](I.lv);
+    if (I.lv % 10 === 0 && routeFind(id + '_l' + I.lv, true)) opened.push('a cowrie for the harbour');
+  }
+  if (I.lv >= 30) I.xp = Math.min(I.xp, isleNeed(30));
+  if (opened.length) { SFX.play('achieve'); toast(ISLE_INFO[id].name + ' level ' + I.lv + ': ' + listAnd(opened)); }
+}
+const isleInfo = (id) => { const I = S[id]; return I ? { lv: I.lv, badge: 'Lv ' + I.lv, pct: I.lv >= 30 ? 100 : Math.round(I.xp / isleNeed(I.lv) * 100), text: ISLE_INFO[id].name + ' level ' + I.lv + (I.lv < 30 ? ': ' + Math.max(0, isleNeed(I.lv) - Math.floor(I.xp)) + ' xp to level ' + (I.lv + 1) : '') } : null; };
+function goIsle(id) { if (!isleOpen(id)) return; S.isle = id; S.farmSub = 'fields'; setTab('farm', true); }
+function isleAdd(id, finds) {   /* an island's finds into the harbour's ledger, and its project onto the board */
+  ISLES[id] = ISLE_INFO[id].name;
+  finds.forEach(([fid, name, hint]) => { const e = { id: fid, isle: id, name, hint }; LEDGER.push(e); LEDGER_BY[fid] = e; });
+  const I = ISLE_INFO[id], b = { id: 'isle_' + id, isle: 'hb', name: I.board, cost: I.cost, text: I.open, p: I.p, voy: I.voy }; BOARD.push(b); BOARD_BY[b.id] = b;
+}
+const plantVars = () => VAR_ORDER.concat(S.vars.pointu ? ['pointu'] : []);   /* the coffees you can plant at home: Bourbon Pointu joins them from Réunion */
+const islePet = (I, key, odds, cap) => { if ((S.rev.pets || {})[key]) return false; I[key + 'Dry'] = (I[key + 'Dry'] || 0) + 1; if (Math.random() >= 1 / odds && I[key + 'Dry'] < cap) return false; S.rev.pets = S.rev.pets || {}; S.rev.pets[key] = true; return true; };   /* a rare companion: 1 in odds, sure by the cap */
+
+/* ---------- Réunion: the Pointu nursery. Tante Lise is bringing back Bourbon Pointu, the slender low-caffeine Bourbon noticed on
+   the island around 1810, nearly lost after 1942 and revived in the 2000s. A shift: take a batch of seedlings at the shed, plant
+   them in the nursery beds, and mist each one once in each of its three growth stages: one still dry when its stage turns wilts.
+   The can holds a dozen mists and refills at the cistern, so the skill is your route. Grown plants give 5 cherries each, and the
+   cherries in one shift score with bonuses at 50, 75 and 100, so bigger batches pay much more. Your farms' compost heaps make
+   seedlings grow faster; levels bring bigger batches, tools, the outfit, nursery-raised seedlings for your farms and Bourbon
+   Pointu itself. A shift waits while you're away ---------- */
+const RE_BED = (i) => ({ x: 10 + (i % 4) * 44, y: 116 + Math.floor(i / 4) * 29 }), RE_BED_W = 38, RE_BED_H = 24, RE_BEDS = 20;
+const RE_SHED = { x: 136, y: 72, w: 50, h: 36 }, RE_CIST = { x: 10, y: 266, w: 34, h: 34 }, RE_SACK = { x: 84, y: 276, w: 30, h: 26 }, RE_LISE = { x: 136, y: 300 };
+const RE_STAGE = 20e3, RE_PER = 5;   /* a stage lasts 20 s, less with compost; a grown plant gives 5 cherries */
+const LISE_LOOK = { shirt: ['#F2D838', '#D8B820', '#C8402C'], hat: ['#F4E6C6', '#D8C8A0', '#8A6A3A'] };
+ISLE_UNLOCKS.re = { 5: 'batches of 12, and a copper mister that holds 24', 6: 'the nursery straw hat (Looks)', 10: 'nursery-raised seedlings: a field you replant at home starts half grown', 12: 'batches of 16', 14: 'the nursery apron', 15: 'a seed tray: each tap plants two beds', 20: 'batches of 20, and Bourbon Pointu for your farms', 22: 'nursery gloves', 25: 'a drip line: the first stage waters itself', 28: 'nursery boots', 30: 'the "Pointu keeper" title' };
+ISLE_GRANT.re = (l) => {
+  if (l === 6) S.hats.ev_re_straw = true;
+  if (l === 20) S.vars.pointu = true;
+  if (l === 28) routeFind('re_outfit', true);
+  if (l === 30) S.sitems.title['re:keeper'] = true;
+};
+isleAdd('re', [
+  ['re_first', 'A first nursery shift', 'Take a batch of seedlings from Réunion\'s shed'],
+  ['re_50', '50 cherries in one shift', 'A batch of 12 or more, with every seedling misted in time'],
+  ['re_75', '75 cherries in one shift', 'A batch of 16 or more, hardly a wilt'],
+  ['re_100', '100 cherries in one shift', 'A perfect batch of 20'],
+  ['re_l10', 'Nursery level 10', 'Work shifts at Réunion'], ['re_l20', 'Nursery level 20', 'Work shifts at Réunion'], ['re_l30', 'Nursery level 30', 'Work shifts at Réunion'],
+  ['re_pointu', 'Bourbon Pointu at home', 'Plant Bourbon Pointu in a field on your farms (nursery level 20)'],
+  ['re_outfit', 'The nursery outfit', 'Hat, apron, gloves and boots: they come with nursery levels'],
+  ['re_pet', 'The tuit-tuit', 'Now and then a bird follows a good shift home']
+]);
+const reBatch = () => (S.re.lv >= 20 ? 20 : S.re.lv >= 12 ? 16 : S.re.lv >= 5 ? 12 : 8);
+const reCanMax = () => (S.re.lv >= 5 ? 24 : 12);
+const reStageMs = () => RE_STAGE * (1 - 0.25 * Math.min(1, sumBuild('compost') / 24));   /* your farms' compost heaps: up to a quarter faster */
+const reOutfit = () => [6, 14, 22, 28].filter((l) => S.re.lv >= l).length;   /* +2.5% shift score a piece */
+const reBonus = (c) => (c >= 50 ? 10 : 0) + (c >= 75 ? 25 : 0) + (c >= 100 ? 50 : 0);
+const reNextBonus = (c) => [50, 75, 100].find((n) => c < n);
+function reFresh() { return { lv: 1, xp: 0, seen: false, sh: null, can: 12, best: 0, shifts: 0, picked: 0 }; }
+const reHere = () => scene() === 're' && !document.hidden;
+const reLeft = (b) => Math.max(0, Math.ceil(((b.st + 1) * reStageMs() - (Date.now() - b.at)) / 1000));   /* seconds until this seedling's stage turns */
+function reStart() {
+  const R = S.re; if (!R || R.sh) return false;
+  R.sh = { n: reBatch(), left: reBatch(), beds: Array(RE_BEDS).fill(null), cherries: 0, at: Date.now() }; R.can = reCanMax();
+  SFX.play('stamp'); floats.push({ x: RE_SHED.x + 25, y: RE_SHED.y + 4, text: 'a batch of ' + R.sh.n + ' seedlings', t: 0 });
+  if (!R.tipPlant) { R.tipPlant = true; toast('Tap a bed to plant. Mist each seedling once in every stage (the drop shows it\'s dry), refill at the cistern, and pick them when they fruit'); }
+  return true;
+}
+function rePlant(i) {
+  const R = S.re, sh = R.sh; if (!sh || sh.left <= 0 || sh.beds[i]) return false;
+  const now = Date.now(), plant = (j) => { if (sh.left > 0 && !sh.beds[j]) { sh.beds[j] = { at: now, st: 0, wet: R.lv >= 25 }; sh.left -= 1; return true; } return false; };
+  plant(i); if (R.lv >= 15) { const j = sh.beds.findIndex((b, k) => !b && k > i); if (j > -1) plant(j); }   /* the seed tray plants the next free bed as well */
+  const a = RE_BED(i); SFX.play('dig'); for (let k = 0; k < 6; k++) bursts.push({ x: a.x + 19, y: a.y + 18, vx: (rnd() - 0.5) * 40, vy: -20 - rnd() * 20, t: 0, c: k % 2 ? '#7A4A2A' : '#5A9C3C' });
+  return true;
+}
+function reMist(i) {
+  const R = S.re, b = R.sh && R.sh.beds[i], a = RE_BED(i); if (!b || b.dead || b.st >= 3 || b.wet) return false;
+  if (R.can <= 0) { SFX.play('nope'); floats.push({ x: a.x + 19, y: a.y + 4, text: 'the can is empty: refill at the cistern', t: 0 }); return false; }
+  R.can -= 1; b.wet = true; SFX.play('splash');
+  for (let k = 0; k < 8; k++) bursts.push({ x: a.x + 19 + (rnd() - 0.5) * 16, y: a.y + 4, vx: (rnd() - 0.5) * 10, vy: 20 + rnd() * 20, t: 0, c: k % 2 ? '#86CCD8' : '#E4F6F8' });
+  return true;
+}
+function reRefill() { const R = S.re; if (!R) return; if (R.can >= reCanMax()) { SFX.play('brush'); floats.push({ x: RE_CIST.x + 17, y: RE_CIST.y, text: 'the can is full', t: 0 }); return; } R.can = reCanMax(); SFX.play('splash'); floats.push({ x: RE_CIST.x + 17, y: RE_CIST.y, text: 'can refilled: ' + R.can + ' mists', t: 0 }); }
+function rePick(i) {
+  const R = S.re, sh = R.sh, b = sh && sh.beds[i], a = RE_BED(i); if (!b || b.dead || b.st < 3) return false;
+  sh.beds[i] = null; sh.cherries += RE_PER; R.picked += RE_PER; task('rcherry', RE_PER);
+  SFX.play('harvest'); floats.push({ x: a.x + 19, y: a.y + 2, text: '+' + RE_PER + ' cherries', t: 0 });
+  for (let k = 0; k < 6; k++) bursts.push({ x: a.x + 19, y: a.y + 10, vx: (rnd() - 0.5) * 50, vy: -30 - rnd() * 30, t: 0, c: k % 2 ? '#D8402C' : '#F48A6A' });
+  return true;
+}
+function reBed(i) {   /* a tap on a bed: plant it, mist it, pick it or clear a wilted one */
+  const R = S.re, sh = R.sh, a = RE_BED(i);
+  if (!sh) { SFX.play('brush'); floats.push({ x: a.x + 19, y: a.y + 6, text: 'take a batch at the shed to start a shift', t: 0 }); return; }
+  const b = sh.beds[i];
+  if (!b) { if (sh.left > 0) rePlant(i); else { SFX.play('brush'); floats.push({ x: a.x + 19, y: a.y + 6, text: 'every seedling is planted', t: 0 }); } return; }
+  if (b.dead) { sh.beds[i] = null; SFX.play('brush'); floats.push({ x: a.x + 19, y: a.y + 6, text: 'cleared', t: 0 }); reDone(); return; }
+  if (b.st >= 3) { rePick(i); reDone(); return; }
+  if (!b.wet) reMist(i); else { SFX.play('brush'); floats.push({ x: a.x + 19, y: a.y + 4, text: 'misted: the next stage in ' + reLeft(b) + ' s', t: 0 }); }
+}
+const reDone = () => { const sh = S.re.sh; if (sh && sh.left <= 0 && sh.beds.every((b) => !b || b.dead)) reEnd(false); };   /* every seedling picked or lost: the shift is over */
+function reTick() {
+  if (!isleOpen('re')) return;
+  if (!S.re) S.re = reFresh();
+  const R = S.re, sh = R.sh; if (!sh) return;
+  const now = Date.now();
+  if (!reHere()) { if (!sh.paused) sh.paused = now; return; }   /* the nursery waits while you're away */
+  if (sh.paused) { const d = now - sh.paused; sh.beds.forEach((b) => { if (b) b.at += d; }); sh.paused = 0; }
+  const sm = reStageMs();
+  sh.beds.forEach((b, i) => {
+    if (!b || b.dead || b.st >= 3 || now - b.at < (b.st + 1) * sm) return;
+    const a = RE_BED(i);
+    if (!b.wet) { b.dead = true; SFX.play('nope'); floats.push({ x: a.x + 19, y: a.y + 4, text: 'wilted', t: 0 }); return; }
+    b.st += 1; b.wet = false;
+    if (b.st >= 3) floats.push({ x: a.x + 19, y: a.y + 2, text: 'fruiting: pick it', t: 0 });
+  });
+  reDone();
+}
+function reEnd(early) {   /* the shift's score: cherries, the 50/75/100 bonuses, the outfit; paid in xp, coins, know-how and a Pointu lot */
+  const R = S.re, sh = R.sh; if (!sh) return;
+  if (early) sh.beds.forEach((b, i) => { if (b && !b.dead && b.st >= 3) { sh.cherries += RE_PER; R.picked += RE_PER; task('rcherry', RE_PER); } });   /* ending early picks what has fruited; seedlings still growing are lost */
+  R.sh = null;
+  const c = sh.cherries;
+  if (!c) { SFX.play('nope'); toast('The shift ended with nothing picked'); return; }
+  const bonus = reBonus(c), score = Math.round((c + bonus) * (1 + 0.025 * reOutfit()));
+  R.shifts += 1; R.best = Math.max(R.best, c);
+  const coins = Math.max(200, Math.round(rateC * score / 10)), pts = Math.max(60, Math.round(rateX * score / 10));
+  earn({ coins, points: pts });
+  const lot = { key: 'yellowbourbon.isl_reunion', kg: Math.max(1, Math.round(c * 0.5)), raked: Math.min(2, bonus / 40) };
+  let where; if (isleBin(lot)) where = 'went into the roastery bins in Osaka'; else if (S.route && S.route.shed.length < 3) { S.route.shed.push(lot); where = 'waits in the harbour shed until a bin is free'; } else where = 'sold green: +' + fmt(isleSell(lot).coins) + ' coins';
+  const got = [];
+  if (routeFind('re_first', true)) got.push('a cowrie for your first shift');
+  [[50, 're_50'], [75, 're_75'], [100, 're_100']].forEach(([n, id]) => { if (c >= n && routeFind(id, true)) got.push('a cowrie for ' + n + ' cherries in one shift'); });
+  if (c >= 50 && islePet(R, 'tuittuit', 60, 150)) { routeFind('re_pet', true); got.push('a tuit-tuit has decided to follow you home (Looks › companions)'); }
+  BEACON.ev('isle_run', { key: 're', m: c, p: S.prestige });
+  isleXp('re', score);
+  SFX.play('achieve');
+  showModal('<h2>Shift done</h2>' + img('bush_pointu_ripe', 54) + '<p class="note"><b>' + c + ' cherries</b> from ' + sh.n + ' seedlings' + (bonus ? ', +' + bonus + ' bonus' : '') + (reOutfit() ? ', +' + (reOutfit() * 2.5) + '% for the outfit' : '') + ': <b>' + score + ' points</b>.' + (reNextBonus(c) && c >= 40 ? ' The next bonus is at ' + reNextBonus(c) + '.' : '') + '</p>' +
+    '<p class="note">+' + score + ' nursery xp · +' + fmt(coins) + ' coins · +' + fmt(pts) + ' know-how</p><p class="note">' + lot.kg + ' kg of Bourbon Pointu ' + where + '.</p>' + (got.length ? '<p class="note"><b>Also:</b> ' + listAnd(got) + '.</p>' : '') + '<button class="btn green" data-act="close">Lovely</button>', true);
+}
+function reClick(lx, ly) {
+  const R = S.re; if (!R) return; reWalk(lx, ly);
+  if (Math.abs(lx - RE_LISE.x) < 9 && ly > RE_LISE.y - 24 && ly < RE_LISE.y + 3) { reLise(); return; }
+  for (let i = 0; i < RE_BEDS; i++) { const a = RE_BED(i); if (lx >= a.x - 2 && lx < a.x + RE_BED_W + 2 && ly >= a.y - 3 && ly < a.y + RE_BED_H + 2) { reBed(i); return; } }
+  if (lx >= RE_SHED.x && lx < RE_SHED.x + RE_SHED.w && ly >= RE_SHED.y && ly < RE_SHED.y + RE_SHED.h) { if (!R.sh) reStart(); else { SFX.play('brush'); floats.push({ x: RE_SHED.x + 25, y: RE_SHED.y + 6, text: R.sh.left ? R.sh.left + ' seedlings left to plant' : 'all planted', t: 0 }); } return; }
+  if (lx >= RE_CIST.x && lx < RE_CIST.x + RE_CIST.w && ly >= RE_CIST.y && ly < RE_CIST.y + RE_CIST.h) { reRefill(); return; }
+  if (lx >= RE_SACK.x && lx < RE_SACK.x + RE_SACK.w && ly >= RE_SACK.y && ly < RE_SACK.y + RE_SACK.h) { SFX.play('brush'); floats.push({ x: RE_SACK.x + 15, y: RE_SACK.y, text: R.sh ? 'this shift: ' + R.sh.cherries + ' cherries' : 'best shift: ' + R.best + ' cherries', t: 0 }); }
+}
+function reWalk(lx, ly) { const me = IN.re.me; if (!me) return; const x = Math.max(8, Math.min(W - 8, lx)), lane = ly < 262 ? Math.min(258, Math.max(114, Math.round((ly - 112) / 29) * 29 + 112)) : 290; me.path = [{ x: 96, y: me.y }, { x: 96, y: lane }, { x, y: lane }]; }   /* along the nursery's middle walk, then the row */
+function reLise() {
+  const R = S.re, sh = R.sh, dry = sh ? sh.beds.filter((b) => b && !b.dead && b.st < 3 && !b.wet).length : 0;
+  const say = !sh ? 'Bonjour! Take a batch from the shed when you\'re ready: ' + reBatch() + ' seedlings at your level.' + (R.best ? ' Your best shift is ' + R.best + ' cherries.' : '')
+    : dry ? dry + ' seedling' + (dry > 1 ? 's are' : ' is') + ' dry. A drop over the bed means it wants misting before its stage turns.' : sh.left ? 'Plant the rest: ' + sh.left + ' to go. Plant in a block, mist along the row, then refill.' : 'Everything is planted. Keep misting, and pick them as they fruit.';
+  SFX.play('tick'); showModal(npcCard('Tante Lise', LISE_LOOK, 'Réunion', say + ' ' + pickOf(['My grandmother said Pointu is shy: it needs you every stage, or it sulks.', 'The last sacks left this island in 1942. Now look at it.', 'Compost from your farms makes the seedlings hurry. Mine never did.', 'Fifty cherries is good. A hundred, now that would be something.'])));
+}
+function reHint() {   /* the arrow: the dry seedling closest to wilting, then one to pick, then the cistern for an empty can, then the shed */
+  const R = S.re; if (!R) return null; const sh = R.sh;
+  if (!sh) return [RE_SHED.x + 25, RE_SHED.y + 6];
+  let best = -1, bt = 1e9;
+  sh.beds.forEach((b, i) => { if (b && !b.dead && b.st < 3 && !b.wet && R.can > 0) { const t = reLeft(b); if (t < bt) { bt = t; best = i; } } });
+  if (best > -1) { const a = RE_BED(best); return [a.x + 19, a.y + 2]; }
+  const p = sh.beds.findIndex((b) => b && !b.dead && b.st >= 3); if (p > -1) { const a = RE_BED(p); return [a.x + 19, a.y + 2]; }
+  if (R.can <= 0 && sh.beds.some((b) => b && !b.dead && b.st < 3)) return [RE_CIST.x + 17, RE_CIST.y + 2];
+  if (sh.left > 0) { const e = sh.beds.findIndex((b) => !b); if (e > -1) { const a = RE_BED(e); return [a.x + 19, a.y + 6]; } }
+  return null;
+}
+IN.re = { me: null, lise: null };
+function drawReunion(time) {
+  const R = S.re, bg = sceneBg('reunion'), now = Date.now(); fx.imageSmoothingEnabled = false;
+  if (bg.complete && bg.naturalWidth) fx.drawImage(bg, 0, 0); else { fx.fillStyle = '#5A9C3C'; fx.fillRect(0, 0, W, H); }
+  if (!R) return;
+  if (!IN.re.me) { IN.re.me = walker(70, 290); IN.re.me.me = true; }
+  if (!IN.re.lise) IN.re.lise = walker(RE_LISE.x, RE_LISE.y, LISE_LOOK);
+  const me = IN.re.me; if (!step(me, 1 / 60, 40)) me.walk = 0;
+  const sh = R.sh, sm = reStageMs(), STG = ['sprout', 'young', 'flower', 'ripe'];
+  if (sh) sh.beds.forEach((b, i) => {
+    if (!b) return; const a = RE_BED(i), sp = sprite('bush_pointu_' + (b.dead ? 'sprout' : STG[Math.min(3, b.st)])), x = a.x + Math.round((RE_BED_W - sp.width) / 2), y = a.y + RE_BED_H - sp.height + 1;
+    if (b.wet) { fx.fillStyle = 'rgba(30,18,10,0.35)'; fx.fillRect(a.x + 2, a.y + 14, RE_BED_W - 4, 8); }   /* damp soil */
+    fx.drawImage(sp, x, y);
+    if (b.dead) { fx.fillStyle = 'rgba(138,106,58,0.65)'; fx.fillRect(x, y, sp.width, sp.height); return; }
+    if (b.st < 3) {   /* a bar to the next stage: green misted, red when dry and about to turn */
+      const u = Math.min(1, (now - b.at - b.st * sm) / sm), left = reLeft(b);
+      fx.fillStyle = '#2A1E14'; fx.fillRect(a.x + 3, a.y + RE_BED_H - 1, RE_BED_W - 6, 2); fx.fillStyle = b.wet ? '#7EB84C' : left <= 6 ? '#E8603A' : '#C8B080'; fx.fillRect(a.x + 3, a.y + RE_BED_H - 1, Math.round((RE_BED_W - 6) * u), 2);
+      if (!b.wet && (left > 6 || Math.floor(time * 4) % 2)) fx.drawImage(sprite('re_drop'), a.x + RE_BED_W - 8, a.y + 1);
+    } else if (Math.floor(time * 3 + i) % 5 === 0) fx.drawImage(sprite('sparkle'), a.x + 26, a.y + 2);
+  });
+  if (!sh || sh.left > 0) fx.drawImage(sprite('re_i_seed'), RE_SHED.x + 20, RE_SHED.y + 10);
+  if (R.sh || R.can < reCanMax()) fx.drawImage(sprite('re_can'), me.x + 3, me.y - 13);   /* the can, on your hip */
+  drawGuy(IN.re.lise); drawGuy(me); drawPet(me, 're');
+  bursts.forEach((p) => { fx.fillStyle = p.c; fx.fillRect(Math.round(p.x), Math.round(p.y), 1, 1); });
+  const hr = S.minutes / 60, tint = hr >= 20 || hr < 5 ? 'rgba(30,40,110,0.34)' : hr >= 17.5 ? 'rgba(240,120,40,' + (0.08 + (hr - 17.5) * 0.06).toFixed(2) + ')' : hr < 7 ? 'rgba(240,150,170,0.14)' : null;
+  if (tint) { fx.fillStyle = tint; fx.fillRect(0, 0, W, H); }
+  ctx.imageSmoothingEnabled = false; ctx.drawImage(frame, 0, 0, W * 2, H * 2); ctx.textAlign = 'center';
+  nameTag(me.x, me.y);
+  ctx.font = '700 13px "Pixelify Sans", monospace';
+  const tag = (tx, x, y, bg2, fg) => { const w = ctx.measureText(tx).width + 10; ctx.fillStyle = bg2; ctx.fillRect(x * 2 - w / 2, y * 2 - 14, w, 18); ctx.fillStyle = fg; ctx.fillText(tx, x * 2, y * 2); };
+  if (!sh) tag('START', RE_SHED.x + 25, RE_SHED.y + 2, '#3E2A1C', '#F2C04A');
+  else {
+    const nb = reNextBonus(sh.cherries); tag((sh.left ? sh.left + ' TO PLANT · ' : '') + sh.cherries + ' CHERRIES' + (nb ? ' · BONUS AT ' + nb : ''), 96, 113, '#3E2A1C', '#FFF4DE');
+    sh.beds.forEach((b, i) => { if (!b) return; const a = RE_BED(i); if (b.dead) tag('WILTED', a.x + 19, a.y + 8, '#3E2A1C', '#C8B060'); else if (b.st >= 3) tag('PICK', a.x + 19, a.y + 8, '#3E2A1C', '#F2C04A'); });
+  }
+  tag('CAN ' + R.can + '/' + reCanMax(), RE_CIST.x + 17, RE_CIST.y - 1, '#3E2A1C', R.can ? '#FFF4DE' : '#FF6A50');
+  drawHint('re', time);
+  drawFloats();
+}
+function rePanel() {
+  const R = S.re, sub = ['nursery', 'log'].includes(S.reSub) ? S.reSub : 'nursery', sh = R.sh;
+  let h = '<div class="seg">' + [['nursery', 'Nursery'], ['log', 'Log']].map(([k, t]) => '<button type="button" data-act="re_sub:' + k + '" aria-pressed="' + (sub === k) + '">' + t + '</button>').join('') + '</div>';
+  h += '<h2>Réunion · level ' + R.lv + '</h2><div class="bar"><i style="width:' + (R.lv >= 30 ? 100 : Math.round(R.xp / isleNeed(R.lv) * 100)) + '%"></i></div>';
+  if (sub === 'nursery') {
+    const nx = Object.keys(ISLE_UNLOCKS.re).map(Number).find((l) => l > R.lv);
+    h += '<p class="note"><b>Next:</b> ' + (nx ? 'level ' + nx + ' brings ' + ISLE_UNLOCKS.re[nx] : 'every nursery tool is yours') + '</p>';
+    h += help('re', 'Plant a batch of Pointu seedlings, mist each one once in every growth stage, and pick them for a score.', 'Take a batch of seedlings at the shed (' + reBatch() + ' at your level), and tap beds to plant them. Each seedling grows through three stages of ' + Math.round(reStageMs() / 1000) + ' seconds; mist it once in each stage, or it wilts when the stage turns. A drop over a bed means it\'s dry. The can holds ' + reCanMax() + ' mists; tap the cistern to refill it. A grown plant gives 5 cherries. A shift scores 1 point a cherry, +10 at 50 cherries, +25 more at 75 and +50 more at 100, so bigger batches pay much more. It pays nursery xp, coins and know-how (about a minute of your farm\'s income for every 10 points), and a lot of Bourbon Pointu for the Osaka bins. A shift waits while you\'re away.');
+    if (sh) h += '<h3>This shift</h3>' + row(img('re_i_seed', 28), sh.n + ' seedlings', (sh.left ? sh.left + ' still to plant · ' : '') + sh.cherries + ' cherries picked' + (reNextBonus(sh.cherries) ? ' · next bonus at ' + reNextBonus(sh.cherries) : ''), btn('End shift', 'picks what\'s fruiting', 're_end', true, 'gold'));
+    else h += '<div class="seg">' + btn('Start a shift', reBatch() + ' seedlings', 're_start', true, 'green') + '</div>';
+    h += row(img('re_can', 28), 'The can', R.can + ' / ' + reCanMax() + ' mists · refill at the cistern', '');
+    h += '<p class="note">From your farms: your compost heaps (' + sumBuild('compost') + ' levels) make seedlings grow ' + Math.round(25 * Math.min(1, sumBuild('compost') / 24)) + '% faster.' + (R.lv >= 10 ? ' Back home, a field you replant starts half grown.' : '') + (S.vars.pointu ? ' Bourbon Pointu grows on your farms.' : '') + '</p>';
+  } else {
+    h += row(img('bush_pointu_ripe', 28), 'Shifts', R.shifts + ' worked · best ' + R.best + ' cherries · ' + fmt(R.picked) + ' picked in all', '');
+    h += row(img('re_bird', 28), 'The tuit-tuit', (S.rev.pets || {}).tuittuit ? 'follows you home' : 'now and then a bird follows a shift of 50 or more home', '');
+    h += '<h3>Levels</h3>' + Object.keys(ISLE_UNLOCKS.re).map((l) => row(img('re_i_seed', 22), 'Level ' + l, ISLE_UNLOCKS.re[l].replace(/^./, (x) => x.toUpperCase()), R.lv >= +l ? btn('Yours', '', 'noop', false, 'blue') : btn('Locked', '', 'noop', false))).join('');
+  }
+  return h;
+}
+function reAct(a, v) {
+  if (a === 're_go') { closeModal(); goIsle('re'); return; }
+  const R = S.re; if (!R) return;
+  if (a === 're_sub') { S.reSub = v; SFX.play('tick'); }
+  else if (a === 're_start') { if (reStart()) setTab('farm', true); }
+  else if (a === 're_end') reEnd(true);
+}
+function reIntro() {
+  const R = S.re; if (!R || R.seen || !reHere() || !$('modal').hidden) return;
+  R.seen = true; BEACON.ev('isle_open', { key: 're', p: S.prestige });
+  showModal(npcCard('Tante Lise', LISE_LOOK, 'Réunion', 'Bonjour, and welcome to my nursery. This is Bourbon Pointu, born on this island two hundred years ago and nearly lost: the last sacks left in 1942. We\'re bringing it back. Take a batch of seedlings from the shed, plant them, and mist each one once in every stage, or it wilts. Pick them when they fruit. The more you bring through in one shift, the better it pays.'));
+}
+const reHud = () => { const R = S.re, sh = R && R.sh; return ['Réunion · Pointu nursery', R ? (sh ? (sh.left ? sh.left + ' to plant · ' : '') + sh.cherries + ' cherries this shift · can ' + R.can : 'level ' + R.lv + (R.best ? ' · best shift ' + R.best + ' cherries' : ' · take a batch at the shed')) : '']; };
+const reStatus = () => { const R = S.re; if (!R) return ['', false]; return R.sh ? ['a shift waiting: ' + R.sh.cherries + ' cherries so far', true] : ['level ' + R.lv + (R.best ? ' · best ' + R.best + ' cherries' : ''), false]; };
+ISLE_FN.re = { fresh: reFresh, tick: reTick, draw: drawReunion, click: reClick, hint: reHint, panel: rePanel, act: reAct, intro: reIntro, hud: reHud, status: reStatus, track: 'reunion' };
 /* ---------- player actions ---------- */
 let swipe = null, swipedAt = 0;   /* a quick sideways swipe on the map travels like the arrows: left for the next place, right for the one before */
 scroller.addEventListener('touchstart', (e) => { const t = e.touches[0]; swipe = e.touches.length === 1 ? { x: t.clientX, y: t.clientY, at: Date.now() } : null; }, { passive: true });
@@ -4668,6 +4925,7 @@ cv.addEventListener('click', (e) => {
   if (scene() === 'kona') { konaClick(lx, ly); return; }   /* random events stay on the mainland */
   if (scene() === 'bm') { bmClick(lx, ly); return; }
   if (scene() === 'hb') { hbClick(lx, ly); return; }
+  if (ISLE_IDS.includes(scene())) { ISLE_FN[scene()].click(lx, ly); return; }
   if (revClick(lx, ly)) return;   /* a random event's taps come first */
   if (scene() !== 'farm') { insideClick(lx, ly); return; }
   const f = S.farms[S.loc];
@@ -4705,18 +4963,19 @@ cv.addEventListener('click', (e) => {
 });
 function travel(dir) {
   if (S.pwalk === 4) { S.pwalk = 0; S.pwalkDone = true; }   /* the prestige walk's last arrow points here */
-  const ring = LOCS.concat(hbOpen() ? ['hb'] : [], bmOpen() ? ['bm'] : [], konaOpen() ? ['kona'] : []);   /* the islands come after Osaka: the harbour, Blue Mountain, then Kona Ridge */
-  let i = ring.indexOf(['hb', 'bm', 'kona'].includes(scene()) ? scene() : S.loc);
+  const ring = LOCS.concat(hbOpen() ? ['hb'] : [], bmOpen() ? ['bm'] : [], konaOpen() ? ['kona'] : [], ISLE_IDS.filter(isleOpen));   /* the islands come after Osaka: the harbour, Blue Mountain, Kona Ridge, then the newer islands */
+  let i = ring.indexOf(['hb', 'bm', 'kona'].concat(ISLE_IDS).includes(scene()) ? scene() : S.loc);
   i = (i + dir + ring.length) % ring.length;
-  if (ring[i] === 'kona') S.isle = true; else if (ring[i] === 'bm' || ring[i] === 'hb') S.isle = ring[i]; else { S.isle = false; S.loc = ring[i]; }
+  if (ring[i] === 'kona') S.isle = true; else if (ring[i] === 'bm' || ring[i] === 'hb' || ISLE_IDS.includes(ring[i])) S.isle = ring[i]; else { S.isle = false; S.loc = ring[i]; }
   if (tab === 'mill' || tab === 'roast') tab = 'farm';   /* the arrows lead back out to the farms */
   mapTab = 'farm'; if (sheetOpen) { $('panel').scrollTop = 0; showSheet(true); }   /* the menu stays as it was: open shows the new farm's page from its top, put away stays put away */
   refreshAll();
 }
 $('prevLoc').addEventListener('click', () => travel(-1));
 $('locTap').addEventListener('click', () => { SFX.play('tick'); showModal(placesCard()); });   /* tap the name: every farm and island in one list, with what needs you at each */
-const placeHere = () => (['hb', 'bm', 'kona'].includes(scene()) ? scene() : S.loc);
+const placeHere = () => (['hb', 'bm', 'kona'].concat(ISLE_IDS).includes(scene()) ? scene() : S.loc);
 function placeStatus(id) {   /* [what to show under a place's name, true when something there needs you] */
+  if (ISLE_IDS.includes(id)) return ISLE_FN[id].status();
   if (id === 'hb') { const R = S.route; if (!R) return ['', false]; if (R.voy.some((v) => v.home)) return ['the boat is home', true]; if (R.bottle) return ['a bottle washed up', true];
     if (BOARD.some((b) => !bdState(b))) return [routeCw() + ' cowries: a project to build', true]; const v = R.voy[0]; return [v ? VOY[v.to].name + ', ' + voyLeft(v.end - Date.now()) : routeCw() + ' cowries', false]; }
   if (id === 'bm') { const B = S.bm; if (!B) return ['', false]; const g = B.bbq.filter((b, j) => j < bmBays() && bmReady(b)).length, f = bmGradesOpen().filter((x) => B.bar[x] >= bmCap(x)).length;
@@ -4730,15 +4989,15 @@ function placeStatus(id) {   /* [what to show under a place's name, true when so
   return ['farm level ' + farmLevel(S.farms[id]), false];
 }
 function placesCard() {
-  const here = placeHere(), farms = LOCS.filter((l) => S.farms[l].unlocked), isles = [hbOpen() && 'hb', bmOpen() && 'bm', konaOpen() && 'kona'].filter(Boolean);
-  const name = (id) => (id === 'hb' ? 'The harbour' : id === 'bm' ? 'Blue Mountain' : id === 'kona' ? 'Kona Ridge' : ART.locations[id].name.split(',')[0]);
-  const pic = (id) => (id === 'hb' ? 'i_cowrie' : id === 'bm' ? 'bush_typica_ripe' : id === 'kona' ? 'k_i_tank' : 'stamp_' + id);
+  const here = placeHere(), farms = LOCS.filter((l) => S.farms[l].unlocked), isles = [hbOpen() && 'hb', bmOpen() && 'bm', konaOpen() && 'kona', ...ISLE_IDS.filter(isleOpen)].filter(Boolean);
+  const name = (id) => (ISLE_INFO[id] ? ISLE_INFO[id].name : id === 'hb' ? 'The harbour' : id === 'bm' ? 'Blue Mountain' : id === 'kona' ? 'Kona Ridge' : ART.locations[id].name.split(',')[0]);
+  const pic = (id) => (ISLE_INFO[id] ? ISLE_INFO[id].pic : id === 'hb' ? 'i_cowrie' : id === 'bm' ? 'bush_typica_ripe' : id === 'kona' ? 'k_i_tank' : 'stamp_' + id);
   const tile = (id) => { const [t, call] = placeStatus(id); return '<button type="button" class="place' + (id === here ? ' here' : '') + (call && id !== here ? ' call' : '') + '" data-act="goplace:' + id + '">' + img(pic(id), 30) + '<span><b>' + name(id) + (id === here ? ' · here' : '') + '</b><small>' + t + '</small></span></button>'; };
   const fl = barLvInfo();
   return '<h2>Where to?</h2>' + (fl ? '<p class="note">' + fl.text + '</p>' : '') + '<div class="places"><h3>Farms</h3>' + farms.map(tile).join('') + (isles.length ? '<h3>The islands</h3>' + isles.map(tile).join('') : '') + '</div><button class="btn" data-act="close">Stay here</button>';
 }
 function goPlace(id) {   /* travel straight to a farm or an island, the same way the arrows do */
-  if (id === 'kona') { if (!konaOpen()) return; S.isle = true; } else if (id === 'bm' || id === 'hb') { if (!(id === 'bm' ? bmOpen() : hbOpen())) return; S.isle = id; } else if (LOCS.includes(id) && S.farms[id].unlocked) { S.isle = false; S.loc = id; } else return;
+  if (ISLE_IDS.includes(id)) { if (!isleOpen(id)) return; S.isle = id; } else if (id === 'kona') { if (!konaOpen()) return; S.isle = true; } else if (id === 'bm' || id === 'hb') { if (!(id === 'bm' ? bmOpen() : hbOpen())) return; S.isle = id; } else if (LOCS.includes(id) && S.farms[id].unlocked) { S.isle = false; S.loc = id; } else return;
   if (tab === 'mill' || tab === 'roast') tab = 'farm';
   mapTab = 'farm'; if (sheetOpen) { $('panel').scrollTop = 0; showSheet(true); }
   refreshAll();
@@ -5407,7 +5666,7 @@ function placeArrow(t, pt) {   /* a bouncing arrow over what to tap; on the farm
   arrow.hidden = false; arrow.style.left = Math.round(x - 11) + 'px'; arrow.style.top = Math.round(y - 26) + 'px';
 }
 addEventListener('scroll', () => { if (!$('garrow').hidden) renderGuide(); }, { passive: true });
-const MAP_FOCUS = { farm: 0.3, mill: 0.2, roast: 0, hb: 0.55 };   /* where a scene taller than the screen opens: the share of what's out of view that sits above the top (fields, racks, the roaster bays and shelf) */
+const MAP_FOCUS = { farm: 0.3, mill: 0.2, roast: 0, hb: 0.55, re: 0.5 };   /* where a scene taller than the screen opens: the share of what's out of view that sits above the top (fields, racks, the roaster bays and shelf) */
 let mapScene = '';
 function mapFocus() {   /* a random event on this map: centred, whatever made the map move (a new scene, a resize) */
   const room = scroller.scrollHeight - scroller.clientHeight, E = (S.rev || {}).cur, b = E && REVS[E.id].here(E) ? REVS[E.id].box(E) : null;
@@ -5572,6 +5831,7 @@ function renderPanel() {
   if (tab === 'farm' && scene() === 'kona' && S.kona) { setHTML(P, h + konaPanel()); return; }   /* the island's own page */
   if (tab === 'farm' && scene() === 'bm' && S.bm) { setHTML(P, h + bmPanel()); return; }
   if (tab === 'farm' && scene() === 'hb' && S.route) { setHTML(P, h + hbPanel()); return; }
+  if (tab === 'farm' && ISLE_IDS.includes(scene()) && S[scene()]) { setHTML(P, h + ISLE_FN[scene()].panel()); return; }
   const fsub = S.tabs.upgrades && ['upgrades', 'build', 'staff'].includes(S.farmSub) ? S.farmSub : 'fields';
   if (tab === 'farm') h += farmSubtabs(fsub, f);
   if (tab === 'farm' && fsub === 'fields') {
@@ -5752,7 +6012,7 @@ function renderPanel() {
     h += '<div class="season"><b>' + tot + ' / ' + NB_MAX + ' stars</b><span>' + (next ? next[0] - tot + ' more for the "' + next[2] + '" title' + (next[1] === 'q' ? ' and the Master cupper charm' : '') : 'Every star collected. You are a Master cupper.') + '</span></div>';
     h += requestCard();
     h += '<div class="nbw"><table class="nb"><thead><tr><th></th>' + ms.map((m) => '<th title="' + METHODS[m].name + '">' + img(METHODS[m].art, 20) + '<small>' + METHODS[m].name.split(' ')[0] + '</small></th>').join('') + '</tr></thead><tbody>' +
-      VAR_ORDER.map((v) => '<tr><th>' + img('bush_' + v + (S.vars[v] ? '_ripe' : '_sprout'), 20) + '<small>' + ART.varieties[v] + '</small></th>' + ms.map((m) => {
+      plantVars().map((v) => '<tr><th>' + img('bush_' + v + (S.vars[v] ? '_ripe' : '_sprout'), 20) + '<small>' + ART.varieties[v] + '</small></th>' + ms.map((m) => {
         const can = S.vars[v] && S.methods[m], st = nbStars(v, m), c = nbCount(v, m), nx = NB_STARS.find((n) => c < n);
         return '<td class="' + (can ? '' : 'off') + (st === 3 ? ' full' : '') + (S.request && S.request.v === v && S.request.m === m ? ' asked' : '') + '"><b>' + (st ? '★'.repeat(st) : can ? '☆' : '·') + '</b>' + (can && nx ? '<small>' + fmt(c) + '/' + nx + '</small>' : '') + '</td>';
       }).join('') + '</tr>').join('') + '</tbody></table></div>';
@@ -5872,7 +6132,7 @@ function renderPanel() {
     h += btn(ready ? 'Prestige to ' + (S.prestige + 1) : 'Prestige at level ' + need, ready ? (S.prestige + 1 < TIERS.length ? 'unlocks the ' + TIERS[S.prestige + 1] + ' crest' : 'adds a star') : 'you are level ' + level(), 'prestigeAsk', ready, 'green');
     { const perks = Object.keys(BUILD_CAPS).map((p) => [+p, row(img('build_housing', 26), 'Bigger farms · prestige ' + p, 'Every building can go up to level ' + BUILD_CAPS[p] + '.', S.prestige >= +p ? btn('Yours', '', 'noop', false, 'blue') : btn('Locked', 'Prestige ' + p, 'noop', false))]).concat(Object.keys(PERKS).map((p) => [+p, row(img('i_cup', 26), PERKS[p].name + ' · prestige ' + p, PERKS[p].text, S.prestige >= +p ? btn('Yours', '', 'noop', false, 'blue') : btn('Locked', 'Prestige ' + p, 'noop', false))]),
         [[BM_P, row(img('bush_typica_ripe', 26), 'Blue Mountain and the harbour · prestige ' + BM_P, 'Typica on terraces in the mist, graded by hand into barrels, and a harbour where the islands\' treasure builds projects and the boat sails for rare coffee.', S.prestige >= BM_P ? btn('Go', '', 'bm_go', true, 'blue') : btn('Locked', 'Prestige ' + BM_P, 'noop', false))],
-         [KONA_P, row(img('k_i_tank', 26), 'Kona Ridge · prestige ' + KONA_P, 'The co-fermentation island: coffee and fruit in tanks, orders on the co-op boat. Or chart the passage sooner from the harbour board.', konaOpen() ? btn('Go', '', 'k_go', true, 'blue') : btn('Locked', 'Prestige ' + KONA_P, 'noop', false))]]).sort((a, b) => a[0] - b[0]);
+         [KONA_P, row(img('k_i_tank', 26), 'Kona Ridge · prestige ' + KONA_P, 'The co-fermentation island: coffee and fruit in tanks, orders on the co-op boat. Or chart the passage sooner from the harbour board.', konaOpen() ? btn('Go', '', 'k_go', true, 'blue') : btn('Locked', 'Prestige ' + KONA_P, 'noop', false))], ...ISLE_IDS.map((id) => [ISLE_INFO[id].p, row(img(ISLE_INFO[id].pic, 26), ISLE_INFO[id].name + ' · prestige ' + ISLE_INFO[id].p, ISLE_INFO[id].perk, isleOpen(id) ? btn('Go', '', id + '_go', true, 'blue') : btn('Locked', S.prestige >= ISLE_INFO[id].p ? 'from the harbour board' : 'Prestige ' + ISLE_INFO[id].p, 'noop', false))])]).sort((a, b) => a[0] - b[0]);
       const next = perks.filter(([p]) => p > S.prestige), owned = perks.length - next.length;   /* the next perk to come, with the rest behind a tap */
       h += '<p class="note"><b>Prestige perks</b> · ' + owned + ' of ' + perks.length + ' yours <button type="button" class="linkbtn" data-act="perksopen">' + (S.perksOpen ? 'hide' : 'see all') + '</button></p>' + (S.perksOpen ? perks.map((x) => x[1]).join('') : next.filter(([p]) => p === (next[0] || [0])[0]).map((x) => x[1]).join('')); }
     }
@@ -5925,7 +6185,7 @@ function renderPanel() {
     h += ownStrip(cAll.filter(cOwn).map((id) => [chipImg(url(bodyOf(normLook({ crest: S.look.crest, skin: S.look.skin, bg: S.look.bg, char: id })) + 'down_0', skinLook(S.look.skin))), ART.chars[id] ? ART.chars[id].name : 'Farmer', 'char:' + id, S.look.char === id ? 'on' : 'no']), 'Tap a farmer to play as them.') + '<div class="grid2">' + cAll.filter((id) => !cOwn(id)).map((id) => { const c = ART.chars[id];
       return '<div class="tile">' + avatar({ crest: S.look.crest, skin: S.look.skin, bg: S.look.bg, char: id }, 56) + '<b>' + c.name + '</b><span>From ' + c.from + '</span>' + btn('Buy', c.cost + ' cranes', 'buychar:' + id, S.cranes >= c.cost) + '</div>';
     }).join('') + '</div>';
-    const hatKeys = Object.keys(ART.hats).filter((k) => !(k.startsWith('s_') || k.startsWith('ev_')) || S.hats[k]), hatName = (k) => ({ straw: 'Straw', beju: 'Beju green', sakura: 'Sakura', indigo: 'Indigo', harvest: 'Harvest orange', ev_bee: 'Beekeeper' })[k] || themeById(k).name + ' (season)', hatPic = (k) => url('worker_down_0', { hat: ART.hats[k] });
+    const hatKeys = Object.keys(ART.hats).filter((k) => !(k.startsWith('s_') || k.startsWith('ev_')) || S.hats[k]), hatName = (k) => ({ straw: 'Straw', beju: 'Beju green', sakura: 'Sakura', indigo: 'Indigo', harvest: 'Harvest orange', ev_bee: 'Beekeeper', ev_re_straw: 'Nursery straw' })[k] || themeById(k).name + ' (season)', hatPic = (k) => url('worker_down_0', { hat: ART.hats[k] });
     h += '<h3>Picker hats</h3><p class="note">Hats for your pickers, bought with cranes.</p>' + ownStrip(hatKeys.filter((k) => S.hats[k]).map((k) => [chipImg(hatPic(k)), hatName(k), 'hat:' + k, S.hat === k ? 'on' : 'no']), 'Tap a hat for your pickers to wear it.') + '<div class="grid2">' + hatKeys.filter((k) => !S.hats[k]).map((k) => {
       const cost = { straw: 0, beju: 15, sakura: 20, indigo: 15, harvest: 20 }[k];
       return '<div class="tile"><div style="display:flex;align-items:center;gap:6px"><img src="' + hatPic(k) + '" alt="" style="width:32px;image-rendering:pixelated"><b>' + hatName(k) + '</b></div>' + btn('Buy', cost + ' cranes', 'buyhat:' + k, S.cranes >= cost) + '</div>';
@@ -5996,6 +6256,7 @@ function renderPanel() {
     h += '<h3>Simulate a bejucoffee.com order</h3><div class="seg">' + Object.keys(COFFEES).map((k) => '<button type="button" data-act="order:' + k + '">' + COFFEES[k].name + '</button>').join('') + '</div>';
     h += '<div class="stamps">' + LOCS.map((l) => '<img src="' + url('stamp_' + l) + '" alt="' + ART.locations[l].name + (S.stamps[l] ? ', stamped' : ', not yet') + '" class="' + (S.stamps[l] ? '' : 'off') + ((S.goldStamps || {})[l] ? ' gold' : '') + '">').join('') + '</div>';
     h += '<h3>Resources</h3><div class="seg"><button type="button" data-act="add:coins">+1,000 coins</button><button type="button" data-act="add:bigcoins">+25,000 coins</button><button type="button" data-act="add:contracts">New contracts</button><button type="button" data-act="add:checkin">Next real day</button><button type="button" data-act="add:drop">Start a drop event</button><button type="button" data-act="add:season">End the season</button><button type="button" data-act="add:stars">+50 season stars</button><button type="button" data-act="add:guide">Restart guide</button><button type="button" data-act="add:points">+2,000 know-how</button><button type="button" data-act="add:cranes">+50 cranes</button><button type="button" data-act="add:vars">All varieties</button><button type="button" data-act="add:xp">+1 level</button><button type="button" data-act="add:cherries">Fill storage</button><button type="button" data-act="add:stamp">Next passport stamp</button><button type="button" data-act="add:sample">Next free sample</button><button type="button" data-act="add:days">+20 check-in days</button></div>';
+    h += '<h3>Réunion</h3><div class="seg"><button type="button" data-act="retest:open">' + (isleOpen('re') ? 'Go to Réunion' : 'Open Réunion early') + '</button><button type="button" data-act="retest:lv">+1 nursery level</button><button type="button" data-act="retest:grow">Grow every seedling a stage</button></div>';
     h += '<h3>The harbour</h3><div class="seg"><button type="button" data-act="hbtest:open">' + (hbOpen() ? 'Go to the harbour' : 'Open the harbour early') + '</button><button type="button" data-act="hbtest:cw">+5 cowries</button><button type="button" data-act="hbtest:home">Bring the boat home</button><button type="button" data-act="hbtest:bottle">A bottle washes up</button></div>';
     h += '<h3>Blue Mountain</h3><div class="seg"><button type="button" data-act="bmtest:open">' + (bmOpen() ? 'Go to Blue Mountain' : 'Open Blue Mountain early') + '</button><button type="button" data-act="bmtest:ripe">Ripen every terrace</button><button type="button" data-act="bmtest:rest">Rest every batch</button><button type="button" data-act="bmtest:lv">+1 certification</button></div>';
     h += '<h3>Kona Ridge</h3><div class="seg"><button type="button" data-act="konatest:open">' + (konaOpen() ? 'Go to Kona Ridge' : 'Open Kona Ridge early') + '</button><button type="button" data-act="konatest:shells">+5 cowries</button><button type="button" data-act="konatest:lv">+1 island level</button><button type="button" data-act="konatest:stock">+ash, compost, fruit, cherries</button></div>';
@@ -6039,6 +6300,7 @@ document.addEventListener('click', (e) => {
   else if (a.startsWith('k_')) konaAct(a, v);
   else if (a.startsWith('bm_')) bmAct(a, v);
   else if (a.startsWith('hb_')) hbAct(a, v);
+  else if (ISLE_IDS.some((id) => a.startsWith(id + '_'))) ISLE_FN[a.split('_')[0]].act(a, v);
   else if (a === 'goplace') { closeModal(); goPlace(v); }
   else if (a === 'sheetmin') { SFX.play('click'); showSheet(false); }
   else if (a === 'coachgo') { closeModal(); if (v === 'ranks') S.rankSub = 'board'; if (v === 'season') { S.rankSub = 'season'; setTab('ranks'); return; } setTab(v); }
@@ -6174,13 +6436,13 @@ document.addEventListener('click', (e) => {
   else if (a === 'unage') { unageLot(+v); estRefresh('turrialba'); }
   else if (a === 'plantgo') { closeModal(); const home = (VAR_HOME[v] || []).find((l) => S.farms[l].unlocked && !S.dormant[l]); if (home) S.loc = home; S.isle = false; S.farmSub = 'fields'; setTab('farm'); toast('Tap a field to plant ' + ART.varieties[v]); }
   else if (a === 'crackgo') { const i = S.roastery.roasters.findIndex((r) => inCrack(r) && !r.crack); if (i > -1) crackRoast(i); }
-  else if (a === 'taskgo') { S.farmSub = 'fields'; if (v === 'kona') { goKona(); return; } if (v === 'counter') { S.roastSub = 'counter'; v = 'roast'; } setTab(v); }
-  else if (a === 'replantask') showModal('<h2>Replant all</h2><p class="note">Every field on every open farm switches to the coffee you choose and starts again from sprouts. Each farm keeps one native field, or gets one if you own a coffee native there, so terroir stays on.</p>' + VAR_ORDER.filter((x) => S.vars[x]).map((x) => row(img('bush_' + x + '_ripe', 30), ART.varieties[x], VAR[x].kg + ' kg a pick · ×' + VAR[x].value + ' price', btn('Plant everywhere', '', 'replantall:' + x, true, 'green'))).join('') + '<button class="btn" data-act="close">Cancel</button>');
+  else if (a === 'taskgo') { S.farmSub = 'fields'; if (v === 'kona') { goKona(); return; } if (ISLE_IDS.includes(v)) { goIsle(v); return; } if (v === 'counter') { S.roastSub = 'counter'; v = 'roast'; } setTab(v); }
+  else if (a === 'replantask') showModal('<h2>Replant all</h2><p class="note">Every field on every open farm switches to the coffee you choose and starts again ' + (S.re && S.re.lv >= 10 ? 'half grown, with seedlings from Tante Lise\'s nursery.' : 'from sprouts.') + ' Each farm keeps one native field, or gets one if you own a coffee native there, so terroir stays on.</p>' + plantVars().filter((x) => S.vars[x]).map((x) => row(img('bush_' + x + '_ripe', 30), ART.varieties[x], VAR[x].kg + ' kg a pick · ×' + VAR[x].value + ' price', btn('Plant everywhere', '', 'replantall:' + x, true, 'green'))).join('') + '<button class="btn" data-act="close">Cancel</button>');
   else if (a === 'replantall') { if (hasPerk('replantall') && S.vars[v]) { const n = replantAll(v); closeModal(); SFX.play('dig'); toast(n ? n + ' field' + (n > 1 ? 's' : '') + ' replanted with ' + ART.varieties[v] : 'Every field already grows ' + ART.varieties[v]); } }
   else if (a === 'bed') {
     const b = +v, cur = f.beds[b];
     const lastNative = isNative(f.loc, cur) && f.beds.slice(0, f.field ? 4 : 3).filter((x) => isNative(f.loc, x)).length === 1;
-    showModal('<h2>Replant field ' + (b + 1) + '</h2><p class="note">Now growing ' + ART.varieties[cur] + '. Replanting starts the field again from sprouts. Natives here: ' + nativeNames(f.loc) + '. They grow 20% faster, and one native field gives the whole farm +15% cherries from every pick.' + (lastNative ? ' <b>This is your only native field: planting a non-native here turns the terroir bonus off.</b>' : '') + '</p>' + VAR_ORDER.filter((x) => S.vars[x] || (eventDrop() && eventDrop().variety === x)).map((x) => row(img('bush_' + x + '_ripe', 30), ART.varieties[x] + (isNative(f.loc, x) ? ' · native' : ''), VAR[x].kg + ' kg a pick · ×' + VAR[x].value + ' price' + (wanted(x).length ? ' · <b>wanted by ' + [...new Set(wanted(x).map((c) => c.buyer.split(',')[0]))].join(', ') + '</b>' : ''), btn(x === cur ? 'Growing' : 'Plant', '', 'plant:' + b + '.' + x, x !== cur, 'green'))).join('') + '<button class="btn" data-act="close">Cancel</button>');
+    showModal('<h2>Replant field ' + (b + 1) + '</h2><p class="note">Now growing ' + ART.varieties[cur] + '. ' + (S.re && S.re.lv >= 10 ? 'Replanting starts the field half grown, with seedlings from Tante Lise\'s nursery.' : 'Replanting starts the field again from sprouts.') + ' Natives here: ' + nativeNames(f.loc) + '. They grow 20% faster, and one native field gives the whole farm +15% cherries from every pick.' + (lastNative ? ' <b>This is your only native field: planting a non-native here turns the terroir bonus off.</b>' : '') + '</p>' + plantVars().filter((x) => S.vars[x] || (eventDrop() && eventDrop().variety === x)).map((x) => row(img('bush_' + x + '_ripe', 30), ART.varieties[x] + (isNative(f.loc, x) ? ' · native' : ''), VAR[x].kg + ' kg a pick · ×' + VAR[x].value + ' price' + (wanted(x).length ? ' · <b>wanted by ' + [...new Set(wanted(x).map((c) => c.buyer.split(',')[0]))].join(', ') + '</b>' : ''), btn(x === cur ? 'Growing' : 'Plant', '', 'plant:' + b + '.' + x, x !== cur, 'green'))).join('') + '<button class="btn" data-act="close">Cancel</button>');
     return;
   }
   else if (a === 'plant') { const [b, x] = v.split('.'); if (S.vars[x] || (eventDrop() && eventDrop().variety === x)) { replantBed(f, +b, x); closeModal(); guideStep('plant'); toast('Field ' + (+b + 1) + ' planted with ' + ART.varieties[x]); } }
@@ -6233,6 +6495,7 @@ document.addEventListener('click', (e) => {
     if (v === 'cherries') { const vv = S.farms[S.loc].beds[0]; S.cherries[vv] = (S.cherries[vv] || 0) + (cap() - stored()); }
   }
   else if (a === 'away') away(+v);
+  else if (a === 'retest') { if (!S.re) S.re = reFresh(); if (v === 'open') { S.re.test = true; goIsle('re'); } if (v === 'lv') isleXp('re', isleNeed(S.re.lv) - S.re.xp); if (v === 'grow' && S.re.sh) S.re.sh.beds.forEach((b) => { if (b && !b.dead && b.st < 3) { b.wet = true; b.at -= reStageMs(); } }); }
   else if (a === 'hbtest') { if (!S.bm) S.bm = bmFresh(); if (v === 'open') { S.bm.test = true; if (!S.route) S.route = routeFresh(); goHb(); } if (!S.route) return; if (v === 'cw') routeGive(5, 'Test cowries'); if (v === 'home') S.route.voy.forEach((x) => { x.end = Date.now() - 1; }); if (v === 'bottle') S.route.bottle = true; }
   else if (a === 'bmtest') { if (!S.bm) S.bm = bmFresh(); if (v === 'open') { S.bm.test = true; goBm(); } if (v === 'rest') S.bm.bbq.forEach((b) => { b.at -= 24 * 3600e3; }); if (v === 'lv') bmXp(bmNeed(S.bm.lv) - S.bm.xp); if (v === 'ripe') S.bm.ter.forEach((t) => { t.pool = BM_RATE * BM_POOL_H; }); }
   else if (a === 'konatest') { if (!S.kona) S.kona = konaFresh(); if (v === 'open') { S.kona.test = true; goKona(); } if (v === 'shells') routeGive(5, 'Test cowries'); if (v === 'lv') kXp(kNeed(S.kona.lv) - S.kona.xp); if (v === 'stock') { S.kona.ash += 30; S.kona.compost += 10; S.kona.fruit.mango += 60; const vv = S.kona.plots[0].v; S.kona.cherries[vv] = (S.kona.cherries[vv] || 0) + 400; } }
@@ -6250,7 +6513,7 @@ function farmLvInfo() {   /* this farm's own level and its next milestone, once 
   return { lv, badge: 'Lv ' + lv, pct: Math.round(next ? (lv - (prev ? prev.lv : 0)) / (next.lv - (prev ? prev.lv : 0)) * 100 : 100),
     text: nm + ' farm level ' + lv + '. ' + (next ? 'Next at ' + next.lv + ': ' + next.label(S.loc) + '.' : 'Every milestone reached.') + ' Buildings, a manager, the fourth field and mastery raise it.' };
 }
-const barLvInfo = () => (scene() === 'farm' ? farmLvInfo() : scene() === 'roast' ? repInfo() : scene() === 'kona' ? konaInfo() : scene() === 'bm' ? bmInfo() : scene() === 'hb' ? hbInfo() : null);
+const barLvInfo = () => (scene() === 'farm' ? farmLvInfo() : scene() === 'roast' ? repInfo() : scene() === 'kona' ? konaInfo() : scene() === 'bm' ? bmInfo() : scene() === 'hb' ? hbInfo() : ISLE_IDS.includes(scene()) ? isleInfo(scene()) : null);
 function refreshHud() {
   const L = ART.locations[S.loc], sea = season(S.loc);
   $('locName').textContent = L.name;
@@ -6264,8 +6527,9 @@ function refreshHud() {
     if (on) { const t = fl.badge; if ($('locLv').textContent !== t) $('locLv').textContent = t; $('locLvBar').firstChild.style.width = fl.pct + '%'; $('locTap').setAttribute('aria-label', fl.text); } else $('locTap').removeAttribute('aria-label'); }
   { const E = (S.rev || {}).cur, d = E && revMap(E) === 'farm' && E.loc !== S.loc ? (LOCS.indexOf(E.loc) - LOCS.indexOf(S.loc) + LOCS.length) % LOCS.length : 0;   /* the arrow the short way to a farm with trouble */
     $('nextLoc').classList.toggle('evt', d > 0 && d <= LOCS.length / 2); $('prevLoc').classList.toggle('evt', d > LOCS.length / 2); }
-  $('locTap').classList.toggle('call', [...LOCS.filter((l) => S.farms[l].unlocked), hbOpen() && 'hb', bmOpen() && 'bm', konaOpen() && 'kona'].some((id) => id && id !== placeHere() && placeStatus(id)[1]));   /* a dot by the name: somewhere else needs you */
+  $('locTap').classList.toggle('call', [...LOCS.filter((l) => S.farms[l].unlocked), hbOpen() && 'hb', bmOpen() && 'bm', konaOpen() && 'kona', ...ISLE_IDS.filter(isleOpen)].some((id) => id && id !== placeHere() && placeStatus(id)[1]));   /* a dot by the name: somewhere else needs you */
   if (sc === 'mill') { $('locName').textContent = 'Dry mill'; $('locBeds').textContent = S.lots.length + ' / ' + racks() + ' racks in use · ' + (boatLeft() ? 'boat: ' + fmt(boatLeft()) + ' kg to go' : fmtKg(stored()) + ' kg of cherries waiting'); }   /* the trader's boat, while it waits */
+  if (ISLE_IDS.includes(sc)) { const [n, b] = ISLE_FN[sc].hud(); $('locName').textContent = n; $('locBeds').textContent = b; }
   if (sc === 'hb') { const R = S.route; $('locName').textContent = 'The harbour'; $('locBeds').textContent = R ? fmt(routeCw()) + ' cowries to spend · ' + (R.voy.length ? R.voy.map((v) => v.home ? VOY[v.to].name + ': home' : VOY[v.to].name + ' ' + voyLeft(v.end - Date.now())).join(' · ') : bdOn('pier') ? 'the boat is in' : 'the pier needs mending') : ''; }
   if (sc === 'bm') { const B = S.bm; $('locName').textContent = 'Blue Mountains, Jamaica'; $('locBeds').textContent = B ? fmtKg(bmRipe()) + ' kg ripe · ' + B.bbq.filter(bmReady).length + ' to grade · ' + bmGradesOpen().filter((g) => B.bar[g] >= bmCap(g)).length + ' to ship' : ''; }
   if (sc === 'kona') { const K = S.kona; $('locName').textContent = 'Kona Ridge, Hawaiʻi'; $('locBeds').textContent = K ? fmt(routeCw()) + ' cowries · ' + fmt(K.ash) + ' ash · ' + fmt(K.bags) + ' bags' : ''; }
@@ -6283,7 +6547,7 @@ function refreshHud() {
   $('hudCoins').innerHTML = icon('i_coin') + fmt(S.coins);
   $('hudCranes').innerHTML = icon('i_crane') + S.cranes;
   const full = stored() >= cap();
-  $('hudStore').innerHTML = icon('i_cherry') + '<span style="color:' + (full ? '#FF9A8A' : '#FFF4DE') + '">' + fmt(stored()) + '/' + fmt(cap()) + '</span>'; $('hudStore').style.display = scene() === 'bm' || scene() === 'hb' ? 'none' : '';   /* mainland storage means nothing up the mountain, and its pill would sit on the top terrace on a small phone */
+  $('hudStore').innerHTML = icon('i_cherry') + '<span style="color:' + (full ? '#FF9A8A' : '#FFF4DE') + '">' + fmt(stored()) + '/' + fmt(cap()) + '</span>'; $('hudStore').style.display = scene() === 'bm' || scene() === 'hb' || ISLE_IDS.includes(scene()) ? 'none' : '';   /* mainland storage means nothing up the mountain, and its pill would sit on the top terrace on a small phone */
   const mins = Math.floor(S.minutes), hr = mins / 60, night = hr >= 19 || hr < 6;
   $('clock').textContent = String(Math.floor(hr)).padStart(2, '0') + ':' + String(mins % 60).padStart(2, '0');
   $('day').textContent = S.day;
@@ -6833,10 +7097,10 @@ function loop(t) {
   playBehind();
   if (scene() !== mapScene) { mapScene = scene(); mapFocus(); }   /* each scene opens where its work is */
   const dt = Math.min(0.05, (t - last) / 1000); last = t;
-  tick(dt); revTick(dt); counterTick(dt); konaTick(); bmTick(); routeTick(); draw(t / 1000);
+  tick(dt); revTick(dt); counterTick(dt); konaTick(); bmTick(); routeTick(); ISLE_IDS.forEach((id) => ISLE_FN[id].tick()); draw(t / 1000);
   uiT += dt; saveT += dt;
   if (toastT > 0) { toastT -= dt; if (toastT <= 0) { if (toastQ.length) toast(toastQ.shift()); else $('toast').hidden = true; } }
-  if (uiT > 0.5) { uiT = 0; refreshHud(); syncMusic(); if (!panelBusy()) { if (!(document.activeElement && document.activeElement.matches('#panel select, #panel input, #panel textarea'))) renderPanel();   /* a menu or box you're using stays open while you use it */ checkTabs(); renderTabs(); renderGuide(); } harvestSync(); coopSync(); coeTick(); konaIntro(); bmIntro(); hbIntro(); bmTease(); dropLater(); }
+  if (uiT > 0.5) { uiT = 0; refreshHud(); syncMusic(); if (!panelBusy()) { if (!(document.activeElement && document.activeElement.matches('#panel select, #panel input, #panel textarea'))) renderPanel();   /* a menu or box you're using stays open while you use it */ checkTabs(); renderTabs(); renderGuide(); } harvestSync(); coopSync(); coeTick(); konaIntro(); bmIntro(); hbIntro(); ISLE_IDS.forEach((id) => ISLE_FN[id].intro()); bmTease(); dropLater(); }
   if (saveT > 5) { saveT = 0; save(); }
   requestAnimationFrame(loop);
 }
@@ -6864,7 +7128,7 @@ function audioStart() {   /* browsers only allow sound after a tap, so everythin
   SFX.unlock(); Cozy.init(SFX.context()); syncMusic();
 }
 document.addEventListener('pointerdown', audioStart, true);
-const trackFor = () => (scene() === 'roast' ? 'roastery' : scene() === 'kona' ? 'kona' : scene() === 'bm' ? 'bluemtn' : scene() === 'hb' ? 'harbour' : S.loc);   /* every farm plays its own theme, open or not; the roastery has its own kissaten jazz */
+const trackFor = () => (scene() === 'roast' ? 'roastery' : scene() === 'kona' ? 'kona' : scene() === 'bm' ? 'bluemtn' : scene() === 'hb' ? 'harbour' : ISLE_IDS.includes(scene()) ? ISLE_FN[scene()].track : S.loc);   /* every farm plays its own theme, open or not; the roastery has its own kissaten jazz */
 function syncMusic() {
   Cozy.setVolume(S.musicVol); Cozy.setEnabled(S.music);
   const hr = S.minutes / 60; Cozy.setNight(hr >= 19 || hr < 6);

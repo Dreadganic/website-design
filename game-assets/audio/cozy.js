@@ -18,6 +18,7 @@ const STYLE = {
   osaka:     { tempo: 0.9,  lead: 'shakuhachi', comp: 'koto',   perc: 'taiko',    about: 'A breathy shakuhachi over rolled koto chords and strings, with taiko heard from across the valley.' },
   bluemtn:   { tempo: 0.82, lead: 'melodica',   comp: 'offbeat', perc: 'shaker',  about: 'A breathy melodica over soft guitar upstrokes on the off-beat and a shaker, slow as the mist lifting.' },
   kona:      { tempo: 0.84, lead: 'steel',      comp: 'uke',    perc: 'ipu',      swing: 0.18, about: 'A sliding steel guitar sings over a soft ukulele strum, with the knock of an ipu gourd and a shaker, a little swung.' },
+  reunion:   { tempo: 0.86, lead: 'krar',       comp: 'offbeat', perc: 'shaker',  about: 'A plucked lead bends into each note like the bobre bow, over soft off-beat strums and a kayamb shuffle, rolling in 6/8.' },
   harbour:   { tempo: 0.84, lead: 'mallet',     comp: 'bossa',  perc: 'shaker',   swing: 0.12, about: 'Soft steel-drum mallets carry a shanty over a lazy nylon strum and a shaker, like a quay at sundown with the boat in.' },
   roastery:  { tempo: 0.86, lead: 'vibes',      comp: 'jazz',   perc: 'brush',    walk: true, swing: 0.32, about: 'Vibraphone over Rhodes shells, a walking upright bass and brushes, swung lazily like a kissaten record.' }
 };

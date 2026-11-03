@@ -22,9 +22,9 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
   const bags = (n) => E((n) => { const S = window.__T.S; S.roastery.bags = Array.from({ length: n }, (_, i) => ({ key: 'caturra.washed', profile: 'medium', kg: 1, coins: 100 + i, pts: 10, q: 70, cup: 85 })); }, n);
 
   /* the ledger and the board, as data */
-  ok(await E(() => window.__T.LEDGER.length === 56 && new Set(window.__T.LEDGER.map((e) => e.id)).size === 56), 'the ledger holds 56 different finds');
-  ok(await E(() => { const L = window.__T.LEDGER; return ['hb', 'bm', 'kona', 'farm'].map((i) => L.filter((e) => e.isle === i).length).join() === '8,22,22,4'; }), 'eight at the harbour, 22 on each island, four on the farm');
-  ok(await E(() => window.__T.BOARD.reduce((a, b) => a + b.cost, 0) === 53 && window.__T.BOARD.length === 12), 'twelve projects cost 53 cowries in all, so a few finds can be missed');
+  ok(await E(() => window.__T.LEDGER.length === 66 && new Set(window.__T.LEDGER.map((e) => e.id)).size === 66), 'the ledger holds 66 different finds (56, and 10 from Réunion)');
+  ok(await E(() => { const L = window.__T.LEDGER; return ['hb', 'bm', 'kona', 're', 'farm'].map((i) => L.filter((e) => e.isle === i).length).join() === '8,22,22,10,4'; }), 'eight at the harbour, 22 on Blue Mountain and Kona, 10 on Réunion, four on the farm');
+  ok(await E(() => window.__T.BOARD.reduce((a, b) => a + b.cost, 0) === 59 && window.__T.BOARD.length === 13), 'thirteen projects (Réunion\'s nursery among them) cost 59 cowries in all, so a few finds can be missed');
 
   /* closed before prestige 5, then the harbour sits between Osaka and Blue Mountain */
   await setup(4); await clean();

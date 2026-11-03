@@ -59,5 +59,6 @@ node game-assets/sim/islands_e2e.js /tmp/test.html /tmp/isl        # the harbour
 node game-assets/sim/islands_layout.js /tmp/test.html /tmp/isllay  # every harbour spot, Miss Pearl and Uncle Kimo, clear of the interface on six phone sizes
 node game-assets/sim/kona_pace.js /tmp/test.html 6                 # Kona in real time: what the co-op boat pays a minute, the island level, tools and cowries
 node game-assets/sim/nav_e2e.js /tmp/test.html /tmp/nav             # getting around: "Where to?" from the place name, one-tap travel, the dot when another place needs you, swiping the map (13 checks)
+node game-assets/sim/reunion_e2e.js /tmp/test.html /tmp/re           # Réunion's nursery: opening from the board, shifts (plant, mist, wilt, fruit, pick, the can), pausing, the score and its pay, levels, Bourbon Pointu at home, the tuit-tuit, a reload (44 checks)
 ```
 The design is the "Island chain" tab of the next-features doc. Test tools in Settings › Test tools › The harbour open it early, add cowries, bring the boat home and wash up a bottle. Test tools in Settings › Test tools open the island early, ripen the terraces, rest the batches and add a certification.
