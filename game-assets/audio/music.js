@@ -119,6 +119,18 @@ const SONGS = [
         lead: ['E5:6 G5:4 B5:2', 'C6:6 B5:2 A5:4', 'B5:4 G5:2 D5:2 G5:4', 'A5:9 -:3', 'G5:4 B5:2 E6:4 D6:2', 'C6:4 A5:2 G5:2 E5:4', 'A5:2 B5:2 C6:2 D6:2 C6:2 A5:2', 'G5:12'] }
     }, form: ['intro', 'A', 'B', 'A'] },
 
+  { id: 'bali', farm: 'Bali, the Kintamani co-op', title: 'Hujan di Batur', blurb: 'Gamelan lullaby · E pelog',
+    about: 'Rain coming in over Lake Batur. Balinese gamelan is bronze and bamboo, tuned to its own scales; this tune keeps to five notes of pelog, the scale with the half steps that makes gamelan sound like nothing else. Bell-like mallets carry the melody over a quick interlocking figure, with a deep gong closing every two bars.',
+    parts: ['Bell-like mallet lead, like the gangsa', 'Quick interlocking figure', 'Deep gong every two bars', 'Soft shaker and the odd kendang drum'],
+    bpm: 74, beat: 4, bar: 16, lead: { duty: 0.25, decay: 3, floor: 0.3, vib: 4, vibRate: 6, gain: 0.14 }, arp: { style: 'broken', duty: 0.25, decay: 1.5, floor: 0.2, gain: 0.05 }, bass: { style: 'lake', gain: 0.17 }, noise: { style: 'lake', gain: 0.03 },
+    sections: {
+      intro: { name: 'Intro', chords: [['Em'], ['Fmaj7']], lead: ['-:16', '-:8 B4:4 C5:4'] },
+      A: { name: 'A', chords: [['Em'], ['C'], ['Fmaj7'], ['Em'], ['Em'], ['C'], ['Fmaj7'], ['Em']],
+        lead: ['E5:4 F5:2 G5:2 B5:8', 'C6:4 B5:4 G5:4 E5:4', 'F5:6 E5:2 C5:8', 'E5:12 -:4', 'G5:4 B5:2 C6:2 B5:4 G5:4', 'E5:4 G5:4 C6:8', 'B5:4 C6:2 B5:2 G5:4 F5:4', 'E5:12 -:4'] },
+      B: { name: 'B', chords: [['C'], ['Em'], ['Am'], ['Em'], ['Fmaj7'], ['C'], ['Fmaj7'], ['Em']],
+        lead: ['C6:6 B5:2 G5:8', 'B5:4 G5:4 E5:8', 'C5:4 E5:4 F5:4 E5:4', 'B4:12 -:4', 'F5:6 G5:2 C6:8', 'B5:4 G5:2 F5:2 E5:8', 'F5:4 G5:4 B5:4 C6:4', 'B5:8 G5:4 E5:4'] }
+    }, form: ['intro', 'A', 'B', 'A'] },
+
   { id: 'turrialba', farm: 'Turrialba, Costa Rica', title: 'Marimba del Volcán', blurb: 'Guanacaste marimba · 6/8 and 3/4',
     about: 'The marimba is Costa Rica’s national instrument, and Guanacaste music sways between 6/8 and 3/4, a feel called sesquiáltera. Long notes shimmer with marimba tremolo rolls, and the bass flips between the two metres from bar to bar.',
     parts: ['Marimba lead with tremolo rolls', 'Lower marimba ostinato', 'Bass that alternates 6/8 and 3/4', 'Shaker and rim on the shifting beats'],

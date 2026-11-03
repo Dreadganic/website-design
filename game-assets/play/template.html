@@ -1094,6 +1094,7 @@ const titleText = (k) => { if (!k) return ''; const [a, b] = k.split(':');
   if (a === 'kona') return b === 'master' ? 'Fermentation master' : '';
   if (a === 'route') return b === 'islander' ? 'Islander' : '';
   if (a === 're') return b === 'keeper' ? 'Pointu keeper' : '';
+  if (a === 'ba') return b === 'rain' ? 'Rain-tamer' : '';
   if (a === 'bm') return b === 'grader' ? 'Blue Mountain grader' : '';
   return ART.seasons[String(+k.slice(5))] ? theme(k).title + ' ' + k.slice(0, 4) : ''; };
 /* the cupping notebook: every coffee and process pair you sell earns stars at 1, 25 and 250 lots; each star adds +0.5 cup score to that pair */
@@ -1338,7 +1339,8 @@ const SEASON_ROAST = { shogatsu: ['New Year Roast', 'medium', null], ume: ['Plum
 const seasonRoast = () => { const id = theme().id, r = SEASON_ROAST[id]; return r ? { id, name: r[0], profile: r[1], method: r[2], known: !!(S.sroast || {})[S.season.key] } : null; };
 const sroastText = (r) => ROASTS[r.profile].name.toLowerCase() + ' roast of ' + (r.method ? (/^[aeiou]/i.test(METHODS[r.method].name) ? 'an ' : 'a ') + METHODS[r.method].name.toLowerCase() + ' lot' : 'any coffee');
 const ROAST_BINS = 4;   /* green coffee bins in the roastery: one coffee each */
-const canBin = (key) => !!S.roastery.beans[key] || Object.keys(S.roastery.beans).length + Object.keys(S.roastery.want || {}).filter((k) => k !== key).length < ROAST_BINS;
+const roastBins = () => ROAST_BINS + (S.ba && S.ba.lv >= 15 ? 1 : 0);   /* Bali's co-op sends a fifth, bamboo, at monsoon level 15 */
+const canBin = (key) => !!S.roastery.beans[key] || Object.keys(S.roastery.beans).length + Object.keys(S.roastery.want || {}).filter((k) => k !== key).length < roastBins();
 const bestBuyer = (b) => buyerKeys().reduce((x, k) => (bagPrice(b, k) > bagPrice(b, x) ? k : x), 'konbini');
 const fmtShort = (n) => (n >= 1e6 ? (n / 1e6).toFixed(1).replace(/\.0$/, '') + 'M' : n >= 1e4 ? Math.round(n / 1e3) + 'k' : fmt(n));
 function requestTickRoast() {   /* a requested coffee goes to its bin as soon as a lot of it is dry */
@@ -1352,7 +1354,7 @@ function roastReqModal() {
 }
 function toRoastery(i, quiet) {   /* a dry lot goes to the roastery's green store instead of the roastery buyer */
   const l = S.lots[i]; if (!l || l.left > 0 || !roasteryOpen()) return;
-  if (!canBin(l.v + '.' + l.method)) { if (!quiet) { SFX.play('nope'); toast('All ' + ROAST_BINS + ' roastery bins are full. Roast or sell one first'); } return; }
+  if (!canBin(l.v + '.' + l.method)) { if (!quiet) { SFX.play('nope'); toast('All ' + roastBins() + ' roastery bins are full. Roast or sell one first'); } return; }
   const green = l.kg * 0.2, r = saleFor(l.v, l.method, green, l), key = l.v + '.' + l.method, R = S.roastery;
   const b = R.beans[key] = R.beans[key] || { kg: 0, coins: 0, pts: 0, cup: 0 };
   b.cup = (b.cup * b.kg + r.cup * green) / (b.kg + green); b.kg += green; b.coins += r.coins * (l.aged && estOn('turrialba', 3) ? 1.15 : 1); b.pts += r.points; if (l.carry) b.np = (b.np || 0) + r.points * l.carry;
@@ -1515,11 +1517,11 @@ function roasteryPanel() {   /* the reputation sits in the bar over the roastery
   h += '</div>' + help('crack', 'Tap Crack at first crack: +15 quality, and the roast is done.', 'Catch first crack for +15 quality, and the roast ends there. The window is about 10 s for everyday beans, 2–3 s for the rarest.' + (repLevel() >= 8 ? ' Tap Repeat on a bin to roast it again by itself.' : ''));
   /* green coffee lives in a few bins, so the list never grows past what you can roast */
   const keys = Object.keys(R.beans), free = R.roasters.length < roasterCount(), want = Object.keys(R.want || {});
-  h += '<h3>Green coffee bins ' + keys.length + ' / ' + ROAST_BINS + '</h3><div class="racks">' + keys.map((k) => { const b = R.beans[k], [v, m] = k.split('.'), best = bestRoast(v, m);
+  h += '<h3>Green coffee bins ' + keys.length + ' / ' + roastBins() + '</h3><div class="racks">' + keys.map((k) => { const b = R.beans[k], [v, m] = k.split('.'), best = bestRoast(v, m);
     return '<div class="rack"><div class="rk-top">' + img('bush_' + v + '_ripe', 22) + '<span><b>' + ART.varieties[v] + '</b><small>' + METHODS[m].name.split(' ')[0].toLowerCase() + ' · ' + fmtKg(b.kg) + ' kg</small></span></div><small>Cup ' + b.cup.toFixed(1) + ' · crack ' + crackLabel(crackSecs(k)) + '</small>' +
       '<div class="rk-act">' + Object.keys(ROASTS).map((p) => '<button type="button" class="btn' + (p === best ? ' green' : '') + '" data-act="roast:' + k + '|' + p + '"' + (free ? '' : ' disabled') + '>' + ROASTS[p].name + (p === best ? ' ★' : '') + '</button>').join('') + (repLevel() >= 8 ? '<button type="button" class="btn' + ((R.repeat || {})[k] ? ' blue' : '') + '" data-act="rrep:' + k + '">' + ((R.repeat || {})[k] ? 'Repeat ' + ROASTS[R.repeat[k]].name.toLowerCase() + ' ✓' : 'Repeat: off') + '</button>' : '') + '<button type="button" class="btn" data-act="binsell:' + k + '">Sell green</button></div></div>'; }).join('') +
     want.map((k) => '<div class="rack"><div class="rk-top">' + img('bush_' + k.split('.')[0] + '_ripe', 22) + '<span><b>' + ART.varieties[k.split('.')[0]] + '</b><small>requested · ' + METHODS[k.split('.')[1]].name.split(' ')[0].toLowerCase() + '</small></span></div><small>Comes when a lot dries</small><div class="rk-act"><button type="button" class="btn" data-act="rreq:' + k + '">Cancel</button></div></div>').join('') +
-    Array.from({ length: Math.max(0, ROAST_BINS - keys.length - want.length) }, () => '<div class="rack"><div class="rk-top"><span><b>Empty bin</b><small>for one green coffee</small></span></div><div class="rk-act"><button type="button" class="btn gold" data-act="rreqask">Request beans</button></div></div>').join('') + '</div>';
+    Array.from({ length: Math.max(0, roastBins() - keys.length - want.length) }, () => '<div class="rack"><div class="rk-top"><span><b>Empty bin</b><small>for one green coffee</small></span></div><div class="rk-act"><button type="button" class="btn gold" data-act="rreqask">Request beans</button></div></div>').join('') + '</div>';
   h += S.staff.foreman ? '<p class="note"><b>Foreman keeps the bins stocked</b></p>' + help('rfeed', 'How many roasts\' worth of green coffee to keep waiting.', 'How many roasts\' worth of green coffee he keeps waiting. Requests come first.') + '<div class="seg">' + [[0, 'Off'], [2, '2 roasts'], [4, '4 roasts'], [8, '8 roasts']].map(([n, t]) => '<button type="button" data-act="roastfeed:' + n + '" aria-pressed="' + (feedRoasts() === n) + '">' + t + '</button>').join('') + '</div>' : '<p class="note">Request beans for an empty bin, or tap Roast on a dry lot in the Mill. Once you hire a mill foreman, he keeps the bins stocked for you.</p>';
   if (S.staff.roaster) h += '<div class="chips"><span class="chip">Head roaster: ' + (S.roasterOff ? 'resting' : 'roasting · catches ' + Math.round(roasterCatch() * 100) + '% of cracks' + (repLevel() >= HEAD_BLEND_REP ? ' · blends spare bags' : '')) + '</span><button type="button" class="linkbtn" data-act="roasteroff">' + (S.roasterOff ? 'put him to work' : 'give him a break') + '</button></div>';
   h += row(img('rp_maneki_1', 26), 'Shop charm +' + Math.round(shopCharm() * 100) + '%', 'Every roastery cosmetic you own adds 1% to bag prices, up to +20%. You own ' + rCount() + '.', btn('Decorate', 'Shop › Roastery', 'decorgo', !tabLocked('shop'), 'blue')) + '<p class="note">Each finished roast gives a season star (up to 3 a day).</p>';
@@ -1950,7 +1952,8 @@ const TASK_KINDS = {
   rake: { text: 'Rake the Mogiana patio', goal: 1, img: 'stamp_mogiana', slot: 2, est: 'mogiana', group: 'estate', ok: () => estOn('mogiana', 1) },
   age: { text: 'Lay a lot down in the Turrialba cellar', goal: 1, img: 'stamp_turrialba', slot: 2, est: 'turrialba', group: 'estate', ok: () => estOn('turrialba', 2) },
   ktank: { text: 'Pull 3 perfect tanks at Kona Ridge', goal: 3, img: 'k_i_tank', slot: 2, go: 'kona', group: 'estate', ok: () => konaOpen() && !!S.kona },
-  rcherry: { text: 'Pick 60 Pointu cherries on Réunion', goal: 60, img: 're_i_seed', slot: 2, go: 're', group: 'estate', ok: () => isleOpen('re') && !!S.re }
+  rcherry: { text: 'Pick 60 Pointu cherries on Réunion', goal: 60, img: 're_i_seed', slot: 2, go: 're', group: 'estate', ok: () => isleOpen('re') && !!S.re },
+  bstorm: { text: 'Weather a storm on Bali', goal: 1, img: 'ba_i_storm', slot: 2, go: 'ba', group: 'estate', ok: () => isleOpen('ba') && !!S.ba }
 };
 /* weekly tasks: three bigger goals for the real week, aimed at the newer features, with bigger rewards and no season stars */
 const WEEK_KINDS = {
@@ -2612,7 +2615,7 @@ Object.assign(REV_COSM, {
   shutters: { name: 'Storm shutters', pic: 'ev_shutters', where: 'on the roastery windows', own: () => S.rev.show.shutters !== undefined, give() { S.rev.show.shutters = true; }, on: () => !!S.rev.show.shutters, flip() { S.rev.show.shutters = !S.rev.show.shutters; } }
 });
 /* companions: one in 100 stopped events brings one you don't have yet, to follow your farmer */
-const REV_PETS = { piglet: ['Piglet', 'ev_piglet'], capuchin: ['Capuchin', 'ev_capuchin'], crow: ['Tame crow', 'ev_crow_sit'], millcat: ['Mill cat', 'ev_millcat'], dalmatian: ['Fire-station dalmatian', 'ev_dalmatian'], doctorbird: ['Doctor bird', 'bm_bird'], nene: ['Nēnē goose', 'k_nene', true], tuittuit: ['Tuit-tuit', 're_bird'] };   /* the third flag: bought, never found */
+const REV_PETS = { piglet: ['Piglet', 'ev_piglet'], capuchin: ['Capuchin', 'ev_capuchin'], crow: ['Tame crow', 'ev_crow_sit'], millcat: ['Mill cat', 'ev_millcat'], dalmatian: ['Fire-station dalmatian', 'ev_dalmatian'], doctorbird: ['Doctor bird', 'bm_bird'], nene: ['Nēnē goose', 'k_nene', true], tuittuit: ['Tuit-tuit', 're_bird'], duck: ['Paddy duck', 'ba_duck'] };   /* the third flag: bought, never found */
 const petTrail = { sc: '', pts: [] }, PET_GAP = 13;
 const petsOut = () => Object.keys(REV_PETS).filter((k) => (S.rev.pets || {})[k] && !(S.rev.petHide || {})[k]);
 function drawPet(o, sc) {   /* your companions follow your farmer in a train, each one walking in the footsteps of the one ahead */
@@ -3166,7 +3169,7 @@ function ctBoard() {   /* the next session's pre-orders: 3 (2 at a poor rating, 
   const n = C.rating <= 1.5 ? 2 : C.rating >= 4.75 ? 4 : 3, lv = repLevel(), lo = lv >= 15 ? 4 : lv >= 12 ? 3 : 2, kinds = buyerKeys();
   const ready = pool.filter(ctReady), used = [];
   C.pre = []; for (let i = 0; i < n; i++) {
-    const kind = kinds[Math.floor(rnd() * kinds.length)], from = i === 0 && ready.length ? ready : used.length >= ROAST_BINS ? used : pool, key = from[Math.floor(rnd() * from.length)];
+    const kind = kinds[Math.floor(rnd() * kinds.length)], from = i === 0 && ready.length ? ready : used.length >= roastBins() ? used : pool, key = from[Math.floor(rnd() * from.length)];
     if (!used.includes(key)) used.push(key);
     const names = CT_SHOPS[kind].filter((x) => !(C.pre || []).some((q) => q.who === x)), who = pickOf(names.length ? names : CT_SHOPS[kind]);
     C.pre.push({ id: 'p' + Date.now().toString(36) + i, kind: 'pre', look: kind, who, key, profile: ctProfile(kind, key), n: lo + Math.floor(rnd() * 3), got: 0, state: 'board' });
@@ -3743,7 +3746,7 @@ function kDeliver(lot, quiet, from) {   /* a pulled lot fills the best card it f
 }
 function kShip(lot, quiet) {   /* a lot into a roastery bin as co-ferment green coffee */
   const key = lot.v + '.cof_' + lot.fr;
-  if (!roasteryOpen() || !canBin(key)) { if (!quiet) { SFX.play('nope'); toast('All ' + ROAST_BINS + ' roastery bins are full. Roast or sell one first'); } return false; }
+  if (!roasteryOpen() || !canBin(key)) { if (!quiet) { SFX.play('nope'); toast('All ' + roastBins() + ' roastery bins are full. Roast or sell one first'); } return false; }
   const r = saleFor(lot.v, 'cof_' + lot.fr, lot.kg, { raked: lot.adj }), R = S.roastery, b = R.beans[key] = R.beans[key] || { kg: 0, coins: 0, pts: 0, cup: 0 };
   b.cup = (b.cup * b.kg + r.cup * lot.kg) / (b.kg + lot.kg); b.kg += lot.kg; b.coins += r.coins * lot.pay; b.pts += r.points; kXp(2);
   return true;
@@ -4482,7 +4485,7 @@ function voyCollect(j) {
 function hbShed(j, sell) {   /* a lot from the shed: into a bin once there's room, or sold green */
   const R = S.route, lot = R && R.shed[j]; if (!lot) return;
   if (sell) { const r = isleSell(lot); R.shed.splice(j, 1); SFX.play('stamp'); toast('Sold ' + fmt(lot.kg) + ' kg of ' + beanName(lot.key) + ' green: +' + fmt(r.coins) + ' coins, +' + fmt(r.points) + ' know-how'); return; }
-  if (!isleBin(lot)) { SFX.play('nope'); toast('All ' + ROAST_BINS + ' roastery bins are full. Roast or sell one first'); return; }
+  if (!isleBin(lot)) { SFX.play('nope'); toast('All ' + roastBins() + ' roastery bins are full. Roast or sell one first'); return; }
   R.shed.splice(j, 1); SFX.play('stamp'); toast(fmt(lot.kg) + ' kg of ' + beanName(lot.key) + ' to the Osaka bins');
 }
 /* the map: open sea with the other islands on the horizon, the lighthouse on its point, the pier where the boat moors, the quay
@@ -4667,9 +4670,10 @@ const hbInfo = () => { const R = S.route; return R ? { lv: routeFound(), badge: 
    prestige and sailed there once. Each has its own level (its skill, 1 to 30), map, music and daily task, leans on one of your
    mainland buildings and gives one lasting thing back. Shared plumbing here; each island's own code follows. Rare finds are
    tuned to about 15 minutes of island play a day, and each is guaranteed by about two and a half times its odds ---------- */
-const ISLE_IDS = ['re'];
+const ISLE_IDS = ['re', 'ba'];
 const ISLE_INFO = {
-  re: { name: 'Réunion', where: 'Réunion · the Pointu nursery', voy: 'reunion', p: 6, cost: 6, pic: 'bush_pointu_ripe', board: 'Settle the Pointu nursery', open: 'Réunion opens: Tante Lise\'s nursery of Bourbon Pointu, past Kona on the arrows', perk: 'Tante Lise\'s Pointu nursery: shifts you get better at, and Bourbon Pointu for your farms. Sail there, then open it from the harbour board.' }
+  re: { name: 'Réunion', where: 'Réunion · the Pointu nursery', voy: 'reunion', p: 6, cost: 6, pic: 'bush_pointu_ripe', board: 'Settle the Pointu nursery', open: 'Réunion opens: Tante Lise\'s nursery of Bourbon Pointu, past Kona on the arrows', perk: 'Tante Lise\'s Pointu nursery: shifts you get better at, and Bourbon Pointu for your farms. Sail there, then open it from the harbour board.' },
+  ba: { name: 'Bali', where: 'Bali · the Kintamani co-op', voy: 'bali', p: 6, cost: 9, pic: 'ba_i_storm', board: 'Join the Kintamani co-op', open: 'Bali opens: Wayan\'s co-op on Mount Batur, where a storm blows in off the lake every 40 minutes, past Réunion on the arrows', perk: 'Wayan\'s co-op on Mount Batur: storms to weather for draws from the co-op pool, and a fifth roastery bin at level 15. Sail there, then open it from the harbour board.' }
 };
 const isleOpen = (id) => !!(S.route && S.route.bd['isle_' + id]) || !!(S[id] && S[id].test);
 const isleNeed = (l) => 40 + 15 * l;   /* island xp from l to l + 1: level 20 in about two to three weeks of regular visits, 30 in about five */
@@ -4910,6 +4914,362 @@ function reIntro() {
 const reHud = () => { const R = S.re, sh = R && R.sh; return ['Réunion · Pointu nursery', R ? (sh ? (sh.left ? sh.left + ' to plant · ' : '') + sh.cherries + ' cherries this shift · can ' + R.can : 'level ' + R.lv + (R.best ? ' · best shift ' + R.best + ' cherries' : ' · take a batch at the shed')) : '']; };
 const reStatus = () => { const R = S.re; if (!R) return ['', false]; return R.sh ? ['a shift waiting: ' + R.sh.cherries + ' cherries so far', true] : ['level ' + R.lv + (R.best ? ' · best ' + R.best + ' cherries' : ''), false]; };
 ISLE_FN.re = { fresh: reFresh, tick: reTick, draw: drawReunion, click: reClick, hint: reHint, panel: rePanel, act: reAct, intro: reIntro, hud: reHud, status: reStatus, track: 'reunion' };
+/* ---------- Bali: the Monsoon, at Wayan's co-op in Kintamani on the slopes of Mount Batur, where coffee grows among orange trees
+   and dries on raised bamboo beds. The barometer banks a storm every 40 minutes (three at most, four from level 10), and a storm
+   waits for you. In a storm the sky fills by itself in four minutes while the barn fills with what you bring in: pick cherries into
+   your basket, spread them on a raised bed, turn them as they dry (each turn makes them worth a quarter more), bag the dry coffee
+   and carry it into the barn. A gust comes with a few seconds' warning: hold the cover rope or the wettest bed blows over. Leaks
+   in the thatch spoil the barn until you patch them. Fill the barn before the sky and the rain finally falls: tap the glinting,
+   rain-washed cherries for big points. If the sky wins you're rained off with half the score. A storm pays monsoon xp and 3 to 6
+   draws from the co-op pool. Your farms' drying beds open more raised beds and your pickers' gear sets the basket; level 15 adds
+   a fifth roastery bin in Osaka. A storm waits while you're away ---------- */
+const BA_BUSH = (i) => ({ x: 15 + (i % 3) * 62 + (Math.floor(i / 3) % 2) * 18, y: 90 + Math.floor(i / 3) * 32 }), BA_BUSHES = 12;   /* x: the bush's middle; y: the terrace it stands on */
+const BA_BED = (j) => ({ x: 8 + j * 46, y: 204 }), BA_BED_W = 38, BA_BED_H = 22, BA_BED_KG = 8;
+const BA_ROPE = { x: 96, y: 240 }, BA_BARN = { x: 28, y: 278, w: 136, h: 32 }, BA_ROOF = { x: 24, y: 256, w: 144, h: 22 }, BA_LEAKS = [{ x: 56, y: 268 }, { x: 96, y: 263 }, { x: 136, y: 268 }], BA_WAYAN = { x: 178, y: 300 };
+const BA_STORM = 240e3, BA_CHARGE = 40 * 60e3, BA_REGROW = 12e3;   /* the sky fills in 4 minutes; a storm banks every 40; a picked bush ripens again in 12 s */
+const BA_FIT = [['hat', 'Bamboo hat'], ['cape', 'Palm-leaf rain cape'], ['sarong', 'Batik sarong'], ['boots', 'Rain boots']];
+const WAYAN_LOOK = { shirt: ['#F4F0E4', '#D8D0BC', '#B8A060'], hat: ['#F4F0E4', '#D8D0BC', '#C8402C'] };
+ISLE_UNLOCKS.ba = { 5: 'a longer warning before each gust (4 seconds)', 10: 'the barometer banks up to four storms', 15: 'a fifth roastery bin in Osaka: the co-op\'s bamboo bin', 20: 'the break lasts 30 seconds', 25: 'a better thatch: leaks spoil half as fast', 30: 'the "Rain-tamer" title' };
+ISLE_GRANT.ba = (l) => {
+  if (l === 15) toast('Wayan sends a bamboo bin to Osaka: the roastery now has ' + roastBins() + ' green coffee bins');
+  if (l === 30) S.sitems.title['ba:rain'] = true;
+};
+isleAdd('ba', [
+  ['ba_first', 'A first storm weathered', 'Fill the co-op barn on Bali before the rain'],
+  ['ba_clean', 'A storm with no bed lost', 'Weather a storm without a gust blowing a bed over'],
+  ['ba_three', 'Three storms in a row', 'Weather three storms in a row without being rained off'],
+  ['ba_l10', 'Monsoon level 10', 'Weather storms on Bali'], ['ba_l20', 'Monsoon level 20', 'Weather storms on Bali'], ['ba_l30', 'Monsoon level 30', 'Weather storms on Bali'],
+  ['ba_outfit', 'The monsoon outfit', 'Hat, cape, sarong and boots, drawn from Wayan\'s co-op pool'],
+  ['ba_rake', 'The golden rake', 'A very rare draw from Wayan\'s co-op pool'],
+  ['ba_duck', 'The paddy duck', 'A very rare draw from Wayan\'s co-op pool'],
+  ['ba_fifty', '50 storms', 'Weather 50 storms on Bali']
+]);
+const baBeds = () => Math.min(4, 2 + Math.floor(sumBuild('drybeds') / 12));   /* your farms' drying beds: a third raised bed at 12 levels, a fourth at 24 */
+const baBasket = () => 2 + 2 * Math.max(1, Math.min(3, S.lv.carry || 1)) + (S.ba.tools.basket ? 2 : 0);   /* your pickers' gear: 4 kg with a sack, 6 with a back basket, 8 with a wheelbarrow */
+const baDryMs = () => (S.ba.tools.golden ? 12e3 : S.ba.tools.rake ? 15e3 : 20e3);
+const baTurnK = () => (S.ba.tools.golden ? 0.35 : 0.25);
+const baVal = (b) => Math.round(b.kg / 2 * (1 + baTurnK() * b.turns));   /* a full bed: 4, and 7 turned three times */
+const baMax = () => (S.ba.lv >= 10 ? 4 : 3);
+const baTarget = () => 60 + Math.floor(S.ba.lv / 2);   /* a little more every other level, while tools and your farms speed you up */
+const baWarnMs = () => (S.ba.lv >= 5 ? 4000 : 3000);
+const baBreakMs = () => (S.ba.lv >= 20 ? 30e3 : 20e3);
+const baSpoilMs = () => (S.ba.lv >= 25 ? 12e3 : 6e3);
+const baOutfit = () => BA_FIT.filter(([k]) => S.ba.fit[k]).length;   /* +2.5% storm score a piece */
+function baFresh() { return { lv: 1, xp: 0, seen: false, st: null, charge: 1, chargeAt: Date.now(), tools: {}, fit: {}, draws: 0, storms: 0, rained: 0, streak: 0, best: 0, glints: 0 }; }
+const baHere = () => scene() === 'ba' && !document.hidden;
+const baNextMs = () => Math.max(0, BA_CHARGE - (Date.now() - S.ba.chargeAt));
+function baBank() {   /* the barometer: a storm every 40 minutes, banked while you're away */
+  const B = S.ba, now = Date.now(), max = baMax();
+  if (B.charge >= max) { B.chargeAt = now; return; }
+  const n = Math.floor((now - B.chargeAt) / BA_CHARGE); if (n <= 0) return;
+  B.charge = Math.min(max, B.charge + n); B.chargeAt = B.charge >= max ? now : B.chargeAt + n * BA_CHARGE;
+}
+function baStart() {
+  const B = S.ba; if (!B || B.st) return false;
+  baBank(); if (B.charge < 1) { SFX.play('nope'); floats.push({ x: 96, y: BA_BARN.y + 4, text: 'clear skies: the next storm in ' + voyLeft(baNextMs()), t: 0 }); return false; }
+  B.charge -= 1;
+  B.st = { t: 0, last: Date.now(), target: baTarget(), barn: 0, basket: 0, carry: 0, sacks: 0, beds: Array.from({ length: 4 }, () => ({ kg: 0, dry: 0, turns: 0, since: 0 })), bush: Array.from({ length: BA_BUSHES }, () => ({ kg: 2, back: 0 })),
+    gust: { next: 22e3 + rnd() * 10e3, warn: 0, hold: false }, busy: 0, leaks: [], leakNext: 35e3 + rnd() * 10e3, gusts: 0, held: 0, lost: 0, patched: 0, spoiled: 0, brk: null };
+  SFX.play('stamp'); floats.push({ x: 96, y: BA_BARN.y + 4, text: 'a storm is coming: get the coffee in!', t: 0 });
+  if (!B.tipStorm) { B.tipStorm = true; toast('Pick cherries, spread them on a raised bed, turn them as they dry, then bag them and carry them into the barn. Fill the barn before the storm bar fills'); }
+  return true;
+}
+function baStep(ms) {   /* moves the storm on by ms, in small steps */
+  const st = S.ba && S.ba.st; if (!st) return;
+  while (ms > 0 && S.ba.st === st) { const d = Math.min(ms, 250); ms -= d; baStep1(st, d); }
+}
+function baStep1(st, d) {
+  if (st.busy > 0) st.busy = Math.max(0, st.busy - d);
+  if (st.brk) {   /* the break: rain-washed cherries glint here and there for a moment */
+    const k = st.brk; k.left -= d; k.next -= d;
+    k.gl = k.gl.filter((g) => (g.t -= d) > 0);
+    if (k.next <= 0 && k.left > 1500) { const free = [...Array(BA_BUSHES).keys()].filter((i) => !k.gl.some((g) => g.i === i)); if (free.length) k.gl.push({ i: free[Math.floor(rnd() * free.length)], t: 2600 }); k.next = 850; }
+    if (k.left <= 0) baEnd(false);
+    return;
+  }
+  st.t += d;
+  st.bush.forEach((b) => { if (b.kg <= 0 && (b.back -= d) <= 0) b.kg = 2; });
+  const D = baDryMs();
+  st.beds.forEach((b, j) => { if (b.kg > 0 && b.dry < D) { b.dry += d; b.since += d; if (b.dry >= D) { b.dry = D; const a = BA_BED(j); floats.push({ x: a.x + 19, y: a.y + 2, text: 'dry: bag it', t: 0 }); } } });
+  const g = st.gust;
+  if (g.warn > 0) { g.warn -= d; if (g.warn <= 0) baGust(st); }
+  else if ((g.next -= d) <= 0) { g.warn = baWarnMs(); g.hold = false; SFX.play('tick'); }
+  if ((st.leakNext -= d) <= 0) {
+    const free = [0, 1, 2].filter((i) => !st.leaks.some((l) => l.i === i));
+    if (free.length && st.barn > 0) { const i = free[Math.floor(rnd() * free.length)]; st.leaks.push({ i, next: baSpoilMs() }); SFX.play('splash'); floats.push({ x: BA_LEAKS[i].x, y: BA_LEAKS[i].y - 6, text: 'a leak!', t: 0 }); }
+    st.leakNext = 25e3 + rnd() * 15e3;
+  }
+  st.leaks.forEach((l) => { if ((l.next -= d) <= 0) { l.next = baSpoilMs(); if (st.barn > 0) { const n = Math.min(1, st.barn); st.barn -= n; st.spoiled += n; floats.push({ x: BA_LEAKS[l.i].x, y: BA_BARN.y + 8, text: '-1 spoiled', t: 0 }); } } });
+  if (st.t >= BA_STORM) baEnd(true);
+}
+function baGust(st) {   /* the gust hits: held, or the wettest bed blows over */
+  const g = st.gust; st.gusts += 1; g.warn = 0; g.next = 30e3 + rnd() * 15e3;
+  if (g.hold) { g.hold = false; st.held += 1; SFX.play('knock'); floats.push({ x: BA_ROPE.x, y: BA_ROPE.y - 16, text: 'held! +3', t: 0 }); return; }
+  const D = baDryMs(); let w = -1;
+  st.beds.forEach((b, j) => { if (b.kg > 0 && b.dry < D && (w < 0 || b.dry < st.beds[w].dry)) w = j; });
+  SFX.play('nope');
+  if (w < 0) { floats.push({ x: 96, y: 198, text: 'the gust passes', t: 0 }); return; }
+  const a = BA_BED(w), b = st.beds[w]; st.lost += 1;
+  for (let k = 0; k < 10; k++) bursts.push({ x: a.x + 19, y: a.y + 10, vx: 30 + rnd() * 50, vy: -20 - rnd() * 30, t: 0, c: k % 2 ? '#C8402C' : '#7A4A2A' });
+  floats.push({ x: a.x + 19, y: a.y + 2, text: 'blown over: ' + b.kg + ' kg lost', t: 0 });
+  Object.assign(b, { kg: 0, dry: 0, turns: 0, since: 0 });
+}
+function baPick(i) {   /* a ripe bush into your basket */
+  const st = S.ba.st, b = st.bush[i], p = BA_BUSH(i), say = (t) => floats.push({ x: p.x, y: p.y - 22, text: t, t: 0 });
+  if (b.kg <= 0) { SFX.play('brush'); say('ripe again in ' + Math.ceil(b.back / 1000) + ' s'); return false; }
+  const room = baBasket() - st.basket;
+  if (room <= 0) { SFX.play('nope'); say('the basket is full: spread it on a bed'); return false; }
+  const n = Math.min(room, b.kg); b.kg -= n; st.basket += n; if (b.kg <= 0) b.back = BA_REGROW;
+  SFX.play('harvest'); say('+' + n + ' kg · basket ' + st.basket + '/' + baBasket());
+  for (let k = 0; k < 5; k++) bursts.push({ x: p.x, y: p.y - 10, vx: (rnd() - 0.5) * 40, vy: -20 - rnd() * 20, t: 0, c: k % 2 ? '#C8402C' : '#FFB89C' });
+  return true;
+}
+function baBed(j) {   /* a tap on a raised bed: bag it when dry, spread your basket on it, or turn it when a turn is due */
+  const st = S.ba.st, b = st.beds[j], a = BA_BED(j), D = baDryMs(), say = (t) => floats.push({ x: a.x + 19, y: a.y + 2, text: t, t: 0 });
+  if (j >= baBeds()) { SFX.play('brush'); say('your farms\' drying beds open more'); return false; }
+  if (b.kg > 0 && b.dry >= D) {
+    const v = baVal(b); st.carry += v; st.sacks += 1; Object.assign(b, { kg: 0, dry: 0, turns: 0, since: 0 });
+    SFX.play('thud'); say('bagged: ' + v + ' for the barn'); return true;
+  }
+  if (st.basket > 0 && b.kg < BA_BED_KG && !b.turns) {
+    const n = Math.min(BA_BED_KG - b.kg, st.basket); b.kg += n; st.basket -= n; b.dry = 0; b.since = 0;
+    SFX.play('pour'); say('+' + n + ' kg spread' + (b.kg < BA_BED_KG ? ' · room for ' + (BA_BED_KG - b.kg) : '')); return true;
+  }
+  if (b.kg > 0 && b.turns < 3 && b.since >= D / 4) {
+    b.turns += 1; b.since = 0; SFX.play('brush'); say('turned: +' + Math.round(baTurnK() * 100 * b.turns) + '%');
+    for (let k = 0; k < 6; k++) bursts.push({ x: a.x + 6 + rnd() * 26, y: a.y + 8, vx: (rnd() - 0.5) * 20, vy: -10 - rnd() * 15, t: 0, c: k % 2 ? '#8A5A30' : '#C8402C' });
+    return true;
+  }
+  SFX.play('brush');
+  say(b.kg <= 0 ? 'pick cherries to spread here' : b.turns >= 3 ? 'turned three times: dry in ' + Math.ceil((D - b.dry) / 1000) + ' s' : 'turn it in ' + Math.ceil((D / 4 - b.since) / 1000) + ' s');
+  return false;
+}
+function baBarn() {   /* the barn: start a banked storm, or carry the sacks in */
+  const st = S.ba.st, say = (t) => floats.push({ x: 96, y: BA_BARN.y + 4, text: t, t: 0 });
+  if (!st) { baStart(); return; }
+  if (st.brk) { SFX.play('brush'); say('the coffee is in: tap the glinting cherries'); return; }
+  if (st.carry <= 0) { SFX.play('brush'); say('bag dry coffee on the beds, then bring it here'); return; }
+  const v = st.carry; st.barn += v; st.carry = 0; st.sacks = 0;
+  SFX.play('stamp'); say('+' + v + ' in the barn');
+  if (st.barn >= st.target) baBreak(st);
+}
+function baBreak(st) {   /* the barn is full: the rain finally falls, and the rain-washed cherries glint */
+  st.brk = { left: baBreakMs(), next: 300, gl: [], taps: 0 }; st.leaks = []; st.gust.warn = 0; st.gust.hold = false; st.busy = 0;
+  SFX.play('fanfare'); floats.push({ x: 96, y: 196, text: 'the barn is full and the rain falls!', t: 0 });
+  if (!S.ba.tipBreak) { S.ba.tipBreak = true; toast('The coffee is in and the rain is here. Tap the glinting cherries for points before it eases'); }
+}
+function baGlint(i) {
+  const k = S.ba.st.brk, n = k.gl.findIndex((g) => g.i === i), p = BA_BUSH(i);
+  if (n < 0) { SFX.play('brush'); floats.push({ x: p.x, y: p.y - 22, text: 'tap the glinting cherries', t: 0 }); return false; }
+  k.gl.splice(n, 1); k.taps += 1; SFX.play('ding'); floats.push({ x: p.x, y: p.y - 22, text: '+3', t: 0 });
+  for (let q = 0; q < 6; q++) bursts.push({ x: p.x, y: p.y - 12, vx: (rnd() - 0.5) * 50, vy: -25 - rnd() * 25, t: 0, c: q % 2 ? '#FFF0A0' : '#C8402C' });
+  return true;
+}
+function baRope() {   /* hold the cover rope through a gust: you're busy until it passes */
+  const st = S.ba.st, say = (t) => floats.push({ x: BA_ROPE.x, y: BA_ROPE.y - 16, text: t, t: 0 });
+  if (!st || st.brk) { SFX.play('brush'); say('the cover rope, for gusts'); return false; }
+  const g = st.gust; if (g.hold) return false;
+  if (g.warn <= 0) { SFX.play('brush'); say('no gust yet: hold it when one is coming'); return false; }
+  g.hold = true; st.busy = g.warn + 400; SFX.play('wood'); say('holding the cover rope');
+  const me = IN.ba.me; if (me) me.path = [{ x: BA_ROPE.x + 7, y: 248 }];
+  return true;
+}
+function baPatch(lx) {   /* patch the leak nearest your tap */
+  const st = S.ba.st; if (!st || !st.leaks.length) return false;
+  let n = 0; st.leaks.forEach((l, k) => { if (Math.abs(BA_LEAKS[l.i].x - lx) < Math.abs(BA_LEAKS[st.leaks[n].i].x - lx)) n = k; });
+  const l = st.leaks.splice(n, 1)[0]; st.patched += 1; SFX.play('knock'); floats.push({ x: BA_LEAKS[l.i].x, y: BA_LEAKS[l.i].y - 6, text: 'patched +2', t: 0 });
+  return true;
+}
+function baEnd(rained) {   /* the storm is over: weathered (the barn filled first) or rained off (the sky did: half the score) */
+  const B = S.ba, st = B.st; if (!st) return; B.st = null;
+  const glints = st.brk ? st.brk.taps : 0, raw = Math.floor(st.barn) + 3 * st.held + 2 * st.patched + 3 * glints;
+  const score = Math.round(raw * (1 + 0.025 * baOutfit()) * (rained ? 0.5 : 1));
+  const draws = rained ? Math.min(2, Math.floor(score / 30)) : Math.min(6, 3 + Math.floor(score / 75));   /* about 4 a storm: some 10 a day */
+  const got = [], sum = { coins: 0, points: 0 }, sup = { ash: 0, compost: 0, bags: 0 }; let kg = 0;
+  for (let n = 0; n < draws; n++) {   /* Wayan's co-op pool: very rare, rare, uncommon, then the commons */
+    B.draws += 1;
+    if (islePet(B, 'duck', 250, 600)) { routeFind('ba_duck', true); got.push('a paddy duck, who has decided to follow you home (Looks › companions)'); continue; }
+    if (!B.tools.golden) { B.rakeDry = (B.rakeDry || 0) + 1; if (Math.random() < 1 / 400 || B.rakeDry >= 1000) { B.tools.golden = true; routeFind('ba_rake', true); got.push('the golden rake: beds dry in 12 seconds and every turn adds 35%'); continue; } }
+    const miss = BA_FIT.filter(([k]) => !B.fit[k]);
+    if (miss.length) { B.fitDry = (B.fitDry || 0) + 1; if (Math.random() < 1 / 40 || B.fitDry >= 100) { const [k, name] = miss[Math.floor(Math.random() * miss.length)]; B.fit[k] = true; B.fitDry = 0; if (k === 'hat') S.hats.ev_ba_bamboo = true; got.push('the ' + name.toLowerCase() + (k === 'hat' ? ' (for your pickers too, in Looks)' : '')); if (baOutfit() >= BA_FIT.length && routeFind('ba_outfit', true)) got.push('a cowrie for the full outfit'); continue; } }
+    const tl = ['basket', 'rake'].filter((k) => !B.tools[k] && !(k === 'rake' && B.tools.golden));
+    if (tl.length && Math.random() < 1 / 15) { const k = tl[Math.floor(Math.random() * tl.length)]; B.tools[k] = true; got.push(k === 'basket' ? 'a bigger basket: 2 kg more' : 'a quicker rake: beds dry in 15 seconds'); continue; }
+    const r = Math.random();
+    if (r < 0.3) kg += 12 + Math.floor(Math.random() * 9);
+    else if (r < 0.55) sum.coins += Math.max(150, Math.round(rateC * 6));
+    else if (r < 0.8) sum.points += Math.max(50, Math.round(rateX * 6));
+    else if (konaOpen() && S.kona) { const q = Math.random(); if (q < 0.4) sup.ash += 4; else if (q < 0.75) sup.compost += 3; else sup.bags += 1; }
+    else sum.coins += Math.max(150, Math.round(rateC * 6));
+  }
+  const lines = [];
+  if (sum.coins || sum.points) { earn({ coins: sum.coins, points: sum.points }); if (sum.coins) lines.push('+' + fmt(sum.coins) + ' coins'); if (sum.points) lines.push('+' + fmt(sum.points) + ' know-how'); }
+  if (kg) { const lot = { key: 'catimor.isl_bali', kg, raked: 1 }; lines.push(kg + ' kg of Kintamani coffee, which ' + (isleBin(lot) ? 'went into the roastery bins in Osaka' : S.route && S.route.shed.length < 3 ? (S.route.shed.push(lot), 'waits in the harbour shed until a bin is free') : 'sold green for ' + fmt(isleSell(lot).coins) + ' coins')); }
+  if (sup.ash || sup.compost || sup.bags) { const K = S.kona; K.ash += sup.ash; K.compost += sup.compost; K.bags += sup.bags; lines.push([sup.ash && sup.ash + ' ash', sup.compost && sup.compost + ' compost', sup.bags && sup.bags + ' fertiliser'].filter(Boolean).join(', ') + ' for Kona'); }
+  if (!rained) {
+    B.storms += 1; B.streak += 1; task('bstorm', 1);
+    const cw = [];
+    if (routeFind('ba_first', true)) cw.push('a cowrie for your first storm');
+    if (!st.lost && routeFind('ba_clean', true)) cw.push('a cowrie for a storm with no bed lost');
+    if (B.streak >= 3 && routeFind('ba_three', true)) cw.push('a cowrie for three storms in a row');
+    if (B.storms >= 50 && routeFind('ba_fifty', true)) cw.push('a cowrie for 50 storms');
+    got.unshift(...cw);
+  } else { B.rained += 1; B.streak = 0; }
+  B.best = Math.max(B.best, score); B.glints += glints;
+  BEACON.ev('isle_run', { key: 'ba', m: score, p: S.prestige });
+  isleXp('ba', Math.round(score / 2));
+  SFX.play(rained ? 'nope' : 'achieve');
+  const parts = ['barn ' + Math.floor(st.barn)].concat(st.held ? [st.held + ' gust' + (st.held > 1 ? 's' : '') + ' held'] : [], st.patched ? [st.patched + ' leak' + (st.patched > 1 ? 's' : '') + ' patched'] : [], glints ? [glints + ' glinting cherr' + (glints > 1 ? 'ies' : 'y')] : []);
+  showModal('<h2>' + (rained ? 'Rained off' : 'Storm weathered') + '</h2>' + img('ba_i_storm', 54) + '<p class="note">' + (rained ? 'The sky filled before the barn, so half the score. ' : '') + listAnd(parts).replace(/^./, (x) => x.toUpperCase()) + (baOutfit() ? ', +' + (baOutfit() * 2.5) + '% for the outfit' : '') + ': <b>' + score + ' points</b>.</p>' +
+    '<p class="note">+' + Math.round(score / 2) + ' monsoon xp · ' + (draws ? draws + ' draw' + (draws > 1 ? 's' : '') + ' from Wayan\'s co-op pool' : 'nothing from the co-op pool') + '</p>' + (lines.length ? '<p class="note">' + listAnd(lines).replace(/^./, (x) => x.toUpperCase()) + '.</p>' : '') + (got.length ? '<p class="note"><b>Also:</b> ' + listAnd(got) + '.</p>' : '') + '<button class="btn green" data-act="close">' + (rained ? 'Next time' : 'Terima kasih') + '</button>', true);
+}
+function baIdle(x, y) { const B = S.ba; SFX.play('brush'); floats.push({ x, y, text: B.charge ? 'tap the barn to start a storm' : 'clear skies: the next storm in ' + voyLeft(baNextMs()), t: 0 }); }
+function baClick(lx, ly) {
+  const B = S.ba; if (!B) return; const st = B.st;
+  if (Math.abs(lx - BA_WAYAN.x) < 9 && ly > BA_WAYAN.y - 24 && ly < BA_WAYAN.y + 3) { baWayan(); return; }
+  if (st && st.busy > 0) { SFX.play('brush'); floats.push({ x: lx, y: ly - 4, text: 'holding the rope till the gust passes', t: 0 }); return; }
+  baWalk(lx, ly);
+  for (let i = 0; i < BA_BUSHES; i++) { const p = BA_BUSH(i); if (Math.abs(lx - p.x) < 12 && ly >= p.y - 22 && ly < p.y + 4) { if (!st) baIdle(p.x, p.y - 22); else if (st.brk) baGlint(i); else baPick(i); return; } }
+  for (let j = 0; j < 4; j++) { const a = BA_BED(j); if (lx >= a.x - 2 && lx < a.x + BA_BED_W + 2 && ly >= a.y - 4 && ly < a.y + BA_BED_H + 2) { if (!st) baIdle(a.x + 19, a.y + 2); else if (st.brk) { SFX.play('brush'); floats.push({ x: a.x + 19, y: a.y + 2, text: 'tap the glinting cherries', t: 0 }); } else baBed(j); return; } }
+  if (Math.abs(lx - BA_ROPE.x) < 10 && ly >= 228 && ly < 256) { baRope(); return; }
+  if (lx >= BA_ROOF.x && lx < BA_ROOF.x + BA_ROOF.w && ly >= BA_ROOF.y && ly < BA_ROOF.y + BA_ROOF.h && st && st.leaks.length) { baPatch(lx); return; }
+  if (lx >= BA_ROOF.x && lx < BA_ROOF.x + BA_ROOF.w && ly >= BA_ROOF.y && ly < BA_BARN.y + BA_BARN.h + 2) baBarn();
+}
+function baWalk(lx, ly) { const me = IN.ba.me; if (!me) return; me.path = [{ x: Math.max(8, Math.min(W - 8, lx)), y: ly < 196 ? Math.min(190, Math.max(94, Math.round((ly - 94) / 32) * 32 + 94)) : ly < 256 ? 246 : 320 }]; }   /* to the terrace's edge, the yard, or the path by the barn */
+function baWayan() {
+  const B = S.ba, st = B.st;
+  if (st) { SFX.play('tick'); floats.push({ x: BA_WAYAN.x - 30, y: BA_WAYAN.y - 26, text: st.brk ? 'Quick, the glinting ones!' : st.gust.warn > 0 ? 'A gust! Hold the rope!' : st.carry ? 'Take those sacks in!' : st.leaks.length ? 'The roof is leaking!' : 'Turn them as they dry!', t: 0 }); return; }
+  const say = (B.charge ? 'The barometer is falling: ' + B.charge + ' storm' + (B.charge > 1 ? 's' : '') + ' on the way. Tap the barn when you\'re ready.' : 'Clear skies for now. The next storm comes in ' + voyLeft(baNextMs()) + '.') + (B.best ? ' Your best storm is ' + B.best + ' points.' : '');
+  SFX.play('tick'); showModal(npcCard('Wayan', WAYAN_LOOK, 'Bali', say + ' ' + pickOf(['Our subak abian shares the work, the water and the harvest. Today you\'re one of us.', 'Turn the beds as they dry. Three turns and the coffee is worth nearly double.', 'The oranges keep the bushes shaded, and the coffee picks up a little of their sweetness.', 'Batur grumbles now and then. The ash makes the soil good.', 'When the rain finally falls, the cherries shine. Pick the shining ones.'])));
+}
+function baHint() {   /* the arrow: what the storm needs most */
+  const B = S.ba; if (!B) return null; const st = B.st;
+  if (!st) return B.charge ? [96, BA_BARN.y + 2] : null;
+  if (st.brk) { const g = st.brk.gl[0]; if (!g) return null; const p = BA_BUSH(g.i); return [p.x, p.y - 20]; }
+  if (st.gust.warn > 0 && !st.gust.hold) return [BA_ROPE.x, BA_ROPE.y - 10];
+  if (st.leaks.length && st.barn > 0) { const l = BA_LEAKS[st.leaks[0].i]; return [l.x, l.y - 2]; }
+  const D = baDryMs(), nb = baBeds(), at = (j) => { const a = BA_BED(j); return [a.x + 19, a.y + 2]; };
+  for (let j = 0; j < nb; j++) { const b = st.beds[j]; if (b.kg > 0 && b.dry >= D) return at(j); }
+  for (let j = 0; j < nb; j++) { const b = st.beds[j]; if (b.kg > 0 && b.turns < 3 && b.since >= D / 4 && !(st.basket > 0 && !b.turns && b.kg < BA_BED_KG)) return at(j); }
+  if (st.carry > 0) return [96, BA_BARN.y + 2];
+  const open = [...Array(nb).keys()].filter((j) => { const b = st.beds[j]; return !b.turns && b.kg < BA_BED_KG; }).sort((x, y) => st.beds[y].kg - st.beds[x].kg)[0];   /* the fullest bed that still takes cherries */
+  const me = IN.ba.me; let bi = -1, bd = 1e9; st.bush.forEach((b, i) => { if (b.kg > 0) { const p = BA_BUSH(i), dd = me ? Math.hypot(p.x - me.x, p.y - me.y) : i; if (dd < bd) { bd = dd; bi = i; } } });
+  if (st.basket > 0 && open !== undefined && (st.basket >= BA_BED_KG - st.beds[open].kg || st.basket >= baBasket() || bi < 0)) return at(open);   /* spread a basket that fills the bed, or a full one: a small top-up restarts the drying */
+  if (st.basket < baBasket() && bi > -1) { const p = BA_BUSH(bi); return [p.x, p.y - 20]; }
+  return null;
+}
+function baTick() {
+  if (!isleOpen('ba')) return;
+  if (!S.ba) S.ba = baFresh();
+  const B = S.ba; baBank();
+  const st = B.st; if (!st) return;
+  const now = Date.now(), d = now - st.last; st.last = now;
+  if (!baHere()) return;   /* the storm waits while you're away */
+  baStep(Math.min(d, 1000));
+}
+IN.ba = { me: null, wayan: null };
+function drawBali(time) {
+  const B = S.ba, bg = sceneBg('bali'); fx.imageSmoothingEnabled = false;
+  if (bg.complete && bg.naturalWidth) fx.drawImage(bg, 0, 0); else { fx.fillStyle = '#5A9C3C'; fx.fillRect(0, 0, W, H); }
+  if (!B) return;
+  if (!IN.ba.me) { IN.ba.me = walker(96, 326); IN.ba.me.me = true; }
+  if (!IN.ba.wayan) IN.ba.wayan = walker(BA_WAYAN.x, BA_WAYAN.y, WAYAN_LOOK);
+  const me = IN.ba.me; if (!step(me, 1 / 60, 70)) me.walk = 0;
+  const st = B.st, pct = st ? (st.brk ? 1 : Math.min(1, st.t / BA_STORM)) : 0, D = baDryMs(), nb = baBeds();
+  if (st) {   /* the sky darkens and the clouds gather as the storm builds */
+    fx.fillStyle = 'rgba(40,48,70,' + (st.brk ? 0.5 : 0.15 + 0.45 * pct).toFixed(2) + ')'; fx.fillRect(0, 0, W, 62);
+    for (let k = 0; k < 7; k++) { const cx = Math.round(((time * (5 + k) + k * 53) % 240) - 26), cy = 5 + (k % 3) * 8; fx.fillStyle = 'rgba(58,64,82,' + (0.45 + 0.45 * pct).toFixed(2) + ')'; fx.fillRect(cx, cy, 26, 6); fx.fillRect(cx + 5, cy - 3, 15, 4); }
+  }
+  for (let i = 0; i < BA_BUSHES; i++) { const p = BA_BUSH(i); fx.drawImage(sprite('bush_catimor_' + (!st || st.bush[i].kg > 0 ? 'ripe' : 'young')), p.x - 9, p.y - 21); }
+  for (let j = 0; j < 4; j++) {   /* the raised beds: coffee browning as it dries, rake lines for each turn; beds your farms haven't opened stay under a tarp */
+    const a = BA_BED(j);
+    if (j >= nb) { fx.fillStyle = 'rgba(52,64,58,0.78)'; fx.fillRect(a.x, a.y, BA_BED_W, BA_BED_H); fx.fillStyle = 'rgba(255,255,255,0.12)'; for (let x = a.x + 3; x < a.x + BA_BED_W; x += 6) fx.fillRect(x, a.y + 1, 1, BA_BED_H - 2); continue; }
+    const b = st && st.beds[j]; if (!b || b.kg <= 0) continue;
+    const u = Math.min(1, b.dry / D), w = Math.max(4, Math.round(34 * b.kg / BA_BED_KG)), col = [[200, 64, 44], [92, 58, 36]].reduce((c0, c1) => c0.map((v, k) => Math.round(v + (c1[k] - v) * u)));
+    fx.fillStyle = 'rgb(' + col.join(',') + ')'; fx.fillRect(a.x + 2, a.y + 3, w, 17);
+    fx.fillStyle = 'rgba(0,0,0,0.2)'; for (let y = a.y + 3; y < a.y + 20; y += 2) for (let x = a.x + 2 + ((y >> 1) % 2); x < a.x + 2 + w; x += 3) fx.fillRect(x, y, 1, 1);
+    fx.fillStyle = 'rgba(255,236,200,0.3)'; for (let t = 0; t < b.turns; t++) fx.fillRect(a.x + 2, a.y + 7 + t * 4, w, 1);
+    fx.fillStyle = '#2A1E14'; fx.fillRect(a.x + 3, a.y + BA_BED_H + 1, BA_BED_W - 6, 2); fx.fillStyle = u >= 1 ? '#F2C04A' : '#C8B080'; fx.fillRect(a.x + 3, a.y + BA_BED_H + 1, Math.round((BA_BED_W - 6) * u), 2);
+    if (u < 1 && b.turns < 3 && b.since >= D / 4 && Math.floor(time * 4) % 2) fx.drawImage(sprite('ba_i_rake'), a.x + BA_BED_W - 11, a.y - 5);
+    if (u >= 1) fx.drawImage(sprite('sack'), a.x + BA_BED_W - 10, a.y - 5);
+  }
+  if (st && st.gust.warn > 0) {   /* a gust coming: the cover tarp lifts and flaps, or lies flat with you on the rope */
+    for (let j = 0; j < nb; j++) { const a = BA_BED(j), lift = st.gust.hold ? 0 : Math.round(Math.sin(time * 18 + j * 1.7) * 2) - 3; fx.fillStyle = 'rgba(64,104,140,0.85)'; fx.fillRect(a.x - 1, a.y - 2 + lift, BA_BED_W + 2, 3); }
+    if (st.gust.hold) { fx.strokeStyle = '#C8B080'; fx.lineWidth = 1; for (let j = 0; j < nb; j++) { const a = BA_BED(j); fx.beginPath(); fx.moveTo(BA_ROPE.x + 0.5, 230.5); fx.lineTo(a.x + (a.x < BA_ROPE.x ? BA_BED_W : 0) + 0.5, a.y - 0.5); fx.stroke(); } }
+  }
+  if (st) st.leaks.forEach((l) => { const p = BA_LEAKS[l.i]; fx.fillStyle = '#1E140C'; fx.fillRect(p.x - 2, p.y - 1, 4, 2); fx.fillStyle = '#86CCD8'; for (let k = 0; k < 3; k++) fx.fillRect(p.x, BA_BARN.y + Math.round((time * 40 + k * 8) % 24), 1, 2); });
+  if (!st && B.charge) fx.drawImage(sprite('ba_i_storm'), 91, BA_BARN.y + 2);
+  if (st && st.basket > 0) fx.drawImage(sprite('carry_backbasket'), me.x + 3, me.y - 14);
+  if (st && st.carry > 0) fx.drawImage(sprite('sack'), me.x - 11, me.y - 12);
+  drawGuy(IN.ba.wayan); drawGuy(me); drawPet(me, 'ba');
+  if (st && st.brk) {   /* the rain at last, and the cherries glinting in it */
+    st.brk.gl.forEach((g, k) => { const p = BA_BUSH(g.i); if (Math.floor(time * 6 + k) % 3) fx.drawImage(sprite('sparkle'), p.x - 4, p.y - 18); });
+    fx.fillStyle = 'rgba(200,222,240,0.55)'; for (let k = 0; k < 70; k++) fx.fillRect(Math.round((k * 29 + time * 30) % 200) - 4, Math.round((k * 47 + time * 260) % 364) - 10, 1, 4);
+  } else if (st) {   /* wind through the trees, and the first drops as it builds */
+    fx.fillStyle = 'rgba(232,240,236,' + (0.3 + 0.4 * pct).toFixed(2) + ')'; for (let k = 0; k < 8 + Math.round(16 * pct); k++) fx.fillRect(Math.round((time * (80 + 50 * pct) + k * 37) % 230) - 20, 64 + (k * 61) % 250, 3, 1);
+    if (pct > 0.5) { fx.fillStyle = 'rgba(200,222,240,0.5)'; for (let k = 0; k < Math.round(40 * (pct - 0.5)); k++) fx.fillRect(Math.round((k * 31 + time * 30) % 200) - 4, Math.round((k * 53 + time * 220) % 364) - 10, 1, 3); }
+  }
+  bursts.forEach((p) => { fx.fillStyle = p.c; fx.fillRect(Math.round(p.x), Math.round(p.y), 1, 1); });
+  const hr = S.minutes / 60, tint = hr >= 20 || hr < 5 ? 'rgba(30,40,110,0.34)' : hr >= 17.5 ? 'rgba(240,120,40,' + (0.08 + (hr - 17.5) * 0.06).toFixed(2) + ')' : hr < 7 ? 'rgba(240,150,170,0.14)' : null;
+  if (tint) { fx.fillStyle = tint; fx.fillRect(0, 0, W, H); }
+  ctx.imageSmoothingEnabled = false; ctx.drawImage(frame, 0, 0, W * 2, H * 2); ctx.textAlign = 'center';
+  nameTag(me.x, me.y);
+  ctx.font = '700 13px "Pixelify Sans", monospace';
+  const tag = (tx, x, y, bg2, fg) => { const w = ctx.measureText(tx).width + 10; ctx.fillStyle = bg2; ctx.fillRect(x * 2 - w / 2, y * 2 - 14, w, 18); ctx.fillStyle = fg; ctx.fillText(tx, x * 2, y * 2); };
+  if (!st) tag(B.charge ? 'START A STORM' + (B.charge > 1 ? ' · ' + B.charge + ' BANKED' : '') : 'NEXT STORM IN ' + voyLeft(baNextMs()).toUpperCase(), 96, BA_BARN.y + 18, '#3E2A1C', B.charge ? '#F2C04A' : '#C8B080');
+  else if (st.brk) tag('THE RAIN FALLS · ' + Math.ceil(st.brk.left / 1000) + ' S · ' + st.brk.taps + ' GLINTS', 96, 201, '#3E2A1C', '#FFF4DE');
+  else {   /* the two bars: the sky fills by itself, the barn with what you bring in */
+    ctx.font = '700 11px "Pixelify Sans", monospace';
+    const bar = (x, w, u, col, label) => { ctx.fillStyle = '#2A1E14'; ctx.fillRect(x * 2, 388, w * 2, 18); ctx.fillStyle = col; ctx.fillRect(x * 2 + 2, 390, Math.round((w * 2 - 4) * Math.min(1, u)), 14); ctx.fillStyle = '#FFF4DE'; ctx.fillText(label, (x + w / 2) * 2, 402); };
+    bar(6, 88, pct, pct > 0.8 ? '#C84A3A' : '#5A6E8C', 'STORM ' + Math.floor(pct * 100) + '%');
+    bar(98, 88, st.barn / st.target, '#C8962C', 'BARN ' + Math.floor(st.barn) + '/' + st.target);
+    ctx.font = '700 13px "Pixelify Sans", monospace';
+    for (let j = 0; j < nb; j++) { const b = st.beds[j], a = BA_BED(j); if (b.kg > 0 && b.dry >= D) tag('BAG', a.x + 19, a.y + 14, '#3E2A1C', '#F2C04A'); else if (b.kg > 0 && b.turns < 3 && b.since >= D / 4) tag('TURN', a.x + 19, a.y + 14, '#3E2A1C', '#FFF4DE'); }
+    if (st.gust.warn > 0) tag(st.gust.hold ? 'HOLDING' : 'GUST! HOLD THE ROPE ' + Math.ceil(st.gust.warn / 1000), BA_ROPE.x, 238, st.gust.hold ? '#3E2A1C' : '#8A2A1C', '#FFF4DE');
+    st.leaks.forEach((l) => tag('LEAK', BA_LEAKS[l.i].x, BA_LEAKS[l.i].y - 3, '#8A2A1C', '#FFF4DE'));
+    if (st.carry > 0) tag(st.sacks + ' SACK' + (st.sacks > 1 ? 'S' : '') + ' · ' + st.carry, 96, BA_BARN.y + 18, '#3E2A1C', '#F2C04A');
+  }
+  drawHint('ba', time);
+  drawFloats();
+}
+function baPanel() {
+  const B = S.ba, sub = ['storm', 'log'].includes(S.baSub) ? S.baSub : 'storm', st = B.st;
+  let h = '<div class="seg">' + [['storm', 'Storms'], ['log', 'Log']].map(([k, t]) => '<button type="button" data-act="ba_sub:' + k + '" aria-pressed="' + (sub === k) + '">' + t + '</button>').join('') + '</div>';
+  h += '<h2>Bali · level ' + B.lv + '</h2><div class="bar"><i style="width:' + (B.lv >= 30 ? 100 : Math.round(B.xp / isleNeed(B.lv) * 100)) + '%"></i></div>';
+  if (sub === 'storm') {
+    const nx = Object.keys(ISLE_UNLOCKS.ba).map(Number).find((l) => l > B.lv);
+    h += '<p class="note"><b>Next:</b> ' + (nx ? 'level ' + nx + ' brings ' + ISLE_UNLOCKS.ba[nx] : 'the co-op has taught you everything') + '</p>';
+    h += help('ba', 'Weather a storm: get the coffee into the barn before the sky fills, then tap the glinting cherries.', 'The barometer banks a storm every 40 minutes, up to ' + baMax() + ', and each waits for you: tap the barn to start one. The storm bar fills by itself in four minutes; the barn fills with what you bring in. Pick cherries into your basket (' + baBasket() + ' kg), tap a raised bed to spread them (8 kg a bed), and turn the bed when it shows TURN: each turn makes it worth a quarter more, up to three. When it\'s dry (' + Math.round(baDryMs() / 1000) + ' s), bag it and carry it into the barn: a full bed is worth 4, or 7 turned three times. A gust comes with ' + Math.round(baWarnMs() / 1000) + ' seconds\' warning: tap the rope post to hold the cover, or the wettest bed blows over. Patch leaks in the roof before they spoil the barn. Fill the barn (' + baTarget() + ' at your level) and the rain finally falls: for ' + Math.round(baBreakMs() / 1000) + ' seconds, tap the glinting cherries. Score: 1 a barn point, 3 a gust held, 2 a leak patched, 3 a glint; rained off, half. A storm pays monsoon xp (half the score) and 3 to 6 draws from Wayan\'s co-op pool: coins, know-how and Kintamani coffee for the Osaka bins scaled to your farm, supplies for Kona, storm tools, and now and then something rare. A storm waits while you\'re away.');
+    if (st) h += '<h3>This storm</h3>' + row(img('ba_i_storm', 28), st.brk ? 'The rain falls' : 'Barn ' + Math.floor(st.barn) + ' / ' + st.target, st.brk ? st.brk.taps + ' glinting cherries so far' : 'storm ' + Math.floor(st.t / BA_STORM * 100) + '% · ' + st.held + ' gust' + (st.held === 1 ? '' : 's') + ' held · ' + st.patched + ' leak' + (st.patched === 1 ? '' : 's') + ' patched', st.brk ? '' : btn('Give up', 'rained off: half', 'ba_end', true, 'gold'));
+    else h += '<div class="seg">' + btn('Start a storm', B.charge ? B.charge + ' banked' : 'the next in ' + voyLeft(baNextMs()), 'ba_start', B.charge > 0, 'green') + '</div>';
+    h += row(img('ba_i_storm', 28), 'The barometer', B.charge + ' of ' + baMax() + ' storms banked' + (B.charge < baMax() ? ' · the next in ' + voyLeft(baNextMs()) : ''), '');
+    h += '<p class="note">From your farms: your drying beds (' + sumBuild('drybeds') + ' levels) open ' + baBeds() + ' of the 4 raised beds' + (baBeds() < 4 ? ', another at ' + 12 * (baBeds() - 1) + ' levels' : '') + ', and your pickers\' ' + ART.carry[Math.max(1, Math.min(3, S.lv.carry || 1)) - 1].name.toLowerCase() + ' makes the basket ' + baBasket() + ' kg.' + (B.lv >= 15 ? ' Back home, the co-op\'s bamboo bin is a fifth green coffee bin in Osaka.' : '') + '</p>';
+  } else {
+    h += row(img('ba_i_storm', 28), 'Storms', B.storms + ' weathered · ' + B.rained + ' rained off · best ' + B.best + ' points · ' + fmt(B.draws) + ' draws', '');
+    h += '<h3>Wayan\'s co-op pool</h3>';
+    h += row(img('carry_backbasket', 28), 'A bigger basket', B.tools.basket ? '2 kg more in your basket' : 'an uncommon draw', B.tools.basket ? btn('Yours', '', 'noop', false, 'blue') : '');
+    h += row(img('ba_i_rake', 28), 'A quicker rake', B.tools.rake || B.tools.golden ? 'beds dry in 15 seconds' : 'an uncommon draw', B.tools.rake || B.tools.golden ? btn('Yours', '', 'noop', false, 'blue') : '');
+    h += row(img('ba_i_rake', 28), 'The golden rake', B.tools.golden ? 'beds dry in 12 seconds, and every turn adds 35%' : 'a very rare draw', B.tools.golden ? btn('Yours', '', 'noop', false, 'blue') : '');
+    h += row(img('ba_i_storm', 28), 'The monsoon outfit', BA_FIT.map(([k, n]) => (B.fit[k] ? '<b>' + n + '</b>' : n)).join(' · ') + ' · +2.5% storm score a piece; a rare draw', baOutfit() >= BA_FIT.length ? btn('Yours', '', 'noop', false, 'blue') : btn(baOutfit() + ' / ' + BA_FIT.length, '', 'noop', false));
+    h += row(img('ba_duck', 28), 'The paddy duck', (S.rev.pets || {}).duck ? 'follows you home' : 'a very rare draw', '');
+    h += '<h3>Levels</h3>' + Object.keys(ISLE_UNLOCKS.ba).map((l) => row(img('ba_i_storm', 22), 'Level ' + l, ISLE_UNLOCKS.ba[l].replace(/^./, (x) => x.toUpperCase()), B.lv >= +l ? btn('Yours', '', 'noop', false, 'blue') : btn('Locked', '', 'noop', false))).join('');
+  }
+  return h;
+}
+function baAct(a, v) {
+  if (a === 'ba_go') { closeModal(); goIsle('ba'); return; }
+  const B = S.ba; if (!B) return;
+  if (a === 'ba_sub') { S.baSub = v; SFX.play('tick'); }
+  else if (a === 'ba_start') { if (baStart()) setTab('farm', true); }
+  else if (a === 'ba_end') baEnd(true);
+}
+function baIntro() {
+  const B = S.ba; if (!B || B.seen || !baHere() || !$('modal').hidden) return;
+  B.seen = true; BEACON.ev('isle_open', { key: 'ba', p: S.prestige });
+  showModal(npcCard('Wayan', WAYAN_LOOK, 'Bali', 'Om swastiastu, and welcome to our co-op on Mount Batur. We grow coffee among the orange trees and dry it on the raised beds, and the monsoon comes in off the lake every forty minutes or so. When it does, everyone runs: pick, spread, turn, bag, and get it all in the barn before the rain. Hold the cover rope when a gust comes, and patch the roof if it leaks. Tap the barn when you\'re ready for your first storm.'));
+}
+const baHud = () => { const B = S.ba, st = B && B.st; return ['Bali · Kintamani co-op', !B ? '' : st ? (st.brk ? 'the rain falls · ' + st.brk.taps + ' glints' : 'barn ' + Math.floor(st.barn) + '/' + st.target + ' · storm ' + Math.floor(st.t / BA_STORM * 100) + '% · ' + st.basket + '/' + baBasket() + ' kg') : B.charge ? B.charge + ' storm' + (B.charge > 1 ? 's' : '') + ' banked · tap the barn' : 'level ' + B.lv + ' · the next storm in ' + voyLeft(baNextMs())]; };
+const baStatus = () => { const B = S.ba; if (!B) return ['', false]; if (B.st) return ['a storm waiting for you: barn ' + Math.floor(B.st.barn) + '/' + B.st.target, true]; return B.charge ? [B.charge + ' storm' + (B.charge > 1 ? 's' : '') + ' banked', B.charge >= baMax()] : ['the next storm in ' + voyLeft(baNextMs()), false]; };
+ISLE_FN.ba = { fresh: baFresh, tick: baTick, draw: drawBali, click: baClick, hint: baHint, panel: baPanel, act: baAct, intro: baIntro, hud: baHud, status: baStatus, track: 'bali' };
 /* ---------- player actions ---------- */
 let swipe = null, swipedAt = 0;   /* a quick sideways swipe on the map travels like the arrows: left for the next place, right for the one before */
 scroller.addEventListener('touchstart', (e) => { const t = e.touches[0]; swipe = e.touches.length === 1 ? { x: t.clientX, y: t.clientY, at: Date.now() } : null; }, { passive: true });
@@ -5666,7 +6026,7 @@ function placeArrow(t, pt) {   /* a bouncing arrow over what to tap; on the farm
   arrow.hidden = false; arrow.style.left = Math.round(x - 11) + 'px'; arrow.style.top = Math.round(y - 26) + 'px';
 }
 addEventListener('scroll', () => { if (!$('garrow').hidden) renderGuide(); }, { passive: true });
-const MAP_FOCUS = { farm: 0.3, mill: 0.2, roast: 0, hb: 0.55, re: 0.5 };   /* where a scene taller than the screen opens: the share of what's out of view that sits above the top (fields, racks, the roaster bays and shelf) */
+const MAP_FOCUS = { farm: 0.3, mill: 0.2, roast: 0, hb: 0.55, re: 0.5, ba: 0.5 };   /* where a scene taller than the screen opens: the share of what's out of view that sits above the top (fields, racks, the roaster bays and shelf) */
 let mapScene = '';
 function mapFocus() {   /* a random event on this map: centred, whatever made the map move (a new scene, a resize) */
   const room = scroller.scrollHeight - scroller.clientHeight, E = (S.rev || {}).cur, b = E && REVS[E.id].here(E) ? REVS[E.id].box(E) : null;
@@ -6185,7 +6545,7 @@ function renderPanel() {
     h += ownStrip(cAll.filter(cOwn).map((id) => [chipImg(url(bodyOf(normLook({ crest: S.look.crest, skin: S.look.skin, bg: S.look.bg, char: id })) + 'down_0', skinLook(S.look.skin))), ART.chars[id] ? ART.chars[id].name : 'Farmer', 'char:' + id, S.look.char === id ? 'on' : 'no']), 'Tap a farmer to play as them.') + '<div class="grid2">' + cAll.filter((id) => !cOwn(id)).map((id) => { const c = ART.chars[id];
       return '<div class="tile">' + avatar({ crest: S.look.crest, skin: S.look.skin, bg: S.look.bg, char: id }, 56) + '<b>' + c.name + '</b><span>From ' + c.from + '</span>' + btn('Buy', c.cost + ' cranes', 'buychar:' + id, S.cranes >= c.cost) + '</div>';
     }).join('') + '</div>';
-    const hatKeys = Object.keys(ART.hats).filter((k) => !(k.startsWith('s_') || k.startsWith('ev_')) || S.hats[k]), hatName = (k) => ({ straw: 'Straw', beju: 'Beju green', sakura: 'Sakura', indigo: 'Indigo', harvest: 'Harvest orange', ev_bee: 'Beekeeper', ev_re_straw: 'Nursery straw' })[k] || themeById(k).name + ' (season)', hatPic = (k) => url('worker_down_0', { hat: ART.hats[k] });
+    const hatKeys = Object.keys(ART.hats).filter((k) => !(k.startsWith('s_') || k.startsWith('ev_')) || S.hats[k]), hatName = (k) => ({ straw: 'Straw', beju: 'Beju green', sakura: 'Sakura', indigo: 'Indigo', harvest: 'Harvest orange', ev_bee: 'Beekeeper', ev_re_straw: 'Nursery straw', ev_ba_bamboo: 'Bamboo hat' })[k] || themeById(k).name + ' (season)', hatPic = (k) => url('worker_down_0', { hat: ART.hats[k] });
     h += '<h3>Picker hats</h3><p class="note">Hats for your pickers, bought with cranes.</p>' + ownStrip(hatKeys.filter((k) => S.hats[k]).map((k) => [chipImg(hatPic(k)), hatName(k), 'hat:' + k, S.hat === k ? 'on' : 'no']), 'Tap a hat for your pickers to wear it.') + '<div class="grid2">' + hatKeys.filter((k) => !S.hats[k]).map((k) => {
       const cost = { straw: 0, beju: 15, sakura: 20, indigo: 15, harvest: 20 }[k];
       return '<div class="tile"><div style="display:flex;align-items:center;gap:6px"><img src="' + hatPic(k) + '" alt="" style="width:32px;image-rendering:pixelated"><b>' + hatName(k) + '</b></div>' + btn('Buy', cost + ' cranes', 'buyhat:' + k, S.cranes >= cost) + '</div>';
@@ -6257,6 +6617,7 @@ function renderPanel() {
     h += '<div class="stamps">' + LOCS.map((l) => '<img src="' + url('stamp_' + l) + '" alt="' + ART.locations[l].name + (S.stamps[l] ? ', stamped' : ', not yet') + '" class="' + (S.stamps[l] ? '' : 'off') + ((S.goldStamps || {})[l] ? ' gold' : '') + '">').join('') + '</div>';
     h += '<h3>Resources</h3><div class="seg"><button type="button" data-act="add:coins">+1,000 coins</button><button type="button" data-act="add:bigcoins">+25,000 coins</button><button type="button" data-act="add:contracts">New contracts</button><button type="button" data-act="add:checkin">Next real day</button><button type="button" data-act="add:drop">Start a drop event</button><button type="button" data-act="add:season">End the season</button><button type="button" data-act="add:stars">+50 season stars</button><button type="button" data-act="add:guide">Restart guide</button><button type="button" data-act="add:points">+2,000 know-how</button><button type="button" data-act="add:cranes">+50 cranes</button><button type="button" data-act="add:vars">All varieties</button><button type="button" data-act="add:xp">+1 level</button><button type="button" data-act="add:cherries">Fill storage</button><button type="button" data-act="add:stamp">Next passport stamp</button><button type="button" data-act="add:sample">Next free sample</button><button type="button" data-act="add:days">+20 check-in days</button></div>';
     h += '<h3>Réunion</h3><div class="seg"><button type="button" data-act="retest:open">' + (isleOpen('re') ? 'Go to Réunion' : 'Open Réunion early') + '</button><button type="button" data-act="retest:lv">+1 nursery level</button><button type="button" data-act="retest:grow">Grow every seedling a stage</button></div>';
+    h += '<h3>Bali</h3><div class="seg"><button type="button" data-act="batest:open">' + (isleOpen('ba') ? 'Go to Bali' : 'Open Bali early') + '</button><button type="button" data-act="batest:lv">+1 monsoon level</button><button type="button" data-act="batest:charge">Bank a storm</button><button type="button" data-act="batest:dry">Dry every bed</button><button type="button" data-act="batest:fill">Fill the barn</button></div>';
     h += '<h3>The harbour</h3><div class="seg"><button type="button" data-act="hbtest:open">' + (hbOpen() ? 'Go to the harbour' : 'Open the harbour early') + '</button><button type="button" data-act="hbtest:cw">+5 cowries</button><button type="button" data-act="hbtest:home">Bring the boat home</button><button type="button" data-act="hbtest:bottle">A bottle washes up</button></div>';
     h += '<h3>Blue Mountain</h3><div class="seg"><button type="button" data-act="bmtest:open">' + (bmOpen() ? 'Go to Blue Mountain' : 'Open Blue Mountain early') + '</button><button type="button" data-act="bmtest:ripe">Ripen every terrace</button><button type="button" data-act="bmtest:rest">Rest every batch</button><button type="button" data-act="bmtest:lv">+1 certification</button></div>';
     h += '<h3>Kona Ridge</h3><div class="seg"><button type="button" data-act="konatest:open">' + (konaOpen() ? 'Go to Kona Ridge' : 'Open Kona Ridge early') + '</button><button type="button" data-act="konatest:shells">+5 cowries</button><button type="button" data-act="konatest:lv">+1 island level</button><button type="button" data-act="konatest:stock">+ash, compost, fruit, cherries</button></div>';
@@ -6322,13 +6683,13 @@ document.addEventListener('click', (e) => {
   else if (a === 'ctserve') { const [id, nr] = v.split('|'); ctServe(id, nr === 'near'); }
   else if (a === 'ctroast') { const [k, p] = v.split('|'); startRoast(k, p); }
   else if (a === 'ctbin') toRoastery(+v);
-  else if (a === 'ctreq') { const R = S.roastery; R.want = R.want || {}; if (!R.want[v] && canBin(v)) { R.want[v] = true; requestTickRoast(); tapNote('Requested from the foreman', 'Requested ' + beanName(v) + ' from the foreman: his next lot of it goes to a roastery bin'); } else if (!canBin(v)) toast('All ' + ROAST_BINS + ' roastery bins are full. Roast or sell one first'); }
+  else if (a === 'ctreq') { const R = S.roastery; R.want = R.want || {}; if (!R.want[v] && canBin(v)) { R.want[v] = true; requestTickRoast(); tapNote('Requested from the foreman', 'Requested ' + beanName(v) + ' from the foreman: his next lot of it goes to a roastery bin'); } else if (!canBin(v)) toast('All ' + roastBins() + ' roastery bins are full. Roast or sell one first'); }
   else if (a === 'roastgo') { closeModal(); setTab('roast'); }
   else if (a === 'toroast') toRoastery(+v);
   else if (a === 'roastfeed') S.roastery.feed = +v || 0;
   else if (a === 'rreqask') roastReqModal();
   else if (a === 'rrep') { const R = S.roastery, [v2, m2] = v.split('.'); R.repeat = R.repeat || {}; if (R.repeat[v]) delete R.repeat[v]; else if (repLevel() >= 8) { R.repeat[v] = (R.last || {})[v] || bestRoast(v2, m2); toast('This bin now repeats a ' + ROASTS[R.repeat[v]].name.toLowerCase() + ' roast whenever a roaster is free'); } }
-  else if (a === 'rreq') { const R = S.roastery, k = v; R.want = R.want || {}; if (R.want[k]) delete R.want[k]; else if (canBin(k)) { R.want[k] = true; closeModal(); requestTickRoast(); } else toast('All ' + ROAST_BINS + ' bins are taken'); }
+  else if (a === 'rreq') { const R = S.roastery, k = v; R.want = R.want || {}; if (R.want[k]) delete R.want[k]; else if (canBin(k)) { R.want[k] = true; closeModal(); requestTickRoast(); } else toast('All ' + roastBins() + ' bins are taken'); }
   else if (a === 'binsell') { const R = S.roastery, b = R.beans[v]; if (b) { delete R.beans[v]; earn({ coins: Math.round(b.coins), points: Math.round(b.pts), noXp: Math.round(b.np || 0) }); SFX.play('coins'); tapNote('+' + fmt(Math.round(b.coins)) + ' coins', 'Sold ' + fmtKg(b.kg) + ' kg of green ' + beanName(v) + ': +' + fmt(Math.round(b.coins)) + ' coins'); } }
   else if (a === 'sellbags') { const R = S.roastery, keep = {}; let n = 0, c0 = S.coins; for (let i = R.bags.length - 1; i >= 0; i--) { const b = R.bags[i], hk = b.key + '|' + b.profile; if (!b.blend && (keep[hk] || 0) < ctHeld(b.key, b.profile)) { keep[hk] = (keep[hk] || 0) + 1; continue; }   /* bags the counter's pre-orders need stay on the shelf */ const k = bestBuyer(b), c = bagPrice(b, k), pts = Math.round(b.pts), rep = Math.round(b.q / 10 * (b.blend ? 2 : b.profile === RBUYERS[k].wants ? 1.5 : 1)); R.bags.splice(i, 1); earn({ coins: c, points: pts, noXp: Math.round(b.np || 0) }); R.rep = (R.rep || 0) + rep; S.rcos.sold[k] = (S.rcos.sold[k] || 0) + 1; if (b.blend || !RBUYERS[k].wants || b.profile === RBUYERS[k].wants) task('bags', 1); n += 1; if (n <= 3) roastGuest(k, true); } SFX.play('coins'); const kept = Object.values(keep).reduce((a, x) => a + x, 0); tapNote('Sold ' + n + ' · +' + fmtShort(S.coins - c0) + (kept ? ' · ' + kept + ' kept' : ''), 'Sold ' + n + ' bags: +' + fmt(S.coins - c0) + ' coins' + (kept ? '. ' + kept + ' kept for the counter\'s board' : '')); }
   else if (a === 'roast') { const [k, p] = v.split('|'); startRoast(k, p); }
@@ -6495,6 +6856,7 @@ document.addEventListener('click', (e) => {
     if (v === 'cherries') { const vv = S.farms[S.loc].beds[0]; S.cherries[vv] = (S.cherries[vv] || 0) + (cap() - stored()); }
   }
   else if (a === 'away') away(+v);
+  else if (a === 'batest') { if (!S.ba) S.ba = baFresh(); const B = S.ba; if (v === 'open') { B.test = true; goIsle('ba'); } if (v === 'lv') isleXp('ba', isleNeed(B.lv) - B.xp); if (v === 'charge') B.charge = Math.min(baMax(), B.charge + 1); if (v === 'dry' && B.st) B.st.beds.forEach((b) => { if (b.kg > 0) b.dry = baDryMs(); }); if (v === 'fill' && B.st && !B.st.brk) { B.st.barn = B.st.target; baBreak(B.st); } }
   else if (a === 'retest') { if (!S.re) S.re = reFresh(); if (v === 'open') { S.re.test = true; goIsle('re'); } if (v === 'lv') isleXp('re', isleNeed(S.re.lv) - S.re.xp); if (v === 'grow' && S.re.sh) S.re.sh.beds.forEach((b) => { if (b && !b.dead && b.st < 3) { b.wet = true; b.at -= reStageMs(); } }); }
   else if (a === 'hbtest') { if (!S.bm) S.bm = bmFresh(); if (v === 'open') { S.bm.test = true; if (!S.route) S.route = routeFresh(); goHb(); } if (!S.route) return; if (v === 'cw') routeGive(5, 'Test cowries'); if (v === 'home') S.route.voy.forEach((x) => { x.end = Date.now() - 1; }); if (v === 'bottle') S.route.bottle = true; }
   else if (a === 'bmtest') { if (!S.bm) S.bm = bmFresh(); if (v === 'open') { S.bm.test = true; goBm(); } if (v === 'rest') S.bm.bbq.forEach((b) => { b.at -= 24 * 3600e3; }); if (v === 'lv') bmXp(bmNeed(S.bm.lv) - S.bm.xp); if (v === 'ripe') S.bm.ter.forEach((t) => { t.pool = BM_RATE * BM_POOL_H; }); }

@@ -21,7 +21,7 @@ const CUR = { coins: /\bcoins?\b/i, 'know-how': /\bknow-how\b/i, cranes: /\bcran
     const T = window.__T, S = T.S; S.guide = T.GUIDE.length; S.prestige = 6; S.coins = 5e7; S.points = 5e6; S.cranes = 500; S.season.stars = 40;
     Object.keys(S.tabs).forEach((k) => { S.tabs[k] = true; }); Object.assign(S.tabs, { ranks: true, shop: true, unlock: true, upgrades: true, orders: true });
     ['mogiana', 'huila', 'gedeo', 'toba', 'turrialba'].forEach((l) => { S.farms[l].unlocked = true; S.farms[l].mastery = 30; });
-    T.bmTick(); S.bm.seen = true; T.konaTick(); S.kona.seen = true; S.route = T.routeFresh(); S.route.seen = true; S.route.mig = 1; S.route.cw = 30; S.route.bd.pier = 1; S.route.bd.isle_re = 1; S.re = T.reFresh(); S.re.seen = true;
+    T.bmTick(); S.bm.seen = true; T.konaTick(); S.kona.seen = true; S.route = T.routeFresh(); S.route.seen = true; S.route.mig = 1; S.route.cw = 30; S.route.bd.pier = 1; S.route.bd.isle_re = 1; S.re = T.reFresh(); S.re.seen = true; S.route.bd.isle_ba = 1; S.ba = T.baFresh(); S.ba.seen = true;
   });
   for (let k = 0; k < 3; k++) { await g.waitForTimeout(300); await clean(); }
   const read = () => g.evaluate((CURSRC) => {
@@ -47,7 +47,7 @@ const CUR = { coins: /\bcoins?\b/i, 'know-how': /\bknow-how\b/i, cranes: /\bcran
     ['shop', { shopTab: 'cranes' }, 'shop_boosts'], ['shop', { shopTab: 'chars' }, 'shop_farmer'], ['shop', { shopTab: 'bskin' }, 'shop_style'], ['shop', { shopTab: 'roast' }, 'shop_roastery'], ['shop', { shopTab: 'beju' }, 'shop_real'],
     ['farm', { isle: true, konaSub: 'island' }, 'kona_island'], ['farm', { isle: true, konaSub: 'book' }, 'kona_book'], ['farm', { isle: true, konaSub: 'log' }, 'kona_log'],
     ['farm', { isle: 'bm', bmSub: 'island' }, 'bm_island'], ['farm', { isle: 'bm', bmSub: 'log' }, 'bm_log'],
-    ['farm', { isle: 're', reSub: 'nursery' }, 're_nursery'], ['farm', { isle: 're', reSub: 'log' }, 're_log'],
+    ['farm', { isle: 're', reSub: 'nursery' }, 're_nursery'], ['farm', { isle: 're', reSub: 'log' }, 're_log'], ['farm', { isle: 'ba', baSub: 'storm' }, 'ba_storm'], ['farm', { isle: 'ba', baSub: 'log' }, 'ba_log'],
     ['farm', { isle: 'hb', hbSub: 'harbour' }, 'hb_harbour'], ['farm', { isle: 'hb', hbSub: 'board' }, 'hb_board'], ['farm', { isle: 'hb', hbSub: 'ledger' }, 'hb_ledger']
   ];
   const out = [];

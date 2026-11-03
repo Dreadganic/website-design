@@ -59,6 +59,10 @@ exports.handler = async (event) => {
   const route = { finds: {}, board: {}, sailed: {}, home: {} };   /* the Island Route: which cowries people find, which projects they build first, where the boat goes */
   for (const e of events) if (e.key && e.e === "route_find") route.finds[e.key] = (route.finds[e.key] || 0) + 1; else if (e.key && e.e === "route_board") route.board[e.key] = (route.board[e.key] || 0) + 1; else if (e.key && e.e === "route_voyage") route[e.t === "home" ? "home" : "sailed"][e.key] = (route[e.t === "home" ? "home" : "sailed"][e.key] || 0) + 1;
 
+  const isles = {};   /* the newer islands: how many open each, how many runs they play (a Réunion shift, a Bali storm) and the median run score */
+  for (const e of events) if (e.key && (e.e === "isle_open" || e.e === "isle_run")) { const I = isles[e.key] = isles[e.key] || { opened: 0, runs: 0, scores: [] }; if (e.e === "isle_open") I.opened += 1; else { I.runs += 1; if (e.m > 0) I.scores.push(e.m); } }
+  for (const k of Object.keys(isles)) { isles[k].medianScore = median(isles[k].scores); delete isles[k].scores; }
+
   /* feature usage */
   const counterSessions = events.filter((e) => e.e === "counter_close");
   const away = events.filter((e) => e.e === "away_collect").map((e) => e.h).filter((n) => n > 0);
@@ -74,7 +78,7 @@ exports.handler = async (event) => {
     sessions: { started: counts.session_start || 0, ended: ends.length, medianLenSec: median(ends) },
     retention: ret,
     bm: { opened: counts.bm_open || 0, visits: counts.bm_visit || 0, medianGapMin: median(bmGaps), cleanShare: bmClean + bmBlind ? Math.round((1000 * bmClean) / (bmClean + bmBlind)) / 10 : null, trays: counts.bm_grade || 0, ships: bmShips },
-    route,
+    route, isles,
     counter: { closes: counterSessions.length, medianServed: median(counterSessions.map((e) => e.served || 0)), medianWalkouts: median(counterSessions.map((e) => e.out || 0)) },
     away: { sessions: away.length, medianHours: median(away) },
     bags, prestigeByP, p5Plus: starts.filter((e) => (e.p || 0) >= 5).length,

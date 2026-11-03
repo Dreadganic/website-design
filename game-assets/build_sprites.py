@@ -2677,6 +2677,109 @@ def scene_reunion():
 
 scene_reunion(); img.save(os.path.join(HERE, "bg", "reunion.png")); rendered[("reunion", "")] = img.copy()
 
+
+def scene_bali():
+    """Bali, Kintamani on the slopes of Mount Batur (prestige 6, from the harbour board): the dark cone of Batur over its caldera
+    lake, four terraces of coffee among orange trees, the drying yard with four raised bamboo beds and the rope post between them,
+    the co-op's thatched barn, then a path down past frangipani and a duck pond. The game draws the coffee bushes, the coffee on
+    the beds, the bags, the leaks, Wayan and the storm itself (BA_* in template.html use the same spots)."""
+    lush = GRASS["lush"]
+    new_scene(lush[2])
+    rnd = random.Random(131)
+    nz = noise(132)
+    for y in range(H):
+        for x in range(W):
+            v = nz(x, y)
+            put(x, y, rnd.choice(lush[1:4]) if rnd.random() < 0.1 else lush[1] if v > 1.6 else lush[3] if v < 0.5 else lush[2])
+    for y in range(0, 44):   # the sky (the game darkens it as a storm comes)
+        for x in range(W):
+            put(x, y, "#9CCCE8" if y < 12 else "#AED6EE" if y < 24 else "#C4E2F2")
+    for x in range(W):   # the caldera rim behind
+        top = 30 - 4 * math.sin(x * 0.05 + 0.6) - 2 * math.sin(x * 0.17)
+        for y in range(int(top), 46):
+            put(x, y, "#6E8A6A" if y < top + 2 else "#5E7A5C")
+    for x in range(84, 172):   # Mount Batur, a dark young cone with old lava flows
+        top = 8 + abs(x - 128) * 0.62
+        for y in range(int(top), 46):
+            put(x, y, "#4E4642" if x < 128 else "#3E3634")
+    for (lx, n) in [(110, 22), (140, 18), (124, 28)]:
+        x = lx
+        for y in range(18, 18 + n):
+            x += rnd.choice([-1, 0, 1]) * 0.6
+            put(x, y, "#2A2420"); put(x + 1, y, "#5A504A")
+    for y in range(44, 62):   # Lake Batur in the caldera
+        for x in range(W):
+            put(x, y, "#3E7A98" if (x * 3 + y) % 11 else "#5A94B0")
+    for x in range(0, W, 7):
+        put(x + (x % 3), 50 + (x % 5), "#9ED8E2")
+    for x in range(W):   # the lake shore and the terraces' first wall
+        put(x, 62, "#7A6A52"); put(x, 63, "#5E5040")
+    # four terraces of coffee among orange trees: soil bands with a stone lip; the game draws the coffee bushes
+    for r in range(4):
+        y0 = 66 + r * 32
+        for y in range(y0, y0 + 32):
+            for x in range(W):
+                d = y - y0
+                put(x, y, "#6A4A30" if d < 4 else lush[2] if d < 26 else STONE[2] if d < 28 else STONE[3] if d < 29 else lush[3])
+        for x in range(W):
+            if (x + r) % 7 == 0:
+                put(x, y0 + 27, STONE[1])
+        for c in range(3):   # orange trees between the coffee bushes
+            tx = 46 + c * 62 + (r % 2) * 18
+            if tx > 186:
+                continue
+            cluster(tx, y0 + 12, 9, 8, ["#B8D068", "#8EB04C", "#6A9038", "#4E7A2E", "#345A20", "#203C16"], 1300 + r * 10 + c, blobs=10, br=(3, 4.5))
+            for k in range(5):
+                ellipse(tx - 5 + (k * 5) % 11, y0 + 8 + (k * 3) % 9, 1.5, 1.5, "#F29A2A"); put(tx - 6 + (k * 5) % 11, y0 + 7 + (k * 3) % 9, "#FFD07A")
+            R(tx - 1, y0 + 18, 2, 6, WOOD[3])
+    # the drying yard: packed earth, four raised bamboo beds on legs, the rope post with its coil
+    for y in range(194, 254):
+        for x in range(W):
+            put(x, y, "#9A8A6E" if (x + y) % 6 else "#8E7E62")
+    for j in range(4):
+        bx = 8 + j * 46
+        soft_shadow(bx, 232, 38)
+        for k in range(5):
+            R(bx + 2 + k * 8, 226, 2, 8, "#8A6A30")
+        fill(bx, 204, 38, 22, "#6A5020"); fill(bx + 1, 205, 36, 20, "#C8B07A")
+        for k in range(0, 36, 3):
+            fill(bx + 1 + k, 205, 1, 20, "#B89C64")   # bamboo slats
+        fill(bx, 204, 38, 1, "#4A3A18"); fill(bx, 225, 38, 1, "#4A3A18")
+    R(94, 228, 4, 24, WOOD[4]); R(95, 228, 2, 24, WOOD[2]); ellipse(96, 244, 5, 2, "#C8B080"); ellipse(96, 243, 3, 1.2, "#A8905A")   # the rope post
+    for x in range(W):
+        put(x, 254, "#6A5A44")
+    # the co-op barn: a deep thatched roof (alang-alang) over an open front, bamboo posts, a shelf for the bags
+    soft_shadow(26, 310, 140)
+    for y in range(256, 278):
+        for x in range(20, 172):
+            if abs(x - 96) <= 76 - (277 - y) * 0.9:
+                put(x, y, THATCH[(x * 3 + y * 7) % 4 + 1] if (x + y) % 3 else THATCH[0])
+    for x in range(20, 172):
+        if abs(x - 96) <= 76:
+            put(x, 277, THATCH[5])
+    for y in range(278, 310):
+        for x in range(28, 164):
+            put(x, y, "#3A2A1C" if (x + y) % 7 else "#46342A")
+    for px_ in (28, 70, 122, 162):
+        R(px_, 278, 3, 32, "#B89C64"); R(px_ + 1, 278, 1, 32, "#D8C08A")
+    fill(32, 302, 128, 3, WOOD[3])
+    # the path down, frangipani, a duck pond
+    for y in range(312, H):
+        for x in range(W):
+            put(x, y, lush[2] if (x + y) % 5 else lush[3])
+    for y in range(310, H):
+        cx = 96 + math.sin(y * 0.07) * 8
+        for x in range(int(cx - 9), int(cx + 10)):
+            put(x, y, "#B89A72" if (x + y) % 4 else "#A88A62")
+    ellipse(160, 332, 20, 8, "#3E7A98"); ellipse(158, 330, 12, 4, "#5A94B0"); ellipse(156, 329, 5, 1.5, "#9ED8E2")
+    cluster(26, 324, 11, 8, ["#B8D068", "#8EB04C", "#6A9038", "#4E7A2E", "#345A20", "#203C16"], 1350, blobs=10, br=(3, 4.5))
+    for k in range(7):
+        k_flower(16 + (k * 7) % 22, 318 + (k * 5) % 12, "#FFFFFF", "#F2D838")
+    R(25, 330, 2, 10, WOOD[3])
+
+
+scene_bali(); img.save(os.path.join(HERE, "bg", "bali.png")); rendered[("bali", "")] = img.copy()
+
 scene_mill(); img.save(os.path.join(HERE, "bg", "mill.png")); rendered[("mill", "")] = img.copy()
 for _room in ROOMS:
     scene_roastery(_room); img.save(os.path.join(HERE, "bg", "roastery.png" if _room == "brick" else "roastery-%s.png" % _room)); rendered[("roastery", _room)] = img.copy()
@@ -4514,6 +4617,38 @@ add_grid("re_i_seed", [   # a seedling in a pot, for the panel
     "..obbbbo..",
     "...obbo...",
     "...oooo..."], {"o": OUT, "g": "#7EB84C", "G": "#4E8A30", "b": "#B85A30"})
+
+# ---------------- Bali: the storm's pieces, the paddy duck ----------------
+add_grid("ba_duck", [   # a paddy duck, the kind herded through Bali's rice fields: tall, upright, white
+    "....oo....",
+    "...owwo...",
+    "...owyyo..",
+    "...owo....",
+    "...owo....",
+    "..owwwo...",
+    ".owwwwwo..",
+    "owwwwwwwo.",
+    ".owwwwwo..",
+    "..ooooo...",
+    "...y.y...."], {"o": OUT, "w": "#F4F0E4", "y": "#E8A040"})
+add_grid("ba_i_storm", [   # a storm cloud with rain, for the panel
+    "...oooo...",
+    ".oogggoo..",
+    "oggggggo..",
+    "ogggggggo.",
+    ".ooooooo..",
+    "..b..b..b.",
+    ".b..b..b..",
+    "b..b..b..."], {"o": OUT, "g": "#7A86A0", "b": "#86CCD8"})
+add_grid("ba_i_rake", [   # the golden rake
+    "o.o.o.o...",
+    "ooooooo...",
+    "...oyo....",
+    "...oyo....",
+    "...oyo....",
+    "...oyo....",
+    "...oyo....",
+    "....o....."], {"o": OUT, "y": "#F2C04A"})
 
 # ---------------- Blue Mountain: barrels, the graded beans, parchment, the doctor bird and the island's icons ----------------
 def bm_barrel(p):   # a Blue Mountain export barrel: oak staves, three iron hoops (the game paints the grade's band and number)
