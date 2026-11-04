@@ -170,16 +170,16 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
   /* how long the guide takes: about 15 photos and 4 trails a day, as the drop-rate plan assumes */
   const sim = await E(() => {
     const T = window.__T, S = T.S, keep = S.ga, days = [];
-    for (let run = 0; run < 40; run++) {
+    for (let run = 0; run < 400; run++) {   /* enough players that the percentiles hold still from run to run */
       S.ga = T.gaFresh(); let d = 0;
       while (T.gaFound() < 46 && d < 120) { d += 1; for (let k = 0; k < 15; k++) { const e = T.gaRoll('photo'); S.ga.got[e[0]] = 1; } for (let k = 0; k < 4; k++) { const e = T.gaRoll('trail'); S.ga.got[e[0]] = 1; } }
       days.push(d);
     }
-    S.ga = keep; days.sort((a, b) => a - b); return { median: days[20], slow: days[36], max: days[39] };
+    S.ga = keep; days.sort((a, b) => a - b); return { median: days[200], slow: days[360], p95: days[380], p99: days[396], max: days[399] };
   });
-  console.log('  the field guide, full in: median', sim.median, 'days · 9 in 10 by', sim.slow, '· slowest', sim.max);
+  console.log('  the field guide, full in: median', sim.median, 'days · 9 in 10 by', sim.slow, '· 19 in 20 by', sim.p95, '· 99 in 100 by', sim.p99, '· slowest of 400', sim.max);
   ok(sim.median >= 14 && sim.median <= 35, 'the whole guide takes about 3 to 4 weeks at the expected pace (median ' + sim.median + ' days)');
-  ok(sim.max <= 45, 'and never much more than 6 weeks, thanks to the guarantees (slowest ' + sim.max + ' days)');
+  ok(sim.slow <= 35 && sim.p95 <= 40, 'and almost everyone within 6 weeks, thanks to the guarantees (9 in 10 by ' + sim.slow + ' days, 19 in 20 by ' + sim.p95 + ')');   /* the slowest few are luck: over 20,000 players, 1 in 500 took more than 45 days */
   ok(!errs.length, 'no page errors' + (errs.length ? ': ' + errs.slice(0, 3).join(' | ') : ''));
   console.log(pass + ' passed, ' + fail + ' failed');
   await b.close(); process.exit(fail ? 1 : 0);
