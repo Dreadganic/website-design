@@ -141,7 +141,7 @@ const ok = (c, msg) => { console.log((c ? 'PASS ' : 'FAIL ') + msg); if (!c) pro
   ok(!(await E()) && await stopped('typhoon') === 1 && await p.evaluate(() => window.__T.S.rev.show.shutters === true), 'all three done: the typhoon passes, and the storm shutters come on the first stop');
 
   // a companion: one stop in 100
-  await p.evaluate(() => { const T = window.__T, r = Math.random; Math.random = () => 0.005; T.S.rev.cur = null; T.revStart('rust', { rare: false }); T.revEnd(true); Math.random = r; });
+  await p.evaluate(() => { const T = window.__T, r = Math.random; T.S.rev.pets = {}; Math.random = () => 0.005; T.S.rev.cur = null; T.revStart('rust', { rare: false }); T.revEnd(true); Math.random = r; });   /* none yet: each earlier stop has its own 1 in 100 */
   ok(await p.evaluate(() => Object.keys(window.__T.S.rev.pets || {}).length === 1), 'one stop in 100 brings a companion: ' + await p.evaluate(() => Object.keys(window.__T.S.rev.pets).join()));
   await p.evaluate(() => { const S = window.__T.S; S.rev.pets = { piglet: true, capuchin: true, crow: true, millcat: true, dalmatian: true }; window.__T.setTab('farm', true); });
   await p.waitForTimeout(6000); await shot('pets-train');

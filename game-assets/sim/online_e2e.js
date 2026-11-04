@@ -59,7 +59,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   // device B: a fresh farm uses the code
   const B = await dev(); await prep(B); await settle(B);
   const playerB0 = await B.evaluate(() => window.__T.NET.acct.player);
-  await tap(B, '#gearBtn'); await B.waitForTimeout(200); await tap(B, '[data-act="linkask"]'); await B.waitForTimeout(200);
+  await tap(B, '#gearBtn'); await B.waitForTimeout(300); await clean(B); await tap(B, '[data-act="linkask"]'); await B.waitForTimeout(200);   /* a card that comes with the first tap (a drop event starting) is cleared first, as on device A */
   await B.fill('#linkIn', code.slice(0, 4).toLowerCase() + ' - ' + code.slice(4)); await tap(B, '[data-act="linkuse"]'); await B.waitForTimeout(800);
   const m2 = await modal(B);
   ok(/Load this farm\?/.test(m2) && /Mika/.test(m2) && /prestige 2/.test(m2), 'device B is asked before loading Mika\'s farm: ' + m2.slice(0, 90));
@@ -77,7 +77,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   ok(rec.startsWith(playerA + '.'), 'the recovery code names this farm');
   await clean(A);
   const C3 = await dev(); await prep(C3); await settle(C3);
-  await tap(C3, '#gearBtn'); await C3.waitForTimeout(200); await tap(C3, '[data-act="linkask"]'); await C3.fill('#linkIn', rec); await tap(C3, '[data-act="linkuse"]'); await C3.waitForTimeout(700);
+  await tap(C3, '#gearBtn'); await C3.waitForTimeout(300); await clean(C3); await tap(C3, '[data-act="linkask"]'); await C3.fill('#linkIn', rec); await tap(C3, '[data-act="linkuse"]'); await C3.waitForTimeout(700);
   ok(/Load this farm\?/.test(await modal(C3)), 'a recovery code finds the farm too');
   await clean(C3);
 
