@@ -19,7 +19,8 @@ const SIZES = [[320, 568], [360, 640], [375, 667], [390, 844], [414, 896], [430,
       await p.evaluate(go); await p.waitForTimeout(400);
       await p.evaluate(() => { const T = window.__T; for (let i = 0; i < 8; i++) T.closeModal(); document.getElementById('modal').hidden = true; document.getElementById('toast').hidden = true; });
       const spots = await p.evaluate((sc) => {
-        const T = window.__T, out = [];
+        const T = window.__T, out = [], who = { hb: 'ama', bm: 'pearl', kona: 'kimo', ga: 'ines', ba: 'wayan', re: 'lise' }[sc];
+        if (who && T.NPC_SPOTS) T.NPC_SPOTS[who].forEach((q, k) => out.push([T.NPC[who].name + '\'s stroll ' + (k + 1), q.x, q.y - 10]));   /* where each islander walks to, as well as home */
         if (sc === 'hb') {
           for (const k of [0, 1]) { const m = T.HB_BOAT(k); out.push(['boat ' + (k + 1), m.x + 20, m.y + 14]); out.push(['boat ' + (k + 1) + ' tag', m.x + 20, m.y - 1]); }
           out.push(['the pier\'s gap', T.HB_PIER.x + 8, T.HB_PIER.gap0 + 8]);

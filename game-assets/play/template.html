@@ -14,11 +14,11 @@
 }
 * { box-sizing: border-box; }
 html, body { background: var(--wood); }
-body { margin: 0; color: var(--ink); font-family: var(--pixel); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+body { margin: 0; color: var(--ink); font-family: var(--pixel); font-variant-ligatures: none; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 /* one screen, no page scroll: farm bar on top, the map in the middle, tabs along the bottom. A tab opens as a sheet over the lower half of the map */
 .app { --pb: max(10px, env(safe-area-inset-bottom, 0px)); --dock: calc(var(--pb) + 52px); --sh: max(50%, calc(var(--dock) + 320px)); --ar: 192 / 352; position: relative; max-width: 400px; margin: 0 auto; display: flex; flex-direction: column; gap: 8px; height: 100vh; height: 100dvh; min-height: 460px; padding-top: max(10px, env(safe-area-inset-top, 0px)); padding-bottom: var(--pb); }
 .mapwrap { flex: 1; min-height: 0; container-type: size; display: grid; place-items: center; }
-button { font-family: var(--pixel); }
+button { font-family: var(--pixel); font-variant-ligatures: none; }   /* the pixel font's fi and fl ligatures read as other letters */
 button:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 .card { background: var(--paper); border: 3px solid var(--edge); border-radius: 10px; box-shadow: inset 0 0 0 2px var(--paper-2), 0 3px 0 #1E140C; }
 .top { position: relative; display: flex; align-items: center; gap: 6px; padding: 6px 8px; }
@@ -337,6 +337,7 @@ a.btn { text-decoration: none; }   /* link buttons (the shop, real bags) read li
 .how ol { margin: 6px 0 2px; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
 .coach { display: flex; gap: 10px; align-items: flex-start; text-align: left; }
 .coach-face { width: 48px; image-rendering: pixelated; flex: none; background: #FBF1DC; border: 3px solid var(--edge); border-radius: 10px; padding: 4px; }
+.coach-face.pt { width: 64px; padding: 0; background: #F4E6C6; }   /* a 32 px portrait, at twice its size */
 .coach-t { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .coach-t small { font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; font-size: 11px; }
 .coach-t p { margin: 0; }
@@ -706,7 +707,7 @@ function estateAction(loc) {   /* what the project lets you do right now */
   return '';
 }
 function emRow(loc) {   /* the estate's manager: what opens them, hire, or what they did last */
-  const M = EMGR[loc], lv = trainLv('em_' + loc), face = '<img src="' + url('worker_down_0', M.look) + '" alt="" style="width:26px;image-rendering:pixelated">';
+  const M = EMGR[loc], lv = trainLv('em_' + loc), face = npcFace(EM_NPC[loc], 'idle', 32) || '<img src="' + url('worker_down_0', M.look) + '" alt="" style="width:26px;image-rendering:pixelated">';
   if (emHired(loc)) return row(face, M.name + ' · ' + M.role, 'Works at ' + Math.round(emEff(loc) * 100) + '% of you' + (lv ? ' (training ' + lv + ')' : '') + '. ' + ((S.estate.log || {})[loc] ? 'Last: ' + S.estate.log[loc] + '.' : 'Steps in once you\'ve had your chance.'), btn('Train', 'Farm › Staff', 'uptab:staff', true, 'blue'));
   if (emCan(loc)) return row(face, M.name + ' · ' + M.role, 'Takes over this chore once you\'ve had your chance, at ' + Math.round(emEff(loc) * 100) + '% of your result.', btn('Hire', fmtShort(emHire(loc)) + ' coins', 'emhire:' + loc, S.coins >= emHire(loc), 'green'));
   return '<p class="note">' + M.role + ': do this chore yourself ' + M.need + ' times to meet ' + M.name + ' (' + Math.min(choreN(M.chore), M.need) + '/' + M.need + ').</p>';
@@ -1196,7 +1197,7 @@ const moodOf = (who) => {   /* who: a buyer kind or a regular key; FNV-1a over w
 const moodKey = (who) => moodOf(who).key, moodMult = (who) => moodOf(who).mult, moodPct = (who) => Math.round((moodMult(who) - 1) * 100);
 function moodCard() {   /* T2.1: the week's board, on the Daily tab */
   const rows = buyerKeys().map((k) => row(img('i_cherry', 26), RBUYERS[k].name, 'pays +' + moodPct(k) + '% for ' + beanName(moodKey(k)) + ' this week', '')).join('');
-  const regs = Object.keys(CT_REGS).map((r) => row('<img src="' + url('worker_down_0', { shirt: CT_REGS[r][1], hat: CT_REGS[r][2] }) + '" alt="" style="width:26px">', CT_REGS[r][0], 'wants ' + beanName(moodKey(r)) + ' this week', '')).join('');
+  const regs = Object.keys(CT_REGS).map((r) => row(npcFace(r, 'idle', 32) || '<img src="' + url('worker_down_0', { shirt: CT_REGS[r][1], hat: CT_REGS[r][2] }) + '" alt="" style="width:26px">', CT_REGS[r][0], 'wants ' + beanName(moodKey(r)) + ' this week', '')).join('');
   return '<h2>This week\'s moods</h2>' + help('moods', 'A new coffee is in fashion every week.', 'Each buyer and regular fancies one coffee for the week, fresh every Monday at the same moment worldwide. Sell it to the buyer, or serve it to the regular, for +15–25% extra coins. Everyone sees the same board.') + rows + regs;
 }
 const bagName = (b) => (b.seasonal ? b.seasonal + ' · ' : '') + (b.blend || beanName(b.key)) + (b.blend ? '' : ' · ' + ROASTS[b.profile].name.toLowerCase());
@@ -1300,7 +1301,7 @@ function rPic(id, size) {   /* the picture on a shop card */
   if (k === 'room') return '<img src="' + BGS[v === 'brick' ? 'roastery' : 'roastery-' + v] + '" alt="" style="width:' + size + 'px;height:' + Math.round(size * 1.1) + 'px;object-fit:cover;object-position:50% 60%;image-rendering:pixelated;border-radius:4px">';
   if (k === 'noren') { const n = norenOf(v); return im(url('noren_icon', { swap: { '#2C3A80': n.cloth, '#F8F4EC': n.mark } })); }
   if (k === 'label') return im(bagUrl('medium', v), Math.round(size * 0.7));
-  if (k === 'apron') return im(url('worker_down_0', apronShirt(v) ? { shirt: apronShirt(v), hat: HELP_LOOK.hat } : HELP_LOOK), Math.round(size * 0.7));
+  if (k === 'apron') return im(npcArt('barista') ? url('npc_barista_down_0', apronShirt(v) ? { shirt: apronShirt(v) } : undefined) : url('worker_down_0', apronShirt(v) ? { shirt: apronShirt(v), hat: HELP_LOOK.hat } : HELP_LOOK), Math.round(size * 0.7));
   if (k === 'prop') return im(url('rp_' + v + (v === 'maneki' || v === 'neon' || v === 'cat' ? '_0' : '')));
   return im(url('roaster_2'));
 }
@@ -1446,7 +1447,7 @@ function repInfo() {   /* the roastery's reputation and what it brings next (sho
     text: 'Roastery reputation ' + lv + (lv < 20 ? ': ' + fmt(R.rep || 0) + ' / ' + fmt(hi) + '. ' : ', master roaster. ') + (nextP ? 'At ' + nextP + ': ' + nextTxt + '.' : ms < 10 ? 'Master roaster stars: ' + ms + ' / 10, each +1% bag price. Next at ' + fmt(hi) + '.' : 'Ten master roaster stars: +10% on every bag.') + ' Every bag sold raises it.' };
 }
 /* the Counter page (Roast › Counter): the board to plan from before a session, the queue with Serve buttons while it's open, and the tally after */
-const ctAv = (c) => '<img src="' + url('worker_down_0', ctLook(c)) + '" alt="" style="width:28px;image-rendering:pixelated">';
+const ctAv = (c) => (c.reg && npcFace(c.reg, 'idle', 32)) || '<img src="' + (npcArt('g_' + c.look) ? url('npc_g_' + c.look + '_down_0') : url('worker_down_0', ctLook(c))) + '" alt="" style="width:28px;image-rendering:pixelated">';
 const ctStarRow = (r) => '<span class="ctstars" aria-label="' + r.toFixed(1) + ' of 5 stars">' + [0, 1, 2, 3, 4].map((i) => r >= i + 1 ? '<img src="' + url('sh_star_on') + '" alt="">' : r >= i + 0.5 ? '<span class="h"><img src="' + url('sh_star_off') + '" alt=""><img src="' + url('sh_star_on') + '" alt=""></span>' : '<img src="' + url('sh_star_off') + '" alt="">').join('') + '</span>';
 function ctStock(o) {   /* what's on hand for an order: matching bags on the shelf, green in a bin, a lot on a mill rack */
   const R = S.roastery, shelf = R.bags.filter((b) => ctMatch(o, b)).length, bin = o.key ? R.beans[o.key] : null, lot = o.key ? S.lots.findIndex((l) => l.v + '.' + l.method === o.key && l.left <= 0) : -1, drying = o.key && S.lots.some((l) => l.v + '.' + l.method === o.key && l.left > 0), roasting = R.roasters.filter((r) => (!o.key || r.key === o.key) && r.profile === o.profile).length;
@@ -1501,7 +1502,7 @@ function counterPanel() {
   }
   h += help('counter', 'Pre-orders pay 2× a buyer, walk-ins 1.6×, regulars 2.2×, times the cup score.', 'Pre-orders pay 2× the best buyer\'s price, walk-ins 1.6× and regulars 2.2×, times the cup score (×1 at 85, ×1.4 at 90). A wrong roast still pays ×0.6. Each customer served adds 0.03 stars, a walk-out takes 0.2, and three walk-outs close early. Sell all keeps the bags the board needs.' + (S.staff.roaster ? ' Your head roaster roasts for the board while it\'s open.' : ''));
   h += '<h3>Regulars</h3><div class="ctregs">' + Object.keys(CT_REGS).map((k) => { const n = (C.regs[k] || {}).n || 0, nxt = [5, 15, 40].find((m) => m > n);
-    return '<span><img src="' + url('worker_down_0', { shirt: CT_REGS[k][1], hat: CT_REGS[k][2] }) + '" alt="">' + CT_REGS[k][0] + '<small>' + n + ' visit' + (n === 1 ? '' : 's') + (nxt ? ' · story at ' + nxt : ' · story complete') + (n >= 10 ? ' · mug' : '') + '</small></span>'; }).join('') + '</div>' + (r < 4 ? '<p class="note">Regulars start coming at four stars.</p>' : '');
+    return '<span>' + (npcFace(k, 'idle', 32) || '<img src="' + url('worker_down_0', { shirt: CT_REGS[k][1], hat: CT_REGS[k][2] }) + '" alt="">') + CT_REGS[k][0] + '<small>' + n + ' visit' + (n === 1 ? '' : 's') + (nxt ? ' · story at ' + nxt : ' · story complete') + (n >= 10 ? ' · mug' : '') + '</small></span>'; }).join('') + '</div>' + (r < 4 ? '<p class="note">Regulars start coming at four stars.</p>' : '');
   return h;
 }
 function roasteryPanel() {   /* the reputation sits in the bar over the roastery (repInfo) */
@@ -2794,6 +2795,7 @@ function nameTag(x, y) {   /* your name tag, in your tier's colour, with stars p
   if ((S.rev || {}).streak >= 5) revFlame(Math.round(tx - w / 2 - 13), ty - 12);
 }
 function drawFloats() {
+  drawSays();
   ctx.textAlign = 'center'; ctx.font = '700 19px "Zen Kaku Gothic New", system-ui, sans-serif';   /* floating +coins and +kg read best in the body font */
   floats.forEach((t) => {
     const y = (t.y - t.t * 12) * 2;
@@ -2851,8 +2853,9 @@ function draw(time) {
   if (S.loc === 'gedeo' && es >= 2 && cerOn()) for (let k = 0; k < 4; k++) { const ph = (time * 0.4 + k / 4) % 1; fx.fillStyle = 'rgba(232,96,42,' + (0.9 - ph).toFixed(2) + ')'; fx.fillRect(Math.round(81 + k * 3 + Math.sin(time * 3 + k) * 2), Math.round(64 - ph * 18), 1, 1); }   /* sparks over the ceremony */
   if (S.loc === 'osaka' && sea !== 'winter') { const a = time * (koiOn() ? 1.2 : 0.6), big = es >= 1, kx = (big ? 27 : 24) + Math.cos(a) * (big ? 15 : 9), ky = (big ? 87 : 86) + Math.sin(a) * (big ? 5 : 4); fx.fillStyle = '#F08838'; fx.fillRect(Math.round(kx), Math.round(ky), 4, 2); if (big) { fx.fillStyle = '#FFFFFF'; fx.fillRect(Math.round(27 + Math.cos(-a * 0.8) * 11), Math.round(88 + Math.sin(-a * 0.8) * 4), 4, 2); } }
   if (EMGR[S.loc] && emOn(S.loc) && es >= EMGR[S.loc].stage) {   /* the estate's manager at their chore */
-    const M = EMGR[S.loc], turn = Math.sin(time * 0.4) > 0.6;
-    drawGuy({ x: M.at[0], y: M.at[1], path: [], dir: M.pose === 'rake' ? 'up' : turn ? 'down' : 'up', flip: false, walk: 0, work: time, look: M.look, state: M.pose === 'rake' ? 'rake' : 'idle' });
+    const M = EMGR[S.loc], id = EM_NPC[S.loc]; IN.em = IN.em || {};
+    const o = IN.em[S.loc] || (IN.em[S.loc] = npcWalker(id, M.at[0], M.at[1]));
+    npcLife(o, 1 / 60, null, { work: 0.8, rest: 1 }); npcChat(o, 1 / 60, 70); drawGuy(o);
   }
   { const sp = spieceOn(); if (sp && f.unlocked) { const th = themeById(sp), [sx, sy, sk] = SHOWPIECE[S.loc]; fx.drawImage(sprite('showpiece_' + sk, { swap: { '#3E8A4A': th.main, '#E8B830': th.accent } }), sx, sy); } }   /* the season's showpiece */
   if (S.decor.bunting) for (let x = 8; x < 184; x += 24) fx.drawImage(sprite('deco_bunting', dvOpt('bunting')), x, 103);
@@ -2899,10 +2902,10 @@ function draw(time) {
       if (me.dir === 'side' && me.flip) { fx.save(); fx.translate(X + 16, Y); fx.scale(-1, 1); fx.drawImage(spr, 0, 0); fx.restore(); } else fx.drawImage(spr, X, Y);
     } else if (o.mg) {
       const g = o.mg, fr = g.moving ? (g.dir === 'side' ? Math.floor(g.walk * 6) % 2 : WALK[Math.floor(g.walk * 6) % 4]) : 0;
-      const spr = sprite('worker_' + (g.dir || 'down') + '_' + (g.dir === 'side' ? Math.min(fr, 1) : fr), MGR_LOOK), X = Math.round(g.x) - 8, Y = Math.round(g.y) - 23;
+      const own = npcArt('foreman'), spr = own ? sprite('npc_foreman_' + (g.dir || 'down') + '_' + (g.dir === 'side' ? Math.min(fr, 1) : fr)) : sprite('worker_' + (g.dir || 'down') + '_' + (g.dir === 'side' ? Math.min(fr, 1) : fr), MGR_LOOK), X = Math.round(g.x) - 8, Y = Math.round(g.y) - 23;
       fx.fillStyle = 'rgba(42,42,8,0.3)'; fx.beginPath(); fx.ellipse(X + 8, Y + 23, 5, 1.6, 0, 0, 7); fx.fill();
       if (g.dir === 'side' && g.flip) { fx.save(); fx.translate(X + 16, Y); fx.scale(-1, 1); fx.drawImage(spr, 0, 0); fx.restore(); } else fx.drawImage(spr, X, Y);
-      if (g.dir !== 'up') { fx.fillStyle = '#3E2A1C'; fx.fillRect(X + 11, Y + 14, 4, 5); fx.fillStyle = '#F8F4EC'; fx.fillRect(X + 12, Y + 15, 2, 3); }
+      if (g.dir !== 'up' && !own) { fx.fillStyle = '#3E2A1C'; fx.fillRect(X + 11, Y + 14, 4, 5); fx.fillStyle = '#F8F4EC'; fx.fillRect(X + 12, Y + 15, 2, 3); }
     } else {
       const w = o.w, moving = w.state === 'walk';
       let fr = 0;
@@ -2999,6 +3002,85 @@ const HEAD_LOOK = { shirt: ['#FFFFFF', '#E8E4DC', '#C8C0B4'], hat: ['#3E2A1C', '
 const HELP_LOOK = { shirt: ['#5A5A5A', '#3E3E3E', '#2A2A2A'], hat: ['#F8F4EC', '#D8D0BC', '#A89C84'] }, TILL_LOOK = { shirt: ['#4A8E66', '#2D6A46', '#1E4A30'], hat: ['#3E2A1C', '#2E1E14', '#1E140C'] };
 const GUEST_LOOK = { cafe: { shirt: ['#F2C04A', '#D8A030', '#A87818'], hat: ['#5A4A8A', '#463A70', '#2E2650'] }, kissa: { shirt: ['#F4F0E4', '#D8D0BC', '#A89C84'], hat: ['#3E2A1C', '#2E1E14', '#1E140C'] }, konbini: { shirt: ['#78A8E8', '#4878C8', '#305898'], hat: ['#4878C8', '#305898', '#203C68'] }, guest: { shirt: ['#E86A3A', '#C84E28', '#963A1C'], hat: ['#F4DE9C', '#D8BC70', '#A88C48'] } };
 const walker = (x, y, look) => ({ x, y, look, path: [], walk: 0, dir: 'down', flip: false, t: 0, work: 0, state: 'idle' });
+/* ---------- the cast: everyone you meet is drawn as themselves (npcs/sprites.py), with a portrait for each mood and an action of
+   their own. On the map they stroll between a few spots near home, blink, get on with their work, stop and turn when you tap them,
+   keep to their post while there's work on and stay home at night; they greet you by the time of day, chat now and then, and speak
+   up when something happens on their island ---------- */
+const NPC = {   /* name, greetings by time of day (morning, day, evening, night), and what they say now and then */
+  ama: { name: 'Captain Ama', greet: ['Morning, sailor!', 'Ahoy there!', 'Evening! Tide\'s turning.', 'Late watch, eh?'], idle: ['Fair winds today.', 'The ledger never lies.', 'Every island hides cowries.', 'Mind the ropes on the quay.', 'Forty years on this route.', 'Cowries buy what coins can\'t.', 'Keep the lamp lit for me.'] },
+  kimo: { name: 'Uncle Kimo', greet: ['Aloha kakahiaka!', 'Aloha!', 'Aloha ahiahi!', 'Up late, eh?'], idle: ['Mango and coffee, best friends.', 'Slow ferment, good ferment.', 'Smell that? Pineapple.', 'My tūtū taught me this.', 'The boat comes when it comes.', 'Taste first, then decide.'] },
+  pearl: { name: 'Miss Pearl', greet: ['Morning, darling!', 'Afternoon! Come sit.', 'Evening, child.', 'You should be asleep!'], idle: ['Patience grows the best beans.', 'The mist is our blessing.', 'Rest it, grade it, ship it.', 'My mother picked these slopes.', 'Sweet as the fog is thick.', 'Barrels for Osaka, mind.'] },
+  lise: { name: 'Tante Lise', greet: ['Bonjour, chérie!', 'Bonjour!', 'Bonsoir!', 'Bonne nuit!'], idle: ['Pointu sulks if you\'re late.', 'Mist them gently, eh?', 'Born here, this Bourbon.', 'Water, then wait.', 'Slender leaves, big flavour.'] },
+  wayan: { name: 'Wayan', greet: ['Om swastiastu!', 'Selamat siang!', 'Selamat sore!', 'Selamat malam!'], idle: ['Turn the beds three times.', 'The subak shares the water.', 'Rain comes off the lake.', 'Oranges shade our coffee.', 'Watch the clouds over Batur.'] },
+  ines: { name: 'Dr. Inés', greet: ['¡Buenos días!', '¡Hola!', '¡Buenas tardes!', '¡Buenas noches!'], idle: ['Shade trees bring rare birds.', 'Darwin landed near here.', 'Finches, finches everywhere.', 'Check the traps at dawn.', 'Tortoises are slow. I am not.'] },
+  rosa: { name: 'Rosa' },
+  ze: { name: 'Zé', greet: ['Bom dia!', 'Opa!', 'Boa tarde!', 'Boa noite!'], idle: ['Rake it thin, dry it even.', 'This patio is my pride.', 'Good sun today.'] },
+  almaz: { name: 'Almaz', greet: ['Selam!', 'Selam! Come, sit.', 'Selam! Coffee?', 'Selam...'], idle: ['Abol, tona, baraka.', 'Three cups, three blessings.', 'Come, sit for coffee.'] },
+  tigor: { name: 'Tigor', greet: ['Horas!', 'Horas!', 'Horas! Good evening.', 'Horas...'], idle: ['The boat\'s nearly full.', 'Toba\'s calm today.', 'Ropes first, then coffee.'] },
+  mario: { name: 'Mario', greet: ['¡Pura vida!', '¡Buenas!', '¡Pura vida, amigo!', '¡Buenas noches!'], idle: ['These barrels need time.', 'Taste that cellar air!', 'Patience makes it sing.'] },
+  yuki: { name: 'Yuki', greet: ['Ohayō!', 'Konnichiwa!', 'Konbanwa!', 'Oyasumi...'], idle: ['The koi know my footsteps.', 'Feed them slowly.', 'Quiet garden, quiet mind.'] },
+  roaster: { idle: ['Listen for first crack.', 'Smell that?', 'Drum\'s at temperature.'] },
+  barista: { idle: ['Fresh bags on the shelf!', 'Mind, the drum\'s hot!', 'Cups are warm!'] },
+  till: { idle: ['Next, please!', 'Lovely roast, that one.', 'Have a good one!'] }
+};
+const NPC_BY_NAME = {}; Object.keys(NPC).forEach((k) => { if (NPC[k].name) NPC_BY_NAME[NPC[k].name] = k; });
+const NPC_SPOTS = { ama: [{ x: 110, y: 254 }, { x: 134, y: 255 }], kimo: [{ x: 48, y: 288 }, { x: 62, y: 289 }], pearl: [{ x: 100, y: 68 }, { x: 128, y: 68 }],
+  lise: [{ x: 126, y: 304 }, { x: 150, y: 306 }], wayan: [{ x: 182, y: 288 }, { x: 178, y: 318 }], ines: [{ x: 164, y: 326 }, { x: 182, y: 332 }] };   /* where each islander strolls to from home: clear of what you tap and of the interface */
+const EM_NPC = { mogiana: 'ze', gedeo: 'almaz', toba: 'tigor', turrialba: 'mario', osaka: 'yuki' };
+const npcArt = (id) => !!(id && ART.sprites['npc_' + id + '_down_0']);
+const clockHr = () => ((S.minutes || 0) / 60) % 24;
+const nightNow = () => { const h = clockHr(); return h >= 21 || h < 5; };
+const greetIx = () => { const h = clockHr(); return h < 5 || h >= 21 ? 3 : h < 11 ? 0 : h < 17 ? 1 : 2; };
+function npcWalker(id, x, y, look) { const o = walker(x, y, look || null); o.npc = id; o.home = { x, y }; o.blinkT = 1 + Math.random() * 4; o.idleT = 1 + Math.random() * 3; o.chatT = 10 + Math.random() * 10; o.act = 0; o.actPh = 0; o.say = null; o.seen = 0; return o; }
+function npcSay(o, text, life) { if (o && text) o.say = { text, at: Date.now(), life: life || Math.min(5, Math.max(2.6, 1.2 + text.length * 0.08)) }; }
+function npcPick(o, pool) { if (!pool || !pool.length) return null; let t = pool[0]; for (let i = 0; i < 4; i++) { t = pool[Math.floor(Math.random() * pool.length)]; if (t !== o.lastSaid) break; } o.lastSaid = t; return t; }
+function npcLife(o, d, spots, opt) {   /* idle, do their thing, stroll to a spot and back; home and still while busy, and at night */
+  opt = opt || {};
+  if (o.talkT > 0) { o.talkT -= d; o.path = []; o.dir = 'down'; o.act = 0; o.walk = 0; return; }
+  if (o.path.length) { if (!step(o, d, opt.speed || 14)) o.walk = 0; return; }
+  o.walk = 0;
+  if (o.act > 0) { o.act -= d; o.actPh += d; return; }
+  if ((o.idleT -= d) > 0) return;
+  o.idleT = (opt.rest || 3) + Math.random() * 5;
+  const atHome = Math.hypot(o.x - o.home.x, o.y - o.home.y) < 1.5, still = !!(opt.busy && opt.busy()) || nightNow();
+  if (!atHome && (still || Math.random() < 0.6)) { o.path = [{ x: o.home.x, y: o.home.y }]; return; }
+  const r = Math.random(), work = opt.work || 0.35;
+  if (r < work && ART.sprites['npc_' + o.npc + '_act_0'] && !nightNow()) { o.act = 2 + Math.random() * 3; o.actPh = 0; o.dir = 'down'; }
+  else if (!still && spots && spots.length && r < work + 0.35) { const s = spots[Math.floor(Math.random() * spots.length)]; o.path = [{ x: s.x, y: s.y }]; }
+  else { o.dir = o.dir === 'side' ? 'down' : 'side'; o.flip = Math.random() < 0.5; }
+}
+function npcChat(o, d, every) {   /* a greeting when you arrive, then a line now and then while you're here */
+  if (!o || !$('modal').hidden) return;
+  const now = Date.now(), N = NPC[o.npc] || {};
+  if (now - o.seen > 45e3) { o.seen = now; o.chatT = (every || 24) * (0.6 + Math.random() * 0.5); if (N.greet) setTimeout(() => { if (!o.say) npcSay(o, N.greet[Math.min(greetIx(), N.greet.length - 1)]); }, 900); return; }
+  o.seen = now;
+  if ((o.chatT -= d) <= 0) { o.chatT = (every || 24) * (1 + Math.random()); if (!o.say && N.idle) npcSay(o, npcPick(o, N.idle)); }
+}
+function npcTap(o) { if (!o) return; o.talkT = 3; o.path = []; o.dir = 'down'; o.act = 0; o.say = null; }   /* they stop and turn to you */
+const npcHit = (o, home, lx, ly, top) => { const p = o || home; return Math.abs(lx - p.x) < 9 && ly > p.y - (top || 24) && ly < p.y + 3; };
+function npcActFx(o, X, Y) {   /* what an action leaves in the air: Kimo's notes, steam from Almaz's jebena */
+  const ph = (o.actPh * 0.7) % 1;
+  if (o.npc === 'kimo') { fx.fillStyle = 'rgba(242,216,56,' + (1 - ph).toFixed(2) + ')'; const nx = X + 13 + Math.round(Math.sin(o.actPh * 3) * 2), ny = Y + 10 - Math.round(ph * 12); fx.fillRect(nx, ny, 1, 3); fx.fillRect(nx - 2, ny + 2, 2, 2); }
+  else if (o.npc === 'almaz') { fx.fillStyle = 'rgba(255,255,255,' + (0.8 - ph * 0.8).toFixed(2) + ')'; fx.fillRect(X + 14 + Math.round(Math.sin(o.actPh * 4)), Y + 9 - Math.round(ph * 8), 1, 2); }
+}
+const npcSaid = [];   /* the speech bubbles to draw this frame */
+function drawSays() {   /* speech bubbles over people's heads, drawn sharp at full size */
+  const now = Date.now();
+  npcSaid.forEach((o) => {
+    const s = o.say; if (!s) return; const age = (now - s.at) / 1000; if (age > s.life) { o.say = null; return; }
+    ctx.font = '700 12px "Pixelify Sans", monospace'; const txt = s.text.replace(/f([il])/g, 'f\u200C$1'), w = Math.ceil(ctx.measureText(txt).width) + 14, h = 22, cx = Math.round(o.x * 2);   /* a joiner-breaker keeps the font's fi and fl apart */
+    const X = Math.round(Math.min(W * 2 - w - 4, Math.max(4, cx - w / 2))), Y = Math.round((o.y - 26) * 2 - h - 10), tx = Math.min(X + w - 10, Math.max(X + 10, cx));
+    ctx.globalAlpha = age > s.life - 0.35 ? Math.max(0, (s.life - age) / 0.35) : Math.min(1, age / 0.12);
+    revRound(X - 2, Y - 2, w + 4, h + 4, 8, '#3E2A1C'); revRound(X, Y, w, h, 7, '#FFFDF6');
+    ctx.fillStyle = '#3E2A1C'; ctx.beginPath(); ctx.moveTo(tx - 6, Y + h + 1); ctx.lineTo(tx + 6, Y + h + 1); ctx.lineTo(tx, Y + h + 10); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#FFFDF6'; ctx.beginPath(); ctx.moveTo(tx - 4, Y + h - 1); ctx.lineTo(tx + 4, Y + h - 1); ctx.lineTo(tx, Y + h + 6); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#3E2A1C'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(txt, X + w / 2, Y + h / 2 + 1); ctx.textBaseline = 'alphabetic';
+    ctx.globalAlpha = 1;
+  });
+  npcSaid.length = 0;
+}
+const sayMood = (t) => { const s = String(t || '').split(/[.!?]/)[0]; return /(sorry|careful|quick|hurry|wilt|lost|storm|gust|ash|erupt|leak|too late|not now|oh no|can't|cannot)/i.test(s) ? 'worried' : /(welcome|well done|lovely|thank|bonjour|hola|swastiastu|aloha|ahoy|done|great|congrat)/i.test(s) || /^[^.?]{0,40}!/.test(String(t || '')) ? 'happy' : 'idle'; };
+const npcFace = (id, mood, px) => (ART.sprites['npc_pt_' + id + '_idle'] ? '<img src="' + url('npc_pt_' + id + '_' + (mood || 'idle')) + '" alt="" style="width:' + (px || 32) + 'px;image-rendering:pixelated">' : '');
 function step(o, d, v) {   /* walks along o.path; true while still walking */
   const p = o.path[0]; if (!p) return false;
   const dx = p.x - o.x, dy = p.y - o.y, dist = Math.hypot(dx, dy), s = v * d;
@@ -3032,7 +3114,7 @@ function tickMill(d) {
     if (drying.length) { w.path = millRoute(w, rackFoot(drying[Math.floor(rnd() * drying.length)])); w.state = 'go'; }
     else { w.path = millRoute(w, { x: 70 + rnd() * 76, y: 90 }); w.state = 'idle'; w.t = 2 + rnd() * 3; }
   });
-  if (S.staff.foreman && !M.fore) M.fore = walker(100, 90, MGR_LOOK);
+  if (S.staff.foreman && !M.fore) M.fore = npcWalker('foreman', 100, 90);
   if (M.fore && !step(M.fore, d, 16) && (M.fore.t -= d) <= 0) {   /* the foreman checks the racks and sees lots on to the truck */
     const f = M.fore, any = full.length ? full[Math.floor(rnd() * full.length)] : -1;
     f.path = millRoute(f, any > -1 && rnd() < 0.7 ? rackFoot(any) : { x: TRUCK.x + rnd() * 10, y: 90 }); f.t = 2 + rnd() * 3; f.dir = 'up';
@@ -3047,13 +3129,13 @@ function tickMill(d) {
 const bayFoot = (i) => ({ x: BAYS[i] + 13, y: 128 });
 function roastGuest(kind, buys) {
   const R = IN.roast; if (R.guests.length >= 6) return;
-  const g = walker(DOOR.x, DOOR.y, GUEST_LOOK[kind] || GUEST_LOOK.cafe); g.buys = buys; g.state = 'in';
+  const g = npcWalker('g_' + (GUEST_LOOK[kind] ? kind : 'cafe'), DOOR.x, DOOR.y); g.buys = buys; g.state = 'in';
   g.path = [{ x: DOOR.x, y: 184 }, { x: 124 + rnd() * 56, y: 178 }]; R.guests.push(g);
 }
 function tickRoast(d) {
   const R = IN.roast, RS = S.roastery;
-  if (!R.till) R.till = walker(150, 136, TILL_LOOK);
-  if (!R.help) R.help = walker(44, 176, HELP_LOOK);
+  if (!R.till) R.till = npcWalker('till', 150, 136, TILL_LOOK);
+  if (!R.help) R.help = npcWalker('barista', 44, 176, HELP_LOOK);
   if (!R.me) R.me = Object.assign(walker(110, 120), { me: true });
   const ap = apronShirt(S.rcos.on.apron); R.help.look = ap ? { shirt: ap, hat: HELP_LOOK.hat } : HELP_LOOK; R.till.look = ap ? { shirt: ap, hat: TILL_LOOK.hat } : TILL_LOOK;   /* the staff wear your aprons */
   const busy = RS.roasters.map((r, i) => i).sort((a, b) => inCrack(RS.roasters[b]) - inCrack(RS.roasters[a]));
@@ -3064,7 +3146,7 @@ function tickRoast(d) {
     if (!step(m, d, 26)) m.dir = 'up';
   } else if (!step(m, d, 20) && (m.t -= d) <= 0) { m.t = 3 + rnd() * 4; m.path = [rnd() < 0.5 ? { x: 110 + rnd() * 70, y: 70 + rnd() * 4 } : { x: 108 + rnd() * 70, y: 112 + rnd() * 16 }]; }
   if (S.staff.roaster && !S.roasterOff) {   /* the head roaster minds his own drums */
-    if (!R.head) R.head = walker(70, 120, HEAD_LOOK);
+    if (!R.head) R.head = npcWalker('roaster', 70, 120);
     const hd = R.head, mine = RS.roasters.findIndex((r) => r.auto);
     if (!step(hd, d, 22) && (hd.t -= d) <= 0) { hd.t = 2 + rnd() * 3; hd.path = [mine > -1 && mine < BAYS.length ? bayFoot(mine) : { x: 120 + rnd() * 50, y: 112 + rnd() * 12 }]; }
     if (!hd.path.length) hd.dir = 'up';
@@ -3076,6 +3158,7 @@ function tickRoast(d) {
     h.path = [spots[Math.floor(rnd() * spots.length)]]; h.t = 2 + rnd() * 3; h.state = 'idle';
   } else { h.dir = h.y < 80 ? 'up' : h.x < 60 && h.y > 160 ? 'side' : 'up'; h.flip = true; h.work += d; }
   ctTickMap(d);
+  npcChat(R.help, d, 45); npcChat(R.till, d, 55); if (R.head) npcChat(R.head, d, 65);   /* the staff chat as they work */
   if (RS.bags.length && !revOn('karen') && !revStorm('roast') && !ctOpen() && (R.guestT -= d) <= 0) { R.guestT = 25 + rnd() * 25; roastGuest(Object.keys(RBUYERS)[Math.floor(rnd() * 3)], false); }   /* window shoppers */
   for (let i = R.guests.length - 1; i >= 0; i--) {
     const g = R.guests[i];
@@ -3139,7 +3222,7 @@ const REG_STORIES = {
 };
 function storyModal(r, mi) {   /* the milestone story, told by the regular themselves */
   SFX.play('achieve');
-  showModal('<div style="text-align:center"><img src="' + url('worker_down_0', { shirt: CT_REGS[r][1], hat: CT_REGS[r][2] }) + '" alt="" style="width:64px"><h3>' + CT_REGS[r][0] + ' · ' + [5, 15, 40][mi] + ' visits</h3>' + REG_STORIES[r][mi].map((l) => '<p>' + l + '</p>').join('') + '<button class="btn green" data-act="close">See you tomorrow</button></div>');
+  showModal('<div style="text-align:center">' + (npcFace(r, 'happy', 64) || '<img src="' + url('worker_down_0', { shirt: CT_REGS[r][1], hat: CT_REGS[r][2] }) + '" alt="" style="width:64px">') + '<h3>' + CT_REGS[r][0] + ' · ' + [5, 15, 40][mi] + ' visits</h3>' + REG_STORIES[r][mi].map((l) => '<p>' + l + '</p>').join('') + '<button class="btn green" data-act="close">See you tomorrow</button></div>');
 }
 const ctLook = (c) => (c.reg ? { shirt: CT_REGS[c.reg][1], hat: CT_REGS[c.reg][2] } : GUEST_LOOK[c.look] || GUEST_LOOK.cafe);
 const ctOn = () => roasteryOpen() && repLevel() >= CT_REP;
@@ -3325,7 +3408,7 @@ function ctTickMap(d) {
   const R = IN.roast, s = ctSess();
   if (s) s.q.forEach((c, i) => {
     const [tx, ty] = i < CT_QUEUE.length ? CT_QUEUE[i] : CT_LINE[i - CT_QUEUE.length];
-    let w = R.ct[c.id]; if (!w) { w = R.ct[c.id] = walker(DOOR.x, DOOR.y, ctLook(c)); w.tx = -1; }
+    let w = R.ct[c.id]; if (!w) { w = R.ct[c.id] = npcWalker(c.reg && npcArt(c.reg) ? c.reg : 'g_' + (GUEST_LOOK[c.look] ? c.look : 'cafe'), DOOR.x, DOOR.y); w.tx = -1; }
     if (w.tx !== tx || w.ty !== ty) { w.tx = tx; w.ty = ty; w.path = ty >= 200 ? [{ x: DOOR.x, y: Math.max(ty, Math.min(w.y, DOOR.y)) }, { x: tx, y: ty }] : [{ x: DOOR.x, y: Math.max(196, Math.min(w.y, DOOR.y)) }, { x: DOOR.x, y: 196 }, { x: tx, y: 196 }, { x: tx, y: ty }]; if (w.y < 196 && Math.abs(w.y - ty) < 2) w.path = [{ x: tx, y: ty }]; }
     if (!step(w, d, 26)) w.dir = 'up';
   });
@@ -3388,11 +3471,19 @@ function drawGuy(o) {
   if (moving) fr = o.dir === 'side' ? Math.floor(o.walk * 7) % 2 : WALK[Math.floor(o.walk * 7) % 4];
   else if (o.state === 'rake') fr = Math.floor(o.work * 3) % 2 ? 1 : 2;
   if (o.dir === 'side') fr = Math.min(fr, 1);
-  const spr = o.me ? sprite(bodyOf(S.look) + o.dir + '_' + fr, skinLook(S.look.skin)) : sprite('worker_' + o.dir + '_' + fr, o.look);
+  let spr;
+  if (o.npc && npcArt(o.npc)) {   /* one of the cast: their own sprite, a blink now and then, their action when they're at it */
+    const b = 'npc_' + o.npc + '_', A = ART.sprites;
+    if ((o.blinkT = (o.blinkT === undefined ? 3 : o.blinkT) - 1 / 60) < -0.14) o.blinkT = 2.4 + Math.random() * 3.6;
+    const name = !moving && o.act > 0 && A[b + 'act_0'] ? b + 'act_' + (Math.floor(o.actPh * 2.6) % 2) : !moving && o.blinkT < 0 && o.dir === 'down' ? b + 'blink' : b + o.dir + '_' + fr;
+    spr = sprite(A[name] ? name : b + 'down_0', o.look || undefined);
+    if (o.say) npcSaid.push(o);
+  } else spr = o.me ? sprite(bodyOf(S.look) + o.dir + '_' + fr, skinLook(S.look.skin)) : sprite('worker_' + o.dir + '_' + fr, o.look);
   const X = Math.round(o.x) - 8, Y = Math.round(o.y) - 23;
   fx.fillStyle = 'rgba(42,42,8,0.3)'; fx.beginPath(); fx.ellipse(X + 8, Y + 23, 5, 1.6, 0, 0, 7); fx.fill();
   if (o.dir === 'side' && o.flip) { fx.save(); fx.translate(X + 16, Y); fx.scale(-1, 1); fx.drawImage(spr, 0, 0); fx.restore(); } else fx.drawImage(spr, X, Y);
-  if (o.look === MGR_LOOK && o.dir !== 'up') { fx.fillStyle = '#3E2A1C'; fx.fillRect(X + 11, Y + 14, 4, 5); fx.fillStyle = '#F8F4EC'; fx.fillRect(X + 12, Y + 15, 2, 3); }
+  if (o.look === MGR_LOOK && o.dir !== 'up' && !o.npc) { fx.fillStyle = '#3E2A1C'; fx.fillRect(X + 11, Y + 14, 4, 5); fx.fillStyle = '#F8F4EC'; fx.fillRect(X + 12, Y + 15, 2, 3); }
+  if (o.npc && o.act > 0 && !moving) npcActFx(o, X, Y);
   return { X, Y };
 }
 const moreRacks = () => racks() < RACK_SHOWN && !!S.tabs.upgrades && (S.lv.racks < RACK_COUNT || LOCS.some((l) => S.farms[l].unlocked && (S.farms[l].build.drybeds || 0) < buildMax()));   /* a rack can still be added */
@@ -3655,7 +3746,7 @@ function kPuffNow(big) {
   if (!big) return;
   if (!K.shop.tarps) {
     const trees = K.plots.map((pl, i) => [pl, i]).filter(([pl, i]) => pl.k && pl.k !== 'coffee' && !pl.ash && i < kPlots()).sort(() => Math.random() - 0.5).slice(0, 3);
-    trees.forEach(([pl]) => { pl.ash = true; }); if (trees.length) K.erupting = true;
+    trees.forEach(([pl]) => { pl.ash = true; }); if (trees.length) { K.erupting = true; npcSay(IN.kona.kimo, 'Ash! Clear the trees!'); }
   }
   floats.push({ x: KCRATER.x, y: KCRATER.y + 26, text: 'eruption! ash everywhere', t: 0 });
 }
@@ -3777,13 +3868,14 @@ const kClock = (ms) => { const s = Math.max(0, Math.ceil(ms / 1000)); return Mat
 /* the map */
 const KIMO_AT = { x: 58, y: 290 }, KIMO_LOOK = { shirt: ['#3E9A6A', '#2E7A52', '#F2D838'], hat: ['#E2CC94', '#B29462', '#3E2A1C'] };
 function kKimo() {   /* Uncle Kimo, from the harbour board's lanai: the best order on the boat and what to load for it */
+  npcTap(IN.kona.kimo);
   const K = S.kona, B = K.boat, open = B ? B.cards.filter((c) => !c.done).sort((a, b) => b.pay - a.pay) : [], p = kSmartPick();
   const say = !open.length ? 'The boat\'s full. New orders in ' + kClock(B ? B.at - Date.now() : 0) + '.' : 'Best order on the boat: ' + kCardText(open[0]).replace(/^./, (c) => c.toLowerCase()) + ', ×' + open[0].pay + '. ' + (p ? 'Load ' + KFR[p.fr].name.toLowerCase() + (p.v ? ' with ' + ART.varieties[p.v] : '') + ' next.' : 'You\'ll need more cherries or fruit for it.');
   SFX.play('tick'); showModal(npcCard('Uncle Kimo', KIMO_LOOK, 'Kona Ridge', say + ' ' + pickOf(['My grandmother fermented coffee with mango long before anyone called it co-fermenting.', 'The mountain has been grumbling all week. Keep an eye on the ash field.', 'Lemon goes sour the moment you look away. Pineapple wants two vents. Coconut just sits there, like me.', 'Fill every card and the co-op pays a quarter more on top.'])));
 }
 function konaClick(lx, ly) {
   const K = S.kona; kWalk(lx, ly);
-  if (bdOn('lanai') && Math.abs(lx - KIMO_AT.x) < 9 && ly > KIMO_AT.y - 24 && ly < KIMO_AT.y + 3) { kKimo(); return; }
+  if (bdOn('lanai') && npcHit(IN.kona.kimo, KIMO_AT, lx, ly)) { kKimo(); return; }
   for (let j = kPiles.length - 1; j >= 0; j--) { const p = kPiles[j], w = p.big ? 12 : 9; if (p.t >= 0 && lx >= p.x - 3 && lx < p.x + w + 3 && ly >= p.y - 5 && ly < p.y + 11) { kPiles.splice(j, 1); const a = p.er && bdOn('obs') ? 2 : 1; K.ash += a; task('kash', a); kXp(1); kSfx('gather'); floats.push({ x: p.x + w / 2, y: p.y - 2, text: '+' + a + ' ash', t: 0 }); if (p.er && (p.er.got += 1) >= p.er.n) routeFind('k_ash'); return; } }
   if (lx >= KSHED.x && lx < KSHED.x + KSHED.w && ly >= KSHED.y && ly < KSHED.y + KSHED.h) { kMix(); return; }
   for (let i = 0; i < 8; i++) {
@@ -3887,7 +3979,7 @@ function drawKona(time) {
     if (c.gold) { fx.fillStyle = '#E8B830'; [[2, 0], [1, 1], [2, 1], [3, 1], [0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [1, 3], [3, 3]].forEach(([a, b2]) => fx.fillRect(p.x + 20 + a, p.y + 3 + b2, 1, 1)); }
     if (c.done) { fx.fillStyle = '#3E8036'; [[0, 3], [1, 4], [2, 5], [3, 4], [4, 3], [5, 2], [6, 1], [7, 0]].forEach(([a, b2]) => fx.fillRect(p.x + 16 + a, p.y + 22 + b2, 2, 2)); }
   });
-  if (bdOn('lanai')) { if (!IN.kona.kimo) IN.kona.kimo = walker(KIMO_AT.x, KIMO_AT.y, KIMO_LOOK); drawGuy(IN.kona.kimo); }
+  if (bdOn('lanai')) { if (!IN.kona.kimo) IN.kona.kimo = npcWalker('kimo', KIMO_AT.x, KIMO_AT.y); const ki = IN.kona.kimo; npcLife(ki, 1 / 60, NPC_SPOTS.kimo, { work: 0.45 }); npcChat(ki, 1 / 60); drawGuy(ki); }
   drawGuy(me); drawPet(me, 'kona');
   bursts.forEach((p) => { fx.fillStyle = p.c; fx.fillRect(Math.round(p.x), Math.round(p.y), 1, 1); });
   const hr = S.minutes / 60, tint = hr >= 20 || hr < 5 ? 'rgba(30,40,110,0.34)' : hr >= 17.5 ? 'rgba(240,120,40,' + (0.08 + (hr - 17.5) * 0.06).toFixed(2) + ')' : hr < 7 ? 'rgba(240,150,170,0.14)' : null;
@@ -4191,6 +4283,7 @@ function bmPickFind(i, at) {   /* while you pick in a clearing: the sunrise find
 const PEARL_AT = { x: 112, y: 68 };   /* Miss Pearl, at the top of the stone steps where her porch is, by the forest edge */
 const PEARL_LOOK = { shirt: ['#E87AA0', '#C85A80', '#F2ECDC'], hat: ['#F2C04A', '#D8A030', '#8A2420'] };
 function bmPearl() {   /* Miss Pearl's tip: the next clearing, what's ready, and where a lost thing might be */
+  npcTap(IN.bm.pearl);
   const B = S.bm, k = PEARL_LOST.findIndex((p, j) => !(S.route && S.route.got['bm_lost' + (j + 1)]));
   if (k > -1 && B.lv >= PEARL_LOST[k][1] && (B.lostRow === null || B.lostRow === undefined)) B.lostRow = Math.floor(Math.random() * Math.ceil(bmTerraces() / 2));
   const nx = bmFog ? (Date.now() < bmFog.at + BM_CLEAR ? bmFog.row : bmNextRow(bmFog.row)) : 0, ready = B.bbq.filter(bmReady).length;
@@ -4200,7 +4293,7 @@ function bmPearl() {   /* Miss Pearl's tip: the next clearing, what's ready, and
 /* the map */
 function bmClick(lx, ly) {
   const B = S.bm; bmWalk(lx, ly);
-  if (bdOn('porch') && Math.abs(lx - PEARL_AT.x) < 9 && ly > PEARL_AT.y - 24 && ly < PEARL_AT.y + 3) { bmPearl(); return; }
+  if (bdOn('porch') && npcHit(IN.bm.pearl, PEARL_AT, lx, ly)) { bmPearl(); return; }
   for (let i = 0; i < 6; i++) {
     const at = BTER(i); if (lx < at.x || lx >= at.x + BTER_W || ly < at.y || ly >= at.y + BTER_H + 8) continue;
     if (i >= bmTerraces()) { SFX.play('knock'); floats.push({ x: at.x + 43, y: at.y + 20, text: 'opens at certification ' + (i === 4 ? 4 : 8), t: 0 }); return; }
@@ -4275,7 +4368,12 @@ function drawBluemtn(time) {
     fx.fillStyle = '#3E2A1C'; fx.fillRect(152, 259, 1, 4); fx.fillRect(169, 259, 1, 4); fx.fillRect(149, 262, 24, 10); fx.fillStyle = '#F2E8D4'; fx.fillRect(150, 263, 22, 8);
     fx.fillStyle = '#7A4A28'; fx.fillRect(157, 265, 6, 4); fx.fillRect(163, 266, 1, 2); fx.fillStyle = '#5E3A24'; fx.fillRect(155, 269, 10, 1);
   }
-  if (bdOn('porch')) { if (!IN.bm.pearl) IN.bm.pearl = walker(PEARL_AT.x, PEARL_AT.y, PEARL_LOOK); drawGuy(IN.bm.pearl); }
+  if (bdOn('porch')) {
+    if (!IN.bm.pearl) IN.bm.pearl = npcWalker('pearl', PEARL_AT.x, PEARL_AT.y);
+    const pe = IN.bm.pearl, clr = Array.from({ length: bmTerraces() }, (_, i) => bmFogA(i, now) < 0.2).indexOf(true);
+    if (clr !== IN.bm.clr) { if (clr > -1 && IN.bm.clr !== undefined) npcSay(pe, 'Fog\'s lifting on row ' + (clr + 1) + '!'); IN.bm.clr = clr; }   /* she calls out a clearing */
+    npcLife(pe, 1 / 60, NPC_SPOTS.pearl, { speed: 9 }); npcChat(pe, 1 / 60); drawGuy(pe);
+  }
   drawGuy(me); drawPet(me, 'bm');
   bursts.forEach((p) => { fx.fillStyle = p.c; fx.fillRect(Math.round(p.x), Math.round(p.y), 1, 1); });
   const hr = S.minutes / 60, tint = hr >= 20 || hr < 5 ? 'rgba(30,40,110,0.34)' : hr >= 17.5 ? 'rgba(240,120,40,' + (0.08 + (hr - 17.5) * 0.06).toFixed(2) + ')' : hr < 7 ? 'rgba(240,150,170,0.14)' : null;
@@ -4426,7 +4524,7 @@ function routeTick() {
     R.migN = n;
   }
   if (S.prestige >= KONA_P && !R.bd.kona) R.bd.kona = 'p6';   /* prestige 6 charts the passage by itself */
-  R.voy.forEach((v) => { if (!v.home && now >= v.end) { v.home = true; if (scene() !== 'hb') toast('The boat is home from ' + VOY[v.to].name + ': its cargo is waiting at the harbour'); } });
+  R.voy.forEach((v) => { if (!v.home && now >= v.end) { v.home = true; npcSay(IN.hb.ama, 'Ship ahoy! She\'s home.'); if (scene() !== 'hb') toast('The boat is home from ' + VOY[v.to].name + ': its cargo is waiting at the harbour'); } });
 }
 /* the board */
 function bdState(b) {   /* why a project can't be built yet, or '' */
@@ -4521,9 +4619,9 @@ function drawHarbour(time) {
   if (bg.complete && bg.naturalWidth) fx.drawImage(bg, 0, 0); else { fx.fillStyle = '#4AA2C0'; fx.fillRect(0, 0, W, H); }
   if (!R) return;
   if (!IN.hb.me) { IN.hb.me = walker(72, 274); IN.hb.me.me = true; }
-  if (!IN.hb.ama) IN.hb.ama = walker(HB_AMA.x, HB_AMA.y, AMA_LOOK);
+  if (!IN.hb.ama) IN.hb.ama = npcWalker('ama', HB_AMA.x, HB_AMA.y);
   const me = IN.hb.me, ama = IN.hb.ama; if (!step(me, 1 / 60, 40)) me.walk = 0;
-  if (!step(ama, 1 / 60, 18)) { ama.walk = 0; ama.dir = 'down'; if (Math.random() < 0.002) ama.path = [{ x: HB_AMA.x + (Math.random() < 0.5 ? -12 : 12), y: HB_AMA.y }, { x: HB_AMA.x, y: HB_AMA.y }]; }   /* she paces the quay a little */
+  npcLife(ama, 1 / 60, NPC_SPOTS.ama, { speed: 18 }); npcChat(ama, 1 / 60);   /* she paces the quay and looks out to sea with her glass */
   for (let k = 0; k < 16; k++) {   /* glints on the water */
     const x = (k * 53 + time * (4 + (k % 3) * 2)) % (W + 20) - 10, y = 40 + ((k * 37) % 160);
     if (x > 106 && x < 134 && y > 104) continue;
@@ -4608,6 +4706,7 @@ function hbBottle() {
   showModal('<h2>A message in a bottle</h2>' + img('hb_bottle', 54) + '<p class="note">' + BOTTLE_NOTE + '</p><p class="note"><b>+1 cowrie</b></p><button class="btn green" data-act="close">Lovely</button>');
 }
 function hbAma() {   /* Captain Ama: what to do next, or a story about the islands */
+  npcTap(IN.hb.ama);
   const R = S.route, home = R.voy.find((v) => v.home), out = R.voy.find((v) => !v.home), free = voyBags().length, can = BOARD.filter((b) => !bdState(b));
   const next = VOY_ORDER.find((k) => !R.vdone[k] && !R.voy.some((v) => v.to === k));
   const say = home ? 'She\'s home from ' + VOY[home.to].name + '! Tap her, the cargo won\'t unload itself.'
@@ -4800,7 +4899,7 @@ function reTick() {
   sh.beds.forEach((b, i) => {
     if (!b || b.dead || b.st >= 3 || now - b.at < (b.st + 1) * sm) return;
     const a = RE_BED(i);
-    if (!b.wet) { b.dead = true; SFX.play('nope'); floats.push({ x: a.x + 19, y: a.y + 4, text: 'wilted', t: 0 }); return; }
+    if (!b.wet) { b.dead = true; SFX.play('nope'); npcSay(IN.re.lise, 'Oh! That one wilted.'); floats.push({ x: a.x + 19, y: a.y + 4, text: 'wilted', t: 0 }); return; }
     b.st += 1; b.wet = false;
     if (b.st >= 3) floats.push({ x: a.x + 19, y: a.y + 2, text: 'fruiting: pick it', t: 0 });
   });
@@ -4830,7 +4929,7 @@ function reEnd(early) {   /* the shift's score: cherries, the 50/75/100 bonuses,
 }
 function reClick(lx, ly) {
   const R = S.re; if (!R) return; reWalk(lx, ly);
-  if (Math.abs(lx - RE_LISE.x) < 9 && ly > RE_LISE.y - 24 && ly < RE_LISE.y + 3) { reLise(); return; }
+  if (npcHit(IN.re.lise, RE_LISE, lx, ly)) { reLise(); return; }
   for (let i = 0; i < RE_BEDS; i++) { const a = RE_BED(i); if (lx >= a.x - 2 && lx < a.x + RE_BED_W + 2 && ly >= a.y - 3 && ly < a.y + RE_BED_H + 2) { reBed(i); return; } }
   if (lx >= RE_SHED.x && lx < RE_SHED.x + RE_SHED.w && ly >= RE_SHED.y && ly < RE_SHED.y + RE_SHED.h) { if (!R.sh) reStart(); else { SFX.play('brush'); floats.push({ x: RE_SHED.x + 25, y: RE_SHED.y + 6, text: R.sh.left ? R.sh.left + ' seedlings left to plant' : 'all planted', t: 0 }); } return; }
   if (lx >= RE_CIST.x && lx < RE_CIST.x + RE_CIST.w && ly >= RE_CIST.y && ly < RE_CIST.y + RE_CIST.h) { reRefill(); return; }
@@ -4838,6 +4937,7 @@ function reClick(lx, ly) {
 }
 function reWalk(lx, ly) { const me = IN.re.me; if (!me) return; const x = Math.max(8, Math.min(W - 8, lx)), lane = ly < 262 ? Math.min(258, Math.max(114, Math.round((ly - 112) / 29) * 29 + 112)) : 290; me.path = [{ x: 96, y: me.y }, { x: 96, y: lane }, { x, y: lane }]; }   /* along the nursery's middle walk, then the row */
 function reLise() {
+  npcTap(IN.re.lise);
   const R = S.re, sh = R.sh, dry = sh ? sh.beds.filter((b) => b && !b.dead && b.st < 3 && !b.wet).length : 0;
   const say = !sh ? 'Bonjour! Take a batch from the shed when you\'re ready: ' + reBatch() + ' seedlings at your level.' + (R.best ? ' Your best shift is ' + R.best + ' cherries.' : '')
     : dry ? dry + ' seedling' + (dry > 1 ? 's are' : ' is') + ' dry. A drop over the bed means it wants misting before its stage turns.' : sh.left ? 'Plant the rest: ' + sh.left + ' to go. Plant in a block, mist along the row, then refill.' : 'Everything is planted. Keep misting, and pick them as they fruit.';
@@ -4860,7 +4960,7 @@ function drawReunion(time) {
   if (bg.complete && bg.naturalWidth) fx.drawImage(bg, 0, 0); else { fx.fillStyle = '#5A9C3C'; fx.fillRect(0, 0, W, H); }
   if (!R) return;
   if (!IN.re.me) { IN.re.me = walker(70, 290); IN.re.me.me = true; }
-  if (!IN.re.lise) IN.re.lise = walker(RE_LISE.x, RE_LISE.y, LISE_LOOK);
+  if (!IN.re.lise) IN.re.lise = npcWalker('lise', RE_LISE.x, RE_LISE.y);
   const me = IN.re.me; if (!step(me, 1 / 60, 40)) me.walk = 0;
   const sh = R.sh, sm = reStageMs(), STG = ['sprout', 'young', 'flower', 'ripe'];
   if (sh) sh.beds.forEach((b, i) => {
@@ -4876,6 +4976,7 @@ function drawReunion(time) {
   });
   if (!sh || sh.left > 0) fx.drawImage(sprite('re_i_seed'), RE_SHED.x + 20, RE_SHED.y + 10);
   if (R.sh || R.can < reCanMax()) fx.drawImage(sprite('re_can'), me.x + 3, me.y - 13);   /* the can, on your hip */
+  npcLife(IN.re.lise, 1 / 60, NPC_SPOTS.lise, { busy: () => !!S.re.sh, work: 0.45 }); npcChat(IN.re.lise, 1 / 60);
   drawGuy(IN.re.lise); drawGuy(me); drawPet(me, 're');
   bursts.forEach((p) => { fx.fillStyle = p.c; fx.fillRect(Math.round(p.x), Math.round(p.y), 1, 1); });
   const hr = S.minutes / 60, tint = hr >= 20 || hr < 5 ? 'rgba(30,40,110,0.34)' : hr >= 17.5 ? 'rgba(240,120,40,' + (0.08 + (hr - 17.5) * 0.06).toFixed(2) + ')' : hr < 7 ? 'rgba(240,150,170,0.14)' : null;
@@ -5138,7 +5239,7 @@ function baEnd(rained) {   /* the storm is over: weathered (the barn filled firs
 function baIdle(x, y) { const B = S.ba; SFX.play('brush'); floats.push({ x, y, text: B.charge ? 'tap the barn to start a storm' : 'clear skies: the next storm in ' + voyLeft(baNextMs()), t: 0 }); }
 function baClick(lx, ly) {
   const B = S.ba; if (!B) return; const st = B.st;
-  if (Math.abs(lx - BA_WAYAN.x) < 9 && ly > BA_WAYAN.y - 24 && ly < BA_WAYAN.y + 3) { baWayan(); return; }
+  if (npcHit(IN.ba.wayan, BA_WAYAN, lx, ly)) { baWayan(); return; }
   if (st && st.busy > 0) { SFX.play('brush'); floats.push({ x: lx, y: ly - 4, text: 'holding the rope till the gust passes', t: 0 }); return; }
   baWalk(lx, ly);
   for (let i = 0; i < BA_BUSHES; i++) { const p = BA_BUSH(i); if (Math.abs(lx - p.x) < 12 && ly >= p.y - 22 && ly < p.y + 4) { if (!st) baIdle(p.x, p.y - 22); else if (st.brk) baGlint(i); else baPick(i); return; } }
@@ -5149,6 +5250,7 @@ function baClick(lx, ly) {
 }
 function baWalk(lx, ly) { const me = IN.ba.me; if (!me) return; me.path = [{ x: Math.max(8, Math.min(W - 8, lx)), y: ly < 196 ? Math.min(190, Math.max(94, Math.round((ly - 94) / 32) * 32 + 94)) : ly < 256 ? 246 : 320 }]; }   /* to the terrace's edge, the yard, or the path by the barn */
 function baWayan() {
+  npcTap(IN.ba.wayan);
   const B = S.ba, st = B.st;
   if (st) { SFX.play('tick'); floats.push({ x: BA_WAYAN.x - 30, y: BA_WAYAN.y - 26, text: st.brk ? 'Quick, the glinting ones!' : st.gust.warn > 0 ? 'A gust! Hold the rope!' : st.carry ? 'Take those sacks in!' : st.leaks.length ? 'The roof is leaking!' : 'Turn them as they dry!', t: 0 }); return; }
   const say = (B.charge ? 'The barometer is falling: ' + B.charge + ' storm' + (B.charge > 1 ? 's' : '') + ' on the way. Tap the barn when you\'re ready.' : 'Clear skies for now. The next storm comes in ' + voyLeft(baNextMs()) + '.') + (B.best ? ' Your best storm is ' + B.best + ' points.' : '');
@@ -5185,7 +5287,7 @@ function drawBali(time) {
   if (bg.complete && bg.naturalWidth) fx.drawImage(bg, 0, 0); else { fx.fillStyle = '#5A9C3C'; fx.fillRect(0, 0, W, H); }
   if (!B) return;
   if (!IN.ba.me) { IN.ba.me = walker(96, 326); IN.ba.me.me = true; }
-  if (!IN.ba.wayan) IN.ba.wayan = walker(BA_WAYAN.x, BA_WAYAN.y, WAYAN_LOOK);
+  if (!IN.ba.wayan) IN.ba.wayan = npcWalker('wayan', BA_WAYAN.x, BA_WAYAN.y);
   const me = IN.ba.me; if (!step(me, 1 / 60, 70)) me.walk = 0;
   const st = B.st, pct = st ? (st.brk ? 1 : Math.min(1, st.t / BA_STORM)) : 0, D = baDryMs(), nb = baBeds();
   if (st) {   /* the sky darkens and the clouds gather as the storm builds */
@@ -5213,6 +5315,10 @@ function drawBali(time) {
   if (!st && B.charge) fx.drawImage(sprite('ba_i_storm'), 91, BA_BARN.y + 2);
   if (st && st.basket > 0) fx.drawImage(sprite('carry_backbasket'), me.x + 3, me.y - 14);
   if (st && st.carry > 0) fx.drawImage(sprite('sack'), me.x - 11, me.y - 12);
+  { const wy = IN.ba.wayan, k = !st ? '' : st.brk ? 'brk' : st.gust && st.gust.warn > 0 ? 'gust' : 'storm';   /* he calls the weather */
+    if (IN.ba.cue === undefined) IN.ba.cue = k;
+    if (k !== IN.ba.cue) { if (k === 'storm' && !IN.ba.cue) npcSay(wy, 'Here comes the rain!'); else if (k === 'gust') npcSay(wy, 'A gust! Hold the rope!'); else if (k === 'brk') npcSay(wy, 'It stopped! Quick now!'); IN.ba.cue = k; }
+    npcLife(wy, 1 / 60, NPC_SPOTS.wayan, { busy: () => !!S.ba.st }); npcChat(wy, 1 / 60); }
   drawGuy(IN.ba.wayan); drawGuy(me); drawPet(me, 'ba');
   if (st && st.brk) {   /* the rain at last, and the cherries glinting in it */
     st.brk.gl.forEach((g, k) => { const p = BA_BUSH(g.i); if (Math.floor(time * 6 + k) % 3) fx.drawImage(sprite('sparkle'), p.x - 4, p.y - 18); });
@@ -5474,6 +5580,7 @@ function gaPatio() {
   return true;
 }
 function gaInes() {
+  npcTap(IN.ga.ines);
   const G = S.ga, tr = G.tr;
   if (tr && G.lv >= 15 && !tr.used) { tr.used = true; tr.hint = true; SFX.play('ding'); floats.push({ x: GA_INES.x - 30, y: GA_INES.y - 26, text: 'That one, I think!', t: 0 }); return; }
   if (tr) { SFX.play('tick'); floats.push({ x: GA_INES.x - 30, y: GA_INES.y - 26, text: G.lv >= 15 ? 'One hint a trail, I\'m afraid!' : 'Read the clue: where did she go?', t: 0 }); return; }
@@ -5483,7 +5590,7 @@ function gaInes() {
 }
 function gaClick(lx, ly) {
   const G = S.ga; if (!G) return; const tr = G.tr;
-  if (Math.abs(lx - GA_INES.x) < 9 && ly > GA_INES.y - 30 && ly < GA_INES.y + 3) { gaInes(); return; }   /* her, or the HINT over her head */
+  if (npcHit(IN.ga.ines, GA_INES, lx, ly, 30)) { gaInes(); return; }   /* her, or the HINT over her head */
   gaWalk(lx, ly);
   if (tr) for (const k of tr.opts) { const p = GA_SPOTS[k]; if (Math.abs(lx - p.x) < 11 && ly >= p.y - 9 && ly < p.y + 15) { gaSign(k); return; }   /* the sign, or its TRACKS label */ }
   for (let i = 0; i < 8; i++) { const a = GA_TRAPS[i]; if (i < gaTrapN() && Math.abs(lx - a.x) < 8 && ly >= a.y - 22 && ly < a.y + 3) { gaTrap(i); return; }   /* the trap, or its PHOTO or SET label */ }
@@ -5512,7 +5619,7 @@ function drawGalapagos(time) {
   if (bg.complete && bg.naturalWidth) fx.drawImage(bg, 0, 0); else { fx.fillStyle = '#5A9C3C'; fx.fillRect(0, 0, W, H); }
   if (!G) return;
   if (!IN.ga.me) { IN.ga.me = walker(96, 330); IN.ga.me.me = true; }
-  if (!IN.ga.ines) IN.ga.ines = walker(GA_INES.x, GA_INES.y, INES_LOOK);
+  if (!IN.ga.ines) IN.ga.ines = npcWalker('ines', GA_INES.x, GA_INES.y);
   if (!IN.ga.wand) IN.ga.wand = { x: 84, y: 132, dir: 1 };
   const me = IN.ga.me; if (!step(me, 1 / 60, 60)) me.walk = 0;
   const tr = G.tr, pool = gaPool();
@@ -5525,6 +5632,9 @@ function drawGalapagos(time) {
     fx.fillStyle = left < 0 ? '#8A8A8A' : left > 0 ? (Math.floor(time) % 2 ? '#E83A30' : '#8A2A20') : (Math.floor(time * 4) % 2 ? '#7CF06A' : '#3A8A30'); fx.fillRect(a.x + 2, a.y - 11, 1, 1);
   }
   if (tr) tr.opts.forEach((k) => { const p = GA_SPOTS[k]; fx.drawImage(sprite('ga_sign'), p.x - 5, p.y - 3); if (tr.hint && k === tr.right && Math.floor(time * 4) % 2) fx.drawImage(sprite('sparkle'), p.x - 4, p.y - 12); });
+  if (IN.ga.trc === undefined) IN.ga.trc = !!G.tr;
+  if (!!G.tr !== IN.ga.trc) { if (G.tr) npcSay(IN.ga.ines, 'Fresh tracks! Come and look!'); IN.ga.trc = !!G.tr; }
+  npcLife(IN.ga.ines, 1 / 60, NPC_SPOTS.ines, { busy: () => !!S.ga.tr }); npcChat(IN.ga.ines, 1 / 60);
   drawGuy(IN.ga.ines); drawGuy(me); drawPet(me, 'ga');
   IN.ga.pops = IN.ga.pops.filter((q) => (q.t += 1 / 60) < 2.6);
   IN.ga.pops.forEach((q) => { const sp = sprite(q.spr), k = Math.min(1, q.t * 3); fx.globalAlpha = q.t > 2 ? Math.max(0, (2.6 - q.t) / 0.6) : 1; fx.fillStyle = '#F4F0E4'; fx.fillRect(Math.round(q.x - sp.width / 2) - 2, Math.round(q.y - sp.height - 6 * k) - 2, sp.width + 4, sp.height + 4); fx.drawImage(sp, Math.round(q.x - sp.width / 2), Math.round(q.y - sp.height - 6 * k)); fx.globalAlpha = 1; });
@@ -6252,11 +6362,13 @@ const weekOn = () => S.guide >= GUIDE.length && (S.prestige >= 2 || (S.prestige 
 function tutorialEnd() {   /* the practice list gives way to the live daily tasks */
   S.taskDay = dayKey(new Date()); newTasks();
 }
-function npcCard(who, look, title, text) {   /* an islander's card: their own face and name, like Rosa's */
-  return '<div class="coach"><img src="' + url('worker_down_0', look) + '" alt="" class="coach-face"><div class="coach-t"><small>' + who + (title ? ' · ' + title : '') + '</small><p>' + text + '</p></div></div><button class="btn green" data-act="close">Got it</button>';
+function npcCard(who, look, title, text, mood) {   /* an islander's card: their portrait, in the mood of what they say, and their name */
+  const id = NPC_BY_NAME[who], pt = id && ART.sprites['npc_pt_' + id + '_idle'];
+  return '<div class="coach"><img src="' + (pt ? url('npc_pt_' + id + '_' + (mood || sayMood(text))) : url('worker_down_0', look)) + '" alt="" class="coach-face' + (pt ? ' pt' : '') + '"><div class="coach-t"><small>' + who + (title ? ' · ' + title : '') + '</small><p>' + text + '</p></div></div><button class="btn green" data-act="close">Got it</button>';
 }
-function coachCard(title, text, ok, go) {   /* go: an action for the main button, with "Later" to just close */
-  return '<div class="coach"><img src="' + url('worker_down_0', COACH.look) + '" alt="" class="coach-face"><div class="coach-t"><small>' + COACH.name + ' · ' + title + '</small><p>' + text + '</p></div></div><button class="btn green" data-act="' + (go || 'close') + '">' + (ok || 'Got it') + '</button>' + (go ? '<button class="btn" data-act="close">Later</button>' : '');
+function coachCard(title, text, ok, go, mood) {   /* go: an action for the main button, with "Later" to just close */
+  const pt = ART.sprites.npc_pt_rosa_idle;
+  return '<div class="coach"><img src="' + (pt ? url('npc_pt_rosa_' + (mood || sayMood(text))) : url('worker_down_0', COACH.look)) + '" alt="" class="coach-face' + (pt ? ' pt' : '') + '"><div class="coach-t"><small>' + COACH.name + ' · ' + title + '</small><p>' + text + '</p></div></div><button class="btn green" data-act="' + (go || 'close') + '">' + (ok || 'Got it') + '</button>' + (go ? '<button class="btn" data-act="close">Later</button>' : '');
 }
 /* each tab gets a short introduction from Rosa when it opens, so new features arrive one at a time with a reason */
 const TAB_COACH = {};   /* new tabs are shown by the unlock walks; Rosa keeps her cards for buyers, prestige and the roastery */
@@ -6716,7 +6828,7 @@ function renderPanel() {
       return row(art, name + ' · training ' + l + ' / ' + TRAIN_MAX, now + ' Next level: ' + next + '.', btn('Train', fmt(c) + ' know-how', 'train:' + who, S.points >= c));
     };
     h += '<h3>Farm manager · ' + L.name.split(',')[0] + '</h3>';
-    h += staff('<img src="' + url('worker_down_0', MGR_LOOK) + '" alt="" style="width:26px">', 'i_worker', f.manager ? L.name.split(',')[0] + ' manager' : 'Hire a farm manager', !!f.manager,
+    h += staff('<img src="' + (npcArt('foreman') ? url('npc_foreman_down_0') : url('worker_down_0', MGR_LOOK)) + '" alt="" style="width:26px">', 'i_worker', f.manager ? L.name.split(',')[0] + ' manager' : 'Hire a farm manager', !!f.manager,
       'Pickers here work ' + Math.round((mgrBoost(S.loc) - 1) * 100) + '% faster, more with training, and this farm brings in 50% more while you’re away.',
       !mgrOK() ? btn('Level ' + MGR_LV, 'managers come later', 'noop', false) : btn('Hire', fmt(MANAGER_COST(S.loc)) + ' coins', 'mgr', f.unlocked && S.coins >= MANAGER_COST(S.loc)),
       'mgr', 'Pickers here work ' + pc(0.05 + 0.04 * mL) + ' faster, and this farm brings in 50% more while you’re away.', pc(0.09 + 0.04 * mL));
@@ -6740,7 +6852,7 @@ function renderPanel() {
       !roasterOK() ? btn('Reputation ' + ROASTER_REP, 'roast more first', 'noop', false) : btn('Hire', fmtShort(ROASTER_COST) + ' coins', 'hireroaster', S.coins >= ROASTER_COST),
       'roaster', 'Roasts on free roasters. Catches ' + pc(0.3 + 0.03 * rL) + ' of first cracks.', pc(0.33 + 0.03 * rL));
     if (S.prestige >= ESTATE_P) { h += '<h3>Estate managers</h3>' + help('emgrs', 'One for each estate chore, hired from the estate card.', 'Do an estate chore yourself a few times, then hire its manager from the estate card. They work at 40% of your result, +3% per training level, up to 100%.');
-      h += EM_LOCS.map((l) => { const M = EMGR[l], face = '<img src="' + url('worker_down_0', M.look) + '" alt="" style="width:26px;image-rendering:pixelated">', eL = trainLv('em_' + l);
+      h += EM_LOCS.map((l) => { const M = EMGR[l], face = npcFace(EM_NPC[l], 'idle', 32) || '<img src="' + url('worker_down_0', M.look) + '" alt="" style="width:26px;image-rendering:pixelated">', eL = trainLv('em_' + l);
         return staff(face, 'i_worker', M.name + ' · ' + M.role + ' · ' + fname(l), emHired(l),
           est(l) < M.stage ? 'Build ' + fname(l) + '\'s estate to stage ' + M.stage + ' first' : 'Do the chore yourself ' + M.need + ' times (' + Math.min(choreN(M.chore), M.need) + '/' + M.need + ')',
           btn(emCan(l) ? 'Hire' : 'Locked', emCan(l) ? fmtShort(emHire(l)) + ' coins' : '', emCan(l) ? 'emhire:' + l : 'noop', emCan(l) && S.coins >= emHire(l), 'green'),
@@ -7833,7 +7945,7 @@ async function renderRoastVisit(v) {   /* a visited roastery, still: its room, r
     const bx = BAYS[i]; x.drawImage(sprite((r.big ? 'roasterB_' : 'roaster_') + 2, finSwap(r.fin, r.big)), bx, BAY_Y);
     if (r.trim) { x.fillStyle = '#F2C04A'; x.fillRect(bx + 8, BAY_Y + 10, 10, 1); x.fillRect(bx + 8, BAY_Y + 17, 10, 1); x.fillRect(bx + 8, BAY_Y + 10, 1, 8); x.fillRect(bx + 17, BAY_Y + 10, 1, 8); }
   }
-  const sh = apronShirt(r.apron); x.drawImage(sprite('worker_down_0', sh ? { shirt: sh, hat: HELP_LOOK.hat } : HELP_LOOK), 88, 150);   /* the barista, in the house aprons */
+  const sh = apronShirt(r.apron); x.drawImage(npcArt('barista') ? sprite('npc_barista_down_0', sh ? { shirt: sh } : undefined) : sprite('worker_down_0', sh ? { shirt: sh, hat: HELP_LOOK.hat } : HELP_LOOK), 88, 150);   /* the barista, in the house aprons */
   return (visitImgs[k] = c.toDataURL());
 }
 async function cheersFarm(code, pc) {

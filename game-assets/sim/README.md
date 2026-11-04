@@ -73,3 +73,12 @@ The bottom bar holds eight tabs and a ninth would wrap to a second row on every 
 node game-assets/sim/nav_capacity.js /tmp/test.html [shots]   # the bottom bar and every sub-tab row on three phone widths, and the headroom left (85 checks)
 node game-assets/sim/journal_e2e.js /tmp/test.html            # Looks › Collection and Music, the jukebox and quiet stretches, every song reachable, the calendar that never resets, What's new, the odds where you find things, two-button rows on a small phone (41 checks)
 ```
+
+## The cast
+
+Everyone you meet is drawn as themselves (`game-assets/npcs/sprites.py`). `npc_e2e.js` checks their art (every frame and mood, no two alike), the islanders' life on their maps (a greeting by the time of day, a tap that stops them and opens a card with their portrait, strolling to their spots and home, keeping to their post while busy and at night, chat, and speaking up when a storm starts, tracks appear, a boat comes home or the mountain blows), the estate managers, the roastery's staff and buyers, the foreman, Rosa's portrait cards and the pixel font's ligatures. `islands_layout.js` also checks every islander's strolling spots stay clear of the interface.
+
+```
+node game-assets/sim/npc_e2e.js /tmp/test.html [shots]   # the cast: art, life on the maps, cards, cues (51 checks)
+```
+
