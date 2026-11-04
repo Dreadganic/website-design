@@ -64,3 +64,12 @@ node game-assets/sim/bali_e2e.js /tmp/test.html /tmp/ba              # Bali's mo
 node game-assets/sim/galapagos_e2e.js /tmp/test.html /tmp/ga         # Galápagos: opening from the board, camera traps, photos and finds, the very rare guarantee, shade trees at home, field notes, tortoise trails (clues, signs, going cold, the hint, the young tortoise), the five pages and what each gives back, the patio, levels, photo postcards, a reload, and a simulation of how long the guide takes to fill (65 checks)
 ```
 The design is the "Island chain" tab of the next-features doc. Test tools in Settings › Test tools › The harbour open it early, add cowries, bring the boat home and wash up a bottle. Test tools in Settings › Test tools open the island early, ripen the terraces, rest the batches and add a certification.
+
+## Room for more screens, the collection log and the music log
+
+The bottom bar holds eight tabs and a ninth would wrap to a second row on every phone, so new screens go in as sub-tabs. `nav_capacity.js` checks, on 320, 360 and 390 px wide phones with everything open, that the bar and every row of sub-tabs (each tab's and each island page's, at their fullest) sit on one row with no clipped label, and prints which rows still have room for one more. Run it after adding a sub-tab.
+
+```
+node game-assets/sim/nav_capacity.js /tmp/test.html [shots]   # the bottom bar and every sub-tab row on three phone widths, and the headroom left (85 checks)
+node game-assets/sim/journal_e2e.js /tmp/test.html            # Looks › Collection and Music, the jukebox and quiet stretches, every song reachable, the calendar that never resets, What's new, the odds where you find things, two-button rows on a small phone (41 checks)
+```

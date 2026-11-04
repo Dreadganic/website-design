@@ -4970,6 +4970,17 @@ ga_small("ga_nail", lambda p: [p(6, y, "#6A6460" if y % 2 else "#86807A") for y 
 ga_small("ga_ball", lambda p: [ga_disc(p, 6.5, 6.5, 3.5, 3.5, "#6E6E74"), p(5, 5, "#A8A8B0")])   # a lead musket ball
 ga_small("ga_comp", lambda p: [ga_disc(p, 6.5, 6.5, 5, 5, "#B8862C"), ga_disc(p, 6.5, 6.5, 3.6, 3.6, "#F4ECD4"), p(6, 4, "#C8302A"), p(6, 5, "#C8302A"), p(6, 7, "#3E3A3A"), p(6, 8, "#3E3A3A"), p(6, 6, "#141414")])   # a brass compass
 
+add_grid("i_note", [   # a music note, for the music log
+    ".....oo...",
+    ".....onoo.",
+    ".....onnno",
+    ".....on.oo",
+    ".....on...",
+    ".....on...",
+    "..oooon...",
+    ".onnnnn...",
+    ".onnnno...",
+    "..oooo...."], {"o": OUT, "n": "#7A4A2A"})
 add_grid("ga_trap", [   # a camera trap on a post: the game lights it red while it waits, green when there's a photo
     ".oooooooo.",
     "occccccco.",

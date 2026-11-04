@@ -203,12 +203,13 @@ function comp(e, t) {
 }
 
 /* ---------------- scheduler ---------------- */
-let playing = false, paused = false, step = 0, nextT = 0, timer = null, startedAt = 0, pending = null, swapT = null;
+let playing = false, paused = false, step = 0, nextT = 0, timer = null, startedAt = 0, pending = null, swapT = null, restMin = 0, restMax = 0, restUntil = 0;   /* rests: seconds of quiet between plays of a song (none: it loops) */
 const placed = [];
 const bpm = () => song.bpm * song.cozy.tempo * (night ? 0.86 : 1);
 const sixteenth = () => 60 / bpm() / song.beat;
 function schedule() {
   const sc = song.cscore, st = sixteenth();
+  if (restUntil) { if (ac.currentTime + 0.2 < restUntil) return; nextT = Math.max(nextT, restUntil); restUntil = 0; }   /* a quiet stretch, then the song again from its intro */
   while (nextT < ac.currentTime + 0.2) {
     (sc.by[step] || []).forEach(([ch, e]) => {
       const t = nextT + (ch === 'pad' || ch === 'bass' ? 0 : R(0, 0.018)) + (song.cozy.swing && step % 4 === 2 ? st * song.cozy.swing : 0);   /* a human hand is never exactly on the grid; jazz swings the off-beats */
@@ -220,11 +221,11 @@ function schedule() {
     });
     placed.push([nextT, step]); if (placed.length > 64) placed.shift();
     nextT += st; step += 1;
-    if (step >= sc.total) step = sc.loopStep;
+    if (step >= sc.total) { if (restMax > 0) { step = 0; restUntil = nextT + R(restMin, restMax); break; } step = sc.loopStep; }
   }
 }
 function applyMix() { if (!ac) return; filter.frequency.setTargetAtTime(night ? 2800 : 6000, ac.currentTime, 0.4); master.gain.setTargetAtTime(enabled && playing && !paused ? volume : 0, ac.currentTime, 0.15); }
-function run(from) { clearInterval(timer); step = from || 0; nextT = ac.currentTime + 0.1; startedAt = nextT; placed.length = 0; timer = setInterval(schedule, 30); schedule(); }
+function run(from) { clearInterval(timer); restUntil = 0; step = from || 0; nextT = ac.currentTime + 0.1; startedAt = nextT; placed.length = 0; timer = setInterval(schedule, 30); schedule(); }
 const byId = (id) => SONGS.find((s) => s.id === id) || SONGS[0];
 function play(id) {
   if (!ac) return;
@@ -252,6 +253,8 @@ return {
   setNight(v) { if (night === !!v) return; night = !!v; applyMix(); },
   isNight: () => night,
   setVolume(v) { volume = v; applyMix(); },
+  setRest(a, b) { restMin = a || 0; restMax = b || 0; },   /* quiet between plays: 0 loops the song */
+  resting: () => !!restUntil,
   setEnabled(v) { enabled = !!v; if (!ac) return; if (!enabled) { clearInterval(timer); timer = null; } else if (playing && !paused && !timer) run(step); applyMix(); },
   pause() { paused = true; if (timer) { clearInterval(timer); timer = null; } applyMix(); },
   resume() { paused = false; if (ac && playing && enabled && !timer) run(step); applyMix(); },
