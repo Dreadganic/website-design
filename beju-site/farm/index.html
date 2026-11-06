@@ -7791,7 +7791,7 @@ function renderGuide() {   /* the guide bar floats over the map; the sound butto
   guideBar(); const g = $('guide'), gh = g.hidden || sheetOpen ? '0px' : g.offsetHeight + 6 + 'px';
   if ($('app').style.getPropertyValue('--gh') !== gh) $('app').style.setProperty('--gh', gh);
 }
-let showUntil = 0, guideTouch = 0;
+var showUntil = 0, guideTouch = 0;   /* var: read by toast() and buzz(), which can run before this line does */
 /* haptics: a short buzz on a pick, a double on a sale and a longer one on a level or an unlock, only within a moment of the player's own tap
    (staff and catching up never buzz) and only on phones that support it. Settings › Haptics turns it off */
 const BUZZ = { harvest: 8, coins: [10, 30, 10], crane: [10, 30, 10], achieve: [15, 40, 15], pop: 6 };
@@ -7913,7 +7913,9 @@ function toastSplit(msg) {   /* whole sentences where they fit, a long one broke
 function toast(msg) {   /* one notice at a time: one that arrives within a second of the last waits its turn (up to three) */
   if (toast.quiet) return;   /* catching up after time away: no stale notices */
   const t = $('toast');
-  if (!t.hidden && toastT > 1.6) { if (msg !== t.textContent && !toastQ.includes(msg) && toastQ.length < 3) toastQ.push(msg); return; }
+  const mine = Date.now() - (guideTouch || 0) < 1500;   /* the answer to the player's own tap (a refused name, an empty can) goes first */
+  if (!t.hidden && toastT > 1.6 && !mine) { if (msg !== t.textContent && !toastQ.includes(msg) && toastQ.length < 3) toastQ.push(msg); return; }
+  if (!t.hidden && mine && t.textContent && t.textContent !== msg && !toastQ.includes(t.textContent)) toastQ.unshift(t.textContent);   /* what was showing comes back after it */
   if (msg.length > TOAST_MAX) { const parts = toastSplit(msg); msg = parts.shift(); toastQ.unshift(...parts.filter((x) => !toastQ.includes(x))); }   /* a long notice comes in short pieces, one after another, rather than spilling out of the bar */
   t.textContent = msg; t.hidden = false; toastT = msg.length > 70 ? 3.4 : 2.6; t.classList.toggle('long', msg.length > 70); t.classList.remove('pop'); void t.offsetWidth; t.classList.add('pop');
 }

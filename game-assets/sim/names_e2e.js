@@ -69,7 +69,7 @@ const ok = (c, msg) => { console.log((c ? 'PASS ' : 'FAIL ') + msg); if (!c) pro
   await B.click('#gearBtn'); await B.waitForTimeout(400);
   ok(await B.evaluate(() => !!document.querySelector('#panel #nameIn')), 'Settings has the name box');
   await type(B, '#nameIn', 'mika');
-  ok(/Another farmer is already called mika/.test(await B.evaluate(() => document.getElementById('toast').innerText)), 'Settings refuses a taken name');
+  ok(await B.waitForFunction(() => /Another farmer is already called mika/.test(document.getElementById('toast').innerText), null, { timeout: 8000 }).then(() => true, () => false), 'Settings refuses a taken name');   /* it may wait its turn behind another notice */
   ok(await B.evaluate(() => window.__T.S.cranes) === 100, 'a refused name costs nothing');
   await B.evaluate(() => { window.__T.S.cranes = 30; }); await B.waitForTimeout(1200);
   await type(B, '#nameIn', 'Ken');
