@@ -385,3 +385,36 @@ test("scores: the counter's rating and customers ride along, kept to what play a
   assert.equal(G.cleanLook({ title: "kona:boss" }, 0).title, "", "no made-up Kona titles");
   assert.equal(G.cleanLook({ title: "ev:steady" }, 0).title, "ev:steady", "and the event titles");
 });
+
+test("scores: the welcome window is only for accounts made before the online game worked", async () => {
+  process.env.GAME_WELCOME_UNTIL = "2026-11-30T23:59:59+09:00";
+  const s = (p, sp, pts) => ({ name: "Farmer", prestige: p, seasonP: sp, seasonKh: pts, level: G.levelFor(pts), points: pts });
+  const old = await newPlayer();   /* made on 17 October, before the online game worked */
+  assert.equal((await call(score, "POST", s(5, 2, 2e6), old)).status, 200, "an old offline farm still joins with its progress");
+  clock = Date.parse("2026-11-06T03:00:00Z");
+  const fresh = await newPlayer();
+  assert.equal((await call(score, "POST", s(30, 0, 9e9), fresh)).body.error, "too_far_for_a_new_player", "an account made in November can't post prestige 30 as its first score");
+  assert.equal((await call(score, "POST", s(0, 0, 500), fresh)).status, 200, "it starts small like any new farm");
+});
+
+test("saves: malformed numbers are refused, and the copy replaced is kept hourly and daily", async () => {
+  const a = await newPlayer(), id = a.split(".")[0];
+  assert.equal((await call(save, "PUT", { base: 0, data: { coins: "lots" } }, a)).status, 400, "a number that isn't a number");
+  assert.equal((await call(save, "PUT", { base: 0, data: { prestige: 1.5 } }, a)).status, 400, "a prestige that isn't whole");
+  assert.equal((await call(save, "PUT", { base: 0, data: { farms: [] } }, a)).status, 400, "farms that aren't a map");
+  assert.equal((await call(save, "PUT", { base: 0, data: { coins: 100, xp: 50, prestige: 1, farms: {} } }, a)).body.version, 1);
+  clock += 10e3;
+  assert.equal((await call(save, "PUT", { base: 1, data: { coins: 200 } }, a)).body.version, 2);
+  assert.equal((await store.list("savehist/" + id + "/")).length, 0, "nothing kept within the first hour");
+  clock += 3600e3;
+  await call(save, "PUT", { base: 2, data: { coins: 300 } }, a);
+  const hist = await store.list("savehist/" + id + "/");
+  assert.equal(hist.length, 1, "an hour on, the copy being replaced is kept");
+  assert.equal((await store.get(hist[0])).data.coins, 200);
+  clock += 86400e3;
+  await call(save, "PUT", { base: 3, data: { coins: 400 } }, a);
+  const all = await store.list("savehist/" + id + "/");
+  assert.ok(all.some((k) => /\/d\d$/.test(k)) && all.some((k) => /\/h\d$/.test(k)), "a day on, a daily copy too: " + all.join(", "));
+  for (let i = 0; i < 6; i++) { clock += 3600e3; await call(save, "PUT", { base: 4 + i, data: { coins: 500 + i } }, a); }
+  assert.ok((await store.list("savehist/" + id + "/")).filter((k) => /\/h\d$/.test(k)).length <= 3, "three hourly slots at most");
+});

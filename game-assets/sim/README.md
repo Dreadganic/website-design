@@ -59,7 +59,7 @@ node game-assets/sim/islands_e2e.js /tmp/test.html /tmp/isl        # the harbour
 node game-assets/sim/islands_layout.js /tmp/test.html /tmp/isllay  # every harbour spot, Miss Pearl, Uncle Kimo, Réunion's nursery, Bali's co-op and the Galápagos camp, clear of the interface on six phone sizes
 node game-assets/sim/kona_pace.js /tmp/test.html 6                 # Kona in real time: what the co-op boat pays a minute, the island level, tools and cowries
 node game-assets/sim/nav_e2e.js /tmp/test.html /tmp/nav             # getting around: "Where to?" from the place name, one-tap travel, the dot when another place needs you, swiping the map (13 checks)
-node game-assets/sim/reunion_e2e.js /tmp/test.html /tmp/re           # Réunion's nursery: opening from the board, shifts (plant, mist, wilt, fruit, pick, the can), pausing, the score and its pay, levels, Bourbon Pointu at home, the tuit-tuit, a reload (44 checks)
+node game-assets/sim/reunion_e2e.js /tmp/test.html /tmp/re           # Réunion's nursery: opening from the board, shifts (plant, mist, wilt, fruit, pick, the can), pausing, the score and its pay, the shed's seedling trays (one every 30 minutes, three banked), levels, Bourbon Pointu at home, the tuit-tuit, a reload (49 checks)
 node game-assets/sim/bali_e2e.js /tmp/test.html /tmp/ba              # Bali's monsoon: opening from the board, the barometer, a storm (pick, spread, turn, bag, the barn), gusts and the rope, leaks, pausing, the break, the score and the co-op pool's draws and guarantees, being rained off, levels and the fifth roastery bin, a reload, and a bot that plays whole storms by the arrow at three tap speeds (77 checks)
 node game-assets/sim/galapagos_e2e.js /tmp/test.html /tmp/ga         # Galápagos: opening from the board, camera traps, photos and finds, the very rare guarantee, shade trees at home, field notes, tortoise trails (clues, signs, going cold, the hint, the young tortoise), the five pages and what each gives back, the patio, levels, photo postcards, a reload, and a simulation of how long the guide takes to fill, over 400 players (65 checks)
 ```
@@ -82,3 +82,11 @@ Everyone you meet is drawn as themselves (`game-assets/npcs/sprites.py`). `npc_e
 node game-assets/sim/npc_e2e.js /tmp/test.html [shots]   # the cast: art, life on the maps, cards, cues (51 checks)
 ```
 
+
+## The audit's first round of fixes
+
+The design audit of 6 November 2026 ("Beju Farm: design audit and roadmap") ranked its fixes; `review_e2e.js` checks the first round in the game: a regular's request no longer raises the income rate it's priced from, a stopped event brings only the five event companions (the island ones come from their islands), long notices split into short pieces that fit the top bar, the top bar's pills show short numbers with the full one read out, the welcome-back card shows coins and know-how earned and a cleared fourth field picks while you're away, and the contract cards keep their height on a 320 x 568 phone. Réunion's seedling trays are in `reunion_e2e.js`; the server's save history, malformed-save check, co-op estimate cap and welcome window are in `npm test`.
+
+```
+node game-assets/sim/review_e2e.js /tmp/test.html   # 14 checks
+```

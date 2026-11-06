@@ -83,6 +83,15 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
   ok(await E(() => window.__T.S.route.got.re_first && window.__T.S.route.got.re_50 && !window.__T.S.route.got.re_75), 'finds: the first shift and 50 cherries in one shift');
   ok(await E(() => window.__T.TASK_KINDS.rcherry.ok() && /Réunion/.test(window.__T.TASK_KINDS.rcherry.text)), 'the daily task "Pick 60 Pointu cherries on Réunion" can come up');
   await clean();
+  /* the shed: a tray of seedlings every 30 minutes, three at most, banked while you're away */
+  ok(await E(() => window.__T.S.re.trays === 0 && window.__T.reStart() === false && !window.__T.S.re.sh), 'the first tray is used: the shed is empty until it restocks');
+  ok(await E(() => /restocks in/.test(window.__T.reHud()[1])), 'the island bar says when the next tray comes');
+  await E(() => { const R = window.__T.S.re; R.trayAt -= window.__T.RE_TRAY + 1000; });
+  ok(await E(() => window.__T.reTrays() === 1), 'thirty minutes on, a tray is ready');
+  await E(() => { const R = window.__T.S.re; R.trayAt -= 10 * window.__T.RE_TRAY; });
+  ok(await E(() => window.__T.reTrays() === window.__T.RE_TRAYS), 'a day away banks three, no more');
+  ok(await E(() => { const T = window.__T, R = T.S.re; delete R.trays; delete R.trayAt; return T.reTrays() === T.RE_TRAYS; }), 'a save from before trays starts with a full shed');
+  await E(() => { window.__T.S.re.trays = 99; });   /* the rest of the suite starts shifts freely */
   /* ending early picks what's fruiting */
   await E(() => { const T = window.__T, sm = T.reStageMs(); T.reStart(); const sh = T.S.re.sh; T.rePlant(0); T.rePlant(1); sh.beds[0].st = 3; T.act('re_end'); });
   ok(/5 cherries/.test(await modal()), 'End shift picks the plant that fruited; the seedling still growing is lost');

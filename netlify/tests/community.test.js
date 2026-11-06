@@ -306,3 +306,20 @@ test("cup of excellence: the week's final places feed the Q grader rating and th
   assert.equal((await call(coe, "GET", undefined, a)).body.last.top, true, "the winner always is, however few play");
   assert.equal(E.ratingFrom([100, 100]), 500, "two good weeks out of the last eight is half the way");
 });
+
+test("co-ops: the farm's own estimate is bounded by the prestige the board has seen, so one sync can't fill a week", async () => {
+  const a = await newPlayer("Big Talker", 2);
+  await call(coop, "POST", { act: "create", name: "Tall Tales", est: 1e9 }, a);
+  const pid = a.split(".")[0];
+  assert.equal((await store.get("players/" + pid)).coopEst, C.coopFloor(2) * 10, "capped at ten times the floor for prestige 2");
+  const wk = C.weekKey(clock);
+  await call(coop, "POST", { act: "sync", week: wk, kg: 0, est: 5e8 }, a);
+  assert.equal((await store.get("players/" + pid)).coopEst, C.coopFloor(2) * 10, "a sync is capped the same way");
+  clock += 60e3;
+  const v = (await call(coop, "POST", { act: "sync", week: wk, kg: 1e9 }, a)).body.coop;
+  const w = await store.get("coops/" + v.id + "/week/" + wk);
+  assert.ok(w.shares[pid] < 1e6, "a billion kilos in one sync is refused: " + w.shares[pid]);
+  const b = await newPlayer("Honest Farm", 2);
+  await call(coop, "POST", { act: "create", name: "Small Holders", est: 40000 }, b);
+  assert.equal((await store.get("players/" + b.split(".")[0])).coopEst, 40000, "an honest estimate is kept as it is");
+});

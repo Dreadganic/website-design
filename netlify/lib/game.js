@@ -76,6 +76,9 @@ const RULES = {
 /* the online game didn't work on bejucoffee.com until 24 October 2026 (Blobs, see v2.js), so farms grew offline: until this date a farm's
    first score may carry its progress. GAME_WELCOME_UNTIL (a date) moves it; a reset row is still checked like a new farm */
 const welcomeUntil = () => Date.parse(process.env.GAME_WELCOME_UNTIL || "2026-11-30T23:59:59+09:00");
+/* only accounts made before the online game worked can need the welcome: one made since then has had the server from its first score, so a big first score from it is a script, not a farm */
+const welcomeBorn = () => Date.parse(process.env.GAME_WELCOME_BORN || "2026-10-24T00:00:00+09:00");
+const welcomeFor = (me) => !!me && (me.created || 0) < welcomeBorn();
 function checkScore(prev, next, now, fresh) {
   const n = next;
   if (!Number.isInteger(n.prestige) || !Number.isInteger(n.seasonP) || !Number.isFinite(n.points) || n.prestige < 0 || n.seasonP < 0 || n.points < 0) return "bad_numbers";
@@ -247,4 +250,4 @@ const firstThisMonth = (me, now) => !(me.grants || []).some((g) => g.at && dayJS
 /* passport stamps the server has seen: each coffee stamps the first of its origins not stamped yet, as the game does */
 function addStamps(me, coffees) { me.stamps = me.stamps || []; (coffees || []).forEach((pid) => { const o = (STAMPS[pid] || []).find((x) => !me.stamps.includes(x)); if (o) me.stamps.push(o); }); }
 
-module.exports = { useBlobs, MONTH_BONUS, SUB_BONUS, firstThisMonth, addStamps, SEASON_FIRST, isFounder, TROPHY_ID, trophyRank, trophyId, publicTrophies, addTrophy, cleanFarm, FARM_LOCS, SAMPLE_RULES, SAMPLE_LADDER, dayJST, newSamples, sampleView, savePlayer, json, parse, stores, memoryStore, authed, hash, newId, newToken, XP_AT, levelFor, prestigeNeed, seasonKey, prevSeason, SEASON_JOIN, SEASON_IDS, RULES, checkScore, COUNTER_RULES, cleanCounter, cleanName, nameKey, genericName, claimName, cleanLook, STAMPS };
+module.exports = { welcomeFor, useBlobs, MONTH_BONUS, SUB_BONUS, firstThisMonth, addStamps, SEASON_FIRST, isFounder, TROPHY_ID, trophyRank, trophyId, publicTrophies, addTrophy, cleanFarm, FARM_LOCS, SAMPLE_RULES, SAMPLE_LADDER, dayJST, newSamples, sampleView, savePlayer, json, parse, stores, memoryStore, authed, hash, newId, newToken, XP_AT, levelFor, prestigeNeed, seasonKey, prevSeason, SEASON_JOIN, SEASON_IDS, RULES, checkScore, COUNTER_RULES, cleanCounter, cleanName, nameKey, genericName, claimName, cleanLook, STAMPS };

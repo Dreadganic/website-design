@@ -231,7 +231,7 @@ ul.news li { margin: 3px 0; }
 .modal[hidden] { display: none; }
 button, a.btn, [data-act], [data-tab] { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 a.btn { text-decoration: none; }   /* link buttons (the shop, real bags) read like every other button */
-.ccards { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; scroll-snap-type: x proximity; }
+.ccards { display: flex; flex: none; gap: 6px; overflow-x: auto; padding-bottom: 4px; scroll-snap-type: x proximity; }
 .ccard { flex: 0 0 220px; scroll-snap-align: start; display: flex; gap: 8px; align-items: center; padding: 6px 8px; background: var(--paper-2); border: 2px solid var(--edge); border-radius: 8px; }
 .ccard.ev { border-color: #C86C8E; background: #FFF0F5; }
 .cc-t { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; font-size: 12px; }
@@ -2628,6 +2628,7 @@ Object.assign(REV_COSM, {
 });
 /* companions: one in 100 stopped events brings one you don't have yet, to follow your farmer */
 const REV_PETS = { piglet: ['Piglet', 'ev_piglet'], capuchin: ['Capuchin', 'ev_capuchin'], crow: ['Tame crow', 'ev_crow_sit'], millcat: ['Mill cat', 'ev_millcat'], dalmatian: ['Fire-station dalmatian', 'ev_dalmatian'], doctorbird: ['Doctor bird', 'bm_bird'], nene: ['Nēnē goose', 'k_nene', true], tuittuit: ['Tuit-tuit', 're_bird'], duck: ['Paddy duck', 'ba_duck'], tortoise: ['Young tortoise', 'ga_tort_sm'] };   /* the third flag: bought, never found */
+const EV_PETS = ['piglet', 'capuchin', 'crow', 'millcat', 'dalmatian'];   /* the ones a stopped event can bring; the island companions come only from their islands, with the odds shown there */
 const petTrail = { sc: '', pts: [] }, PET_GAP = 13;
 const petsOut = () => Object.keys(REV_PETS).filter((k) => (S.rev.pets || {})[k] && !(S.rev.petHide || {})[k]);
 function drawPet(o, sc) {   /* your companions follow your farmer in a train, each one walking in the footsteps of the one ahead */
@@ -2688,7 +2689,7 @@ function revReward(E) {   /* only cosmetics: a keepsake on the fifth stop, a rar
   if (E.rare) got.push(revGive(D.rareCos));
   if (L.n >= (D.special ? 1 : REV_COS)) got.push(revGive(D.cos));   /* the typhoon's comes on the first stop: the next may be a month away */
   if (!S.sitems.title['ev:trouble'] && Object.keys(REVS).every((k) => REVS[k].special || ((R.log[k] || {}).n || 0) >= REV_COS)) { S.sitems.title['ev:trouble'] = true; got.push('the Troubleshooter title'); }
-  if (Math.random() < 0.01) { R.pets = R.pets || {}; const left = Object.keys(REV_PETS).filter((k) => !R.pets[k] && !REV_PETS[k][2]); if (left.length) { const k = left[Math.floor(Math.random() * left.length)]; R.pets[k] = true; got.push('a ' + REV_PETS[k][0].toLowerCase() + ' companion'); } }
+  if (Math.random() < 0.01) { R.pets = R.pets || {}; const left = EV_PETS.filter((k) => !R.pets[k]); if (left.length) { const k = left[Math.floor(Math.random() * left.length)]; R.pets[k] = true; got.push('a ' + REV_PETS[k][0].toLowerCase() + ' companion'); } }
   if (R.streak === 10) R.boost = Date.now() + 3600e3;
   if (R.streak === 25 && !S.sitems.title['ev:steady']) { S.sitems.title['ev:steady'] = true; got.push('the Steady hands title'); }
   const b = D.box(E), x = b[0] + b[2] / 2, y = b[1] + 4, gifts = got.filter(Boolean);
@@ -4846,11 +4847,23 @@ const reStageMs = () => RE_STAGE * (1 - 0.25 * Math.min(1, sumBuild('compost') /
 const reOutfit = () => [6, 14, 22, 28].filter((l) => S.re.lv >= l).length;   /* +2.5% shift score a piece */
 const reBonus = (c) => (c >= 50 ? 10 : 0) + (c >= 75 ? 25 : 0) + (c >= 100 ? 50 : 0);
 const reNextBonus = (c) => [50, 75, 100].find((n) => c < n);
-function reFresh() { return { lv: 1, xp: 0, seen: false, sh: null, can: 12, best: 0, shifts: 0, picked: 0 }; }
+function reFresh() { return { lv: 1, xp: 0, seen: false, sh: null, can: 12, best: 0, shifts: 0, picked: 0, trays: 1, trayAt: Date.now() }; }
+const RE_TRAY = 30 * 60e3, RE_TRAYS = 3;   /* the shed restocks a tray of seedlings every 30 minutes and holds three, like Bali's barometer: a shift pays about 20 minutes of income, so it can't be repeated back to back */
+const reNextMs = () => Math.max(0, RE_TRAY - (Date.now() - S.re.trayAt));
+function reBank() {
+  const R = S.re, now = Date.now();
+  if (R.trays === undefined) { R.trays = RE_TRAYS; R.trayAt = now; }   /* saves from before trays start with a full shed */
+  if (R.trays >= RE_TRAYS) { R.trayAt = now; return; }
+  const n = Math.floor((now - R.trayAt) / RE_TRAY); if (n <= 0) return;
+  R.trays = Math.min(RE_TRAYS, R.trays + n); R.trayAt = R.trays >= RE_TRAYS ? now : R.trayAt + n * RE_TRAY;
+}
+const reTrays = () => { reBank(); return S.re.trays; };
 const reHere = () => scene() === 're' && !document.hidden;
 const reLeft = (b) => Math.max(0, Math.ceil(((b.st + 1) * reStageMs() - (Date.now() - b.at)) / 1000));   /* seconds until this seedling's stage turns */
 function reStart() {
   const R = S.re; if (!R || R.sh) return false;
+  reBank(); if (R.trays < 1) { SFX.play('nope'); floats.push({ x: RE_SHED.x + 25, y: RE_SHED.y + 4, text: 'the shed restocks in ' + voyLeft(reNextMs()), t: 0 }); return false; }
+  R.trays -= 1;
   R.sh = { n: reBatch(), left: reBatch(), beds: Array(RE_BEDS).fill(null), cherries: 0, at: Date.now() }; R.can = reCanMax();
   SFX.play('stamp'); floats.push({ x: RE_SHED.x + 25, y: RE_SHED.y + 4, text: 'a batch of ' + R.sh.n + ' seedlings', t: 0 });
   if (!R.tipPlant) { R.tipPlant = true; toast('Tap a bed to plant. Mist each seedling once in every stage (the drop shows it\'s dry), refill at the cistern, and pick them when they fruit'); }
@@ -4985,7 +4998,7 @@ function drawReunion(time) {
   nameTag(me.x, me.y);
   ctx.font = '700 13px "Pixelify Sans", monospace';
   const tag = (tx, x, y, bg2, fg) => { const w = ctx.measureText(tx).width + 10; ctx.fillStyle = bg2; ctx.fillRect(x * 2 - w / 2, y * 2 - 14, w, 18); ctx.fillStyle = fg; ctx.fillText(tx, x * 2, y * 2); };
-  if (!sh) tag('START', RE_SHED.x + 25, RE_SHED.y + 2, '#3E2A1C', '#F2C04A');
+  if (!sh) { const tr = reTrays(); tag(tr ? 'START · ' + tr + '/' + RE_TRAYS : 'NEXT ' + voyLeft(reNextMs()), RE_SHED.x + 25, RE_SHED.y + 2, '#3E2A1C', tr ? '#F2C04A' : '#FFF4DE'); }
   else {
     const nb = reNextBonus(sh.cherries); tag((sh.left ? sh.left + ' TO PLANT · ' : '') + sh.cherries + ' CHERRIES' + (nb ? ' · BONUS AT ' + nb : ''), 96, 113, '#3E2A1C', '#FFF4DE');
     sh.beds.forEach((b, i) => { if (!b) return; const a = RE_BED(i); if (b.dead) tag('WILTED', a.x + 19, a.y + 8, '#3E2A1C', '#C8B060'); else if (b.st >= 3) tag('PICK', a.x + 19, a.y + 8, '#3E2A1C', '#F2C04A'); });
@@ -5001,9 +5014,10 @@ function rePanel() {
   if (sub === 'nursery') {
     const nx = Object.keys(ISLE_UNLOCKS.re).map(Number).find((l) => l > R.lv);
     h += '<p class="note"><b>Next:</b> ' + (nx ? 'level ' + nx + ' brings ' + ISLE_UNLOCKS.re[nx] : 'every nursery tool is yours') + '</p>';
-    h += help('re', 'Plant a batch of Pointu seedlings, mist each one once in every growth stage, and pick them for a score.', 'Take a batch of seedlings at the shed (' + reBatch() + ' at your level), and tap beds to plant them. Each seedling grows through three stages of ' + Math.round(reStageMs() / 1000) + ' seconds; mist it once in each stage, or it wilts when the stage turns. A drop over a bed means it\'s dry. The can holds ' + reCanMax() + ' mists; tap the cistern to refill it. A grown plant gives 5 cherries. A shift scores 1 point a cherry, +10 at 50 cherries, +25 more at 75 and +50 more at 100, so bigger batches pay much more. It pays nursery xp, coins and know-how (about a minute of your farm\'s income for every 10 points), and a lot of Bourbon Pointu for the Osaka bins. A shift waits while you\'re away.');
+    h += help('re', 'Plant a batch of Pointu seedlings, mist each one once in every growth stage, and pick them for a score.', 'Take a batch of seedlings at the shed (' + reBatch() + ' at your level), and tap beds to plant them. Each seedling grows through three stages of ' + Math.round(reStageMs() / 1000) + ' seconds; mist it once in each stage, or it wilts when the stage turns. A drop over a bed means it\'s dry. The can holds ' + reCanMax() + ' mists; tap the cistern to refill it. A grown plant gives 5 cherries. A shift scores 1 point a cherry, +10 at 50 cherries, +25 more at 75 and +50 more at 100, so bigger batches pay much more. It pays nursery xp, coins and know-how (about a minute of your farm\'s income for every 10 points), and a lot of Bourbon Pointu for the Osaka bins. The shed restocks a tray of seedlings every 30 minutes and holds three, so a few shifts wait for you after a day away. A shift waits while you\'re away.');
     if (sh) h += '<h3>This shift</h3>' + row(img('re_i_seed', 28), sh.n + ' seedlings', (sh.left ? sh.left + ' still to plant · ' : '') + sh.cherries + ' cherries picked' + (reNextBonus(sh.cherries) ? ' · next bonus at ' + reNextBonus(sh.cherries) : ''), btn('End shift', 'picks what\'s fruiting', 're_end', true, 'gold'));
-    else h += '<div class="seg">' + btn('Start a shift', reBatch() + ' seedlings', 're_start', true, 'green') + '</div>';
+    else { const tr = reTrays(); h += '<div class="seg">' + btn('Start a shift', tr ? reBatch() + ' seedlings' : 'next in ' + voyLeft(reNextMs()), 're_start', tr > 0, 'green') + '</div>'; }
+    h += row(img('re_i_seed', 28), 'The shed', reTrays() + ' of ' + RE_TRAYS + ' seedling trays' + (S.re.trays < RE_TRAYS ? ' · the next in ' + voyLeft(reNextMs()) : '') + ' · a tray every 30 minutes, kept while you\'re away', '');
     h += row(img('re_can', 28), 'The can', R.can + ' / ' + reCanMax() + ' mists · refill at the cistern', '');
     h += '<p class="note">From your farms: your compost heaps (' + sumBuild('compost') + ' levels) make seedlings grow ' + Math.round(25 * Math.min(1, sumBuild('compost') / 24)) + '% faster.' + (R.lv >= 10 ? ' Back home, a field you replant starts half grown.' : '') + (S.vars.pointu ? ' Bourbon Pointu grows on your farms.' : '') + '</p>';
   } else {
@@ -5025,8 +5039,8 @@ function reIntro() {
   R.seen = true; BEACON.ev('isle_open', { key: 're', p: S.prestige });
   showModal(npcCard('Tante Lise', LISE_LOOK, 'Réunion', 'Bonjour, and welcome to my nursery. This is Bourbon Pointu, born on this island two hundred years ago and nearly lost: the last sacks left in 1942. We\'re bringing it back. Take a batch of seedlings from the shed, plant them, and mist each one once in every stage, or it wilts. Pick them when they fruit. The more you bring through in one shift, the better it pays.'));
 }
-const reHud = () => { const R = S.re, sh = R && R.sh; return ['Réunion · Pointu nursery', R ? (sh ? (sh.left ? sh.left + ' to plant · ' : '') + sh.cherries + ' cherries this shift · can ' + R.can : 'level ' + R.lv + (R.best ? ' · best shift ' + R.best + ' cherries' : ' · take a batch at the shed')) : '']; };
-const reStatus = () => { const R = S.re; if (!R) return ['', false]; return R.sh ? ['a shift waiting: ' + R.sh.cherries + ' cherries so far', true] : ['level ' + R.lv + (R.best ? ' · best ' + R.best + ' cherries' : ''), false]; };
+const reHud = () => { const R = S.re, sh = R && R.sh; return ['Réunion · Pointu nursery', R ? (sh ? (sh.left ? sh.left + ' to plant · ' : '') + sh.cherries + ' cherries this shift · can ' + R.can : reTrays() ? reTrays() + ' tray' + (R.trays > 1 ? 's' : '') + ' of seedlings · tap the shed' : 'the shed restocks in ' + voyLeft(reNextMs())) : '']; };
+const reStatus = () => { const R = S.re; if (!R) return ['', false]; return R.sh ? ['a shift waiting: ' + R.sh.cherries + ' cherries so far', true] : reTrays() ? [R.trays + ' tray' + (R.trays > 1 ? 's' : '') + ' of seedlings', R.trays >= RE_TRAYS] : ['the next tray in ' + voyLeft(reNextMs()), false]; };
 ISLE_FN.re = { fresh: reFresh, tick: reTick, draw: drawReunion, click: reClick, hint: reHint, panel: rePanel, act: reAct, intro: reIntro, hud: reHud, status: reStatus, track: 'reunion' };
 /* ---------- Bali: the Monsoon, at Wayan's co-op in Kintamani on the slopes of Mount Batur, where coffee grows among orange trees
    and dries on raised bamboo beds. The barometer banks a storm every 40 minutes (three at most, four from level 10), and a storm
@@ -5759,6 +5773,7 @@ function musicPage() {
   return h;
 }
 const NEWS = [   /* newest first; the card shows what arrived since you last saw it */
+  { v: '2026-11-06', title: 'Faces, and fairer pay', items: ['Everyone you meet has a face of their own: the islanders, the estate managers, the Counter regulars and Rosa stroll, work and speak up on their maps; tap one to chat', 'Réunion\'s shed restocks a tray of seedlings every 30 minutes and keeps three, like Bali\'s barometer', 'Know-how no longer snowballs: island rewards and regulars\' requests stop raising the rate they\'re paid from', 'Welcome back shows the coins and know-how earned while you were away, and a cleared fourth field picks too', 'Shorter numbers in the top bar, and long notices come in short pieces'] },
   { v: '2026-11-04', title: 'Your collection and your music', items: ['A collection log in Looks › Collection: everything you\'ve found in one place, with a rank as it grows', 'Music in Looks › Music: each place\'s song as you hear it, a jukebox to play any of them anywhere, and a setting for how often music plays', 'The daily check-in is now a calendar that never resets: miss a day and it simply waits for you', 'The odds of each rare find are shown where you find it, with how close you are to a sure one', 'And this card, whenever something new arrives. Find it again in Settings'] },
   { v: '2026-11-03', title: 'The Island Route', items: ['The harbour at prestige 5: cowries, the ledger, the board and voyages', 'Three new islands: Réunion\'s nursery and Bali\'s storms at prestige 6, and the Galápagos camp at prestige 7', 'Where to? Tap the place name to go anywhere, or swipe the map sideways'] }
 ];
@@ -6217,6 +6232,7 @@ function sackPour() {   /* sacks from a night away empty into the store as it fr
   Object.keys(b).forEach((v) => { const m = Math.min(b[v], Math.ceil(b[v] * k)); S.cherries[v] = (S.cherries[v] || 0) + m; b[v] -= m; if (b[v] < 1) delete b[v]; });
   if (!Object.keys(b).length) S.sacks = null;
 }
+const awayBeds = (f) => (f.field && f.beds.length > 3 ? 4 : 3);
 function away(hours) {
   BEACON.ev("away_collect", { h: Math.min(24, Math.round(hours * 10) / 10) });
   const mins = hours * 60, before = stored(), byFarm = [];
@@ -6224,15 +6240,15 @@ function away(hours) {
   LOCS.forEach((l) => {
     const f = S.farms[l]; if (!f.unlocked || !f.workers.length || S.dormant[l]) return;
     const perWorkerMin = carryKg() / ((2.4 * carryKg() / 3 + 8) / pickerMult()) * 60 / 60 * 0.5;   /* kg a picker brings in per game minute, walking included */
-    const fk = f.workers.length * perWorkerMin * mins * f.beds.slice(0, 3).reduce((a, v) => a + varGrowth(f, v) * VAR[v].kg * pickKg(v) / 3, 0) / 3 / 1.2;
+    const nb = awayBeds(f), fk = f.workers.length * perWorkerMin * mins * f.beds.slice(0, nb).reduce((a, v) => a + varGrowth(f, v) * VAR[v].kg * pickKg(v) / nb, 0) / 3 / 1.2;   /* the average field, the fourth one too once it's cleared */
     const fkm = fk * (f.manager ? 1.5 : 1) * masteryMult(f) * terroir(f);
     kg += fkm; byFarm.push([f, fkm]);
     f.shrubs.forEach((s) => { s.p = 1; });
   });
   const room = Math.max(0, cap() - before), got = Math.min(room, Math.round(kg));
-  if (got > 0) byFarm.forEach(([f, fk]) => f.beds.slice(0, 3).forEach((v) => { S.cherries[v] = (S.cherries[v] || 0) + Math.round(got * fk / kg / 3); }));
+  if (got > 0) byFarm.forEach(([f, fk]) => f.beds.slice(0, awayBeds(f)).forEach((v) => { S.cherries[v] = (S.cherries[v] || 0) + Math.round(got * fk / kg / awayBeds(f)); }));
   const sack = S.staff.foreman ? 0 : Math.round(Math.max(0, Math.min(kg, kg / hours * SACK_H) - got));   /* no foreman yet: pickers' sacks hold up to 2 hours of picking */
-  if (sack > 0) { S.sacks = S.sacks || {}; byFarm.forEach(([f, fk]) => f.beds.slice(0, 3).forEach((v) => { S.sacks[v] = (S.sacks[v] || 0) + Math.round(sack * fk / kg / 3); })); }
+  if (sack > 0) { S.sacks = S.sacks || {}; byFarm.forEach(([f, fk]) => f.beds.slice(0, awayBeds(f)).forEach((v) => { S.sacks[v] = (S.sacks[v] || 0) + Math.round(sack * fk / kg / awayBeds(f)); })); }
   if (kg > room) S.awayFull = true;
   S.lots.forEach((l) => { l.left = 0; });
   const c0 = S.coins, k0 = S.points;
@@ -6246,6 +6262,7 @@ function away(hours) {
   const fullAfter = Math.round(room / Math.max(1, kg / hours) * 10) / 10;
   showModal('<h2>Welcome back!</h2><p class="note">You were away for ' + (hours < 1 ? Math.max(1, Math.round(hours * 60)) + ' min' : hours + ' h') + '. Your pickers brought in <b>' + fmt(got + sack) + ' kg</b> of cherries' + (sack > 0 ? '. Storage took ' + fmt(got) + ' kg and their sacks hold <b>' + fmt(sack) + ' kg</b> more; they pour into the store as you make room' + (kg > got + sack ? ', after about ' + SACK_H + ' h of picking' : '') + '.' : kg > room ? ', then storage filled up after about ' + fullAfter + ' h and they rested.' : '.') + ' Any lots on the racks finished drying.' + (roasted ? ' Your head roaster roasted <b>' + roasted + ' batches</b>; the bags are waiting in the Roastery.' : '') + (S.staff.foreman ? ' Your foreman kept the mill running and earned <b>' + fmt(coinsEarned) + ' coins</b> and <b>' + fmt(khEarned) + ' know-how</b>.' : ' Hire a mill foreman and the mill keeps working while you are away.') + '</p>' +
     '<div class="stats"><div><small>Picked</small><b>' + fmt(got + sack) + '</b></div><div><small>Storage</small><b>' + fmt(stored()) + '</b></div><div><small>Cap</small><b>' + fmt(cap()) + '</b></div></div>' +
+    (coinsEarned > 0 || khEarned > 0 ? '<div class="stats"><div><small>Coins earned</small><b>' + icon('i_coin') + fmtShort(coinsEarned) + '</b></div><div><small>Know-how earned</small><b>' + icon('i_points') + fmtShort(khEarned) + '</b></div></div>' : '') +
     (kg > room ? '<p class="note">A bigger store keeps them going longer: see Farm › Upgrades.</p>' : '') + '<button class="btn green" data-act="close">Collect</button>');
   return coinsEarned;
 }
@@ -6585,10 +6602,18 @@ function tapNote(text, long) {
   document.body.appendChild(el); setTimeout(() => el.remove(), 1300);
 }
 const toastQ = [];
+const TOAST_MAX = 110;
+function toastSplit(msg) {   /* whole sentences where they fit, a long one broken at its commas, packed into pieces short enough for two lines */
+  const bits = msg.split(/(?<=[.;!?])\s+/).flatMap((b) => (b.length > TOAST_MAX ? b.split(/,\s+/).map((x, i, all) => (i < all.length - 1 ? x + ',' : x)) : [b]));
+  const out = [];
+  bits.forEach((b) => { const i = out.length - 1; if (i >= 0 && out[i].length + b.length + 1 <= TOAST_MAX) out[i] += ' ' + b; else out.push(b); });
+  return out.map((b) => (b.length > TOAST_MAX + 30 ? b.slice(0, TOAST_MAX).replace(/\s+\S*$/, '') + '…' : b));
+}
 function toast(msg) {   /* one notice at a time: one that arrives within a second of the last waits its turn (up to three) */
   if (toast.quiet) return;   /* catching up after time away: no stale notices */
   const t = $('toast');
   if (!t.hidden && toastT > 1.6) { if (msg !== t.textContent && !toastQ.includes(msg) && toastQ.length < 3) toastQ.push(msg); return; }
+  if (msg.length > TOAST_MAX) { const parts = toastSplit(msg); msg = parts.shift(); toastQ.unshift(...parts.filter((x) => !toastQ.includes(x))); }   /* a long notice comes in short pieces, one after another, rather than spilling out of the bar */
   t.textContent = msg; t.hidden = false; toastT = msg.length > 70 ? 3.4 : 2.6; t.classList.toggle('long', msg.length > 70); t.classList.remove('pop'); void t.offsetWidth; t.classList.add('pop');
 }
 const modalQueue = [];
@@ -7127,7 +7152,7 @@ function renderPanel() {
     h += '<h3>Simulate a bejucoffee.com order</h3><div class="seg">' + Object.keys(COFFEES).map((k) => '<button type="button" data-act="order:' + k + '">' + COFFEES[k].name + '</button>').join('') + '</div>';
     h += '<div class="stamps">' + LOCS.map((l) => '<img src="' + url('stamp_' + l) + '" alt="' + ART.locations[l].name + (S.stamps[l] ? ', stamped' : ', not yet') + '" class="' + (S.stamps[l] ? '' : 'off') + ((S.goldStamps || {})[l] ? ' gold' : '') + '">').join('') + '</div>';
     h += '<h3>Resources</h3><div class="seg"><button type="button" data-act="add:coins">+1,000 coins</button><button type="button" data-act="add:bigcoins">+25,000 coins</button><button type="button" data-act="add:contracts">New contracts</button><button type="button" data-act="add:checkin">Next real day</button><button type="button" data-act="add:drop">Start a drop event</button><button type="button" data-act="add:season">End the season</button><button type="button" data-act="add:stars">+50 season stars</button><button type="button" data-act="add:guide">Restart guide</button><button type="button" data-act="add:points">+2,000 know-how</button><button type="button" data-act="add:cranes">+50 cranes</button><button type="button" data-act="add:vars">All varieties</button><button type="button" data-act="add:xp">+1 level</button><button type="button" data-act="add:cherries">Fill storage</button><button type="button" data-act="add:stamp">Next passport stamp</button><button type="button" data-act="add:sample">Next free sample</button><button type="button" data-act="add:days">+20 check-in days</button></div>';
-    h += '<h3>Réunion</h3><div class="seg"><button type="button" data-act="retest:open">' + (isleOpen('re') ? 'Go to Réunion' : 'Open Réunion early') + '</button><button type="button" data-act="retest:lv">+1 nursery level</button><button type="button" data-act="retest:grow">Grow every seedling a stage</button></div>';
+    h += '<h3>Réunion</h3><div class="seg"><button type="button" data-act="retest:open">' + (isleOpen('re') ? 'Go to Réunion' : 'Open Réunion early') + '</button><button type="button" data-act="retest:lv">+1 nursery level</button><button type="button" data-act="retest:tray">+1 seedling tray</button><button type="button" data-act="retest:grow">Grow every seedling a stage</button></div>';
     h += '<h3>Bali</h3><div class="seg"><button type="button" data-act="batest:open">' + (isleOpen('ba') ? 'Go to Bali' : 'Open Bali early') + '</button><button type="button" data-act="batest:lv">+1 monsoon level</button><button type="button" data-act="batest:charge">Bank a storm</button><button type="button" data-act="batest:dry">Dry every bed</button><button type="button" data-act="batest:fill">Fill the barn</button></div>';
     h += '<h3>Galápagos</h3><div class="seg"><button type="button" data-act="gatest:open">' + (isleOpen('ga') ? 'Go to Galápagos' : 'Open Galápagos early') + '</button><button type="button" data-act="gatest:lv">+1 naturalist level</button><button type="button" data-act="gatest:photos">Develop every trap</button><button type="button" data-act="gatest:tracks">Fresh tracks</button><button type="button" data-act="gatest:guide">Fill the guide but one</button></div>';
     h += '<h3>The harbour</h3><div class="seg"><button type="button" data-act="hbtest:open">' + (hbOpen() ? 'Go to the harbour' : 'Open the harbour early') + '</button><button type="button" data-act="hbtest:cw">+5 cowries</button><button type="button" data-act="hbtest:home">Bring the boat home</button><button type="button" data-act="hbtest:bottle">A bottle washes up</button></div>';
@@ -7187,7 +7212,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'cupall') cupAll();
   else if (a === 'reqfill') {
     const r = S.request, i = r ? S.lots.findIndex((l) => reqLot(l) && l.cupped && l.left <= 0) : -1;
-    if (i > -1) { const sent = S.lots.splice(i, 1)[0]; earn({ coins: r.coins, points: r.points, noXp: r.points * (sent.carry || 0) }); S.stats.lotsSold += 1; task('sell', 1); hvAdd('lots', sent.v, sent.method); coopAdd(sent.method, sent.kg * 0.2); S.stats.requests = (S.stats.requests || 0) + 1; S.request = null; S.reqNext = Date.now() + 900000; SFX.play('contract'); showModal('<h2>Sent to ' + r.who.split(' at ')[0] + '</h2>' + img('bush_' + r.v + '_ripe', 48) + '<p class="note">"Perfect, exactly what I hoped for." +' + fmt(r.coins) + ' coins and +' + fmt(r.points) + ' know-how. ' + r.who.split(' at ')[0] + ' will be back with another request soon.</p><button class="btn green" data-act="close">Lovely</button>'); nbAdd(r.v, r.m, 2); }
+    if (i > -1) { const sent = S.lots.splice(i, 1)[0]; earn({ coins: r.coins, points: r.points, noXp: r.points * (sent.carry || 0) }); unRate(r);   /* priced from your income rate, so it mustn't raise it */ S.stats.lotsSold += 1; task('sell', 1); hvAdd('lots', sent.v, sent.method); coopAdd(sent.method, sent.kg * 0.2); S.stats.requests = (S.stats.requests || 0) + 1; S.request = null; S.reqNext = Date.now() + 900000; SFX.play('contract'); showModal('<h2>Sent to ' + r.who.split(' at ')[0] + '</h2>' + img('bush_' + r.v + '_ripe', 48) + '<p class="note">"Perfect, exactly what I hoped for." +' + fmt(r.coins) + ' coins and +' + fmt(r.points) + ' know-how. ' + r.who.split(' at ')[0] + ' will be back with another request soon.</p><button class="btn green" data-act="close">Lovely</button>'); nbAdd(r.v, r.m, 2); }
   }
   else if (a === 'millsub') S.millSub = v;
   else if (a === 'roastsub') S.roastSub = v;
@@ -7376,7 +7401,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'away') away(+v);
   else if (a === 'gatest') { if (!S.ga) S.ga = gaFresh(); const G = S.ga; if (v === 'open') { G.test = true; goIsle('ga'); } if (v === 'lv') isleXp('ga', isleNeed(G.lv) - G.xp); if (v === 'photos') G.traps.forEach((t) => { t.at = t.at ? t.at - 3 * 3600e3 : Date.now() - 3 * 3600e3; }); if (v === 'tracks') G.tracks = GA_TRACK_MAX; if (v === 'guide') GA_GUIDE.slice(0, -1).forEach((e) => { G.got[e[0]] = G.got[e[0]] || 1; }); }
   else if (a === 'batest') { if (!S.ba) S.ba = baFresh(); const B = S.ba; if (v === 'open') { B.test = true; goIsle('ba'); } if (v === 'lv') isleXp('ba', isleNeed(B.lv) - B.xp); if (v === 'charge') B.charge = Math.min(baMax(), B.charge + 1); if (v === 'dry' && B.st) B.st.beds.forEach((b) => { if (b.kg > 0) b.dry = baDryMs(); }); if (v === 'fill' && B.st && !B.st.brk) { B.st.barn = B.st.target; baBreak(B.st); } }
-  else if (a === 'retest') { if (!S.re) S.re = reFresh(); if (v === 'open') { S.re.test = true; goIsle('re'); } if (v === 'lv') isleXp('re', isleNeed(S.re.lv) - S.re.xp); if (v === 'grow' && S.re.sh) S.re.sh.beds.forEach((b) => { if (b && !b.dead && b.st < 3) { b.wet = true; b.at -= reStageMs(); } }); }
+  else if (a === 'retest') { if (!S.re) S.re = reFresh(); if (v === 'open') { S.re.test = true; goIsle('re'); } if (v === 'lv') isleXp('re', isleNeed(S.re.lv) - S.re.xp); if (v === 'tray') { reBank(); S.re.trays = Math.min(RE_TRAYS, S.re.trays + 1); } if (v === 'grow' && S.re.sh) S.re.sh.beds.forEach((b) => { if (b && !b.dead && b.st < 3) { b.wet = true; b.at -= reStageMs(); } }); }
   else if (a === 'hbtest') { if (!S.bm) S.bm = bmFresh(); if (v === 'open') { S.bm.test = true; if (!S.route) S.route = routeFresh(); goHb(); } if (!S.route) return; if (v === 'cw') routeGive(5, 'Test cowries'); if (v === 'home') S.route.voy.forEach((x) => { x.end = Date.now() - 1; }); if (v === 'bottle') S.route.bottle = true; }
   else if (a === 'bmtest') { if (!S.bm) S.bm = bmFresh(); if (v === 'open') { S.bm.test = true; goBm(); } if (v === 'rest') S.bm.bbq.forEach((b) => { b.at -= 24 * 3600e3; }); if (v === 'lv') bmXp(bmNeed(S.bm.lv) - S.bm.xp); if (v === 'ripe') S.bm.ter.forEach((t) => { t.pool = BM_RATE * BM_POOL_H; }); }
   else if (a === 'konatest') { if (!S.kona) S.kona = konaFresh(); if (v === 'open') { S.kona.test = true; goKona(); } if (v === 'shells') routeGive(5, 'Test cowries'); if (v === 'lv') kXp(kNeed(S.kona.lv) - S.kona.xp); if (v === 'stock') { S.kona.ash += 30; S.kona.compost += 10; S.kona.fruit.mango += 60; const vv = S.kona.plots[0].v; S.kona.cherries[vv] = (S.kona.cherries[vv] || 0) + 400; } }
@@ -7422,10 +7447,10 @@ function refreshHud() {
   $('hearts').innerHTML = Array.from({ length: hshow }, (_, i) => '<svg width="14" height="12" viewBox="0 0 7 6" shape-rendering="crispEdges" aria-hidden="true" style="filter:drop-shadow(1px 1px 0 #3E2A1C)"><g fill="' + (i < Math.ceil(S.hearts / mh * hshow) ? '#F07A3A' : '#5A3A2C') + '"><rect x="1" y="0" width="2" height="1"/><rect x="4" y="0" width="2" height="1"/><rect x="0" y="1" width="7" height="2"/><rect x="1" y="3" width="5" height="1"/><rect x="2" y="4" width="3" height="1"/><rect x="3" y="5" width="1" height="1"/></g></svg>').join('') + '<b class="hn">' + S.hearts + '</b>';
   $('hearts').setAttribute('aria-label', S.hearts + ' of ' + mh + ' hearts');
   { const [frac, lv] = levelSpan(), pct = Math.round(Math.max(0, Math.min(1, frac)) * 100), ready = lv >= prestigeNeed() && (S.prestige > 0 || S.tabs.ranks), hl = $('hudLevel');   /* the bar fills gold once a prestige is ready */
-    hl.innerHTML = '<span class="lvrow">' + icon('i_points') + (S.prestige ? 'P' + S.prestige + ' · ' : '') + 'Lv ' + lv + ' · ' + fmt(S.points) + '</span><span class="lvbar' + (ready ? ' ready' : '') + '"><i style="width:' + (ready ? 100 : pct) + '%"></i></span>';
+    hl.innerHTML = '<span class="lvrow">' + icon('i_points') + (S.prestige ? 'P' + S.prestige + ' · ' : '') + 'Lv ' + lv + ' · ' + fmtShort(S.points) + '</span><span class="lvbar' + (ready ? ' ready' : '') + '"><i style="width:' + (ready ? 100 : pct) + '%"></i></span>';
     hl.setAttribute('aria-label', (S.prestige ? 'Prestige ' + S.prestige + ', ' : '') + 'level ' + lv + ', ' + pct + '% of the way to level ' + (lv + 1) + ', ' + fmt(S.points) + ' know-how' + (ready ? ', prestige ready' : '')); }
   hudGoMark();
-  $('hudCoins').innerHTML = icon('i_coin') + fmt(S.coins);
+  $('hudCoins').innerHTML = icon('i_coin') + fmtShort(S.coins); $('hudCoins').setAttribute('aria-label', fmt(S.coins) + ' coins');   /* short in the pill, so the pills leave the farm in view on a small phone */
   $('hudCranes').innerHTML = icon('i_crane') + S.cranes;
   const full = stored() >= cap();
   $('hudStore').innerHTML = icon('i_cherry') + '<span style="color:' + (full ? '#FF9A8A' : '#FFF4DE') + '">' + fmt(stored()) + '/' + fmt(cap()) + '</span>'; $('hudStore').style.display = scene() === 'bm' || scene() === 'hb' || ISLE_IDS.includes(scene()) ? 'none' : '';   /* mainland storage means nothing up the mountain, and its pill would sit on the top terrace on a small phone */

@@ -34,6 +34,9 @@ async function prune(store, coop, now) {   /* a member gone a month leaves, so a
   if (keep.length === coop.members.length) return;
   coop.members = keep; await store.set("coops/" + coop.id, coop); await reindex(store, coop, now);
 }
+/* the estimate comes from the game, so the server bounds it by the prestige the board has seen: ten times that prestige's floor is far above
+   what a farm sells in a week, and stops one member sending 1e9 to fill a week's order in one sync */
+const estCap = async (store, pid) => C.coopFloor((await scoreRow(store, pid)).prestige || 0) * 10;
 async function baseline(store, coop, pid, wk, now, topP) {   /* what a member is expected to bring in a week: the most of last week's share, what their farm sells now (coopEst, from the game) and the floor for their prestige; 0 for someone away a week who brought nothing last week */
   const last = await store.get("coops/" + coop.id + "/week/" + C.prevWeek(wk));
   const had = (last && last.shares && last.shares[pid]) || 0, row = await scoreRow(store, pid);
@@ -112,7 +115,7 @@ exports.handler = async (event) => {
   const act = b.act;
   if (act === "create" || act === "join" || act === "find") {
     if (coop) return G.json(422, { error: "already_in_a_coop" });
-    if (b.est > 0) me.coopEst = Math.min(1e9, Math.floor(b.est));   /* what the farm makes now, so a new member's first order fits their farm (joinCoop saves it) */
+    if (b.est > 0) me.coopEst = Math.min(await estCap(store, me.id), Math.floor(b.est));   /* what the farm makes now, so a new member's first order fits their farm (joinCoop saves it) */
     let target = null;
     if (act === "create") {
       const name = C.cleanCoopName(b.name); if (!name) return G.json(422, { error: "bad_name" });
@@ -137,7 +140,7 @@ exports.handler = async (event) => {
   }
   if (act === "sync") {
     const wk = C.weekKey(now);
-    if (b.est > 0) { me.coopEst = Math.min(1e9, Math.floor(b.est)); await G.savePlayer(store, me); }
+    if (b.est > 0) { me.coopEst = Math.min(await estCap(store, me.id), Math.floor(b.est)); await G.savePlayer(store, me); }
     if (b.week === wk) {
       const w = await weekOf(store, coop, wk, now), had = w.shares[me.id] || 0, rise = Math.max(0, Math.floor(Number(b.kg) || 0) - had);
       const ok = Math.min(rise, C.coopAllowed(Math.max(C.COOP_MIN_PER, await baseline(store, coop, me.id, wk, now, await topPrestige(store, coop.members))), w.at[me.id], now));
