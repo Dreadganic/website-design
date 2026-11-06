@@ -288,7 +288,10 @@ a.btn { text-decoration: none; }   /* link buttons (the shop, real bags) read li
 .gsay { flex: 1 0 100%; display: flex; align-items: center; gap: 8px; font-weight: 400; font-size: 12.5px; line-height: 1.3; color: #E8F4EC; }   /* Rosa's line inside the lesson bar, instead of a window for every lesson */
 .gsay img { width: 32px; height: 32px; flex: none; image-rendering: pixelated; border-radius: 6px; background: #3E7A56; }
 .gskip { border: 0; background: transparent; color: #CDE8D6; font: inherit; font-size: 12px; text-decoration: underline; cursor: pointer; flex: none; }
-[hidden] { display: none !important; }   /* a hidden element must never cover the game, whatever its own display rule */
+[hidden] { display: none !important; }
+/* tap targets: small controls keep their look but get a hit area of at least 44 px (an invisible frame around them) */
+.gskip, .help-ok, .linkbtn, .help-i, .sheet-x, .arrow { position: relative; }   /* .sound is already placed absolutely */
+.gskip::after, .help-ok::after, .linkbtn::after, .help-i::after, .sheet-x::after, .sound::after, .arrow::after { content: ''; position: absolute; left: 50%; top: 50%; width: max(100%, 44px); height: max(100%, 44px); transform: translate(-50%, -50%); }   /* a hidden element must never cover the game, whatever its own display rule */
 /* the prestige ceremony: a full-screen moment, timed to the anthem */
 .pcer { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; overflow: hidden; background: radial-gradient(circle at 50% 42%, #4A3418 0%, #1E140A 70%); color: #FFF4DE; text-align: center; padding: env(safe-area-inset-top, 0px) max(16px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(16px, env(safe-area-inset-left, 0px)); }
 .pcer canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
@@ -5777,7 +5780,7 @@ function musicPage() {
   return h;
 }
 const NEWS = [   /* newest first; the card shows what arrived since you last saw it */
-  { v: '2026-11-06', title: 'Faces, and fairer pay', items: ['Everyone you meet has a face of their own: the islanders, the estate managers, the Counter regulars and Rosa stroll, work and speak up on their maps; tap one to chat', 'Réunion\'s shed restocks a tray of seedlings every 30 minutes and keeps three, like Bali\'s barometer', 'Know-how no longer snowballs: island rewards and regulars\' requests stop raising the rate they\'re paid from', 'Welcome back shows the coins and know-how earned while you were away, and a cleared fourth field picks too', 'Shorter numbers in the top bar, and long notices come in short pieces'] },
+  { v: '2026-11-06', title: 'Faces, and fairer pay', items: ['Everyone you meet has a face of their own: the islanders, the estate managers, the Counter regulars and Rosa stroll, work and speak up on their maps; tap one to chat', 'Réunion\'s shed restocks a tray of seedlings every 30 minutes and keeps three, like Bali\'s barometer', 'Know-how no longer snowballs: island rewards and regulars\' requests stop raising the rate they\'re paid from', 'Welcome back shows the coins and know-how earned while you were away, and a cleared fourth field picks too', 'Shorter numbers in the top bar, and long notices come in short pieces', 'With a foreman, your pickers and mill keep going gently through the night', 'A new coffee plants straight from its unlock window; Rosa talks in the lesson bar', 'Settings start with your own options, now with haptics and a way to delete your online farm'] },
   { v: '2026-11-04', title: 'Your collection and your music', items: ['A collection log in Looks › Collection: everything you\'ve found in one place, with a rank as it grows', 'Music in Looks › Music: each place\'s song as you hear it, a jukebox to play any of them anywhere, and a setting for how often music plays', 'The daily check-in is now a calendar that never resets: miss a day and it simply waits for you', 'The odds of each rare find are shown where you find it, with how close you are to a sure one', 'And this card, whenever something new arrives. Find it again in Settings'] },
   { v: '2026-11-03', title: 'The Island Route', items: ['The harbour at prestige 5: cowries, the ledger, the board and voyages', 'Three new islands: Réunion\'s nursery and Bali\'s storms at prestige 6, and the Galápagos camp at prestige 7', 'Where to? Tap the place name to go anywhere, or swipe the map sideways'] }
 ];
@@ -5791,6 +5794,18 @@ function newsSoon() {   /* once after each update, when no other card is open; n
   if (S.newsSeen >= v) return;
   const show = () => { if (S.newsSeen >= v) return; const card = newsCard(false); S.newsSeen = v; showModal(card); };   /* build the card before marking it seen */
   if ($('modal').hidden) show(); else { const w = setInterval(() => { if ($('modal').hidden) { clearInterval(w); show(); } }, 500); }
+}
+function playerSettings() {   /* what a player changes: sound, help, haptics, name, online, starting again (test tools come after, on the beta build) */
+  let h = '';
+    if (coopOK()) h += '<h3>Co-op stickers</h3><div class="seg">' + [['0', 'Shown'], ['1', 'Hidden']].map(([v, tl]) => '<button type="button" data-act="hidestickers:' + v + '" aria-pressed="' + ((S.hideStickers ? '1' : '0') === v) + '">' + tl + '</button>').join('') + '</div>';
+    h += '<h3>Help text</h3><div class="seg">' + [[false, 'Short, with i buttons'], [true, 'Always in full']].map(([v, tl]) => '<button type="button" data-act="showhelp:' + (v ? 1 : 0) + '" aria-pressed="' + (!!S.showHelp === v) + '">' + tl + '</button>').join('') + '</div>';
+    h += '<h3>Music volume</h3><div class="seg">' + [['0.25', 'Quiet'], ['0.45', 'Normal'], ['0.7', 'Loud']].map(([v, tl]) => '<button type="button" data-act="mvol:' + v + '" aria-pressed="' + (String(S.musicVol) === v) + '">' + tl + '</button>').join('') + '</div><p class="note">Sound effects and music switch on and off with the buttons on the farm.</p>';
+    h += musicSettings();
+    h += nameField() + onlineCard();
+    h += '<h3>Haptics</h3><div class="seg">' + [['1', 'On'], ['0', 'Off']].map(([v, tl]) => '<button type="button" data-act="haptics:' + v + '" aria-pressed="' + ((S.haptics === false ? '0' : '1') === v) + '">' + tl + '</button>').join('') + '</div><p class="note">A light buzz when you pick, sell or level up, on phones that have one.</p>';
+    h += '<h3>Start again</h3><div class="seg"><button type="button" data-act="reset">Reset the game</button></div><p class="note">Clears this farm from this browser. Free samples you have earned stay with your online account.</p>';
+  h += '<p class="note">What the game keeps about you and how to delete it: <a href="/privacy/" target="_blank" rel="noopener">Privacy</a>.</p>';
+  return h;
 }
 const musicSettings = () => '<h3>What\'s new</h3><div class="seg"><button type="button" data-act="news">What\'s new on the farm</button></div><p class="note">Songs, the jukebox and how often music plays are in Looks › Music once the Looks tab opens.</p>';
 /* ---------- player actions ---------- */
@@ -6085,7 +6100,8 @@ function staffTick() {
      enough for what the boat still needs. Holding every matching lot filled the racks and stopped the mill until the request ran out */
   const held = new Set(), rq = S.request && (S.lots.find((l) => reqLot(l) && l.left <= 0 && l.cupped) || S.lots.find((l) => reqLot(l) && l.left <= 0));
   if (rq) held.add(rq);
-  S.contracts.filter((c) => c.boat).forEach((c) => { let need = c.kg - c.have; S.lots.forEach((l) => { if (need > 0 && l.left <= 0 && !held.has(l) && fits(c, l)) { held.add(l); need -= l.kg * 0.2; } }); });
+  const holdMax = Math.max(0, racks() - 1);   /* the boat may keep all but one rack: a big boat order once held every lot and stopped the mill, overnight too */
+  S.contracts.filter((c) => c.boat).forEach((c) => { let need = c.kg - c.have; S.lots.forEach((l) => { if (need > 0 && held.size < holdMax && l.left <= 0 && !held.has(l) && fits(c, l)) { held.add(l); need -= l.kg * 0.2; } }); });
   for (let i = S.lots.length - 1; i >= 0; i--) {
     const l = S.lots[i]; if (l.left > 0 || held.has(l) || revOn('rats')) continue;   /* rats in the sacks: nothing loads */
     if ((roasteryFeedWants() || ctWantBean(l.v + '.' + l.method)) && canBin(l.v + '.' + l.method)) { toRoastery(i, true); continue; }   /* and a coffee the counter's board needs goes to its bin */   /* keeps the roastery's green store topped up when asked */
@@ -6241,6 +6257,7 @@ function sackPour() {   /* sacks from a night away empty into the store as it fr
   Object.keys(b).forEach((v) => { const m = Math.min(b[v], Math.ceil(b[v] * k)); S.cherries[v] = (S.cherries[v] || 0) + m; b[v] -= m; if (b[v] < 1) delete b[v]; });
   if (!Object.keys(b).length) S.sacks = null;
 }
+const AWAY_NIGHT = 0.03, AWAY_ROUNDS_MAX = 720;   /* night pickers at 3% of your pace (the casual bot: prestige 6 on day 17, from day 19; an eighth brought it to day 10); at most 18 hours of 90-second mill rounds */
 const awayBeds = (f) => (f.field && f.beds.length > 3 ? 4 : 3);
 function away(hours) {
   BEACON.ev("away_collect", { h: Math.min(24, Math.round(hours * 10) / 10) });
@@ -6254,6 +6271,11 @@ function away(hours) {
     kg += fkm; byFarm.push([f, fkm]);
     f.shrubs.forEach((s) => { s.p = 1; });
   });
+  /* the night shift: with a foreman the farm keeps going through the night in rounds, picking into storage while he dries and sells, so
+     storage is a buffer and racks set the pace. Pickers work at a quarter of your pace past the first hour (they rest); without a foreman
+     the store fills once and stops, as before */
+  const night = S.staff.foreman ? Math.max(0, hours - 1) : 0, kgNight = kg / Math.max(hours, 1e-6) * night * (AWAY_NIGHT / 0.5);   /* kg is at the away pace of a half */
+  if (night > 0) { const sc = Math.min(hours, 1) / hours; kg *= sc; byFarm.forEach((x) => { x[1] *= sc; }); }   /* the first hour at the usual away pace */
   const room = Math.max(0, cap() - before), got = Math.min(room, Math.round(kg));
   if (got > 0) byFarm.forEach(([f, fk]) => f.beds.slice(0, awayBeds(f)).forEach((v) => { S.cherries[v] = (S.cherries[v] || 0) + Math.round(got * fk / kg / awayBeds(f)); }));
   const sack = S.staff.foreman ? 0 : Math.round(Math.max(0, Math.min(kg, kg / hours * SACK_H) - got));   /* no foreman yet: pickers' sacks hold up to 2 hours of picking */
@@ -6262,15 +6284,18 @@ function away(hours) {
   S.lots.forEach((l) => { l.left = 0; });
   const c0 = S.coins, k0 = S.points;
   let roasted = 0; const roastCapAway = Math.floor(hours * 3600 / 90 * roasterCount() * 0.5);   /* the head roaster works at half your pace while you're away */
-  if (S.staff.foreman) for (let i = 0; i < Math.min(60, Math.floor(hours * 40)); i++) {   /* the foreman keeps the mill going while you're away */
+  const rounds = S.staff.foreman ? Math.min(AWAY_ROUNDS_MAX, Math.floor(hours * 40)) : 0;
+  let nightGot = 0;
+  for (let i = 0; i < rounds; i++) {   /* the foreman keeps the mill going while you're away; through the night the pickers keep the store topped up */
+    if (kgNight > 0) { const add = Math.min(Math.max(0, cap() - stored()), kgNight / rounds); if (add > 0) { byFarm.forEach(([f, fk]) => { const nb = awayBeds(f); f.beds.slice(0, nb).forEach((v) => { S.cherries[v] = (S.cherries[v] || 0) + add * fk / Math.max(1e-6, byFarm.reduce((a, x) => a + x[1], 0)) / nb; }); }); nightGot += add; } }
     emTick(true); staffTick(); S.lots.forEach((l) => { l.left = 0; });
     if (S.staff.roaster && roasted < roastCapAway) { roasted += headRoasterTick(true); S.roastery.roasters.forEach((r) => { if (r.auto) r.start = Date.now() - r.dur; }); roasteryTick(); }
   }
   const coinsEarned = S.coins - c0, khEarned = S.points - k0;
   S.minutesTotal += mins; const tot = S.minutes + mins; S.day += Math.floor(tot / 1440); S.minutes = tot % 1440;
   const fullAfter = Math.round(room / Math.max(1, kg / hours) * 10) / 10;
-  showModal('<h2>Welcome back!</h2><p class="note">You were away for ' + (hours < 1 ? Math.max(1, Math.round(hours * 60)) + ' min' : hours + ' h') + '. Your pickers brought in <b>' + fmt(got + sack) + ' kg</b> of cherries' + (sack > 0 ? '. Storage took ' + fmt(got) + ' kg and their sacks hold <b>' + fmt(sack) + ' kg</b> more; they pour into the store as you make room' + (kg > got + sack ? ', after about ' + SACK_H + ' h of picking' : '') + '.' : kg > room ? ', then storage filled up after about ' + fullAfter + ' h and they rested.' : '.') + ' Any lots on the racks finished drying.' + (roasted ? ' Your head roaster roasted <b>' + roasted + ' batches</b>; the bags are waiting in the Roastery.' : '') + (S.staff.foreman ? ' Your foreman kept the mill running and earned <b>' + fmt(coinsEarned) + ' coins</b> and <b>' + fmt(khEarned) + ' know-how</b>.' : ' Hire a mill foreman and the mill keeps working while you are away.') + '</p>' +
-    '<div class="stats"><div><small>Picked</small><b>' + fmt(got + sack) + '</b></div><div><small>Storage</small><b>' + fmt(stored()) + '</b></div><div><small>Cap</small><b>' + fmt(cap()) + '</b></div></div>' +
+  showModal('<h2>Welcome back!</h2><p class="note">You were away for ' + (hours < 1 ? Math.max(1, Math.round(hours * 60)) + ' min' : hours + ' h') + '. Your pickers brought in <b>' + fmt(Math.round(got + sack + nightGot)) + ' kg</b> of cherries' + (sack > 0 ? '. Storage took ' + fmt(got) + ' kg and their sacks hold <b>' + fmt(sack) + ' kg</b> more; they pour into the store as you make room' + (kg > got + sack ? ', after about ' + SACK_H + ' h of picking' : '') + '.' : nightGot > 0 ? ', and through the night they kept the store topped up while the foreman milled it.' : kg > room ? ', then storage filled up after about ' + fullAfter + ' h and they rested.' : '.') + ' Any lots on the racks finished drying.' + (roasted ? ' Your head roaster roasted <b>' + roasted + ' batches</b>; the bags are waiting in the Roastery.' : '') + (S.staff.foreman ? ' Your foreman kept the mill running and earned <b>' + fmt(coinsEarned) + ' coins</b> and <b>' + fmt(khEarned) + ' know-how</b>.' : ' Hire a mill foreman and the mill keeps working while you are away.') + '</p>' +
+    '<div class="stats"><div><small>Picked</small><b>' + fmt(Math.round(got + sack + nightGot)) + '</b></div><div><small>Storage</small><b>' + fmt(stored()) + '</b></div><div><small>Cap</small><b>' + fmt(cap()) + '</b></div></div>' +
     (coinsEarned > 0 || khEarned > 0 ? '<div class="stats"><div><small>Coins earned</small><b>' + icon('i_coin') + fmtShort(coinsEarned) + '</b></div><div><small>Know-how earned</small><b>' + icon('i_points') + fmtShort(khEarned) + '</b></div></div>' : '') +
     (kg > room ? '<p class="note">A bigger store keeps them going longer: see Farm › Upgrades.</p>' : '') + '<button class="btn green" data-act="close">Collect</button>');
   return coinsEarned;
@@ -6290,7 +6315,8 @@ let sheetOpen = false;
 function showSheet(on) {   /* the tab's sheet over the lower half of the map */
   sheetOpen = on; $('sheet').hidden = !on; $('app').classList.toggle('open', on); if (!on) fullSheet(false);
   if (on) $('sheet').insertBefore($('guide'), $('panel')); else $('app').insertBefore($('guide'), $('tabs'));
-  const tb = TABS.find((x) => x[0] === tab); $('sheetT').textContent = tb ? tb[1] : 'Settings';
+  const tb = TABS.find((x) => x[0] === tab), sc = scene(), isle = tab === 'farm' && !['farm', 'mill', 'roast'].includes(sc);
+  $('sheetT').textContent = isle ? (ISLE_INFO[sc] ? ISLE_INFO[sc].name : sc === 'hb' ? 'The harbour' : sc === 'bm' ? 'Blue Mountain' : sc === 'kona' ? 'Kona Ridge' : tb[1]) : tb ? tb[1] : 'Settings';   /* on an island the sheet is named for the place, not "Farm" */
   $('sheetI').src = url(tb ? tb[2] : 'i_points'); document.querySelector('.sheet-x').setAttribute('aria-label', 'Put away ' + $('sheetT').textContent);
   renderTabs(); renderPanel(); renderGuide();
 }
@@ -6507,7 +6533,12 @@ function renderGuide() {   /* the guide bar floats over the map; the sound butto
   guideBar(); const g = $('guide'), gh = g.hidden || sheetOpen ? '0px' : g.offsetHeight + 6 + 'px';
   if ($('app').style.getPropertyValue('--gh') !== gh) $('app').style.setProperty('--gh', gh);
 }
-let showUntil = 0, guideTouch = 0;   /* guideTouch: the player's last tap or scroll, so the arrow's scrolling never fights them */
+let showUntil = 0, guideTouch = 0;
+/* haptics: a short buzz on a pick, a double on a sale and a longer one on a level or an unlock, only within a moment of the player's own tap
+   (staff and catching up never buzz) and only on phones that support it. Settings › Haptics turns it off */
+const BUZZ = { harvest: 8, coins: [10, 30, 10], crane: [10, 30, 10], achieve: [15, 40, 15], pop: 6 };
+const buzz = (n) => { try { if (S.haptics !== false && BUZZ[n] && navigator.vibrate && Date.now() - guideTouch < 1500) navigator.vibrate(BUZZ[n]); } catch (e) { /* no vibration here */ } };
+if (typeof SFX !== 'undefined' && !SFX.buzzed) { const play = SFX.play; SFX.play = (n, o) => { buzz(n); return play.call(SFX, n, o); }; SFX.buzzed = true; }   /* guideTouch: the player's last tap or scroll, so the arrow's scrolling never fights them */
 ['pointerdown', 'wheel', 'touchmove', 'keydown'].forEach((t) => addEventListener(t, () => { guideTouch = Date.now(); }, { capture: true, passive: true }));
 function showTarget(el, key) {   /* bring what the arrow points at on screen: for a few seconds after each step starts, scroll the sheet (or the page) to it
                                     whenever it's out of view (a refresh of the page can cut a scroll short), then leave the player to scroll freely */
@@ -6590,12 +6621,13 @@ function checkTabs() {
 /* readable numbers: the pixel font stays for words, but every run of digits in the panels and windows is set in the clean body font */
 const numify = (html) => ('>' + html + '<').replace(/>([^<]+)</g, (m, t) => '>' + t.split(/(&#?\w+;)/).map((p) => (p[0] === '&' ? p : p.replace(/\d[\d,.:]*\d|\d/g, '<span class="n">$&</span>'))).join('') + '<').slice(1, -1);
 function setHTML(el, html) { if (el.__html === html) return false; el.__html = html; el.innerHTML = numify(html); return true; }   /* rebuilding unchanged buttons swallows taps */
+const affordDots = () => S.prestige < 1;   /* "you can afford this" dots teach a new farm; from the first prestige a dot means something is waiting or running out (a reward, a contract, a boat, an event), not that coins pile up */
 function unlockReady() {   /* is there an unlock the player can afford right now? */
   const nf = LOCS.find((l) => canOpen(l));
   return S.tabs.unlock && (VAR_ORDER.some((v) => !S.vars[v] && gateOK('var:' + v) && S.points >= VAR[v].cost) || Object.keys(METHODS).some((k) => !S.methods[k] && METHODS[k].cost && gateOK('method:' + k) && S.points >= METHODS[k].cost) || (nf && S.points >= FARM_COST[nf]) || (!S.farms.osaka.unlocked && S.cranes >= OSAKA_CRANES));
 }
 function renderTabs() {
-  const dot = { looks: S.skinPicks > 0, ranks: S.tabs.ranks && Array.from({ length: tierAt(S.season.stars) }, (_, i) => i + 1).some((n) => !S.season.claimed[n]), unlock: unlockReady(), farm: (!!golden && scene() !== 'farm') || revDot('farm'), orders: S.tasks.concat((S.wtasks || {}).list || []).some((t) => t.have >= t.goal && !t.done) || (S.weekly.team + S.weekly.mine >= S.weekly.target && !S.weekly.claimed), mill: S.lots.some((l) => l.left <= 0) || revDot('mill'), roast: (roasteryOpen() && scene() !== 'roast' && (S.roastery.roasters.some((r) => inCrack(r) && !r.crack) || S.roastery.bags.length > 0)) || revDot('roast') || ctCanOpen() || (ctOpen() && scene() !== 'roast') };
+  const dot = { looks: S.skinPicks > 0, ranks: S.tabs.ranks && Array.from({ length: tierAt(S.season.stars) }, (_, i) => i + 1).some((n) => !S.season.claimed[n]), unlock: affordDots() && unlockReady(), farm: (!!golden && scene() !== 'farm') || revDot('farm'), orders: S.tasks.concat((S.wtasks || {}).list || []).some((t) => t.have >= t.goal && !t.done) || (S.weekly.team + S.weekly.mine >= S.weekly.target && !S.weekly.claimed), mill: S.lots.some((l) => l.left <= 0) || revDot('mill'), roast: (roasteryOpen() && scene() !== 'roast' && (S.roastery.roasters.some((r) => inCrack(r) && !r.crack) || S.roastery.bags.length > 0)) || revDot('roast') || ctCanOpen() || (ctOpen() && scene() !== 'roast') };
   const shown = TABS.filter(([id]) => (id !== 'roast' || roasteryOpen() || level() >= 9) && (id !== 'looks' || S.tabs.looks || S.prestige >= 1 || S.tabs.ranks));   /* the Roast tab shows from level 9, locked until the roastery opens, so the first sessions stay simple */
   $('tabs').style.gridTemplateColumns = 'repeat(' + shown.length + ', minmax(0, 1fr))';
   setHTML($('tabs'), shown.map(([id, label, ic]) => { const locked = tabLocked(id);
@@ -6645,8 +6677,8 @@ function showModal(html, replace) {   /* a second window waits its turn instead 
   const was = $('modal').hidden; $('modal').hidden = false; paintModal(html); if (was) SFX.play('page');
 }
 function shopTabs() {
-  const st = S.shopTab || 'cranes', dot = Object.keys(DECOR).some((k) => S.decor[k] === undefined && S.coins >= DECOR[k].cost);
-  const rdot = roasteryOpen() && RCOS.some((x) => !S.rcos.own[x.id] && x.src.coins && S.coins >= x.src.coins);
+  const st = S.shopTab || 'cranes', dot = affordDots() && Object.keys(DECOR).some((k) => S.decor[k] === undefined && S.coins >= DECOR[k].cost);
+  const rdot = affordDots() && roasteryOpen() && RCOS.some((x) => !S.rcos.own[x.id] && x.src.coins && S.coins >= x.src.coins);
   return '<div class="seg subtabs">' + [['cranes', 'Boosts'], ['chars', 'Farmer'], ['bskin', 'Farm style']].concat(roasteryOpen() ? [['roast', 'Roast']] : [], [['beju', 'Real coffee']]).map(([k, t]) => '<button type="button" data-act="shoptab:' + k + '" aria-pressed="' + (st === k) + '">' + t + ((k === 'bskin' && dot) || (k === 'roast' && rdot) ? ' <i class="dot" aria-label="something to buy"></i>' : '') + '</button>').join('') + '</div>';
 }
 function avatar(look, size) { look = normLook(look); return '<span class="fr b-' + PLATES[look.crest] + (look.bg === 'beju' ? ' bg-beju' : '') + '" style="width:' + size + 'px;height:' + size + 'px">' + (bgThumb(look.bg) ? '<img class="fbg" src="' + bgThumb(look.bg) + '" alt="">' : '') + '<img src="' + url(bodyOf(look) + 'down_0', Object.assign(skinLook(look.skin), look.hat ? { hat: ART.hats[look.hat] } : {})) + '" alt="" style="height:' + Math.round(size * 0.78) + 'px"></span>'; }
@@ -6720,7 +6752,7 @@ function farmSubtabs(cur, f) {   /* the Farm tab: your fields, plus the pages wh
     build: f.unlocked && BUILD_ORDER.some((k) => (f.build[k] || 0) < buildMax() && S.coins >= buildCost(S.loc, k)),
     staff: (f.unlocked && S.loc !== 'osaka' && !f.manager && mgrOK() && S.coins >= MANAGER_COST(S.loc)) || (!S.staff.foreman && foremanOK() && S.coins >= FOREMAN_COST) || (S.staff.foreman && !S.staff.agent && agentOK() && S.coins >= AGENT_COST) || (!S.staff.roaster && roasterOK() && S.coins >= ROASTER_COST) || EM_LOCS.some((l) => emCan(l) && S.coins >= emHire(l))
   };
-  return '<div class="seg subtabs">' + [['fields', 'Fields'], ['upgrades', 'Upgrades'], ['build', 'Buildings'], ['staff', 'Staff']].map(([k, t]) => '<button type="button" data-act="uptab:' + (k === 'upgrades' ? 'farm' : k) + '" aria-pressed="' + (cur === k) + '">' + t + (ready[k] ? ' <i class="dot" aria-label="something to buy"></i>' : '') + '</button>').join('') + '</div>';
+  return '<div class="seg subtabs">' + [['fields', 'Fields'], ['upgrades', 'Upgrades'], ['build', 'Buildings'], ['staff', 'Staff']].map(([k, t]) => '<button type="button" data-act="uptab:' + (k === 'upgrades' ? 'farm' : k) + '" aria-pressed="' + (cur === k) + '">' + t + (ready[k] && affordDots() ? ' <i class="dot" aria-label="something to buy"></i>' : '') + '</button>').join('') + '</div>';
 }
 function renderPanel() {
   const P = $('panel'), f = S.farms[S.loc], L = ART.locations[S.loc];
@@ -7150,13 +7182,9 @@ function renderPanel() {
       h += row(img(a, 30), t, active ? 'Active: ' + Math.ceil((S.boosts[k] - S.minutesTotal) / REAL_MIN) + ' min left' : sub, btn('Use', c + ' cranes', 'boost:' + k, S.cranes >= c));
     });
   } else if (!TEST_TOOLS) {
-    if (coopOK()) h += '<h3>Co-op stickers</h3><div class="seg">' + [['0', 'Shown'], ['1', 'Hidden']].map(([v, tl]) => '<button type="button" data-act="hidestickers:' + v + '" aria-pressed="' + ((S.hideStickers ? '1' : '0') === v) + '">' + tl + '</button>').join('') + '</div>';
-    h += '<h3>Help text</h3><div class="seg">' + [[false, 'Short, with i buttons'], [true, 'Always in full']].map(([v, tl]) => '<button type="button" data-act="showhelp:' + (v ? 1 : 0) + '" aria-pressed="' + (!!S.showHelp === v) + '">' + tl + '</button>').join('') + '</div>';
-    h += '<h3>Music volume</h3><div class="seg">' + [['0.25', 'Quiet'], ['0.45', 'Normal'], ['0.7', 'Loud']].map(([v, tl]) => '<button type="button" data-act="mvol:' + v + '" aria-pressed="' + (String(S.musicVol) === v) + '">' + tl + '</button>').join('') + '</div><p class="note">Sound effects and music switch on and off with the buttons on the farm.</p>';
-    h += musicSettings();
-    h += nameField() + onlineCard();
-    h += '<h3>Start again</h3><div class="seg"><button type="button" data-act="reset">Reset the game</button></div><p class="note">Clears this farm from this browser. Free samples you have earned stay with your online account.</p>';
+    h += playerSettings();
   } else {
+    h += playerSettings();
     h += '<h2>Test tools</h2><p class="note">For playtesting: everything here stands in for something that will come from real orders or real time.</p>';
     if (coopOK()) h += '<h3>Co-op stickers</h3><div class="seg">' + [['0', 'Shown'], ['1', 'Hidden']].map(([v, tl]) => '<button type="button" data-act="hidestickers:' + v + '" aria-pressed="' + ((S.hideStickers ? '1' : '0') === v) + '">' + tl + '</button>').join('') + '</div>';
     h += '<h3>Help text</h3><div class="seg">' + [[false, 'Short, with i buttons'], [true, 'Always in full']].map(([v, tl]) => '<button type="button" data-act="showhelp:' + (v ? 1 : 0) + '" aria-pressed="' + (!!S.showHelp === v) + '">' + tl + '</button>').join('') + '</div>';
@@ -7173,10 +7201,7 @@ function renderPanel() {
     h += '<h3>Time</h3><div class="seg"><button type="button" data-act="away:1">Away 1 h</button><button type="button" data-act="away:4">Away 4 h</button><button type="button" data-act="away:12">Away 12 h</button><button type="button" data-act="day">Next day</button></div>';
     h += '<h3>Game speed</h3><div class="seg">' + [1, 3, 10].map((x) => '<button type="button" data-act="speed:' + x + '" aria-pressed="' + (S.speed === x) + '">×' + x + '</button>').join('') + '</div>';
     h += '<h3>Weather</h3><div class="seg">' + ['auto', 'harvest', 'rainy', 'spring', 'summer', 'autumn', 'winter'].map((x) => '<button type="button" data-act="season:' + x + '" aria-pressed="' + (S.seasonPick === x) + '">' + x + '</button>').join('') + '</div><p class="note">Harvest and rainy apply to the coffee farms; spring to winter apply to Osaka.</p>';
-    h += '<h3>Music volume</h3><div class="seg">' + [['0.25', 'Quiet'], ['0.45', 'Normal'], ['0.7', 'Loud']].map(([v, t]) => '<button type="button" data-act="mvol:' + v + '" aria-pressed="' + (S.musicVol === +v) + '">' + t + '</button>').join('') + '</div><p class="note">Each farm has its own theme. Night versions play from 7 pm to 6 am on the farm clock. Use the buttons at the bottom left of the farm to turn music or sounds off.</p>';
-    h += musicSettings();
-    h += nameField() + onlineCard() + '<h3>Online</h3><p class="note">' + (API ? (NET.status === 'online' ? 'Connected as ' + NET.acct.player + ' · cloud save v' + NET.ver + (NET.rank ? ' · rank #' + NET.rank : '') + (NET.scoreError ? ' · last score refused: ' + NET.scoreError : '') : 'Connecting to bejucoffee.com…') : 'Offline prototype. Accounts, cloud saves, the live leaderboard and order links switch on when the game runs on bejucoffee.com.') + '</p>';
-    h += '<h3>Save</h3><div class="seg"><button type="button" data-act="reset">Reset the game</button></div><p class="note">Progress saves in this browser every few seconds.</p>';
+    h += '<h3>Online (test)</h3><p class="note">' + (API ? (NET.status === 'online' ? 'Connected as ' + NET.acct.player + ' · cloud save v' + NET.ver + (NET.rank ? ' · rank #' + NET.rank : '') + (NET.scoreError ? ' · last score refused: ' + NET.scoreError : '') : 'Connecting to bejucoffee.com…') : 'Offline prototype. Accounts, cloud saves, the live leaderboard and order links switch on when the game runs on bejucoffee.com.') + '</p>';
   }
   const strips = [...P.querySelectorAll('.ccards')].map((x) => x.scrollLeft);
   if (!setHTML(P, h)) return;
@@ -7219,6 +7244,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'mv') S.millV = v;
   else if (a === 'lot') startLot(S.millV, v);
   else if (a === 'sell') sellLot(+v);
+  else if (a === 'haptics') { S.haptics = v === '1'; buzz('pop'); }
   else if (a === 'millview') S.millView = v;
   else if (a === 'cupall') cupAll();
   else if (a === 'reqfill') {
@@ -7421,6 +7447,8 @@ document.addEventListener('click', (e) => {
   else if (a === 'speed') S.speed = +v;
   else if (a === 'mvol') { S.musicVol = +v; syncMusic(); }
   else if (a === 'season') S.seasonPick = v;
+  else if (a === 'delacct') showModal('<h2>Delete your online farm?</h2><p class="note">This deletes your farm from bejucoffee.com: your account, cloud save, leaderboard row, name, farm visits and co-op place. This device then starts a new farm. Free samples already sent stay sent. <b>It can\'t be undone.</b></p><button class="btn" data-act="delacct2" style="background:#C8402C;color:#fff">Delete it</button><button class="btn green" data-act="close">Keep my farm</button>');
+  else if (a === 'delacct2') { closeModal(); deleteFarm(); }
   else if (a === 'reset') { if (b.dataset.sure) { try { localStorage.removeItem(SAVE_KEY); } catch (er) { /* nothing saved */ } const fs = S.firstSeason, nm = [S.name, S.nameOk]; S = fresh(); migrate(); S.firstSeason = fs; [S.name, S.nameOk] = nm; S.resetPending = !!NET.acct; NET.lastScore = ''; rateC = rateX = 0; golden = null; LOCS.forEach((l) => plant(S.farms[l])); addWorker(S.farms[START]); addWorker(S.farms[START]); newTasks(); toast('New game started'); } else { b.dataset.sure = '1'; b.textContent = 'Tap again to reset'; return; } }
   refreshAll();
 });
@@ -7624,7 +7652,13 @@ function onlineCard() {   /* Settings: your account, and moving the farm to or f
   if (NET.status === 'signedout') return '<h3>Your farm online</h3><p class="note"><b>This device was signed out of your online farm</b>, because five newer devices were added. Your progress here still saves in this browser. To sign in again, make a code on another device and enter it here.</p><div class="seg">' + use + '</div>';
   if (NET.status !== 'online') return '<h3>Your farm online</h3><p class="note">Connecting to bejucoffee.com… Your progress saves in this browser meanwhile.</p>';
   return '<h3>Your farm online</h3><p class="note">Saved online. To play this farm on another device, make a code here and enter it there within 15 minutes.</p>' + (NET.scoreError === 'bad_name' ? '<p class="rule">Your name can\'t be shown on the leaderboard. Change it in Ranks › Leaderboard.</p>' : '') +
-    '<div class="seg">' + btn('Play on another device', 'make a code', 'linkmake', true, 'green') + use + '</div><p class="note"><button type="button" class="linkbtn" data-act="recovery">Show my recovery code</button> for when this device is lost. Keep it private.</p>';
+    '<div class="seg">' + btn('Play on another device', 'make a code', 'linkmake', true, 'green') + use + '</div><p class="note"><button type="button" class="linkbtn" data-act="recovery">Show my recovery code</button> for when this device is lost. Keep it private.</p><p class="note"><button type="button" class="linkbtn" data-act="delacct">Delete my online farm</button></p>';
+}
+async function deleteFarm() {   /* the player's own delete: the server forgets the account, then this device starts afresh */
+  const r = await api('game-account', 'DELETE').catch(() => null);
+  if (!r || r.status !== 200) { SFX.play('nope'); toast('Could not reach bejucoffee.com: nothing was deleted. Try again later'); return; }
+  try { localStorage.removeItem('beju-farm-account'); localStorage.removeItem(SAVE_KEY); } catch (e) { /* storage blocked */ }
+  leaving = true; location.reload();   /* leaving: no save on the way out, so the deleted farm isn't written back */
 }
 async function linkMake() {
   const r = await api('game-link', 'POST', { act: 'make' }).catch(() => null);

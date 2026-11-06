@@ -55,3 +55,20 @@ test("every game function has a wrapper in the current format, and it passes req
   assert.strictEqual(got.status, 200); const g = await got.json();
   assert.strictEqual(g.players, 1); assert.strictEqual(g.top[0].name, "Mika");
 });
+
+test("the wrapper turns a thrown error into a logged 503, and GAME_READONLY refuses changes", async () => {
+  const { v2 } = require("../lib/v2");
+  const boom = v2({ handler: async () => { throw new Error("blobs down"); } });
+  const logged = []; const was = console.error; console.error = (x) => logged.push(x);
+  try {
+    const r = await boom(new Request("https://x.test/.netlify/functions/game-save", { method: "GET" }), {});
+    assert.equal(r.status, 503); assert.deepEqual(await r.json(), { error: "unavailable" });
+    const line = JSON.parse(logged[0]); assert.equal(line.fn, "game-save"); assert.equal(line.err, "blobs down");
+  } finally { console.error = was; }
+  const ok = v2({ handler: async () => ({ statusCode: 200, body: "{}" }) });
+  process.env.GAME_READONLY = "1";
+  try {
+    assert.equal((await ok(new Request("https://x.test/.netlify/functions/game-save", { method: "PUT", body: "{}" }), {})).status, 503, "a change is refused");
+    assert.equal((await ok(new Request("https://x.test/.netlify/functions/game-save", { method: "GET" }), {})).status, 200, "reads still work");
+  } finally { delete process.env.GAME_READONLY; }
+});

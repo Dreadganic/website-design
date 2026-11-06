@@ -32,6 +32,8 @@ function memoryStore() {   /* for tests and local runs */
 const hash = (t) => crypto.createHash("sha256").update(t).digest("hex");
 const newId = () => "p_" + crypto.randomBytes(9).toString("base64url");
 const newToken = () => crypto.randomBytes(24).toString("base64url");
+/* two secrets compared in constant time, whatever their lengths */
+const sameSecret = (a, b) => { const x = crypto.createHash("sha256").update(String(a)).digest(), y = crypto.createHash("sha256").update(String(b)).digest(); return !!a && crypto.timingSafeEqual(x, y); };
 async function authed(event, store) {
   const h = (event.headers && (event.headers.authorization || event.headers.Authorization)) || "";
   const m = /^Bearer (p_[A-Za-z0-9_-]{8,20})\.([A-Za-z0-9_-]{20,64})$/.exec(h);
@@ -250,4 +252,4 @@ const firstThisMonth = (me, now) => !(me.grants || []).some((g) => g.at && dayJS
 /* passport stamps the server has seen: each coffee stamps the first of its origins not stamped yet, as the game does */
 function addStamps(me, coffees) { me.stamps = me.stamps || []; (coffees || []).forEach((pid) => { const o = (STAMPS[pid] || []).find((x) => !me.stamps.includes(x)); if (o) me.stamps.push(o); }); }
 
-module.exports = { welcomeFor, useBlobs, MONTH_BONUS, SUB_BONUS, firstThisMonth, addStamps, SEASON_FIRST, isFounder, TROPHY_ID, trophyRank, trophyId, publicTrophies, addTrophy, cleanFarm, FARM_LOCS, SAMPLE_RULES, SAMPLE_LADDER, dayJST, newSamples, sampleView, savePlayer, json, parse, stores, memoryStore, authed, hash, newId, newToken, XP_AT, levelFor, prestigeNeed, seasonKey, prevSeason, SEASON_JOIN, SEASON_IDS, RULES, checkScore, COUNTER_RULES, cleanCounter, cleanName, nameKey, genericName, claimName, cleanLook, STAMPS };
+module.exports = { sameSecret, welcomeFor, useBlobs, MONTH_BONUS, SUB_BONUS, firstThisMonth, addStamps, SEASON_FIRST, isFounder, TROPHY_ID, trophyRank, trophyId, publicTrophies, addTrophy, cleanFarm, FARM_LOCS, SAMPLE_RULES, SAMPLE_LADDER, dayJST, newSamples, sampleView, savePlayer, json, parse, stores, memoryStore, authed, hash, newId, newToken, XP_AT, levelFor, prestigeNeed, seasonKey, prevSeason, SEASON_JOIN, SEASON_IDS, RULES, checkScore, COUNTER_RULES, cleanCounter, cleanName, nameKey, genericName, claimName, cleanLook, STAMPS };

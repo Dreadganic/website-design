@@ -124,6 +124,10 @@
     <xhtml:link rel="alternate" hreflang="ja" href="https://bejucoffee.com/ja/legal/"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://bejucoffee.com/legal/"/>
   </url>
+<url>
+    <loc>https://bejucoffee.com/privacy/</loc>
+    <lastmod>2026-11-06</lastmod>
+    </url>
   <url>
     <loc>https://bejucoffee.com/ja/</loc>
     <lastmod>2026-10-16</lastmod>

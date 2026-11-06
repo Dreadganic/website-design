@@ -85,8 +85,8 @@ node game-assets/sim/npc_e2e.js /tmp/test.html [shots]   # the cast: art, life o
 
 ## The audit's first round of fixes
 
-The design audit of 6 November 2026 ("Beju Farm: design audit and roadmap") ranked its fixes; `review_e2e.js` checks the first round in the game: a regular's request no longer raises the income rate it's priced from, a stopped event brings only the five event companions (the island ones come from their islands), long notices split into short pieces that fit the top bar, the top bar's pills show short numbers with the full one read out, the welcome-back card shows coins and know-how earned and a cleared fourth field picks while you're away, and the contract cards keep their height on a 320 x 568 phone. Réunion's seedling trays are in `reunion_e2e.js`; the server's save history, malformed-save check, co-op estimate cap and welcome window are in `npm test`.
+The design audit of 6 November 2026 ("Beju Farm: design audit and roadmap") ranked its fixes; `review_e2e.js` checks the first round in the game: a regular's request no longer raises the income rate it's priced from, a stopped event brings only the five event companions (the island ones come from their islands), long notices split into short pieces that fit the top bar, the top bar's pills show short numbers with the full one read out, the welcome-back card shows coins and know-how earned and a cleared fourth field picks while you're away, and the contract cards keep their height on a 320 x 568 phone. Round two adds: Settings lead with the player's own options and link the privacy page, an island's sheet is named for the place, affordability dots only before the first prestige, a new coffee planted from its unlock window, the night shift (12 hours away mills more than one) and a boat order that no longer holds every rack. Réunion's seedling trays are in `reunion_e2e.js`; the server's save history, malformed-save check, co-op estimate cap and welcome window are in `npm test`.
 
 ```
-node game-assets/sim/review_e2e.js /tmp/test.html   # 14 checks
+node game-assets/sim/review_e2e.js /tmp/test.html   # 21 checks
 ```

@@ -418,3 +418,55 @@ test("saves: malformed numbers are refused, and the copy replaced is kept hourly
   for (let i = 0; i < 6; i++) { clock += 3600e3; await call(save, "PUT", { base: 4 + i, data: { coins: 500 + i } }, a); }
   assert.ok((await store.list("savehist/" + id + "/")).filter((k) => /\/h\d$/.test(k)).length <= 3, "three hourly slots at most");
 });
+
+test("accounts: a player can delete their online farm, and every trace of it goes", async () => {
+  const a = await newPlayer("Leaving Soon"), id = a.split(".")[0];
+  await call(save, "PUT", { base: 0, data: { coins: 5 } }, a);
+  await call(score, "POST", { name: "Leaving Soon", prestige: 0, seasonP: 0, level: 1, points: 0 }, a);
+  const r = await account.handler({ httpMethod: "DELETE", headers: { authorization: "Bearer " + a } });
+  assert.equal(r.statusCode, 200);
+  for (const k of ["players/", "saves/", "scores/"]) assert.equal(await store.get(k + id), null, k + " is gone");
+  assert.equal(await store.get("names/leavingsoon"), null, "the name is free again");
+  assert.equal((await call(save, "GET", undefined, a)).status, 401, "the old token signs in to nothing");
+  assert.equal((await account.handler({ httpMethod: "DELETE", headers: {} })).statusCode, 401, "deleting needs a sign-in");
+});
+
+test("admin: off without its key; find, flag, clamp, restore and delete with it", async () => {
+  const admin = require("../lib/handlers/game-admin");
+  Object.defineProperty(admin, "__deps", { get: deps, configurable: true });
+  const ask = (body, key) => admin.handler({ httpMethod: "POST", headers: key ? { authorization: "Bearer " + key } : {}, body: JSON.stringify(body) }).then((r) => ({ status: r.statusCode, body: JSON.parse(r.body) }));
+  delete process.env.ADMIN_KEY;
+  assert.equal((await ask({ act: "flagged" }, "anything")).status, 403, "no ADMIN_KEY, no admin");
+  process.env.ADMIN_KEY = "a-long-admin-key-for-tests";
+  assert.equal((await ask({ act: "flagged" }, "wrong")).status, 403);
+  const K = process.env.ADMIN_KEY, a = await newPlayer("Runaway Farm"), id = a.split(".")[0];
+  assert.equal((await ask({ act: "find", name: "runaway farm" }, K)).body.id, id, "find by name");
+  await call(score, "POST", { name: "Runaway Farm", prestige: 0, seasonP: 0, level: 1, points: 0, seasonKh: 0 }, a);
+  const row = await store.get("scores/" + id); row.points = 9e9; row.seasonKh = 9e9; row.level = G.levelFor(9e9); await store.set("scores/" + id, row);
+  const fl = (await ask({ act: "flagged" }, K)).body.rows;
+  assert.ok(fl.some((x) => x.id === id), "a row that grew faster than play allows is flagged");
+  const cl = (await ask({ act: "clamp", id, points: 5000, seasonKh: 5000 }, K)).body.row;
+  assert.ok(cl.points === 5000 && cl.level === G.levelFor(5000), "clamping lowers the points and the level follows");
+  assert.equal((await ask({ act: "clamp", id, points: 9e12 }, K)).body.row.points, 5000, "clamp never raises");
+  await call(save, "PUT", { base: 0, data: { coins: 1 } }, a); clock += 3600e3 + 1;
+  await call(save, "PUT", { base: 1, data: { coins: 2 } }, a);
+  const got = (await ask({ act: "get", id }, K)).body;
+  assert.ok(got.player && !got.player.tokenHash && got.copies.length === 1, "get shows the account without secrets, and its saved copies");
+  const slot = got.copies[0].split("/").pop();
+  assert.equal((await ask({ act: "restore", id, slot }, K)).body.version, 3, "restore puts the copy back as a new version");
+  assert.equal((await call(save, "GET", undefined, a)).body.data.coins, 1);
+  assert.equal((await ask({ act: "delete", id }, K)).body.deleted, true);
+  assert.equal(await store.get("players/" + id), null);
+  delete process.env.ADMIN_KEY;
+});
+
+test("stats: the key works from an Authorization header", async () => {
+  const stats = require("../lib/handlers/game-stats");
+  Object.defineProperty(stats, "__deps", { get: deps, configurable: true });
+  process.env.STATS_KEY = "stats-key-for-tests";
+  const go = (headers, q) => stats.handler({ httpMethod: "GET", headers, queryStringParameters: q || {} });
+  assert.equal((await go({ authorization: "Bearer stats-key-for-tests" })).statusCode, 200);
+  assert.equal((await go({}, { key: "stats-key-for-tests" })).statusCode, 200, "the query string still works");
+  assert.equal((await go({ authorization: "Bearer nope" })).statusCode, 403);
+  delete process.env.STATS_KEY;
+});

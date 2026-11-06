@@ -69,6 +69,22 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
   const strip = await E(() => { const s = document.querySelector('#panel .ccards'); if (!s) return null; const c = s.firstElementChild; return { s: Math.round(s.getBoundingClientRect().height), c: c ? Math.round(c.getBoundingClientRect().height) : 0 }; });
   ok(strip && strip.s >= 80 && strip.c >= 80, 'the contract strip keeps its height at 320 x 568: ' + JSON.stringify(strip));
 
+  /* round two: settings first, sheets named for their place, dots, a new coffee planted from its window, the night shift, the boat */
+  await g.setViewportSize({ width: 390, height: 844 }); await clean();
+  await E(() => { const T = window.__T; T.setTab('settings'); T.renderPanel(); }); await g.waitForTimeout(200);
+  const order = await E(() => [...document.querySelectorAll('#panel h2, #panel h3')].map((x) => x.textContent));
+  ok(order.indexOf('Haptics') > -1 && (order.indexOf('Test tools') === -1 || order.indexOf('Haptics') < order.indexOf('Test tools')), 'Settings: the player\'s own settings, haptics among them, come before the test tools: ' + order.slice(0, 8).join(', '));
+  ok(await E(() => !!document.querySelector('#panel a[href="/privacy/"]')), 'Settings links the privacy page');
+  ok(await E(() => { const T = window.__T, S = T.S; S.prestige = 6; S.route = S.route || T.routeFresh(); S.route.seen = true; S.re = S.re || T.reFresh(); S.re.seen = true; S.route.bd.isle_re = 1; T.goIsle('re'); T.setTab('farm'); T.renderPanel(); return document.getElementById('sheetT').textContent; }) === 'Réunion', 'an island\'s sheet is named for the place');
+  await clean(); await E(() => { const T = window.__T, S = T.S; S.isle = false; S.loc = 'mogiana'; T.setTab('farm'); });
+  const dots = await E(() => { const T = window.__T, S = T.S; S.coins = 9e9; S.prestige = 3; T.renderPanel(); const late = document.querySelectorAll('#panel .subtabs .dot').length; S.prestige = 0; S.__x = 1; T.renderPanel(); const early = document.querySelectorAll('#panel .subtabs .dot').length; S.prestige = 3; return { late, early }; });
+  ok(dots.late === 0 && dots.early > 0, 'affordability dots only before the first prestige: ' + JSON.stringify(dots));
+  const vc = await E(() => { const T = window.__T, S = T.S, d = document.createElement('div'); d.innerHTML = T.varCard('mundonovo'); return [...d.querySelectorAll('[data-act^="plantnow:"]')].map((x) => x.dataset.act); });
+  ok(vc.length >= 3 && vc.every((x) => /^plantnow:mogiana\.\d\.mundonovo$/.test(x)), 'a new coffee\'s window plants it straight into a field of its home farm: ' + vc.join(', '));
+  const night = await E(() => { const T = window.__T, S = T.S, run = (h) => { S.staff.foreman = true; S.lv.racks = 3; S.lots = []; S.cherries = {}; S.contracts = S.contracts.filter((c) => !c.boat); const l0 = S.stats.lotsSold; T.away(h); for (let i = 0; i < 8; i++) T.closeModal(); return S.stats.lotsSold - l0; }; return [run(1), run(12)]; });
+  ok(night[1] > night[0], 'with a foreman, twelve hours away mills more than one (the night shift): ' + night.join(' then '));
+  const boat = await E(() => { const T = window.__T, S = T.S; S.staff.foreman = true; S.request = null; S.lots = Array.from({ length: 6 }, () => ({ v: 'caturra', method: 'natural', kg: 200, left: 0, cupped: true, cup: 84 })); S.contracts = [{ id: 'b1', boat: true, kg: 99999, have: 0, v: null, m: null, cup: 0, pay: 1, at: Date.now(), ends: Date.now() + 864e5 }]; const n0 = S.lots.length; T.staffTick(); return { before: n0, after: S.lots.length, racks: T.racks() }; });
+  ok(boat.after < boat.before, 'a big boat order no longer holds every lot: the foreman still sells (' + boat.before + ' lots, ' + boat.after + ' left)');
   ok(!errs.length, 'no page errors: ' + errs.join(' | '));
   console.log(pass + ' passed, ' + fail + ' failed'); await b.close(); process.exit(fail ? 1 : 0);
 })();

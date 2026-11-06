@@ -134,3 +134,11 @@ Until the end of 30 November 2026 (Japan time) a farm's first leaderboard score 
 - `create-checkout` adds an earned sample to orders of ¥3,000 or more **only when the environment variable `GAME_SAMPLES` is `on`**. Leave it unset until launch.
 - `stripe-webhook` now also handles `checkout.session.expired`, `checkout.session.async_payment_failed` and `invoice.paid`. In Stripe (Developers > Webhooks), add those three events to the existing endpoint so samples are released and renewals earn cranes.
 - Launch steps: `launch/README.md`.
+
+## Running the game day to day
+
+- **Logs.** Every game function that fails writes one JSON line to the function log (Netlify › Logs › Functions): the function, the method, the status, how long it took and the error. Slow calls (over 3 seconds) are logged too.
+- **Read-only switch.** Set `GAME_READONLY=1` in Netlify's environment variables to refuse every change (saves, scores, co-ops) while reads keep working; the game keeps playing and tries again later. Remove it to switch back.
+- **Admin.** Set `ADMIN_KEY` (a long random string) to turn on `/.netlify/functions/game-admin`. Call it with `Authorization: Bearer <ADMIN_KEY>` and a JSON body: `{"act":"flagged"}` lists leaderboard rows whose know-how grew faster than play allows, `{"act":"clamp","id":"p_…","points":…,"seasonKh":…}` lowers a row, `{"act":"get","id":"p_…"}` shows an account, `{"act":"restore","id":"p_…","slot":"h0"}` puts back an hourly (h0–h2) or daily (d0–d2) copy of a save, `{"act":"find","name":"…"}` finds a player by farm name, and `{"act":"delete","id":"p_…"}` deletes a farm. Without the variable the function answers 403.
+- **Stats.** `game-stats` now takes `STATS_KEY` in an `Authorization: Bearer` header (the old `?key=` still works).
+- **Deleting a farm.** Players delete their own online farm from Settings; the privacy page (`/privacy/`) says what is kept and for how long.

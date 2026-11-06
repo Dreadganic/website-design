@@ -12,8 +12,9 @@ exports.handler = async (event) => {
   const deps = exports.__deps;
   if (event.httpMethod !== "GET") return G.json(405, { error: "method_not_allowed" });
   const q = event.queryStringParameters || {};
-  const want = process.env.STATS_KEY, got = q.key || "";
-  if (!want || got !== want) return G.json(403, { error: "forbidden" });
+  const h = event.headers || {}, bearer = /^Bearer (.+)$/.exec(h.authorization || h.Authorization || "");
+  const want = process.env.STATS_KEY, got = (bearer && bearer[1]) || q.key || "";   /* the key in an Authorization header (kept out of logs and history); ?key= still works */
+  if (!want || !G.sameSecret(got, want)) return G.json(403, { error: "forbidden" });
   const days = Math.max(1, Math.min(90, Math.round(+q.days) || 7));
   const store = G.stores(event, deps), now = (deps && deps.now) || Date.now(), from = now - days * DAY;
   const events = [];
