@@ -283,6 +283,9 @@ a.btn { text-decoration: none; }   /* link buttons (the shop, real bags) read li
 .sheet .guide { position: static; flex: none; margin: 6px 8px 0; }   /* with a sheet open the guide rides in it, keeping the map clear */
 .gstep { font: 700 12px 'Pixelify Sans', monospace; background: #F2C04A; color: #3E2A1C; border-radius: 6px; padding: 1px 6px; flex: none; }
 .gtext { flex: 1; min-width: 0; }
+.guide { flex-wrap: wrap; }
+.gsay { flex: 1 0 100%; display: flex; align-items: center; gap: 8px; font-weight: 400; font-size: 12.5px; line-height: 1.3; color: #E8F4EC; }   /* Rosa's line inside the lesson bar, instead of a window for every lesson */
+.gsay img { width: 32px; height: 32px; flex: none; image-rendering: pixelated; border-radius: 6px; background: #3E7A56; }
 .gskip { border: 0; background: transparent; color: #CDE8D6; font: inherit; font-size: 12px; text-decoration: underline; cursor: pointer; flex: none; }
 [hidden] { display: none !important; }   /* a hidden element must never cover the game, whatever its own display rule */
 /* the prestige ceremony: a full-screen moment, timed to the anthem */
@@ -3083,6 +3086,7 @@ const GUIDE = [
   { ch: 'A new coffee', text: 'Plant ' + ART.varieties.catuai + ' in a field', ev: 'plant', target: '[data-act^="bed:"], [data-act="uptab:fields"], .tab[data-tab="farm"]', reward: { points: 150 }, react: 'Planted. It grows best at home.', done: () => !!(S.planted || {}).catuai,
     say: 'Replant a field with it. Coffee grows best on its home farm.' }
 ];
+const guideOpens = (i) => i === 0 || GUIDE[i - 1].ch !== GUIDE[i].ch;   /* the first lesson of a chapter */
 const guideWaiting = () => S.guide < GUIDE.length && GUIDE[S.guide].when && !GUIDE[S.guide].when();   /* between chapters: nothing to do yet */
 const GUIDE_V = 3;
 const GUIDE_BYE = 'That\'s the basics! Daily tasks are open now. I\'ll pop back whenever something new turns up.';
@@ -7411,6 +7415,11 @@ function unlockFarm(loc) {
   addWorker(f); toast(ART.locations[loc].name + ' is open');
   bagCard(FARM_BAG[loc], ART.locations[loc].name.split(',')[0] + ' is open', img('stamp_' + loc, 54));
 }
+function varCard(v) {   /* a new coffee: plant it from this one window, in a field of its home farm, without the farm and replant windows in between */
+  const home = (VAR_HOME[v] || []).find((l) => S.farms[l].unlocked && !S.dormant[l]) || S.loc, f = S.farms[home] || S.farms[S.loc], n = f.field ? 4 : 3;
+  const fields = f.beds.slice(0, n).map((x, b) => x === v ? '' : '<button class="btn green" data-act="plantnow:' + f.loc + '.' + b + '.' + v + '">Field ' + (b + 1) + '<small>' + ART.varieties[x] + ' now</small></button>').join('');
+  return '<h2>' + ART.varieties[v] + ' unlocked</h2>' + img('bush_' + v + '_ripe', 54) + '<p class="note">' + VAR[v].perk + ' Plant it ' + (isNative(f.loc, v) ? 'here on its home farm, ' + ART.locations[f.loc].name.split(',')[0] + ', for the terroir bonus' : 'in a field on ' + ART.locations[f.loc].name.split(',')[0]) + ': the field starts again from sprouts.</p><div class="seg">' + fields + '</div><button class="btn" data-act="close">Later</button>';
+}
 function bagCard(k, title, art) {   /* an unlock that exists for real links its bag, once a save: the unlock is the ad, earned not pushed. Off until orders count (ORDERS_LIVE) */
   if (!k || !ordersLive() || (S.bagSeen || {})[k]) return false;
   (S.bagSeen = S.bagSeen || {})[k] = true; BEACON.ev('bag_card', { key: k, p: S.prestige, lvl: level() });
@@ -7616,6 +7625,7 @@ function checkIn() {   /* once per real day: the calendar moves on a day. It nev
   setTimeout(() => checkSamples(), 600);
   const idx = (c.n - 1) % 7, r = ciReward(CHECKIN[idx]); earn(r); unRate(r); star('checkin');
   const rl = (x) => { x = ciReward(x); return x.coins ? fmt(x.coins) + ' coins' : x.points ? fmt(x.points) + ' know-how' : x.cranes + ' cranes'; };
+  if (c.n === 1) { toast('Day 1 of your daily calendar: ' + rl(r) + '. It moves on a day each day you play, in Daily'); SFX.play('coins'); return; }   /* the first day comes straight after the lessons: a notice, not another window */
   showModal('<h2>Daily brew calendar</h2><p class="note">Day ' + c.n + ' on the farm. Today: <b>' + rl(r) + '</b>.</p><div class="streak">' + CHECKIN.map((x, i) => '<span class="' + (i < idx ? 'done' : i === idx ? 'now' : '') + '"><b>' + (i + 1) + '</b>' + rl(x) + '</span>').join('') + '</div><p class="note">The calendar never resets. Miss a day and it simply waits for you.</p><button class="btn green" data-act="close">Collect</button>');
   SFX.play('coins');
 }
@@ -7755,12 +7765,13 @@ function renderGuide() {   /* the guide bar floats over the map; the sound butto
   guideBar(); const g = $('guide'), gh = g.hidden || sheetOpen ? '0px' : g.offsetHeight + 6 + 'px';
   if ($('app').style.getPropertyValue('--gh') !== gh) $('app').style.setProperty('--gh', gh);
 }
-let showUntil = 0;
+let showUntil = 0, guideTouch = 0;   /* guideTouch: the player's last tap or scroll, so the arrow's scrolling never fights them */
+['pointerdown', 'wheel', 'touchmove', 'keydown'].forEach((t) => addEventListener(t, () => { guideTouch = Date.now(); }, { capture: true, passive: true }));
 function showTarget(el, key) {   /* bring what the arrow points at on screen: for a few seconds after each step starts, scroll the sheet (or the page) to it
                                     whenever it's out of view (a refresh of the page can cut a scroll short), then leave the player to scroll freely */
   if (!el || el === cv || !$('modal').hidden) return;
   if (navSeenAt !== key) { navSeenAt = key; showUntil = Date.now() + 4000; }
-  if (Date.now() > showUntil) return;
+  if (Date.now() > showUntil && Date.now() - guideTouch < 6000) return;   /* after the first seconds, only while the player isn't scrolling or tapping: a target reached later is still brought into view */
   const r = el.getBoundingClientRect();
   if ($('panel').contains(el) ? !inSheetView(el) : r.top < 60 || r.bottom > innerHeight - 20) el.scrollIntoView({ block: 'center' });
 }
@@ -7786,8 +7797,8 @@ function guideBar() {
   let n = 0; while (S.guide < GUIDE.length && !guideWaiting() && GUIDE[S.guide].done && GUIDE[S.guide].done() && n++ < 3) guideDone();   /* steps already done move on */
   if (S.guide >= GUIDE.length || guideWaiting()) { el.hidden = true; arrow.hidden = true; return; }
   const g = GUIDE[S.guide]; el.hidden = false;
-  setHTML(el, '<span class="gstep">' + g.ch + ' · ' + (S.guide + 1) + '/' + GUIDE.length + '</span><span class="gtext">' + g.text + (g.goal > 1 ? ' (' + (S.guideN || 0) + '/' + g.goal + ')' : '') + '</span><button type="button" class="gskip" data-act="guideNext" aria-label="Skip this step">›</button><button type="button" class="gskip" data-act="guideSkip">Skip all</button>');
-  if (g.say && S.guideSaid !== S.guide && $('modal').hidden && !needsName()) { S.guideSaid = S.guide; showModal(coachCard(g.ch, g.say)); }
+  setHTML(el, '<span class="gstep">' + g.ch + ' · ' + (S.guide + 1) + '/' + GUIDE.length + '</span><span class="gtext">' + g.text + (g.goal > 1 ? ' (' + (S.guideN || 0) + '/' + g.goal + ')' : '') + '</span><button type="button" class="gskip" data-act="guideNext" aria-label="Skip this step">›</button><button type="button" class="gskip" data-act="guideSkip">Skip all</button>' + (g.say && !guideOpens(S.guide) ? '<span class="gsay"><img src="' + url(ART.sprites.npc_pt_rosa_idle ? 'npc_pt_rosa_' + sayMood(g.say) : 'worker_down_0', ART.sprites.npc_pt_rosa_idle ? undefined : COACH.look) + '" alt="Rosa">' + g.say + '</span>' : ''));
+  if (g.say && guideOpens(S.guide) && S.guideSaid !== S.guide && $('modal').hidden && !needsName()) { S.guideSaid = S.guide; showModal(coachCard(g.ch, g.say)); }   /* a card only as a chapter starts; the rest of her lines ride in the bar */
   const tt = navTarget(g.target), t = tt && tt.el;
   if (t && t !== cv) { t.classList.add('hint'); showTarget(t, 'guide' + S.guide + '.' + tt.i); }
   if (t === cv && S.guideSeenAt !== S.guide && $('modal').hidden) { S.guideSeenAt = S.guide; const r = $('stage').getBoundingClientRect(); if (r.top < 0 || r.bottom > innerHeight) $('stage').scrollIntoView({ block: 'start', behavior: calm ? 'auto' : 'smooth' }); }   /* lessons on the map bring the map back on screen */
@@ -7957,7 +7968,7 @@ const unlockDone = () => VAR_ORDER.filter((v) => S.vars[v]).length + Object.keys
 const allOpen = () => unlockDone() >= unlockGoal();
 const researchOpen = () => S.prestige >= 1 || allOpen();   /* from the first prestige, so spare know-how always has a home */
 function practiceCard() {   /* shown on the Farm and Mill while the lessons run */
-  if (S.guide >= GUIDE.length || !(S.tasks || []).some((x) => x.practice)) return '';
+  if (S.guide >= GUIDE.length || S.guide < 5 || !(S.tasks || []).some((x) => x.practice)) return '';   /* not in the first chapter: one thing at a time */
   return '<div class="practice"><b>Rosa\'s practice list</b>' + S.tasks.map((x, i) => '<div class="pr-row"><span>' + (x.done ? '✓ ' : '') + x.text + ' <small>' + fmt(x.have) + '/' + x.goal + '</small></span>' + (x.done ? '' : x.have >= x.goal ? btn('Claim', x.reward.coins ? x.reward.coins + ' coins' : x.reward.points + ' know-how', 'task:' + i, true, 'green') : '') + '</div>').join('') + '</div>';
 }
 function farmSubtabs(cur, f) {   /* the Farm tab: your fields, plus the pages where coins go once you've sold a lot */
@@ -7997,7 +8008,7 @@ function renderPanel() {
         const waiting = (id) => { const sm = sampleOf(id); return !sm || ['earned', 'pending', 'reserved'].includes(sampleState(sm)); };   /* a sample earned but not yet sent */
         if (S.loc === 'mogiana' && f.rewarded) { if (waiting('welcome')) h += '<p class="note">✓ Welcome harvest done. Your free 100 g ' + L.reward + ' sample is waiting in Shop › Real coffee.</p>'; }
         else if (lad && got && S.loc !== 'mogiana') { if (waiting(lad.id)) h += '<p class="note">✓ ' + L.name.split(',')[0] + ' sample earned. It\'s waiting in Shop › Real coffee.</p>'; }
-        else if (S.loc === 'mogiana') h += '<div><div style="display:flex;justify-content:space-between;align-items:baseline"><h3>Welcome harvest ' + fmt(f.harvested) + ' / 1,000 kg</h3><span class="note">' + (f.rewarded ? 'Sample earned' : 'Free 100 g') + '</span></div><div class="bar"><i style="width:' + Math.round(f.harvested / f.goal * 100) + '%"></i></div><p class="note">' + (f.rewarded ? 'Your free 100 g ' + L.reward + ' sample is in Shop › Real coffee.' : 'Bring in 1,000 kg for a free 100 g ' + L.reward + ' sample from Beju.') + '</p></div>';
+        else if (S.loc === 'mogiana' && S.stats.lotsSold > 0) h += '<div><div style="display:flex;justify-content:space-between;align-items:baseline"><h3>Welcome harvest ' + fmt(f.harvested) + ' / 1,000 kg</h3><span class="note">' + (f.rewarded ? 'Sample earned' : 'Free 100 g') + '</span></div><div class="bar"><i style="width:' + Math.round(f.harvested / f.goal * 100) + '%"></i></div><p class="note">' + (f.rewarded ? 'Your free 100 g ' + L.reward + ' sample is in Shop › Real coffee.' : 'Bring in 1,000 kg for a free 100 g ' + L.reward + ' sample from Beju.') + '</p></div>';
         else if (lad) h += '<div><div style="display:flex;justify-content:space-between;align-items:baseline"><h3>' + L.name.split(',')[0] + ' sample</h3><span class="note">' + (got ? 'Earned' : 'Prestige ' + S.prestige + ' / ' + lad.prestige) + '</span></div><div class="bar"><i style="width:' + Math.min(100, Math.round(S.prestige / lad.prestige * 100)) + '%"></i></div><p class="note">' + (got ? 'Your free 100 g ' + L.reward + ' sample is in Shop › Real coffee.' : 'Reach prestige ' + lad.prestige + ' for a free 100 g ' + L.reward + ' sample from this origin.') + '</p></div>';
       } else h += '<p class="note">The Osaka roastery garden: rare varieties all year round, through four Japanese seasons.</p>';
       const pFull = f.workers.length >= maxPickers(f), roomy = (f.build.housing || 0) < buildMax() && S.tabs.upgrades;   /* full: housing makes room */
@@ -8596,6 +8607,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'ageask') estateAgeModal();
   else if (a === 'age') { ageLot(+v); closeModal(); }
   else if (a === 'unage') { unageLot(+v); estRefresh('turrialba'); }
+  else if (a === 'plantnow') { const [l, b, x] = v.split('.'), F = S.farms[l]; if (F && F.unlocked && S.vars[x]) { closeModal(); S.loc = l; S.isle = false; S.farmSub = 'fields'; replantBed(F, +b, x); guideStep('plant'); setTab('farm', true); SFX.play('dig'); toast('Field ' + (+b + 1) + ' planted with ' + ART.varieties[x]); } }
   else if (a === 'plantgo') { closeModal(); const home = (VAR_HOME[v] || []).find((l) => S.farms[l].unlocked && !S.dormant[l]); if (home) S.loc = home; S.isle = false; S.farmSub = 'fields'; setTab('farm'); toast('Tap a field to plant ' + ART.varieties[v]); }
   else if (a === 'crackgo') { const i = S.roastery.roasters.findIndex((r) => inCrack(r) && !r.crack); if (i > -1) crackRoast(i); }
   else if (a === 'taskgo') { S.farmSub = 'fields'; if (v === 'kona') { goKona(); return; } if (ISLE_IDS.includes(v)) { goIsle(v); return; } if (v === 'counter') { S.roastSub = 'counter'; v = 'roast'; } setTab(v); }
@@ -8608,7 +8620,7 @@ document.addEventListener('click', (e) => {
     return;
   }
   else if (a === 'plant') { const [b, x] = v.split('.'); if (S.vars[x] || (eventDrop() && eventDrop().variety === x)) { replantBed(f, +b, x); closeModal(); guideStep('plant'); toast('Field ' + (+b + 1) + ' planted with ' + ART.varieties[x]); } }
-  else if (a === 'var') { if (VAR[v] && !S.vars[v] && gateOK('var:' + v) && spend('points', VAR[v].cost)) { S.vars[v] = true; S.lastVar = v; guideStep('var'); showModal('<h2>' + ART.varieties[v] + ' unlocked</h2>' + img('bush_' + v + '_ripe', 54) + '<p class="note">' + VAR[v].perk + ' Plant it in a field, on its native farm for the terroir bonus.</p><button class="btn green" data-act="plantgo:' + v + '">Plant it</button><button class="btn" data-act="close">Later</button>'); } }
+  else if (a === 'var') { if (VAR[v] && !S.vars[v] && gateOK('var:' + v) && spend('points', VAR[v].cost)) { S.vars[v] = true; S.lastVar = v; guideStep('var'); showModal(varCard(v)); } }
   else if (a === 'wtask') { const tk = (S.wtasks || {}).list[+v]; if (tk && tk.have >= tk.goal && !tk.done) { tk.done = true; const r = taskReward(tk.reward); if (r.grow) S.boosts.grow = Math.max(S.boosts.grow || 0, S.minutesTotal) + r.grow * REAL_MIN; else { earn(r); unRate(r); } SFX.play(r.cranes ? 'crane' : 'coins'); toast('Weekly task complete: +' + rewardText(tk.reward)); } }
   else if (a === 'estgo') { closeModal(); S.loc = v; S.isle = false; S.farmSub = 'fields'; setTab('farm'); }
   else if (a === 'task') { const tk = S.tasks[+v]; if (tk.have >= tk.goal && !tk.done) { tk.done = true; const rr = tk.practice ? tk.reward : taskReward(tk.reward); const got = rule('shogatsu') && rr.coins ? { coins: rr.coins * 2 } : rr; earn(got); unRate(got); if (!tk.practice) star('task'); guideStep('task'); toast('Task complete!'); } }
