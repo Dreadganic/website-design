@@ -6172,7 +6172,7 @@ function reEnd(early) {   /* the shift's score: cherries, the 50/75/100 bonuses,
   const bonus = reBonus(c), score = Math.round((c + bonus) * (1 + 0.025 * reOutfit()));
   R.shifts += 1; R.best = Math.max(R.best, c);
   const coins = Math.max(200, Math.round(rateC * score / 10)), pts = Math.max(60, Math.round(rateX * score / 10));
-  earn({ coins, points: pts });
+  earn({ coins, points: pts }); unRate({ coins, points: pts });   /* paid from your income rate, so it mustn't raise it */
   const lot = { key: 'yellowbourbon.isl_reunion', kg: Math.max(1, Math.round(c * 0.5)), raked: Math.min(2, bonus / 40) };
   let where; if (isleBin(lot)) where = 'went into the roastery bins in Osaka'; else if (S.route && S.route.shed.length < 3) { S.route.shed.push(lot); where = 'waits in the harbour shed until a bin is free'; } else where = 'sold green: +' + fmt(isleSell(lot).coins) + ' coins';
   const got = [];
@@ -6474,7 +6474,7 @@ function baEnd(rained) {   /* the storm is over: weathered (the barn filled firs
     else sum.coins += Math.max(150, Math.round(rateC * 6));
   }
   const lines = [];
-  if (sum.coins || sum.points) { earn({ coins: sum.coins, points: sum.points }); if (sum.coins) lines.push('+' + fmt(sum.coins) + ' coins'); if (sum.points) lines.push('+' + fmt(sum.points) + ' know-how'); }
+  if (sum.coins || sum.points) { earn({ coins: sum.coins, points: sum.points }); unRate(sum); if (sum.coins) lines.push('+' + fmt(sum.coins) + ' coins'); if (sum.points) lines.push('+' + fmt(sum.points) + ' know-how'); }
   if (kg) { const lot = { key: 'catimor.isl_bali', kg, raked: 1 }; lines.push(kg + ' kg of Kintamani coffee, which ' + (isleBin(lot) ? 'went into the roastery bins in Osaka' : S.route && S.route.shed.length < 3 ? (S.route.shed.push(lot), 'waits in the harbour shed until a bin is free') : 'sold green for ' + fmt(isleSell(lot).coins) + ' coins')); }
   if (sup.ash || sup.compost || sup.bags) { const K = S.kona; K.ash += sup.ash; K.compost += sup.compost; K.bags += sup.bags; lines.push([sup.ash && sup.ash + ' ash', sup.compost && sup.compost + ' compost', sup.bags && sup.bags + ' fertiliser'].filter(Boolean).join(', ') + ' for Kona'); }
   if (!rained) {
@@ -6760,7 +6760,7 @@ function gaRoll(src) {   /* what a photo shows or a tortoise digs up: a rarity, 
 }
 function gaLog(e) {   /* into the field guide: a field note for a new entry (5, 15, 30 or 60 minutes of your farm's know-how by rarity; a minute for a repeat) */
   const G = S.ga, isNew = !G.got[e[0]], mins = isNew ? [5, 15, 30, 60][e[2]] : 1, pts = Math.max(mins * 20, Math.round(rateX * mins));
-  G.got[e[0]] = (G.got[e[0]] || 0) + 1; earn({ points: pts });
+  G.got[e[0]] = (G.got[e[0]] || 0) + 1; earn({ points: pts }); unRate({ points: pts });
   const got = [];
   if (isNew && e[2] === 3 && routeFind('ga_rare', true)) got.push('a cowrie for a very rare sighting');
   if (isNew && gaPageDone(e[1])) {
@@ -7135,6 +7135,7 @@ const hudGoMark = () => Object.keys(HUD_GO).forEach((id) => { const on = id === 
 $('nextLoc').addEventListener('click', () => travel(1));
 
 function spend(cur, n) { if (S[cur] < n) return false; S[cur] -= n; return true; }
+if (!S.rateFix) { S.rateFix = 1; S.rateC = 0; S.rateX = 0; }   /* island rewards fed the income rate they're paid from (fixed): start the rate afresh, it relearns in a few minutes */
 let earnedC = 0, earnedX = 0, earnedG = 0, rateC = S.rateC || 0, rateX = S.rateX || 0, rateG = S.rateG || 0, golden = null, goldenT = 150 + Math.random() * 120;   /* rate*: what you earn per real minute, smoothed */
 function earn(r) {
   earnedC += r.coins || 0; earnedX += r.points || 0;

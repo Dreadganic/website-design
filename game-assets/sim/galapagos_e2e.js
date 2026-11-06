@@ -12,7 +12,7 @@ const file = path.resolve(process.argv[2]), shots = process.argv[3] || ''; if (s
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log('FAIL', m); } };
 (async () => {
   const b = await chromium.launch({ executablePath: process.env.PW_CHROMIUM || '/opt/pw-browsers/chromium' });
-  const g = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, hasTouch: true }); const errs = []; g.on('pageerror', (e) => errs.push(e.message));
+  const g = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, hasTouch: true }); const errs = []; g.on('pageerror', (e) => errs.push(e.message + ' @ ' + (e.stack || '').split('\n').slice(1, 3).join(' | ')));
   g.on('console', (m) => { if (m.type() === 'error' && !/favicon/.test(m.text())) errs.push(m.text()); });
   await g.goto('file://' + file); await g.waitForTimeout(800);
   const E = (f, a) => g.evaluate(f, a);
@@ -167,6 +167,9 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
   await g.reload(); await g.waitForTimeout(1200);
   ok(await E(() => { const G = window.__T.S.ga; return G && G.lv === 30 && G.traps[0].at === 12345 && window.__T.gaFound() === 46; }), 'a reload keeps the camp, its traps and the guide');
 
+  /* a field note pays minutes of your income, and must not raise that income in turn (a runaway once) */
+  const rate = await E(async () => { const T = window.__T, e = T.GA_GUIDE.find((x) => x[2] === 3), r0 = T.rateX; for (let i = 0; i < 40; i++) T.gaLog(e); await new Promise((r) => setTimeout(r, 1500)); return [r0, T.rateX]; });
+  ok(rate[1] <= rate[0] * 1.5 + 50, 'forty field notes in a row leave the know-how rate alone (' + Math.round(rate[0]) + ' → ' + Math.round(rate[1]) + ' a minute)');
   /* how long the guide takes: about 15 photos and 4 trails a day, as the drop-rate plan assumes */
   const sim = await E(() => {
     const T = window.__T, S = T.S, keep = S.ga, days = [];
