@@ -51,7 +51,7 @@ const ok = (c, msg) => { console.log((c ? 'PASS ' : 'FAIL ') + msg); if (!c) pro
   ok(await p.evaluate(() => !window.__T.revIsHere()), 'it isn\'t "here" from the mill (its sound muffles)');
   await p.click('#guide [data-act="revgo"]'); await p.waitForTimeout(700);
   ok(await p.evaluate(() => window.__T.scene === 'farm' && window.__T.revIsHere()), 'Go takes you to the field');
-  ok(await p.evaluate(() => !document.getElementById('garrow').hidden), 'the guide arrow points at it');
+  ok(await p.waitForFunction(() => !document.getElementById('garrow').hidden, null, { timeout: 3000 }).then(() => true, () => false), 'the guide arrow points at it');   /* once the map has scrolled the event into view */
   await shot('pigs');
   const bed = await p.evaluate(() => { const T = window.__T, b = [[10, 110, 80, 42], [104, 110, 80, 42], [10, 158, 80, 42], [104, 158, 80, 42]][T.S.rev.cur.bed], E = T.S.rev.cur, free = [[2, 2], [70, 2], [2, 36], [70, 36], [40, 20]].map(([dx, dy]) => [b[0] + dx, b[1] + dy]).find(([x, y]) => E.pigs.every((q) => { const px = T.REVS.pigs.pos(E, q).x; return x < px - 6 || x > px + 22 || y < q.y - 6 || y > q.y + 18; })); return free; });
   const kg0 = await p.evaluate(() => window.__T.stored());
