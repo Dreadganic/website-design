@@ -441,6 +441,34 @@ canvas.hint { transform: none !important; }
 .seg button { min-height: 36px; padding: 0 10px; border: 2px solid var(--edge); border-radius: 6px; background: var(--paper-2); font-size: 13px; font-weight: 700; cursor: pointer; color: var(--ink); }
 .seg button[aria-pressed="true"] { background: var(--gold); }
 @media (prefers-reduced-motion: reduce) { .btn:active:not(:disabled) { transform: none; } }
+/* the new HUD (Settings › Screen): only what you'd play worse without stays on the farm; the rest shows when it matters (design doc: "Beju Farm: HUD design") */
+:root { --ts: 1; }
+.gear2 { display: none; }
+.h2 .gear2 { display: grid; place-items: center; padding: 0; }
+.h2 .top { padding: 4px 6px; }
+.h2 .top .arrow { width: 44px; height: 44px; flex: none; }
+.h2 .top .name b { font-size: calc(17px * var(--ts)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.h2:not(.sub2) .top .name > span, .h2 #locLvBar, .h2 #seasonChip, .h2 .hud-r .clock, .h2 #hudCranes, .h2 #sfxBtn, .h2 #musicBtn, .h2 #gearBtn { display: none !important; }
+.h2:not(.sh-hearts) #hearts, .h2:not(.sh-lv) #hudLevel, .h2:not(.sh-store) #hudStore { display: none !important; }
+.h2 .pill { background: rgba(46,30,18,0.94); font-size: calc(14px * var(--ts)); }
+.h2 .hearts { align-self: flex-start; align-items: center; max-width: none; flex-wrap: nowrap; padding: 3px 6px; border-radius: 10px; background: rgba(46,30,18,0.94); } .h2 .hearts .hn { color: #FFF4DE; font-size: calc(12px * var(--ts)); margin-left: 3px; }
+.h2 .hud-l, .h2 .hud-r { top: 10px; }   /* room for a pill's 44 px tap area inside the map */
+.h2 .pill.go { position: relative; } .h2 .pill.go::after { content: ''; position: absolute; left: -2px; right: -2px; top: 50%; height: 44px; transform: translateY(-50%); }   /* a pill you can tap is 44 px to tap, though drawn thinner */
+.h2 .pill img, .h2 .pill .ic { width: calc(16px * var(--ts)); height: calc(16px * var(--ts)); }
+.h2 #hudStore.full { background: #6A3A0C; box-shadow: 0 0 0 2px #F2C04A; }
+.h2 #hudStore .sfull { padding: 0 4px; margin-left: 2px; border-radius: 4px; background: #F2C04A; color: #3E2A1C; font-size: calc(11px * var(--ts)); font-weight: 800; letter-spacing: 0.04em; }
+.h2 .toast { left: 54px; right: 104px; font-size: calc(13px * var(--ts)); } .h2 .toast.long { font-size: calc(11.5px * var(--ts)); }
+.h2 .guide { font-size: calc(13px * var(--ts)); }
+.tapfloat { font-size: calc(13px * var(--ts)); }
+.h2.big #panel, .h2.big #modalCard { zoom: var(--ts); }
+.h2 .tab.locked { color: #4E3E26; }
+@media (max-width: 400px) { .h2 .tab { font-size: 10px; letter-spacing: -0.05em; } }
+@media (max-width: 370px) { .h2 .tab { font-size: 10px; letter-spacing: -0.07em; padding: 0; } .h2 .tab .lock { font-size: 8px; } }
+.turn { display: none; }
+@media (orientation: landscape) and (max-height: 500px) and (hover: none) and (pointer: coarse) {   /* portrait only on phones: a phone held sideways gets this card, not a squashed farm */
+  .turn { display: grid; position: fixed; inset: 0; z-index: 100; place-items: center; padding: 24px; background: #1E140A; color: #FFF4DE; text-align: center; }
+  .turn b { display: block; margin-top: 10px; font-size: 18px; } .turn p { margin: 6px 0 0; font-size: 14px; color: #E8D8B8; }
+}
 </style>
 
 <div class="app" id="app">
@@ -451,6 +479,7 @@ canvas.hint { transform: none !important; }
     <div class="flvbar" id="locLvBar" hidden><i></i></div>
     <span class="chip" id="seasonChip" aria-label="Weather">Harvest</span>
     <button class="arrow" id="nextLoc" type="button" aria-label="Next farm">▶</button>
+    <button class="arrow gear2" id="gearTop" type="button" data-tab="test" aria-label="Settings"><svg width="18" height="18" viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><path fill="currentColor" d="M3 0h2v1h1v1h1v1h1v2H7v1H6v1H5v1H3V7H2V6H1V5H0V3h1V2h1V1h1zM3 3v2h2V3z"/></svg></button>
   </div>
 
   <div class="mapwrap">
@@ -488,6 +517,7 @@ canvas.hint { transform: none !important; }
   </div>
 </div>
 <div class="modal" id="modal" hidden role="dialog" aria-modal="true"><div class="card" id="modalCard"></div></div>
+<div class="turn" id="turn" aria-live="polite"><div><svg width="72" height="72" viewBox="0 0 18 18" shape-rendering="crispEdges" aria-hidden="true"><path fill="#F2C04A" d="M6 1h6v1h1v14h-1v1H6v-1H5V2h1zM6 3v11h6V3zM8 15h2v1H8z"/><path fill="#FFF4DE" d="M14 4h2v1h1v3h-1V6h-1V5h-1zM2 10h1v2h1v1h1v1H3v-1H2z"/></svg><b>Turn your phone upright</b><p>Beju Farm is played holding your phone upright.</p></div></div>
 
 <script>
 __SFX__
@@ -1849,7 +1879,7 @@ function fresh() {
     methods: { washed: true, natural: true }, vars: { caturra: true }, staff: { foreman: false, agent: false, rule: 'best' }, decor: {}, contracts: [], nextContract: 0, hat: 'straw', hats: { straw: true }, stamps: {},
     cherries: {}, lots: [], boosts: {}, minutes: 7 * 60 + 30, minutesTotal: 0, day: 1, taps: 0, year: 1, bonus: 0,
     tasks: null, weekly: { mine: 0, team: 1800, target: 4000, start: 1, claimed: false }, samples: [], stats: { picked: 0, sold: 0, lotsSold: 0 },
-    farms: {}, intro: 0, seasonPick: 'auto', speed: 1, sfx: true, music: true, musicVol: 0.45, newsSeen: 'fresh', guide: 0, guideN: 0, guideV: GUIDE_V, tabs: { upgrades: false, unlock: false, orders: false, ranks: false, shop: false }, newTab: null, checkin: { last: '', n: 0, streak: 0 }, season: newSeason(), sitems: { bg: {}, charm: {}, title: {} }, firstSeason: seasonKey(), roastery: { rep: 0, beans: {}, roasters: [], bags: [] }, estate: { st: {}, cellar: [] }, rcos: { own: {}, on: { fin: 'classic', room: 'brick', noren: 'indigo', label: 'house', apron: 'plain' }, hide: {}, sold: {}, cracks: 0 }, badges: [], event: null, rev: { log: {}, streak: 0, best: 0, total: 0, since: 0, cur: null, boost: 0, show: {} }, counter: { rating: 3, served: 0, season: '', sServed: 0, regs: {}, pre: null, next: 0, sess: null, tally: null }, prestige: 0, name: 'You', nameOk: '', look: { crest: 0, skin: 0, bg: 'none', char: 'none', hat: '', charm: '', title: '' }, skins: { 0: true }, chars: {}, bskins: {}, skinPicks: 0, dormant: {}, last: Date.now()
+    farms: {}, intro: 0, seasonPick: 'auto', speed: 1, sfx: true, music: true, hud: 'new', textScale: 1, showLv: false, showStore: false, musicVol: 0.45, newsSeen: 'fresh', guide: 0, guideN: 0, guideV: GUIDE_V, tabs: { upgrades: false, unlock: false, orders: false, ranks: false, shop: false }, newTab: null, checkin: { last: '', n: 0, streak: 0 }, season: newSeason(), sitems: { bg: {}, charm: {}, title: {} }, firstSeason: seasonKey(), roastery: { rep: 0, beans: {}, roasters: [], bags: [] }, estate: { st: {}, cellar: [] }, rcos: { own: {}, on: { fin: 'classic', room: 'brick', noren: 'indigo', label: 'house', apron: 'plain' }, hide: {}, sold: {}, cracks: 0 }, badges: [], event: null, rev: { log: {}, streak: 0, best: 0, total: 0, since: 0, cur: null, boost: 0, show: {} }, counter: { rating: 3, served: 0, season: '', sServed: 0, regs: {}, pre: null, next: 0, sess: null, tally: null }, prestige: 0, name: 'You', nameOk: '', look: { crest: 0, skin: 0, bg: 'none', char: 'none', hat: '', charm: '', title: '' }, skins: { 0: true }, chars: {}, bskins: {}, skinPicks: 0, dormant: {}, last: Date.now()
   };
   LOCS.forEach((l) => { st.farms[l] = newFarm(l); });
   return st;
@@ -2809,11 +2839,16 @@ function nameTag(x, y) {   /* your name tag, in your tier's colour, with stars p
   ctx.fillStyle = 'rgba(30,20,12,0.72)'; ctx.fillRect(tx - w / 2, ty - 11, w, 15); ctx.fillStyle = TAG_COLOR[tierOf(S.prestige)]; ctx.fillText(label, tx, ty);
   if ((S.rev || {}).streak >= 5) revFlame(Math.round(tx - w / 2 - 13), ty - 12);
 }
+let hudPickAt = 0, hudLvAt = 0, hudLvLast = 0;   /* when you last picked by hand (the hearts show for 3 s), and when the level last rose (the level pill shows for 6 s) */
+function floatKg(x, y, kg) {   /* picks in quick succession add up in one float instead of a stack of +3 kg */
+  const f = floats.find((t) => t.kg && t.t < 0.5);
+  if (f) { f.kg += kg; f.text = '+' + fmtKg(f.kg) + ' kg'; f.x = x; f.y = y; f.t = 0; } else floats.push({ x, y, text: '+' + fmtKg(kg) + ' kg', t: 0, kg });
+}
 function drawFloats() {
   drawSays();
-  ctx.textAlign = 'center'; ctx.font = '700 19px "Zen Kaku Gothic New", system-ui, sans-serif';   /* floating +coins and +kg read best in the body font */
+  ctx.textAlign = 'center'; ctx.font = '700 ' + Math.round(19 * (S.hud === 'classic' ? 1 : S.textScale || 1)) + 'px "Zen Kaku Gothic New", system-ui, sans-serif';   /* floating +coins and +kg read best in the body font */
   floats.forEach((t) => {
-    const y = (t.y - t.t * 12) * 2;
+    const y = (t.y - (calm ? 0 : t.t * 12)) * 2;   /* with reduced motion they fade where they are */
     ctx.globalAlpha = Math.max(0, 1 - t.t);
     ctx.fillStyle = '#3E2A1C'; ctx.fillText(t.text, t.x * 2 + 2, y + 2); ctx.fillStyle = '#FFF4DE'; ctx.fillText(t.text, t.x * 2, y);
   });
@@ -5815,7 +5850,7 @@ function musicPage() {
   return h;
 }
 const NEWS = [   /* newest first; the card shows what arrived since you last saw it */
-  { v: '2026-11-07', title: 'A steadier week', items: ['The Mill\'s market pick now holds for a whole day, so you can plan around it; the foreman on Best pay follows it', 'With the guide full, Dr. Inés asks for five species a week on Galápagos for her survey', 'The +500 know-how boost has gone from the Shop: cranes are for looks', 'Daily rewards follow the game\'s own calendar, which never runs backwards'] },
+  { v: '2026-11-07', title: 'A steadier week', items: ['More farm, less screen: hearts, your level and the cherry store now show when they matter, the clock and cranes have gone from the farm, and sound and Settings sit under one gear. Settings › Screen switches back to Classic, sets a larger text size, or keeps the level bar and store up all the time', 'On a phone, the farm is played upright: turn your phone sideways and it asks you to turn it back', 'The Mill\'s market pick now holds for a whole day, so you can plan around it; the foreman on Best pay follows it', 'With the guide full, Dr. Inés asks for five species a week on Galápagos for her survey', 'The +500 know-how boost has gone from the Shop: cranes are for looks', 'Daily rewards follow the game\'s own calendar, which never runs backwards'] },
   { v: '2026-11-06', title: 'Faces, and fairer pay', items: ['Everyone you meet has a face of their own: the islanders, the estate managers, the Counter regulars and Rosa stroll, work and speak up on their maps; tap one to chat', 'Réunion\'s shed restocks a tray of seedlings every 30 minutes and keeps three, like Bali\'s barometer', 'Know-how no longer snowballs: island rewards and regulars\' requests stop raising the rate they\'re paid from', 'Welcome back shows the coins and know-how earned while you were away, and a cleared fourth field picks too', 'Shorter numbers in the top bar, and long notices come in short pieces', 'With a foreman, your pickers and mill keep going gently through the night', 'A new coffee plants straight from its unlock window; Rosa talks in the lesson bar', 'Settings start with your own options, now with haptics and a way to delete your online farm'] },
   { v: '2026-11-04', title: 'Your collection and your music', items: ['A collection log in Looks › Collection: everything you\'ve found in one place, with a rank as it grows', 'Music in Looks › Music: each place\'s song as you hear it, a jukebox to play any of them anywhere, and a setting for how often music plays', 'The daily check-in is now a calendar that never resets: miss a day and it simply waits for you', 'The odds of each rare find are shown where you find it, with how close you are to a sure one', 'And this card, whenever something new arrives. Find it again in Settings'] },
   { v: '2026-11-03', title: 'The Island Route', items: ['The harbour at prestige 5: cowries, the ledger, the board and voyages', 'Three new islands: Réunion\'s nursery and Bali\'s storms at prestige 6, and the Galápagos camp at prestige 7', 'Where to? Tap the place name to go anywhere, or swipe the map sideways'] }
@@ -5835,7 +5870,15 @@ function playerSettings() {   /* what a player changes: sound, help, haptics, na
   let h = '';
     if (coopOK()) h += '<h3>Co-op stickers</h3><div class="seg">' + [['0', 'Shown'], ['1', 'Hidden']].map(([v, tl]) => '<button type="button" data-act="hidestickers:' + v + '" aria-pressed="' + ((S.hideStickers ? '1' : '0') === v) + '">' + tl + '</button>').join('') + '</div>';
     h += '<h3>Help text</h3><div class="seg">' + [[false, 'Short, with i buttons'], [true, 'Always in full']].map(([v, tl]) => '<button type="button" data-act="showhelp:' + (v ? 1 : 0) + '" aria-pressed="' + (!!S.showHelp === v) + '">' + tl + '</button>').join('') + '</div>';
-    h += '<h3>Music volume</h3><div class="seg">' + [['0.25', 'Quiet'], ['0.45', 'Normal'], ['0.7', 'Loud']].map(([v, tl]) => '<button type="button" data-act="mvol:' + v + '" aria-pressed="' + (String(S.musicVol) === v) + '">' + tl + '</button>').join('') + '</div><p class="note">Sound effects and music switch on and off with the buttons on the farm.</p>';
+    const seg = (act, opts, cur) => '<div class="seg">' + opts.map(([v, tl]) => '<button type="button" data-act="' + act + ':' + v + '" aria-pressed="' + (String(cur) === v) + '">' + tl + '</button>').join('') + '</div>';
+    const h2 = S.hud !== 'classic';
+    h += '<h3>Screen</h3>' + seg('hudmode', [['new', 'New (test)'], ['classic', 'Classic']], h2 ? 'new' : 'classic') + '<p class="note">' + (h2 ? 'The farm first: hearts, level and the cherry store show when they matter. Switch back to Classic any time.' : 'Every number on screen all the time. Try New to see more of your farm.') + '</p>';
+    if (h2) {
+      h += '<h3>Text size</h3>' + seg('tscale', [['1', 'Normal'], ['1.25', 'Large'], ['1.5', 'Largest']], S.textScale || 1);
+      h += '<h3>Always show</h3><div class="seg"><button type="button" data-act="hudshow:lv" aria-pressed="' + !!S.showLv + '">Level bar</button><button type="button" data-act="hudshow:store" aria-pressed="' + !!S.showStore + '">Cherry store</button></div><p class="note">Off, they show by themselves when they matter.</p>';
+      h += '<h3>Sound</h3><div class="seg"><button type="button" data-act="snd:sfx" aria-pressed="' + !!S.sfx + '">Sound effects</button><button type="button" data-act="snd:music" aria-pressed="' + !!S.music + '">Music</button></div>';
+    }
+    h += '<h3>Music volume</h3><div class="seg">' + [['0.25', 'Quiet'], ['0.45', 'Normal'], ['0.7', 'Loud']].map(([v, tl]) => '<button type="button" data-act="mvol:' + v + '" aria-pressed="' + (String(S.musicVol) === v) + '">' + tl + '</button>').join('') + '</div>' + (h2 ? '' : '<p class="note">Sound effects and music switch on and off with the buttons on the farm.</p>');
     h += musicSettings();
     h += nameField() + onlineCard();
     h += '<h3>Haptics</h3><div class="seg">' + [['1', 'On'], ['0', 'Off']].map(([v, tl]) => '<button type="button" data-act="haptics:' + v + '" aria-pressed="' + ((S.haptics === false ? '0' : '1') === v) + '">' + tl + '</button>').join('') + '</div><p class="note">A light buzz when you pick, sell or level up, on phones that have one.</p>';
@@ -5879,7 +5922,7 @@ cv.addEventListener('click', (e) => {
     s.p = 0; s.claim = null; S.hearts -= 1; S.taps += 1; task('pick', 1); guideStep('pick');
     const kg = store(f, s.v, VAR[s.v].kg * terroir(f) * pickKg(s.v) * (rule('akimatsuri') ? 1.2 : 1));
     SFX.play('harvest');
-    floats.push({ x: s.x + 9, y: s.y, text: '+' + fmtKg(kg) + ' kg', t: 0 });
+    floatKg(s.x + 9, s.y, kg); hudPickAt = Date.now(); $('app').classList.add('sh-hearts');
     for (let i = 0; i < 7; i++) bursts.push({ x: s.x + 9, y: s.y + 8, vx: (rnd() - 0.5) * 60, vy: -30 - rnd() * 40, t: 0, c: i % 2 ? '#E83A30' : '#3E8036' });
     if (S.intro === 0) { S.intro = 1; BEACON.ev("first_pick", { p: S.prestige, lvl: level() }); }
     return;
@@ -6689,7 +6732,9 @@ function tapNote(text, long) {
 }
 const toastQ = [];
 const TOAST_MAX = 110;
-function toastSplit(msg) {   /* whole sentences where they fit, a long one broken at its commas, packed into pieces short enough for two lines */
+const toastMax = () => (S.hud === 'classic' ? TOAST_MAX : 84);   /* the new place bar keeps both arrows and the gear in view, so a notice gets the middle only: shorter pieces */
+function toastSplit(msg, MAX = toastMax()) {   /* whole sentences where they fit, a long one broken at its commas, packed into pieces short enough for two lines */
+  const TOAST_MAX = MAX;
   const bits = msg.split(/(?<=[.;!?])\s+/).flatMap((b) => (b.length > TOAST_MAX ? b.split(/,\s+/).map((x, i, all) => (i < all.length - 1 ? x + ',' : x)) : [b]));
   const out = [];
   bits.forEach((b) => { const i = out.length - 1; if (i >= 0 && out[i].length + b.length + 1 <= TOAST_MAX) out[i] += ' ' + b; else out.push(b); });
@@ -6701,7 +6746,7 @@ function toast(msg) {   /* one notice at a time: one that arrives within a secon
   const mine = Date.now() - (guideTouch || 0) < 1500;   /* the answer to the player's own tap (a refused name, an empty can) goes first */
   if (!t.hidden && toastT > 1.6 && !mine) { if (msg !== t.textContent && !toastQ.includes(msg) && toastQ.length < 3) toastQ.push(msg); return; }
   if (!t.hidden && mine && t.textContent && t.textContent !== msg && !toastQ.includes(t.textContent)) toastQ.unshift(t.textContent);   /* what was showing comes back after it */
-  if (msg.length > TOAST_MAX) { const parts = toastSplit(msg); msg = parts.shift(); toastQ.unshift(...parts.filter((x) => !toastQ.includes(x))); }   /* a long notice comes in short pieces, one after another, rather than spilling out of the bar */
+  if (msg.length > toastMax()) { const parts = toastSplit(msg); msg = parts.shift(); toastQ.unshift(...parts.filter((x) => !toastQ.includes(x))); }   /* a long notice comes in short pieces, one after another, rather than spilling out of the bar */
   t.textContent = msg; t.hidden = false; toastT = msg.length > 70 ? 3.4 : 2.6; t.classList.toggle('long', msg.length > 70); t.classList.remove('pop'); void t.offsetWidth; t.classList.add('pop');
 }
 const modalQueue = [];
@@ -7290,6 +7335,10 @@ document.addEventListener('click', (e) => {
   else if (a === 'lot') startLot(S.millV, v);
   else if (a === 'sell') sellLot(+v);
   else if (a === 'haptics') { S.haptics = v === '1'; buzz('pop'); }
+  else if (a === 'hudmode') { S.hud = v; refreshHud(); }
+  else if (a === 'tscale') { S.textScale = +v || 1; refreshHud(); }
+  else if (a === 'hudshow') { if (v === 'lv') S.showLv = !S.showLv; else S.showStore = !S.showStore; refreshHud(); }
+  else if (a === 'snd') { if (v === 'sfx') { S.sfx = !S.sfx; syncSound(); if (S.sfx) SFX.play('tick'); } else { S.music = !S.music; syncSound(); syncMusic(); } }
   else if (a === 'millview') S.millView = v;
   else if (a === 'cupall') cupAll();
   else if (a === 'reqfill') {
@@ -7504,6 +7553,19 @@ function farmLvInfo() {   /* this farm's own level and its next milestone, once 
     text: nm + ' farm level ' + lv + '. ' + (next ? 'Next at ' + next.lv + ': ' + next.label(S.loc) + '.' : 'Every milestone reached.') + ' Buildings, a manager, the fourth field and mastery raise it.' };
 }
 const barLvInfo = () => (scene() === 'farm' ? farmLvInfo() : scene() === 'roast' ? repInfo() : scene() === 'kona' ? konaInfo() : scene() === 'bm' ? bmInfo() : scene() === 'hb' ? hbInfo() : ISLE_IDS.includes(scene()) ? isleInfo(scene()) : null);
+function hudShow(full) {   /* the new HUD: hearts while picking by hand or low, the level pill near a level or just after one, the store from 80% full */
+  const app = $('app'), on = S.hud !== 'classic', now = Date.now(), sc = scene(), mh = maxHearts(), [frac, lv] = levelSpan(), lessons = S.guide < GUIDE.length;
+  if (lv !== hudLvLast) { if (hudLvLast) hudLvAt = now; hudLvLast = lv; }
+  const ts = on ? S.textScale || 1 : 1; document.documentElement.style.setProperty('--ts', ts);
+  app.classList.toggle('h2', on); app.classList.toggle('big', on && ts > 1);
+  app.classList.toggle('sub2', ISLE_IDS.includes(sc) || sc === 'hb' || sc === 'bm' || sc === 'kona');   /* an island's second line is its own purse and status, so it stays */
+  app.classList.toggle('sh-hearts', now - hudPickAt < 3000 || S.hearts <= Math.ceil(mh / 4) || lessons);
+  app.classList.toggle('sh-lv', !!S.showLv || lessons || frac >= 0.9 || (lv >= prestigeNeed() && (S.prestige > 0 || S.tabs.ranks)) || now - hudLvAt < 6000);
+  app.classList.toggle('sh-store', !!S.showStore || sc === 'mill' || stored() >= cap() * 0.8);
+  const st = $('hudStore'); st.classList.toggle('full', full);
+  if (on && full && !st.querySelector('.sfull')) { st.insertAdjacentHTML('beforeend', '<b class="sfull">FULL</b>'); st.setAttribute('aria-label', 'Cherry store full: pickers are waiting'); }
+  if (!full) st.removeAttribute('aria-label');
+}
 function refreshHud() {
   const L = ART.locations[S.loc], sea = season(S.loc);
   $('locName').textContent = L.name;
@@ -7542,6 +7604,7 @@ function refreshHud() {
   $('clock').textContent = String(Math.floor(hr)).padStart(2, '0') + ':' + String(mins % 60).padStart(2, '0');
   $('day').textContent = S.day;
   $('sky').style.background = night ? '#2C3470' : hr >= 17 ? '#F0A060' : '#7EC8F0';
+  hudShow(full);
   $('sun').style.background = night ? '#F4F0D0' : '#FFD84A';
 }
 let touchDown = false, lastSwipe = 0, lastUp = 0;

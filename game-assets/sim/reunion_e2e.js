@@ -104,8 +104,7 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
   await lvTo(6);
   ok(await E(() => window.__T.S.hats.ev_re_straw), 'level 6: the nursery straw hat, in Looks');
   await lvTo(10);
-  await E(() => { const T = window.__T, f = T.S.farms.mogiana; T.replantBed(f, 0, 'caturra'); });
-  ok(await E(() => window.__T.S.farms.mogiana.shrubs.filter((s, i) => Math.floor(i / 8) === 0).every((s) => s.p === 0.5)), 'level 10: a field replanted at home starts half grown');
+  ok(await E(() => { const T = window.__T, f = T.S.farms.mogiana; T.replantBed(f, 0, 'caturra'); return f.shrubs.filter((s, i) => Math.floor(i / 8) === 0).every((s) => s.p === 0.5); }), 'level 10: a field replanted at home starts half grown');   /* checked in the same step: a frame of growth in between would move it past 0.5 */
   await lvTo(15);
   await E(() => { const T = window.__T; T.reStart(); T.rePlant(3); });
   ok(await E(() => { const sh = window.__T.S.re.sh; return sh.n === 16 && sh.beds[3] && sh.beds[4] && sh.left === 14; }), 'level 15: batches of 16, and the seed tray plants two beds a tap');
