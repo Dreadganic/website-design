@@ -1,6 +1,6 @@
 /* GET /.netlify/functions/get-order?session_id=cs_...  ->  a short summary for the thank-you page.
    Session ids are long random strings, and only non-sensitive details are returned. */
-const { stripe } = require("../lib/stripe");
+const { stripe } = require("../stripe");
 
 const json = (status, body) => ({ statusCode: status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" }, body: JSON.stringify(body) });
 

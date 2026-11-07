@@ -2372,14 +2372,16 @@ const titleText = (k) => { if (!k) return ''; const [a, b] = k.split(':');
   if (a === 'bm') return b === 'grader' ? 'Blue Mountain grader' : '';
   return ART.seasons[String(+k.slice(5))] ? theme(k).title + ' ' + k.slice(0, 4) : ''; };
 /* the cupping notebook: every coffee and process pair you sell earns stars at 1, 25 and 250 lots; each star adds +0.5 cup score to that pair */
-const NB_STARS = [1, 25, 250], NB_MAX = 9 * 6 * 3;
+const NB_STARS = [1, 25, 250];
+const nbMax = () => plantVars().length * Object.keys(METHODS).length * NB_STARS.length;   /* 162 on the mainland; Bourbon Pointu adds its row once Réunion gives it to you */
 const nbCount = (v, m) => (S.notebook || {})[v + '.' + m] || 0;
 const nbStars = (v, m) => NB_STARS.filter((n) => nbCount(v, m) >= n).length;
 /* "Roasted by Beju" cards: each real coffee you order stamps a card in the notebook, and its pair cups +0.5 higher */
 const BEJU_CARDS = { casablanca: 'mundonovo.natural', pinkwhiskey: 'pinkbourbon.whiskey', rumbarrel: 'castillo.rum', yirgacheffe: 'heirloom.washed', strawberry: 'catimor.strawberry' };
 const bejuCard = (v, m) => Object.keys(BEJU_CARDS).some((id) => BEJU_CARDS[id] === v + '.' + m && (S.bejuCards || {})[id]);
 const nbBonus = (v, m) => 0.5 * nbStars(v, m) + (bejuCard(v, m) ? 0.5 : 0);
-const nbTotal = () => VAR_ORDER.reduce((a, v) => a + Object.keys(METHODS).reduce((b, m) => b + nbStars(v, m), 0), 0);
+const nbMain = () => VAR_ORDER.reduce((a, v) => a + Object.keys(METHODS).reduce((b, m) => b + nbStars(v, m), 0), 0);   /* the mainland's 162, for the Master cupper charm */
+const nbTotal = () => plantVars().reduce((a, v) => a + Object.keys(METHODS).reduce((b, m) => b + nbStars(v, m), 0), 0);
 function nbAdd(v, m, n) {
   S.notebook = S.notebook || {}; const before = nbStars(v, m);
   S.notebook[v + '.' + m] = nbCount(v, m) + n;
@@ -2391,10 +2393,10 @@ function nbAdd(v, m, n) {
 }
 function nbCheck() {   /* titles for a finished coffee, a finished process and star totals */
   const got = [], give = (k) => { if (!S.sitems.title[k]) { S.sitems.title[k] = true; got.push(titleText(k)); } };
-  VAR_ORDER.forEach((v) => { if (Object.keys(METHODS).every((m) => nbStars(v, m) >= 1)) give('nb:' + v); });
+  plantVars().forEach((v) => { if (Object.keys(METHODS).every((m) => nbStars(v, m) >= 1)) give('nb:' + v); });   /* Bourbon Pointu too: a Pointu specialist */
   Object.keys(METHODS).forEach((m) => { if (VAR_ORDER.every((v) => nbStars(v, m) >= 1)) give('nbm:' + m); });
   const tot = nbTotal(); NB_TOTALS.forEach(([n, id]) => { if (tot >= n) give('nbt:' + id); });
-  if (tot >= 162 && !S.sitems.charm.qgrader) { S.sitems.charm.qgrader = true; got.push('the Master cupper charm'); }
+  if (nbMain() >= 162 && !S.sitems.charm.qgrader) { S.sitems.charm.qgrader = true; got.push('the Master cupper charm'); }
   if (got.length) { SFX.play('achieve'); toast('Notebook: ' + got.join(', ') + '! Wear it in Looks'); }
 }
 /* buyer requests: a named regular asks for one hand-cupped lot of a pair, usually one you haven't tried. Staff never cup, so only you can fill them */
@@ -3039,7 +3041,12 @@ const cache = {};
 function sprite(name, opt) {
   const key = name + '|' + (opt ? JSON.stringify(opt) : '');
   if (cache[key]) return cache[key];
-  const s = ART.sprites[name], pal = Object.assign({}, s.pal);
+  const s = ART.sprites[name];
+  if (!s) {   /* a missing picture draws nothing instead of stopping the frame; its name is noted once, for the tests */
+    (window.__noSprite = window.__noSprite || []).includes(name) || (window.__noSprite.push(name), console.warn('no sprite: ' + name));
+    const blank = document.createElement('canvas'); blank.width = blank.height = 1; return (cache[key] = blank);
+  }
+  const pal = Object.assign({}, s.pal);
   if (opt && opt.shirt) { pal.c = opt.shirt[0]; pal.C = opt.shirt[1]; pal.D = opt.shirt[2]; }
   if (opt && opt.hat) { pal.h = opt.hat[0]; pal.H = opt.hat[1]; pal.k = opt.hat[2]; }
   if (opt && opt.pants) { pal.p = opt.pants[0]; pal.P = opt.pants[1]; }
@@ -7025,7 +7032,7 @@ function collections() {   /* every collection in the game, and how much of each
   const C = CT() || {}, ownN = (o, keys) => keys.filter((k) => (o || {})[k]).length, looks = SKINS.map((_, i) => i);
   return [
     { id: 'ledger', name: 'The Island Route ledger', pic: 'i_cowrie', got: S.route ? Object.keys(S.route.got || {}).length : 0, total: LEDGER.length, open: hbOpen(), how: 'cowrie finds on the islands and your farms', when: 'with the harbour, at prestige 5', go: 'hb_go' },
-    { id: 'notebook', name: 'Cupping notebook', pic: 'i_cup', got: nbTotal(), total: NB_MAX, open: true, how: 'stars for lots sold, for each coffee and process', go: 'colgo:notebook' },
+    { id: 'notebook', name: 'Cupping notebook', pic: 'i_cup', got: nbTotal(), total: nbMax(), open: true, how: 'stars for lots sold, for each coffee and process', go: 'colgo:notebook' },
     { id: 'guide', name: 'The Galápagos field guide', pic: 'ga_i_guide', got: S.ga ? gaFound() : 0, total: GA_GUIDE.length, open: isleOpen('ga'), how: 'trap photos and what the tortoises dig up', when: 'with Galápagos, at prestige 7', go: 'ga_go' },
     { id: 'keepsakes', name: 'Keepsakes', pic: 'ev_scarecrow_0', got: Object.keys(REV_COSM).filter((k) => REV_COSM[k].own()).length, total: Object.keys(REV_COSM).length, open: true, how: 'from stopping random events, and one from the field guide', go: 'colgo:records' },
     { id: 'companions', name: 'Companions', pic: 'ev_piglet', got: ownN(S.rev.pets, Object.keys(REV_PETS)), total: Object.keys(REV_PETS).length, open: true, how: 'rare finds from events and the islands', go: 'colgo:records' },
@@ -8237,7 +8244,7 @@ function renderPanel() {
     } else if (nt === 'notebook') {
     const tot = nbTotal(), next = NB_TOTALS.find(([n]) => tot < n), ms = Object.keys(METHODS);
     h += help('notebook', 'Stars for each coffee and process pair you sell, each +0.5 cup.', 'Each coffee and process pair earns a star at its 1st, 25th and 250th lot sold. Each star adds +0.5 cup score.');
-    h += '<div class="season"><b>' + tot + ' / ' + NB_MAX + ' stars</b><span>' + (next ? next[0] - tot + ' more for the "' + next[2] + '" title' + (next[1] === 'q' ? ' and the Master cupper charm' : '') : 'Every star collected. You are a Master cupper.') + '</span></div>';
+    h += '<div class="season"><b>' + tot + ' / ' + nbMax() + ' stars</b><span>' + (next ? next[0] - tot + ' more for the "' + next[2] + '" title' + (next[1] === 'q' ? ' and the Master cupper charm' : '') : 'Every star collected. You are a Master cupper.') + '</span></div>';
     h += requestCard();
     h += '<div class="nbw"><table class="nb"><thead><tr><th></th>' + ms.map((m) => '<th title="' + METHODS[m].name + '">' + img(METHODS[m].art, 20) + '<small>' + METHODS[m].name.split(' ')[0] + '</small></th>').join('') + '</tr></thead><tbody>' +
       plantVars().map((v) => '<tr><th>' + img('bush_' + v + (S.vars[v] ? '_ripe' : '_sprout'), 20) + '<small>' + ART.varieties[v] + '</small></th>' + ms.map((m) => {

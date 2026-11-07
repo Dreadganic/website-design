@@ -20,6 +20,7 @@ async function removePlayer(store, me) {   /* also used by game-admin */
   if (me.nameKey) { const n = await store.get("names/" + me.nameKey); if (n && n.id === id) gone.push("names/" + me.nameKey); }
   if (me.coop) { const c = await store.get("coops/" + me.coop); if (c && c.members) { c.members = c.members.filter((m) => m !== id); await store.set("coops/" + c.id, c); } }
   for (const k of gone) await store.del(k);
+  await G.boardDrop(store, id, Date.now());   /* off the shared board straight away, not at its next rebuild */
 }
 exports.removePlayer = removePlayer;   /* new farms from one connection in an hour: plenty for a family or an office, not for a script */
 

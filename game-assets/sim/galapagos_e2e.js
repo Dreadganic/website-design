@@ -183,6 +183,7 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
   console.log('  the field guide, full in: median', sim.median, 'days · 9 in 10 by', sim.slow, '· 19 in 20 by', sim.p95, '· 99 in 100 by', sim.p99, '· slowest of 400', sim.max);
   ok(sim.median >= 14 && sim.median <= 35, 'the whole guide takes about 3 to 4 weeks at the expected pace (median ' + sim.median + ' days)');
   ok(sim.slow <= 35 && sim.p95 <= 40, 'and almost everyone within 6 weeks, thanks to the guarantees (9 in 10 by ' + sim.slow + ' days, 19 in 20 by ' + sim.p95 + ')');   /* the slowest few are luck: over 20,000 players, 1 in 500 took more than 45 days */
+  const miss = await g.evaluate(() => window.__noSprite || []).catch(() => []); ok(!miss.length, 'every picture drawn exists: ' + miss.join(', '));
   ok(!errs.length, 'no page errors' + (errs.length ? ': ' + errs.slice(0, 3).join(' | ') : ''));
   console.log(pass + ' passed, ' + fail + ' failed');
   await b.close(); process.exit(fail ? 1 : 0);

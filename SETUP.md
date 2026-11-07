@@ -130,7 +130,7 @@ Until the end of 30 November 2026 (Japan time) a farm's first leaderboard score 
 
 ### Beju Farm rewards (backend, dormant until launch)
 - New functions: `game-samples` (free samples the server has decided a player earned), `game-checkin` (daily check-ins, Japan time), `game-grants` (cranes waiting for the game, for example from subscription renewals).
-- **Before launch:** `create-checkout` and `stripe-webhook` are still in the older Lambda format, so their game parts (sample reservations, subscription renewal cranes) can't read Blobs yet. Their payment parts don't use Blobs and work as they are. Move both to the current format, the same way as the game functions (handler in `netlify/lib/handlers/`, a `.mjs` wrapper), and test a real checkout before setting `GAME_SAMPLES`.
+- **Before launch:** `create-checkout`, `stripe-webhook` and `get-order` moved to the current format on 7 November 2026 (handlers in `netlify/lib/handlers/`, `.mjs` wrappers), so their game parts (sample reservations, subscription renewal cranes) can now read Blobs. Test one real checkout, and check the Stripe webhook still verifies, before setting `GAME_SAMPLES`. `GAME_READONLY` never blocks them.
 - `create-checkout` adds an earned sample to orders of ¥3,000 or more **only when the environment variable `GAME_SAMPLES` is `on`**. Leave it unset until launch.
 - `stripe-webhook` now also handles `checkout.session.expired`, `checkout.session.async_payment_failed` and `invoice.paid`. In Stripe (Developers > Webhooks), add those three events to the existing endpoint so samples are released and renewals earn cranes.
 - Launch steps: `launch/README.md`.

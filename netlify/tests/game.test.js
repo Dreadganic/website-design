@@ -191,7 +191,7 @@ test("seasons: the rookie board lists only players in their first season, and fi
   const a = await newPlayer("Rookie");
   await call(score, "POST", { name: "Rookie", prestige: 0, seasonP: 0, seasonKh: 100, seasonStars: 5, level: G.levelFor(100), points: 100 }, a);
   await store.set("scores/veteran", { id: "veteran", name: "Old hand", prestige: 6, seasonP: 0, seasonKh: 9e6, seasonStars: 50, level: 40, points: 1e7, look: {}, season: G.seasonKey(clock), at: clock });
-  clock += 61e3;   /* a row written by another function instance shows once the shared board snapshot is a minute old */
+  clock += 3600e3 + 1;   /* a row written outside a score post (here, straight into the store) shows at the shared snapshot's hourly rebuild */
   const rook = await call(score, "GET", undefined, a, { mode: "rookie" }), all = await call(score, "GET", undefined, a, { mode: "season" });
   assert.deepEqual(rook.body.top.map((r) => r.name), ["Rookie"]); assert.equal(rook.body.top[0].rookie, true);
   assert.deepEqual(all.body.top.map((r) => r.name), ["Old hand", "Rookie"]);
@@ -469,4 +469,15 @@ test("stats: the key works from an Authorization header", async () => {
   assert.equal((await go({}, { key: "stats-key-for-tests" })).statusCode, 200, "the query string still works");
   assert.equal((await go({ authorization: "Bearer nope" })).statusCode, 403);
   delete process.env.STATS_KEY;
+});
+
+test("scores: an accepted score updates the shared board in place, so other instances see it without a rebuild", async () => {
+  const a = await newPlayer("Fresh Row"), b = await newPlayer("Second Row");
+  await call(score, "POST", { name: "Fresh Row", prestige: 0, seasonP: 0, seasonKh: 100, seasonStars: 3, level: G.levelFor(100), points: 100 }, a);
+  const built = (await store.get("board/rows")).built;
+  clock += 20e3;
+  await call(score, "POST", { name: "Second Row", prestige: 0, seasonP: 0, seasonKh: 50, seasonStars: 1, level: G.levelFor(50), points: 50 }, b);
+  const snap = await store.get("board/rows");
+  assert.equal(snap.built, built, "no rebuild between the two posts");
+  assert.ok(snap.rows.some((r) => r.name === "Second Row"), "the second row went into the shared snapshot in place");
 });

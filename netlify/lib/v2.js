@@ -11,7 +11,7 @@ exports.v2 = (mod, blobs) => {
     const body = req.method === "GET" || req.method === "HEAD" ? undefined : await req.text();
     const fn = url.pathname.split("/").pop(), t0 = Date.now(), json = (status, o) => new Response(JSON.stringify(o), { status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } });
     /* the kill switch: GAME_READONLY=1 in Netlify's environment refuses every change (the game keeps playing and tries again later) */
-    if (process.env.GAME_READONLY === "1" && req.method !== "GET" && req.method !== "HEAD" && fn !== "game-beacon") return json(503, { error: "read_only" });
+    if (process.env.GAME_READONLY === "1" && req.method !== "GET" && req.method !== "HEAD" && fn.startsWith("game-") && fn !== "game-beacon")   /* the game only: payments and Stripe's webhook always go through */ return json(503, { error: "read_only" });
     let r;
     try { r = await mod.handler({ httpMethod: req.method, headers, body: body || undefined, queryStringParameters: Object.fromEntries(url.searchParams), path: url.pathname }); }
     catch (e) {   /* one line a failure, so an outage and a bug can be told apart in the function log; the game treats 503 as "try later" */

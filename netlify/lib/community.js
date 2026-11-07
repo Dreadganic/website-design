@@ -12,7 +12,8 @@ const prevWeek = (key) => weekKey(weekStart(key) - DAY);
 
 /* active players: anyone whose leaderboard row moved in the last two weeks */
 async function activePlayers(store, now) {
-  const keys = await store.list("scores/"), rows = await Promise.all(keys.map((k) => store.get(k)));
+  const snap = await store.get(G.BOARD_SNAP);   /* the leaderboard's shared snapshot holds every row: one read, not one a player */
+  const rows = snap && Array.isArray(snap.rows) ? snap.rows : await Promise.all((await store.list("scores/")).map((k) => store.get(k)));
   return rows.filter((r) => r && now - (r.at || 0) < 14 * DAY);
 }
 

@@ -40,7 +40,7 @@ exports.handler = async (event) => {
     const row = await store.get("scores/" + id); if (!row) return G.json(404, { error: "no_row" });
     const low = (k) => { if (Number.isFinite(+b[k]) && +b[k] >= 0 && +b[k] < row[k]) row[k] = Math.floor(+b[k]); };
     low("points"); low("seasonKh"); low("prestige"); row.level = G.levelFor(row.points); row.seasonP = Math.min(row.seasonP || 0, row.prestige);
-    await store.set("scores/" + id, row);
+    await store.set("scores/" + id, row); await G.boardPut(store, row, now);
     return G.json(200, { row });
   }
   if (b.act === "restore") {

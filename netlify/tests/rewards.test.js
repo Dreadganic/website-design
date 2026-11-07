@@ -9,8 +9,8 @@ const samples = require("../lib/handlers/game-samples");
 const checkin = require("../lib/handlers/game-checkin");
 const grants = require("../lib/handlers/game-grants");
 const claim = require("../lib/handlers/game-claim");
-const checkout = require("../functions/create-checkout");
-const webhook = require("../functions/stripe-webhook");
+const checkout = require("../lib/handlers/create-checkout");
+const webhook = require("../lib/handlers/stripe-webhook");
 
 let store, clock, sent;
 const fakeStripe = async (url, opts) => {   /* records what checkout sends; answers like Stripe */

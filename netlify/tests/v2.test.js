@@ -72,3 +72,13 @@ test("the wrapper turns a thrown error into a logged 503, and GAME_READONLY refu
     assert.equal((await ok(new Request("https://x.test/.netlify/functions/game-save", { method: "GET" }), {})).status, 200, "reads still work");
   } finally { delete process.env.GAME_READONLY; }
 });
+
+test("GAME_READONLY never blocks payments: checkout and Stripe's webhook still go through", async () => {
+  const { v2 } = require("../lib/v2");
+  const ok = v2({ handler: async () => ({ statusCode: 200, body: "{}" }) });
+  process.env.GAME_READONLY = "1";
+  try {
+    for (const fn of ["stripe-webhook", "create-checkout"]) assert.equal((await ok(new Request("https://x.test/.netlify/functions/" + fn, { method: "POST", body: "{}" }), {})).status, 200, fn);
+    assert.equal((await ok(new Request("https://x.test/.netlify/functions/game-coop", { method: "POST", body: "{}" }), {})).status, 503, "the game's own changes are refused");
+  } finally { delete process.env.GAME_READONLY; }
+});

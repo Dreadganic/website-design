@@ -9,7 +9,7 @@ const file = path.resolve(process.argv[2]);
 let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; console.log('FAIL', m); } };
 (async () => {
   const b = await chromium.launch({ executablePath: process.env.PW_CHROMIUM || '/opt/pw-browsers/chromium' });
-  const g = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, hasTouch: true }); const errs = []; g.on('pageerror', (e) => errs.push(e.message));
+  const g = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, hasTouch: true }); const errs = []; g.on('pageerror', (e) => errs.push(e.stack.slice(0, 400)));
   await g.goto('file://' + file); await g.waitForTimeout(800);
   const E = (f, a) => g.evaluate(f, a);
   const clean = () => E(() => { const T = window.__T; for (let i = 0; i < 8; i++) T.closeModal(); document.getElementById('modal').hidden = true; document.getElementById('toast').hidden = true; });
@@ -97,6 +97,9 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
     return { before: !!before, n: list.length, paid: S.points - p0, firstNote: first.got.join(' '), againNote: again.got.join(' '), surveys: G.surveys, rare: list.every((id) => T.GA_GUIDE.find((e) => e[0] === id)[2] <= 2) }; });
   ok(!sv.before && sv.n === 5 && sv.rare, 'the survey starts once the guide is full, with five species up to rare: ' + JSON.stringify(sv));
   ok(/survey photo/.test(sv.firstNote) && !/survey photo/.test(sv.againNote) && sv.surveys === 1, 'each wanted species pays once, and all five complete the week\'s survey');
+  const nb = await E(() => { const T = window.__T, S = T.S; S.vars.pointu = false; const m0 = T.nbMax(); S.vars.pointu = true; const m1 = T.nbMax(); const t0 = T.nbTotal(); T.nbAdd('pointu', 'washed', 1); return { m0, m1, gain: T.nbTotal() - t0 }; });
+  ok(nb.m0 === 162 && nb.m1 === 180 && nb.gain === 1, 'Bourbon Pointu counts in the cupping notebook once Réunion gives it to you: ' + JSON.stringify(nb));
+  const miss = await E(() => window.__noSprite || []); ok(!miss.length, 'every picture drawn exists: ' + miss.join(', '));
   ok(!errs.length, 'no page errors: ' + errs.join(' | '));
   console.log(pass + ' passed, ' + fail + ' failed'); await b.close(); process.exit(fail ? 1 : 0);
 })();

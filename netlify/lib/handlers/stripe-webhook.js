@@ -1,6 +1,6 @@
 /* Stripe calls this when an order is paid. It checks the call really came from Stripe, then (optionally)
    emails the order with each coffee's grind to ORDER_NOTIFY_URL (for example a Formspree form). */
-const { stripe, verifySignature } = require("../lib/stripe");
+const { stripe, verifySignature } = require("../stripe");
 
 exports.handler = async (event) => {
   const deps = exports.__deps;
@@ -42,7 +42,7 @@ exports.handler = async (event) => {
     const subId = inv.subscription || (inv.parent && inv.parent.subscription_details && inv.parent.subscription_details.subscription);   /* newer Stripe API versions moved it under parent */
     if (inv.billing_reason === "subscription_cycle" && subId) {
       try {
-        const G = require("../lib/game"), store = G.stores(event, deps);
+        const G = require("../game"), store = G.stores(event, deps);
         const link = await store.get("subs/" + (typeof subId === "string" ? subId : subId.id));
         const p = link && await store.get("players/" + link.player);
         if (p && !(p.pending || []).some((g) => g.invoice === inv.id) && !(p.grants || []).some((g) => g.invoice === inv.id)) {
@@ -60,7 +60,7 @@ exports.handler = async (event) => {
 /* move a Beju Farm sample between reserved, redeemed and earned (released) as its checkout completes or expires */
 async function farmSampleStatus(event, deps, s, status) {
   try {
-    const G = require("../lib/game"), store = G.stores(event, deps);
+    const G = require("../game"), store = G.stores(event, deps);
     const p = await store.get("players/" + s.metadata.farm_player);
     const smp = p && (p.samples || []).find((x) => x.id === s.metadata.farm_sample && x.session === s.id);
     if (!smp || smp.status === "redeemed") return;

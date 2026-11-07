@@ -1,7 +1,7 @@
 /* POST /.netlify/functions/create-checkout  { lines: [{pid, grind, freq, qty}], lang }  ->  { url }
    Creates a Stripe Checkout page for the cart and returns its address. */
-const { stripe } = require("../lib/stripe");
-const { checkCart, sessionParams } = require("../lib/order");
+const { stripe } = require("../stripe");
+const { checkCart, sessionParams } = require("../order");
 
 const json = (status, body) => ({ statusCode: status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" }, body: JSON.stringify(body) });
 
@@ -10,7 +10,7 @@ const json = (status, body) => ({ statusCode: status, headers: { "Content-Type":
 async function farmSample(event, deps, farm, cart, params, lang) {
   if (process.env.GAME_SAMPLES !== "on" || !farm || typeof farm.auth !== "string" || typeof farm.sample !== "string") return null;
   try {
-    const G = require("../lib/game");
+    const G = require("../game");
     const store = G.stores(event, deps), now = (deps && deps.now) || Date.now();
     const me = await G.authed({ headers: { authorization: "Bearer " + farm.auth } }, store);
     if (!me) return null;
