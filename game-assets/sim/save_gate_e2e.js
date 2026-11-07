@@ -1,4 +1,4 @@
-/* Idle save gate: an open tab nobody touches uploads its save every 30 minutes, not every 3.
+/* Idle save gate: an open tab nobody touches uploads its save every hour, not every 5 minutes.
    node save_gate_e2e.js <test.html> [shots dir]   (the real game-save function behind a local server, counting uploads) */
 const { chromium } = require(process.env.PW_MODULE || '/opt/node-tools/node_modules/playwright');
 const http = require('http'), fs = require('fs'), path = require('path');
@@ -29,7 +29,7 @@ const ok = (c, msg) => { console.log((c ? 'PASS ' : 'FAIL ') + msg); if (!c) pro
   await p.evaluate(() => { const T = window.__T; T.S.guide = T.GUIDE.length; for (let i = 0; i < 12; i++) T.closeModal(); document.getElementById('modal').hidden = true; });
   const player = await p.evaluate(() => window.__T.NET.acct && window.__T.NET.acct.player);
   ok(!!player && puts === 1, 'going online uploads the save once (' + puts + ')');
-  const tick = () => p.evaluate(async () => { window.__T.NET.lastSync = 0; window.__T.NET.forcedAt = 0; await window.__T.cloudSync(); });   /* as if 3 minutes went by */
+  const tick = () => p.evaluate(async () => { window.__T.NET.lastSync = 0; window.__T.NET.forcedAt = 0; await window.__T.cloudSync(); });   /* as if 5 minutes went by */
   const hide = () => p.evaluate(async () => { const N = window.__T.NET; N.forcedAt = 0; await window.__T.cloudSync(true); });   /* leaving the tab */
   const srvVer = async () => ((await store.get('saves/' + player)) || {}).version;
 
@@ -52,8 +52,8 @@ const ok = (c, msg) => { console.log((c ? 'PASS ' : 'FAIL ') + msg); if (!c) pro
   ok(puts === n + 2, 'a key press while an upload is on its way still gets saved next time (' + (puts - n) + ' uploads)');
 
   await p.waitForTimeout(5200); n = puts;
-  await p.evaluate(() => { window.__T.NET.savedAt = Date.now() - 1800001; }); await tick();
-  ok(puts === n + 1, 'an idle tab still uploads every 30 minutes, so the farm\'s own progress reaches the server');
+  await p.evaluate(() => { window.__T.NET.savedAt = Date.now() - 3600001; }); await tick();
+  ok(puts === n + 1, 'an idle tab still uploads every hour, so the farm\'s own progress reaches the server');
 
   ok(!errs.length, 'no page errors' + (errs.length ? ': ' + errs.join(' | ') : ''));
   await b.close(); srv.close();

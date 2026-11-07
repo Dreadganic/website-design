@@ -54,7 +54,7 @@ exports.handler = async (event) => {
       const rookies = done.rows.filter((r) => r.firstSeason === q.season), rk = me ? rookies.findIndex((r) => r.id === me.id) : -1;   /* first-season players also get a rookie rank */
       if (mine > -1 && mine < 10) await G.addTrophy(store, me, { k: "season", s: q.season, r: mine + 1 }, now);   /* a top 10 finish goes on the trophy shelf */
       if (rk > -1 && rk < 10) await G.addTrophy(store, me, { k: "rookie", s: q.season, r: rk + 1 }, now);
-      return G.json(200, { season: q.season, mode: "final", players: done.rows.length, top: done.rows.slice(0, 50).map(publicRow), me: mine > -1 ? Object.assign(publicRow(done.rows[mine], mine), { rookieRank: rk > -1 ? rk + 1 : null }) : null }, { "Cache-Control": me ? "private, no-store" : "public, max-age=300" });
+      return G.json(200, { season: q.season, mode: "final", players: done.rows.length, top: done.rows.slice(0, 50).map(publicRow), me: mine > -1 ? Object.assign(publicRow(done.rows[mine], mine), { rookieRank: rk > -1 ? rk + 1 : null }) : null }, { "Cache-Control": me ? "private, no-store" : "public, max-age=300", Vary: "Authorization", "Netlify-Vary": "header=Authorization" });
     }
     const mode = q.mode === "all" ? "all" : q.mode === "rookie" ? "rookie" : q.mode === "counter" ? "counter" : "season";
     const me = await G.authed(event, store);
@@ -63,7 +63,7 @@ exports.handler = async (event) => {
       const own = await store.get("scores/" + me.id);
       if (own) { keepRow(ck, own); list = await boardFor(store, mode, season, ck, now); mine = list.findIndex((r) => r.id === me.id); }
     }
-    return G.json(200, { season, mode, players: list.length, top: list.slice(0, 50).map(publicRow), me: mine > -1 ? Object.assign(publicRow(list[mine], mine), { trophies: list[mine].trophies || [] }) : null }, { "Cache-Control": me ? "private, no-store" : "public, max-age=30" });
+    return G.json(200, { season, mode, players: list.length, top: list.slice(0, 50).map(publicRow), me: mine > -1 ? Object.assign(publicRow(list[mine], mine), { trophies: list[mine].trophies || [] }) : null }, { "Cache-Control": me ? "private, no-store" : "public, max-age=30", Vary: "Authorization", "Netlify-Vary": "header=Authorization" });
   }
   if (event.httpMethod !== "POST") return G.json(405, { error: "method_not_allowed" });
   const me = await G.authed(event, store);

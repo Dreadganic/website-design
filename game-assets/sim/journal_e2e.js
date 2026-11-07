@@ -84,7 +84,7 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
   /* What's new */
   await clean();
   ok(await E(() => { const T = window.__T, S = T.S; S.newsSeen = undefined; S.stats.lotsSold = 40; T.newsSoon(); return S.newsSeen === T.NEWS[0].v; }), 'after an update, a returning farmer sees What\'s new once');
-  ok(/What's new on the farm/.test(await modal()) && /fairer pay/.test(await modal()) && /collection log/.test(await modal()), 'the card lists what arrived since they last looked');
+  ok(/What's new on the farm/.test(await modal()) && /steadier week/.test(await modal()) && /fairer pay/.test(await modal()), 'the card lists what arrived since they last looked');
   await clean();
   ok(await E(() => { window.__T.newsSoon(); return document.getElementById('modal').hidden; }), 'and not again');
   ok(await E(() => { const T = window.__T, S = T.S; S.newsSeen = 'fresh'; T.newsSoon(); return document.getElementById('modal').hidden && S.newsSeen === T.NEWS[0].v; }), 'a new farm skips it');

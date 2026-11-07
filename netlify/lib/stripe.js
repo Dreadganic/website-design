@@ -23,7 +23,8 @@ async function stripe(method, path, params, fetchImpl) {
   const res = await (fetchImpl || fetch)(url, {
     method,
     headers: { Authorization: "Bearer " + key, "Content-Type": "application/x-www-form-urlencoded", "Stripe-Version": "2024-06-20" },
-    body: method === "GET" ? undefined : body
+    body: method === "GET" ? undefined : body,
+    signal: AbortSignal.timeout(8000)   /* Netlify stops a function at 10 s: give up on Stripe at 8 and say so, rather than vanish */
   });
   const data = await res.json();
   if (!res.ok) throw Object.assign(new Error((data.error && data.error.message) || "Stripe error"), { status: res.status, stripe: data.error });

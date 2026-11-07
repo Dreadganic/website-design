@@ -85,6 +85,18 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
   ok(night[1] > night[0], 'with a foreman, twelve hours away mills more than one (the night shift): ' + night.join(' then '));
   const boat = await E(() => { const T = window.__T, S = T.S; S.staff.foreman = true; S.request = null; S.lots = Array.from({ length: 6 }, () => ({ v: 'caturra', method: 'natural', kg: 200, left: 0, cupped: true, cup: 84 })); S.contracts = [{ id: 'b1', boat: true, kg: 99999, have: 0, v: null, m: null, cup: 0, pay: 1, at: Date.now(), ends: Date.now() + 864e5 }]; const n0 = S.lots.length; T.staffTick(); return { before: n0, after: S.lots.length, racks: T.racks() }; });
   ok(boat.after < boat.before, 'a big boat order no longer holds every lot: the foreman still sells (' + boat.before + ' lots, ' + boat.after + ' left)');
+  /* round three: the clock only moves forward; Galápagos's weekly survey */
+  const clock = await E(() => { const T = window.__T, S = T.S, real = Date.now, out = {}; for (let i = 0; i < 8; i++) T.closeModal();
+    S.checkin.last = ''; T.checkIn(); out.n1 = S.checkin.n; for (let i = 0; i < 8; i++) T.closeModal();
+    Date.now = () => real() + 864e5; T.checkIn(); out.n2 = S.checkin.n; for (let i = 0; i < 8; i++) T.closeModal();
+    Date.now = real; T.checkIn(); out.n3 = S.checkin.n; out.ahead = T.gameNow() - real() > 8e7; S.clockMax = real(); return out; });
+  ok(clock.n2 === clock.n1 + 1 && clock.n3 === clock.n2 && clock.ahead, 'a phone set a day ahead and back again gets one check-in, not two, and the game\'s clock stays ahead: ' + JSON.stringify(clock));
+  const sv = await E(() => { const T = window.__T, S = T.S; S.ga = S.ga || T.gaFresh(); const G = S.ga; G.got = {}; const before = T.gaSurvey();
+    T.GA_GUIDE.forEach((e) => { G.got[e[0]] = 1; }); const list = T.gaSurvey().list.slice(); const p0 = S.points; const first = T.gaLog(T.GA_GUIDE.find((e) => e[0] === list[0]));
+    const again = T.gaLog(T.GA_GUIDE.find((e) => e[0] === list[0])); list.slice(1).forEach((id) => T.gaLog(T.GA_GUIDE.find((e) => e[0] === id)));
+    return { before: !!before, n: list.length, paid: S.points - p0, firstNote: first.got.join(' '), againNote: again.got.join(' '), surveys: G.surveys, rare: list.every((id) => T.GA_GUIDE.find((e) => e[0] === id)[2] <= 2) }; });
+  ok(!sv.before && sv.n === 5 && sv.rare, 'the survey starts once the guide is full, with five species up to rare: ' + JSON.stringify(sv));
+  ok(/survey photo/.test(sv.firstNote) && !/survey photo/.test(sv.againNote) && sv.surveys === 1, 'each wanted species pays once, and all five complete the week\'s survey');
   ok(!errs.length, 'no page errors: ' + errs.join(' | '));
   console.log(pass + ' passed, ' + fail + ' failed'); await b.close(); process.exit(fail ? 1 : 0);
 })();
