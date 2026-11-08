@@ -3292,7 +3292,7 @@ function migrate() {   /* fields added after a save was made; also run on a rese
     S.skins = {}; for (let i = 0; i <= tierOf(S.prestige || 0); i++) S.skins[i] = true;
     S.look = { crest: tierOf(S.look.plate || 0), skin: S.look.skin || 0, bg: 'none' };
   }
-  if (S.look) S.look.crest = tierOf(S.prestige || 0);   /* your crest is always the highest you've reached */
+  if (S.look) S.look.crest = S.crestPick !== undefined && S.crestPick <= tierOf(S.prestige || 0) ? S.crestPick : tierOf(S.prestige || 0);   /* your highest crest, or an earlier one you picked in Looks › Prestige style */
   ['staff', 'decor', 'contracts', 'nextContract', 'sfx', 'music', 'musicVol', 'name', 'look', 'skins', 'skinPicks', 'chars', 'bskins', 'dormant', 'guide', 'guideN', 'tabs', 'newTab', 'checkin', 'season', 'sitems', 'roastery', 'badges', 'event', 'rev', 'counter'].forEach((k) => { if (S[k] === undefined) S[k] = JSON.parse(JSON.stringify(d[k])); });
   const ns = newSeason(); Object.keys(ns).forEach((k) => { if (S.season[k] === undefined) S.season[k] = ns[k]; });   /* seasons gained stars and a track */
   if (S.guideV !== GUIDE_V) { S.guide = S.guide >= 9 ? GUIDE.length : Math.min(S.guide || 0, 5); S.guideN = 0; S.guideV = GUIDE_V; }   /* the 14-step guide became 9 steps in three chapters */   /* the old six-step guide maps onto the new one */
@@ -3545,7 +3545,7 @@ const steps = [];
 /* from prestige 8 your character floats, each prestige its own way: Inferno flickers like heat haze, Heaven rises and falls on the air,
    Cosmos drifts in a slow figure of eight. { dx, dy } in map pixels; still with reduced motion */
 function floatOf(tm) {
-  const t = tierOf(S.prestige); if (t < 8) return { dx: 0, dy: 0 };
+  const top = tierOf(S.prestige), t = S.floatPick === 0 ? 0 : S.floatPick >= 8 && S.floatPick <= top ? S.floatPick : top; if (t < 8) return { dx: 0, dy: 0 };   /* your highest float, another you've reached, or none */
   if (calm) return { dx: 0, dy: -3 };
   if (t === 8) { const jolt = (tm % 3.7) < 0.25 ? -2 : 0; return { dx: 0, dy: Math.round(-3 + Math.sin(tm * 11) * 0.8 + Math.sin(tm * 3.1) * 1 + jolt) }; }
   if (t === 9) return { dx: 0, dy: Math.round(-4 + Math.sin(tm * 1.6) * 2.5) };
@@ -4250,7 +4250,7 @@ function revPage() {   /* Ranks › Records: each event, how often you've stoppe
 function nameTag(x, y) {   /* your name tag, in your tier's colour, with stars past the top tier */
   const stars = S.prestige >= TIERS.length ? ' ' + '★'.repeat(Math.min(5, S.prestige - TIERS.length + 1)) : '', label = S.name + stars;
   ctx.font = '700 12px "Pixelify Sans", monospace'; ctx.textAlign = 'center';
-  const lift = (PHATS[S.look.hat] && phatOwn(S.look.hat) ? PHATS[S.look.hat].art.length + 2 : 0) + (tierOf(S.prestige) >= 8 ? 6 : 0);   /* a prestige hat or the Seraph's hover: the tag goes above it */
+  const lift = (PHATS[S.look.hat] && phatOwn(S.look.hat) ? PHATS[S.look.hat].art.length + 2 : 0) + (floatOf(0).dy ? 6 : 0);   /* a prestige hat or the Seraph's hover: the tag goes above it */
   const tx = Math.round(x) * 2, ty = (Math.round(y) - 27 - lift) * 2, w = ctx.measureText(label).width + 10;
   ctx.fillStyle = 'rgba(30,20,12,0.72)'; ctx.fillRect(tx - w / 2, ty - 11, w, 15); ctx.fillStyle = TAG_COLOR[tierOf(S.prestige)]; ctx.fillText(label, tx, ty);
   if ((S.rev || {}).streak >= 5) revFlame(Math.round(tx - w / 2 - 13), ty - 12);
@@ -7349,8 +7349,6 @@ function playerSettings() {   /* what a player changes: sound, help, haptics, na
     const seg = (act, opts, cur) => '<div class="seg">' + opts.map(([v, tl]) => '<button type="button" data-act="' + act + ':' + v + '" aria-pressed="' + (String(cur) === v) + '">' + tl + '</button>').join('') + '</div>';
     const h2 = S.hud !== 'classic';
     h += '<h3>Screen</h3>' + seg('hudmode', [['new', 'New (test)'], ['classic', 'Classic']], h2 ? 'new' : 'classic') + '<p class="note">' + (h2 ? 'The farm first: hearts, level and the cherry store show when they matter. Switch back to Classic any time.' : 'Every number on screen all the time. Try New to see more of your farm.') + '</p>';
-    if (S.prestige >= 7) { const top = tierOf(S.prestige), cur = S.tierFx === false ? '0' : String(typeof S.tierFx === 'number' && S.tierFx >= 7 && S.tierFx <= top ? S.tierFx : top);
-      h += '<h3>Prestige effects</h3>' + seg('tierfx', [['0', 'Off']].concat([7, 8, 9, 10].filter((n) => n <= top).map((n) => [String(n), { 7: 'Gold', 8: 'Inferno', 9: 'Heaven', 10: 'Cosmos' }[n]])), cur) + '<p class="note">Weather on your farms from any crest you\'ve reached: gold glints, fire, heaven\'s light or the stars.</p>'; }
     if (h2) {
       h += '<h3>Text size</h3>' + seg('tscale', [['1', 'Normal'], ['1.25', 'Large'], ['1.5', 'Largest']], S.textScale || 1);
       h += '<h3>Always show</h3><div class="seg"><button type="button" data-act="hudshow:lv" aria-pressed="' + !!S.showLv + '">Level bar</button><button type="button" data-act="hudshow:store" aria-pressed="' + !!S.showStore + '">Cherry store</button></div><p class="note">Off, they show by themselves when they matter.</p>';
@@ -7769,7 +7767,7 @@ function prestige() {
   S.prestige += 1; S.season.prestige += 1; star('prestige'); if (S.pwalk) S.pwalk = 3;
   BEACON.ev(S.prestige === 1 ? "first_prestige" : "prestige", { p: S.prestige, min: Math.round(S.minutesTotal) });
   const t = tierOf(S.prestige);
-  S.look.crest = t;   /* the new crest goes on straight away */
+  S.look.crest = t; delete S.crestPick;   /* the new crest goes on straight away */
   if (SKINS.some((sk, i) => !S.skins[i] && skinOpen(i))) S.skinPicks += 1;   /* and the player picks one new outfit */
   const kept = bankKnowhow();
   S.xp = 0; carryOver();
@@ -8668,9 +8666,21 @@ function renderPanel() {
     else {
       const t = tierOf(S.prestige);
       h += '<div class="me">' + avatar(S.look, 64) + '<div class="me-t">' + plate(S.name, S.look.crest, starsFor(S.prestige), S.look.charm, pinOf(S.look, myTrophies())) + rBadge(S.look) + '<span class="note">' + TIERS[t] + ' crest' + (S.look.title ? ' · ' + titleText(S.look.title) : '') + ' · collection: ' + colRank(...colTotals()).name + '</span></div></div>';
-      h += help('looks', 'Everything you own and wear. Tap one to use it.', 'Everything you own and wear: outfits, characters, backgrounds, hats, charms and titles. Tap one to use it. Your crest follows your prestige.');
+      h += help('looks', 'Everything you own and wear. Tap one to use it.', 'Everything you own and wear: outfits, characters, backgrounds, hats, charms and titles. Tap one to use it. Pick any crest you\'ve reached; prestige pieces mix and match in Prestige style.');
       const has = () => ORIGINS.filter((l) => S.stamps[l]).length;
-      h += '<h3>Crest</h3><p class="note">Your crest is always the highest you\'ve reached, and the next one goes on by itself when you prestige.</p><div class="looks">' + TIERS.map((nm, i) => '<span class="look crestl' + (i === t ? ' now' : i < t ? ' past' : '') + '"' + (i === t ? ' aria-current="true"' : '') + '>' + avatar({ crest: i, skin: S.look.skin, bg: S.look.bg }, 40) + plate('P' + i, i) + '<small>' + (i === t ? nm + ' · yours' : i < t ? nm : 'Prestige ' + i) + '</small></span>').join('') + '</div>';
+      h += '<h3>Crest</h3><p class="note">Pick any crest you\'ve reached for your frame and nameplate. A new one goes on by itself when you prestige.</p><div class="looks">' + TIERS.map((nm, i) => i <= t ? '<button type="button" class="look crestl' + (i === S.look.crest ? ' now' : ' past') + '" data-act="crest:' + i + '" aria-pressed="' + (i === S.look.crest) + '">' + avatar({ crest: i, skin: S.look.skin, bg: S.look.bg }, 40) + plate('P' + i, i) + '<small>' + nm + (i === S.look.crest ? ' · wearing' : '') + '</small></button>' : '<span class="look crestl">' + avatar({ crest: i, skin: S.look.skin, bg: S.look.bg }, 40) + plate('P' + i, i) + '<small>Prestige ' + i + '</small></span>').join('') + '</div>';
+      if (S.prestige >= 7) {   /* Prestige style: everything earned at a prestige, mixed and matched */
+        const top = tierOf(S.prestige), NM = { 7: 'Gold', 8: 'Inferno', 9: 'Heaven', 10: 'Cosmos' }, row = (act, opts, cur) => '<div class="seg">' + opts.map(([v, tl]) => '<button type="button" data-act="' + act + ':' + v + '" aria-pressed="' + (String(cur) === String(v)) + '">' + tl + '</button>').join('') + '</div>';
+        h += '<h3>Prestige style</h3><p class="note">Everything earned at prestiges 7 to 10, to mix and match with any crest and outfit.</p>';
+        if (top >= 7) {
+          h += '<p class="note"><b>Hat</b></p>' + row('lookhat', [['', 'Outfit hat']].concat(Object.keys(PHATS).filter(phatOwn).map((k) => [k, PHATS[k].name])), S.look.hat && PHATS[S.look.hat] ? S.look.hat : '');
+          h += '<p class="note"><b>Farm effects</b></p>' + row('tierfx', [['0', 'Off']].concat([7, 8, 9, 10].filter((n) => n <= top).map((n) => [n, NM[n]])), S.tierFx === false ? '0' : typeof S.tierFx === 'number' && S.tierFx <= top ? S.tierFx : top);
+        }
+        if (top >= 8) {
+          h += '<p class="note"><b>Picker crew</b></p>' + row('crew', [['none', 'Classic']].concat(['p8', 'p9', 'p10'].filter(phatOwn).map((k) => [k, CREWS[k].name])), crewOf() || 'none');
+          h += '<p class="note"><b>Float</b></p>' + row('floatpick', [[0, 'None']].concat([8, 9, 10].filter((n) => n <= top).map((n) => [n, NM[n]])), S.floatPick === 0 ? 0 : S.floatPick >= 8 && S.floatPick <= top ? S.floatPick : top);
+        }
+      }
       h += '<h3>Outfit</h3><p class="note">' + (S.skinPicks ? '<b>You have ' + S.skinPicks + ' outfit pick' + (S.skinPicks > 1 ? 's' : '') + ' waiting.</b> Tap a new outfit to keep it.' : 'Each prestige lets you pick one new outfit, in any order, so no two collections are alike.') + '</p><div class="looks">' + SKINS.map((sk, i) => {
         const own = !!S.skins[i], early = !skinOpen(i), can = !own && !early && S.skinPicks > 0;
         return '<button type="button" class="look' + (can ? ' pick' : '') + '" data-act="' + (own ? 'skin:' : 'pickskin:') + i + '" aria-pressed="' + (S.look.skin === i) + '"' + (own || can ? '' : ' disabled') + '>' + avatar({ crest: 0, skin: i }, 40) + '<small>' + (can ? 'Pick ' + sk.name : own || !early ? sk.name : 'Prestige ' + i) + '</small></button>';
@@ -8716,7 +8726,6 @@ function renderPanel() {
       return '<div class="tile">' + avatar({ crest: S.look.crest, skin: S.look.skin, bg: S.look.bg, char: id }, 56) + '<b>' + c.name + '</b><span>From ' + c.from + '</span>' + btn('Buy', c.cost + ' cranes', 'buychar:' + id, S.cranes >= c.cost) + '</div>';
     }).join('') + '</div>';
     const hatKeys = Object.keys(ART.hats).filter((k) => !(k.startsWith('s_') || k.startsWith('ev_')) || S.hats[k]), hatName = (k) => ({ straw: 'Straw', beju: 'Beju green', sakura: 'Sakura', indigo: 'Indigo', harvest: 'Harvest orange', ev_bee: 'Beekeeper', ev_re_straw: 'Nursery straw', ev_ba_bamboo: 'Bamboo hat', ev_ga_field: 'Field hat' })[k] || themeById(k).name + ' (season)', hatPic = (k) => url('worker_down_0', { hat: ART.hats[k] });
-    { const cr = ['p8', 'p9', 'p10'].filter(phatOwn); if (cr.length) h += '<h3>Picker crew</h3><div class="seg">' + [['none', 'Classic']].concat(cr.map((k) => [k, CREWS[k].name])).map(([k, tl]) => '<button type="button" data-act="crew:' + k + '" aria-pressed="' + ((crewOf() || 'none') === k) + '">' + tl + '</button>').join('') + '</div><p class="note">From prestige 8 your pickers and the shiba can join your crest: demons, angels or cosmic beings.</p>'; }
     h += '<h3>Picker hats</h3><p class="note">Hats for your pickers, bought with cranes.</p>' + ownStrip(hatKeys.filter((k) => S.hats[k]).map((k) => [chipImg(hatPic(k)), hatName(k), 'hat:' + k, S.hat === k ? 'on' : 'no']), 'Tap a hat for your pickers to wear it.') + '<div class="grid2">' + hatKeys.filter((k) => !S.hats[k]).map((k) => {
       const cost = { straw: 0, beju: 15, sakura: 20, indigo: 15, harvest: 20 }[k];
       return '<div class="tile"><div style="display:flex;align-items:center;gap:6px"><img src="' + hatPic(k) + '" alt="" style="width:32px;image-rendering:pixelated"><b>' + hatName(k) + '</b></div>' + btn('Buy', cost + ' cranes', 'buyhat:' + k, S.cranes >= cost) + '</div>';
@@ -9009,7 +9018,8 @@ document.addEventListener('click', (e) => {
   else if (a === 'linkload') linkLoad();
   else if (a === 'recovery') recoveryCard();
   else if (a === 'reccopy') { const c = NET.acct ? NET.acct.player + '.' + NET.acct.token : ''; (navigator.clipboard ? navigator.clipboard.writeText(c) : Promise.reject()).then(() => toast('Recovery code copied')).catch(() => toast('Hold the code to select and copy it')); }
-  else if (a === 'crest') S.look.crest = tierOf(S.prestige);   /* crests aren't picked: always your highest */
+  else if (a === 'crest') { const n = +v; if (Number.isFinite(n) && n >= 0 && n <= tierOf(S.prestige)) { S.look.crest = n; S.crestPick = n; } else { S.look.crest = tierOf(S.prestige); delete S.crestPick; } }   /* any crest you've reached */
+  else if (a === 'floatpick') S.floatPick = v === 'auto' ? undefined : +v;
   else if (a === 'skin') { if (S.skins[+v]) S.look.skin = +v; }
   else if (a === 'pickskin') { const i = +v; if (!S.skins[i] && skinOpen(i) && S.skinPicks > 0) { S.skinPicks -= 1; S.skins[i] = true; S.look.skin = i; toast(SKINS[i].name + ' outfit is yours'); SFX.play('achieve'); if (S.pwalk === 3) { const sl = Object.keys(S.dormant)[0], wl = sl && S.dormant[sl]; S.pwalk = sl ? 4 : 0; S.pwalkDone = !sl; setTab('farm'); if (sl) setTimeout(() => showModal(coachCard('Resting farm', ART.locations[sl].name.split(',')[0] + ' rests after a prestige. It wakes again at level ' + wl + ', just as you left it.', 'Got it', 'pwalkend')), 400); } if (!$('modal').hidden && $('modalCard').querySelector('[data-act^="pickskin"]')) closeModal(); } }
   else if (a === 'bg') { if (bgOpen(v)) S.look.bg = v; }

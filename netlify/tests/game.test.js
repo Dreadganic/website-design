@@ -370,7 +370,8 @@ test("scores: the counter's rating and customers ride along, kept to what play a
   assert.equal((await call(score, "POST", s(900, { rating: 1, served: 15 }), a)).status, 200);
   row = await store.get("scores/" + a.split(".")[0]);
   assert.equal(row.crate, 2.5, "the rating moves at most 0.75 a session (3.2 − 0.75, to one decimal)"); assert.equal(row.cserved, 15);
-  assert.equal(row.look.crest, 1, "the crest is the highest the prestige reached, whatever was sent");
+  assert.equal(row.look.crest, 0, "a crest below the prestige reached is kept: players pick any crest they've earned");
+  assert.deepEqual([G.cleanLook({ crest: 9 }, 7).crest, G.cleanLook({}, 7).crest, G.cleanLook({ crest: 3 }, 7).crest], [7, 7, 3], "never above the prestige; the highest when none is sent");
   clock += 60000;
   assert.equal((await call(score, "POST", s(1200), a)).status, 200, "an older client without the counter");
   row = await store.get("scores/" + a.split(".")[0]);
