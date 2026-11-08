@@ -3277,16 +3277,22 @@ function drawBarn(t, x, y, tm) {
     R('#7A0A04', 14, 26, 12, 12); R('#FF5A10', 15, 31 - fl, 10, 7 + fl); R('#FFD040', 17, 33 - fl, 6, 5 + fl); R('#FFF0A0', 19, 35, 2, 3);   /* the furnace */
     R('#120808', 29, 2, 5, 12); R('#3A2020', 30, 3, 3, 1);
     if (!still) for (let i = 0; i < 4; i++) { const u = (k * 0.9 + i / 4) % 1; g.globalAlpha = 1 - u; R(u < 0.4 ? '#FFD040' : '#FF5A10', 31 + Math.round(Math.sin(k * 4 + i) * 2), Math.round(1 - u * 14), 1, 1); R('#5A4A4A', 30 + Math.round(Math.sin(k + i) * 3), Math.round(-u * 18), 2, 2); g.globalAlpha = 1; }   /* sparks and smoke */
-  } else if (t === 9) {   /* Heaven temple on a cloud */
-    R('#FFFFFF', 1, 33, 38, 5); R('#E8EEF8', 0, 35, 40, 2); [3, 11, 20, 29].forEach((a, i) => R('#FFFFFF', a + (still ? 0 : Math.round(Math.sin(k * 1.2 + i) * 1)), 31, 8, 3));
-    R('#D8D0BC', 3, 30, 34, 3); R('#F8F4EA', 3, 30, 34, 1);
-    [5, 13, 23, 31].forEach((a) => { R('#F8F4EA', a, 15, 4, 15); R('#D8D0BC', a + 3, 15, 1, 15); });
-    const dg = still ? 0.8 : 0.6 + 0.3 * Math.sin(k * 2); R('#3E2A1C', 17, 19, 6, 11); g.globalAlpha = dg; R('#FFF4C0', 18, 20, 4, 10); g.globalAlpha = 1;   /* a glowing doorway */
-    R('#D8D0BC', 2, 12, 36, 3); R('#F2C04A', 2, 14, 36, 1);
-    for (let i = 0; i < 9; i++) R('#F8F4EA', 4 + i * 2, 11 - i, 32 - i * 4, 1);   /* the pediment */
-    R('#F2C04A', 19, 4, 2, 2);
-    g.save(); g.translate(x + 20, y + 0); g.scale(1, 0.35); g.strokeStyle = '#F2D060'; g.lineWidth = 2; g.globalAlpha = still ? 0.9 : 0.7 + 0.3 * Math.sin(k * 2.5);
+  } else if (t === 9) {   /* Heaven temple floating on a winged cloud, its shadow on the ground below */
+    const bob = still ? 0 : Math.round(Math.sin(k * 1.2) * 2), Rb = (c, a2, b2, w, h) => R(c, a2, b2 + bob - 3, w, h), fl = still ? 0 : Math.sin(k * 3);
+    g.globalAlpha = 0.18 - bob * 0.02; g.fillStyle = '#2A3A20'; g.beginPath(); g.ellipse(x + 20, y + 39, 16 - bob, 2, 0, 0, 7); g.fill(); g.globalAlpha = 1;   /* the shadow */
+    [-1, 1].forEach((sd) => { const bx = x + 20 + sd * 15, by = y + 22 + bob - 3; for (let f = 0; f < 6; f++) { const ln = 19 - f * 2.4, ang = (-0.25 - f * 0.25 + fl * 0.3) ; g.strokeStyle = f % 2 ? '#E8E2D0' : '#FFFFFF'; g.lineWidth = 4 - f * 0.4; g.beginPath(); g.moveTo(bx, by + f); g.lineTo(bx + sd * Math.cos(ang) * ln, by + f + Math.sin(ang) * ln); g.stroke(); } });   /* feathered wings */
+    const puff = (cx2, cy2, r2, c) => { g.fillStyle = c; g.beginPath(); g.arc(x + cx2, y + cy2 + bob - 3, r2, 0, 7); g.fill(); };
+    [[6, 34, 5], [14, 36, 6], [24, 36, 6], [33, 34, 5], [20, 33, 6]].forEach(([a2, b2, r2]) => puff(a2, b2 + 1, r2, '#D8E0F0'));
+    [[6, 33, 5], [14, 35, 6], [24, 35, 6], [33, 33, 5], [20, 32, 6]].forEach(([a2, b2, r2]) => puff(a2, b2, r2, '#FFFFFF'));   /* the cloud */
+    Rb('#D8D0BC', 5, 28, 30, 3); Rb('#F8F4EA', 5, 28, 30, 1);
+    [7, 14, 22, 29].forEach((a2) => { Rb('#F8F4EA', a2, 15, 4, 13); Rb('#D8D0BC', a2 + 3, 15, 1, 13); });
+    const dg = still ? 0.8 : 0.6 + 0.3 * Math.sin(k * 2); Rb('#3E2A1C', 17, 18, 6, 10); g.globalAlpha = dg; Rb('#FFF4C0', 18, 19, 4, 9); g.globalAlpha = 1;   /* a glowing doorway */
+    Rb('#D8D0BC', 4, 12, 32, 3); Rb('#F2C04A', 4, 14, 32, 1);
+    for (let i = 0; i < 8; i++) Rb('#F8F4EA', 6 + i * 2, 11 - i, 28 - i * 4, 1);   /* the pediment */
+    Rb('#F2C04A', 19, 3, 2, 2);
+    g.save(); g.translate(x + 20, y + bob - 4); g.scale(1, 0.35); g.strokeStyle = '#F2D060'; g.lineWidth = 2; g.globalAlpha = still ? 0.9 : 0.7 + 0.3 * Math.sin(k * 2.5);
     g.beginPath(); g.ellipse(0, 0, 9, 9, 0, 0, Math.PI * 2); g.stroke(); g.restore(); g.globalAlpha = 1;   /* the halo above */
+    if (!still) for (let i = 0; i < 3; i++) { const u = (k * 0.15 + i / 3) % 1; g.globalAlpha = Math.sin(u * Math.PI) * 0.8; g.fillStyle = '#FFFFFF'; g.fillRect(Math.round(x - 10 + u * 60), y + 6 + i * 9, 5, 2); g.fillRect(Math.round(x - 9 + u * 60), y + 5 + i * 9, 3, 1); g.globalAlpha = 1; }   /* wisps drifting past */
   } else {   /* Cosmos: a rift, not a barn. A floating rock with crystals, a swirling portal with an eye that watches the farm,
      the barn's own pieces tumbling round it and a crystal spire hanging upside down above */
     const bob = still ? 0 : Math.round(Math.sin(k * 1.3) * 1.5), cx = x + 20, cy = y + 14;
@@ -3368,15 +3374,18 @@ function drawRoaster(t, x, y, tm, busy, i) {
     R('#000000', 8, 11, 10, 7); [9, 11, 13, 15].forEach((a) => R('#E8E0D0', a + 1, 11, 1, 2)); [10, 12, 14].forEach((a) => R('#E8E0D0', a + 1, 16, 1, 2));   /* the maw */
     if (busy) for (let n = 0; n < 3; n++) { const f = still ? 0 : Math.floor(k * 10 + n * 3) % 3; R(n === 1 ? '#FFD040' : '#FF5A10', 10 + n * 2, 14 - f, 2, 2 + f); }
     R('#120808', 19, 0, 4, 5); if (!still) for (let n = 0; n < 2; n++) { const u = (k * 0.9 + n / 2) % 1; g.globalAlpha = 1 - u; R(u < 0.4 ? '#FFD040' : '#FF5A10', 20 + Math.round(Math.sin(k * 4 + n) * 1), Math.round(-u * 10), 1, 1); g.globalAlpha = 1; }   /* the stack, sparking */
-  } else if (t === 9) {
-    const bob = still ? 0 : Math.round(Math.sin(k * 1.6) * 1), fl = still ? 0 : Math.round(Math.sin(k * 5) * 1.5);
-    [[3, 22, 7], [11, 23, 7], [17, 22, 7]].forEach(([a, b, w]) => { R('#FFFFFF', a, b, w, 3); R('#E8EEF8', a + 1, b + 2, w - 2, 1); });   /* a cloud for a stand */
-    [-1, 1].forEach((sd) => { for (let r = 0; r < 6; r++) { const w = 7 - r, a = sd < 0 ? 2 - w : 24; R(r % 2 ? '#E8E2D0' : '#FFFFFF', a, 9 + r - (r < 3 ? fl : 0) + bob, w, 1); } });   /* wings */
-    R('#D8D0BC', 2, 8 + bob, 22, 13); R('#F8F4EA', 3, 9 + bob, 20, 11); R('#F2C04A', 3, 9 + bob, 20, 1); R('#F2C04A', 3, 19 + bob, 20, 1);
-    g.fillStyle = '#F2C04A'; g.beginPath(); g.arc(x + 13, y + 14 + bob, 5, 0, 7); g.fill(); g.fillStyle = busy ? '#FFE8A0' : '#E8E2D0'; g.beginPath(); g.arc(x + 13, y + 14 + bob, 4, 0, 7); g.fill();   /* a round drum */
-    spokes(13, 14 + bob, 3, '#C8A040');
-    R('#D8D0BC', 11, 3 + bob, 4, 5); R('#F8F4EA', 12, 4 + bob, 2, 4); R('#D8D0BC', 19, 4 + bob, 4, 4); R('#F2C04A', 19, 4 + bob, 4, 1);
-    g.globalAlpha = still ? 0.9 : 0.6 + 0.35 * Math.abs(Math.sin(k * 2)); g.strokeStyle = '#F2C04A'; g.lineWidth = 1; g.beginPath(); g.ellipse(x + 13, y + 1 + bob, 5, 1.5, 0, 0, 7); g.stroke(); g.globalAlpha = 1;   /* a halo */
+  } else if (t === 9) {   /* a round marble urn with a golden drum, on a cloud, with great feathered wings */
+    const bob = still ? 0 : Math.round(Math.sin(k * 1.6) * 1), fl = still ? 0 : Math.sin(k * (busy ? 6 : 3)), cx = x + 13, cy = y + 13 + bob;
+    [-1, 1].forEach((sd) => { for (let f = 0; f < 5; f++) { const ln = 11 - f * 1.6, ang = -0.35 - f * 0.28 + fl * 0.3; g.strokeStyle = f % 2 ? '#E8E2D0' : '#FFFFFF'; g.lineWidth = 2.4 - f * 0.25; g.beginPath(); g.moveTo(cx + sd * 7, cy - 1 + f); g.lineTo(cx + sd * (7 + Math.cos(ang) * ln), cy - 1 + f + Math.sin(ang) * ln); g.stroke(); } });   /* wings */
+    const puff = (a2, b2, r2, c) => { g.fillStyle = c; g.beginPath(); g.arc(x + a2, y + b2, r2, 0, 7); g.fill(); };
+    [[5, 24, 4], [12, 25, 5], [20, 24, 4], [13, 22, 4]].forEach(([a2, b2, r2]) => puff(a2, b2 + 1, r2, '#D8E0F0')); [[5, 23, 4], [12, 24, 5], [20, 23, 4], [13, 21, 4]].forEach(([a2, b2, r2]) => puff(a2, b2, r2, '#FFFFFF'));   /* the cloud */
+    g.fillStyle = '#D8D0BC'; g.beginPath(); g.ellipse(cx, cy, 8, 8, 0, 0, 7); g.fill(); g.fillStyle = '#F8F4EA'; g.beginPath(); g.ellipse(cx - 0.5, cy - 0.5, 7, 7, 0, 0, 7); g.fill();   /* a round marble body */
+    g.strokeStyle = '#F2C04A'; g.lineWidth = 1; g.beginPath(); g.ellipse(cx, cy, 7.5, 7.5, 0, 0, 7); g.stroke();
+    g.fillStyle = '#F2C04A'; g.beginPath(); g.arc(cx, cy, 4.5, 0, 7); g.fill(); g.fillStyle = busy ? '#FFE8A0' : '#E8E2D0'; g.beginPath(); g.arc(cx, cy, 3.5, 0, 7); g.fill();
+    spokes(13, 13 + bob, 3, '#C8A040');
+    R('#D8D0BC', 11, 1 + bob, 4, 4); R('#F8F4EA', 12, 1 + bob, 2, 4); R('#F2C04A', 10, 0 + bob, 6, 1);   /* a little dome hopper */
+    g.globalAlpha = still ? 0.9 : 0.6 + 0.35 * Math.abs(Math.sin(k * 2)); g.strokeStyle = '#F2C04A'; g.beginPath(); g.ellipse(cx, y - 2 + bob, 5, 1.5, 0, 0, 7); g.stroke(); g.globalAlpha = 1;   /* a halo */
+    if (busy && !still) for (let n = 0; n < 2; n++) { const u = (k * 0.6 + n / 2) % 1; g.globalAlpha = 1 - u; g.fillStyle = '#FFFFFF'; g.fillRect(Math.round(cx + 6 + u * 4), Math.round(y + 2 - u * 8), 2, 2); g.globalAlpha = 1; }   /* puffs of cloud for steam */
   } else {
     const hue = still ? 0 : Math.floor(k * 4) % 6, rb = ['#FF5A9A', '#F2C04A', '#7EF0C0', '#5AA0E8', '#C08AF0', '#FF5A9A'], bob = still ? 0 : Math.sin(k * 1.4) * 1.5;
     const cx = x + 13, cy = y + 12 + bob, sp = still ? 0 : k * (busy ? 3 : 1), P = (c, px, py, w, h) => { g.fillStyle = c; g.fillRect(Math.round(px), Math.round(py), w || 1, h || 1); };
