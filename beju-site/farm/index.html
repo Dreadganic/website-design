@@ -3277,10 +3277,9 @@ function drawBarn(t, x, y, tm) {
     R('#7A0A04', 14, 26, 12, 12); R('#FF5A10', 15, 31 - fl, 10, 7 + fl); R('#FFD040', 17, 33 - fl, 6, 5 + fl); R('#FFF0A0', 19, 35, 2, 3);   /* the furnace */
     R('#120808', 29, 2, 5, 12); R('#3A2020', 30, 3, 3, 1);
     if (!still) for (let i = 0; i < 4; i++) { const u = (k * 0.9 + i / 4) % 1; g.globalAlpha = 1 - u; R(u < 0.4 ? '#FFD040' : '#FF5A10', 31 + Math.round(Math.sin(k * 4 + i) * 2), Math.round(1 - u * 14), 1, 1); R('#5A4A4A', 30 + Math.round(Math.sin(k + i) * 3), Math.round(-u * 18), 2, 2); g.globalAlpha = 1; }   /* sparks and smoke */
-  } else if (t === 9) {   /* Heaven temple floating on a winged cloud, its shadow on the ground below */
+  } else if (t === 9) {   /* Heaven temple floating on a cloud, its shadow on the ground below */
     const bob = still ? 0 : Math.round(Math.sin(k * 1.2) * 2), Rb = (c, a2, b2, w, h) => R(c, a2, b2 + bob - 3, w, h), fl = still ? 0 : Math.sin(k * 3);
     g.globalAlpha = 0.18 - bob * 0.02; g.fillStyle = '#2A3A20'; g.beginPath(); g.ellipse(x + 20, y + 39, 16 - bob, 2, 0, 0, 7); g.fill(); g.globalAlpha = 1;   /* the shadow */
-    [-1, 1].forEach((sd) => { const bx = x + 20 + sd * 15, by = y + 22 + bob - 3; for (let f = 0; f < 6; f++) { const ln = 19 - f * 2.4, ang = (-0.25 - f * 0.25 + fl * 0.3) ; g.strokeStyle = f % 2 ? '#E8E2D0' : '#FFFFFF'; g.lineWidth = 4 - f * 0.4; g.beginPath(); g.moveTo(bx, by + f); g.lineTo(bx + sd * Math.cos(ang) * ln, by + f + Math.sin(ang) * ln); g.stroke(); } });   /* feathered wings */
     const puff = (cx2, cy2, r2, c) => { g.fillStyle = c; g.beginPath(); g.arc(x + cx2, y + cy2 + bob - 3, r2, 0, 7); g.fill(); };
     [[6, 34, 5], [14, 36, 6], [24, 36, 6], [33, 34, 5], [20, 33, 6]].forEach(([a2, b2, r2]) => puff(a2, b2 + 1, r2, '#D8E0F0'));
     [[6, 33, 5], [14, 35, 6], [24, 35, 6], [33, 33, 5], [20, 32, 6]].forEach(([a2, b2, r2]) => puff(a2, b2, r2, '#FFFFFF'));   /* the cloud */
