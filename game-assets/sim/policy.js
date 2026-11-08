@@ -75,6 +75,10 @@ window.BOT = (function () {
     if (H() && rnd() < 0.5) return;   /* sometimes keeps the old coffee for a while */
     const S = G.S, home = S.loc, owned = G.VAR_ORDER.filter((v) => S.vars[v]), best = owned.sort((a, b) => score(b) - score(a))[0];
     G.LOCS.forEach((l) => { if (!S.farms[l].unlocked || l === 'osaka') return; if (H() && l !== home && rnd() < 0.6) return; act('go:' + l);
+      if (G.nativeKg) {   /* the native bonus is per field (×1.5 cherries, 20% faster at home): every field gets the best coffee for this farm */
+        const here = (v) => score(v) * G.nativeKg(l, v) * (G.isNative(l, v) ? 1.2 : 1), bestHere = owned.slice().sort((a, b) => here(b) - here(a))[0];
+        S.farms[l].beds.forEach((v, b) => { if (v !== bestHere && here(bestHere) > here(v) * 1.15) act('plant:' + b + '.' + bestHere); }); return;
+      }
       const nat = G.isNative && B.cfg.native !== false ? owned.filter((v) => G.isNative(l, v)).sort((a, b) => score(b) - score(a))[0] : null;   /* keep field 1 native for the terroir bonus */
       S.farms[l].beds.forEach((v, b) => { const want = b === 0 && nat ? nat : best; if (v !== want && (want === nat || score(want) > score(v) * 1.15)) act('plant:' + b + '.' + want); }); });
     act('go:' + home); closeAll();

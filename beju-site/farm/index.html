@@ -2974,12 +2974,14 @@ function eventContract(d, k) {
 /* contracts */
 const BUYERS = ['Kissa Hoshi, Osaka', 'Mame Lab, Kyoto', 'Blue Door Café, Melbourne', 'Nordlys Roasters, Oslo', 'Café Solar, Bogotá', 'Little Crane Bakery', 'Hanami Coffee Stand', 'Beju Roastery', 'Beju Roastery'];
 const NATIVE_BOOST = 1.2;   /* a variety grows 20% faster on a farm where it is native */
-/* terroir: while a farm has at least one native field, every pick there (yours, pickers' and offline) brings in 15% more cherries,
-   so a patch of an older native coffee stays worth keeping next to the newest varieties */
-const TERROIR = 1.15;
+/* terroir: a coffee picked on its home farm brings in half as many cherries again (yours, pickers' and offline), so each farm has its own
+   best coffee: Pink Bourbon at Huila, Mundo Novo and Catuaí at Mogiana, Heirloom at Gedeo, Geisha at Turrialba and Osaka (audit:
+   "One coffee wins everywhere"; was +15% on the whole farm for one native field, which left Geisha best on every field) */
+const NATIVE_KG = 1.5;
 const isNative = (loc, v) => ART.locations[loc].beds.includes(v);
 const nativeNames = (loc) => [...new Set(ART.locations[loc].beds)].map((v) => ART.varieties[v]).join(', ');
-const terroir = (f) => (f.beds.slice(0, f.field ? 4 : 3).some((v) => isNative(f.loc, v)) ? TERROIR : 1);
+const nativeKg = (loc, v) => (isNative(loc, v) ? NATIVE_KG : 1);
+const worthHere = (loc, v) => VAR[v].kg * nativeKg(loc, v) * VAR[v].value;   /* what a pick is worth on this farm, before the mill */
 const varGrowth = (f, v) => (VAR[v].allSeason ? 1.5 : growth(f.loc)) * VAR[v].speed * (ART.locations[f.loc].beds.includes(v) ? NATIVE_BOOST : 1) * (1 + 0.1 * ((f.build && f.build.compost) || 0)) * (v === 'pinkbourbon' && estOn('huila', 3) ? 1.2 : 1);
 const METHODS = {
   washed: { name: 'Washed', time: 60, mult: 1.0, cup: 84, art: 'proc_washed', unlock: 'Unlocked' },
@@ -3392,7 +3394,7 @@ function tickFarm(f, d, visible) {
       w.t += d * pm; w.dir = 'up';
       if (!w.target || w.target.p < 1) { w.state = 'seek'; return; }
       if (w.t >= 2.4) {
-        const s = w.target; s.p = 0; s.claim = null; w.target = null; w.carry += VAR[s.v].kg * terroir(f) * pickKg(s.v); w.lastV = s.v;
+        const s = w.target; s.p = 0; s.claim = null; w.target = null; w.carry += VAR[s.v].kg * nativeKg(f.loc, s.v) * pickKg(s.v); w.lastV = s.v;
         if (w.carry >= carry) { w.path = route(w, DROP); w.state = 'walk'; w.next = 'deposit'; } else w.state = 'seek';
       }
     } else if (w.state === 'deposit') {
@@ -7193,7 +7195,7 @@ cv.addEventListener('click', (e) => {
     if (stored() >= cap()) { SFX.play('knock'); floats.push({ x: s.x + 9, y: s.y, text: 'storage full', t: 0 }); return; }
     if (s.claim) { const w = s.claim; w.target = null; if (w.state === 'pick' || w.state === 'walk') w.state = 'seek'; }
     s.p = 0; s.claim = null; S.hearts -= 1; S.taps += 1; task('pick', 1); guideStep('pick');
-    const kg = store(f, s.v, VAR[s.v].kg * terroir(f) * pickKg(s.v) * (rule('akimatsuri') ? 1.2 : 1));
+    const kg = store(f, s.v, VAR[s.v].kg * nativeKg(f.loc, s.v) * pickKg(s.v) * (rule('akimatsuri') ? 1.2 : 1));
     SFX.play('harvest');
     floatKg(s.x + 9, s.y, kg); hudPickAt = Date.now(); $('app').classList.add('sh-hearts');
     for (let i = 0; i < 7; i++) bursts.push({ x: s.x + 9, y: s.y + 8, vx: (rnd() - 0.5) * 60, vy: -30 - rnd() * 40, t: 0, c: i % 2 ? '#E83A30' : '#3E8036' });
@@ -7537,7 +7539,7 @@ function unlockFarm(loc) {
 function varCard(v) {   /* a new coffee: plant it from this one window, in a field of its home farm, without the farm and replant windows in between */
   const home = (VAR_HOME[v] || []).find((l) => S.farms[l].unlocked && !S.dormant[l]) || S.loc, f = S.farms[home] || S.farms[S.loc], n = f.field ? 4 : 3;
   const fields = f.beds.slice(0, n).map((x, b) => x === v ? '' : '<button class="btn green" data-act="plantnow:' + f.loc + '.' + b + '.' + v + '">Field ' + (b + 1) + '<small>' + ART.varieties[x] + ' now</small></button>').join('');
-  return '<h2>' + ART.varieties[v] + ' unlocked</h2>' + img('bush_' + v + '_ripe', 54) + '<p class="note">' + VAR[v].perk + ' Plant it ' + (isNative(f.loc, v) ? 'here on its home farm, ' + ART.locations[f.loc].name.split(',')[0] + ', for the terroir bonus' : 'in a field on ' + ART.locations[f.loc].name.split(',')[0]) + ': the field starts again from sprouts.</p><div class="seg">' + fields + '</div><button class="btn" data-act="close">Later</button>';
+  return '<h2>' + ART.varieties[v] + ' unlocked</h2>' + img('bush_' + v + '_ripe', 54) + '<p class="note">' + VAR[v].perk + ' Plant it ' + (isNative(f.loc, v) ? 'here on its home farm, ' + ART.locations[f.loc].name.split(',')[0] + ', where it picks ×1.5 cherries' : 'in a field on ' + ART.locations[f.loc].name.split(',')[0]) + ': the field starts again from sprouts.</p><div class="seg">' + fields + '</div><button class="btn" data-act="close">Later</button>';
 }
 function bagCard(k, title, art) {   /* an unlock that exists for real links its bag, once a save: the unlock is the ad, earned not pushed. Off until orders count (ORDERS_LIVE) */
   if (!k || !ordersLive() || (S.bagSeen || {})[k]) return false;
@@ -7627,8 +7629,8 @@ function away(hours) {
   LOCS.forEach((l) => {
     const f = S.farms[l]; if (!f.unlocked || !f.workers.length || S.dormant[l]) return;
     const perWorkerMin = carryKg() / ((2.4 * carryKg() / 3 + 8) / pickerMult()) * 60 / 60 * 0.5;   /* kg a picker brings in per game minute, walking included */
-    const nb = awayBeds(f), fk = f.workers.length * perWorkerMin * mins * f.beds.slice(0, nb).reduce((a, v) => a + varGrowth(f, v) * VAR[v].kg * pickKg(v) / nb, 0) / 3 / 1.2;   /* the average field, the fourth one too once it's cleared */
-    const fkm = fk * (f.manager ? 1.5 : 1) * masteryMult(f) * terroir(f);
+    const nb = awayBeds(f), fk = f.workers.length * perWorkerMin * mins * f.beds.slice(0, nb).reduce((a, v) => a + varGrowth(f, v) * VAR[v].kg * pickKg(v) * nativeKg(f.loc, v) / nb, 0) / 3 / 1.2;   /* the average field, the fourth one too once it's cleared */
+    const fkm = fk * (f.manager ? 1.5 : 1) * masteryMult(f);
     kg += fkm; byFarm.push([f, fkm]);
     f.shrubs.forEach((s) => { s.p = 1; });
   });
@@ -8173,9 +8175,9 @@ function renderPanel() {
       const pFull = f.workers.length >= maxPickers(f), roomy = (f.build.housing || 0) < buildMax() && S.tabs.upgrades;   /* full: housing makes room */
       h += row(img('worker_down_0', 22), 'Pickers here: ' + f.workers.length + '/' + maxPickers(f), pFull ? 'Every picker place is taken.' + (roomy ? ' Worker housing adds 2 places a level.' : '') : 'They pick for you, even while you\'re away.', pFull ? btn('Full', roomy ? 'build housing' : 'all places taken', roomy ? 'uptab:build' : 'noop', roomy, 'blue') : btn('Hire', fmt(hireCost()) + ' coins', 'hire', S.coins >= hireCost()));
       h += row(img(storeSprite(S.lv.storage), 44), STORE[S.lv.storage - 1].name + ': ' + fmt(stored()) + ' / ' + fmt(cap()) + ' kg', (stored() >= cap() ? 'Full! Pickers have stopped. Process or sell cherries.' : 'Cherries from every farm come here.') + (sackKg() >= 1 ? ' ' + fmt(sackKg()) + ' kg more wait in pickers\' sacks.' : ''), btn('Mill', 'process', 'tab:mill', true, 'blue'));
-      h += '<h3>Fields</h3>' + (!ART.locations[f.loc].beds.some((v) => S.vars[v]) ? '' : terroir(f) > 1 ? '<span class="chip">Terroir on: +15% cherries here</span>' + help('terroir', 'A native field keeps it on.', 'A native field gives every pick on this farm +15% cherries. Natives also grow 20% faster at home.') : '<p class="rule"><b>Terroir off:</b> plant a native coffee (' + nativeNames(f.loc) + ') in any field and every pick on this farm brings in 15% more cherries.</p>');
+      h += '<h3>Fields</h3>' + (!ART.locations[f.loc].beds.some((v) => S.vars[v]) ? '' : help('terroir', 'Native here: ' + nativeNames(f.loc) + '. ×1.5 cherries.', 'Coffees native to this farm (' + nativeNames(f.loc) + ') bring in half as many cherries again from every pick, yours, pickers\' and while you\'re away, and grow 20% faster. So each farm has its own best coffee.'));
       if (hasPerk('replantall')) h += btn('Replant all', 'every farm, natives kept', 'replantask', true, 'blue');
-      h += f.beds.slice(0, f.field ? 4 : 3).map((v, b) => row(img('bush_' + v + '_ripe', 30), 'Field ' + (b + 1) + ': ' + ART.varieties[v] + (isNative(f.loc, v) ? ' · native' : ''), VAR[v].kg + ' kg a pick' + (isNative(f.loc, v) ? ' · grows 20% faster here' : ''), btn('Replant', '', 'bed:' + b, true, 'blue'))).join('');
+      h += f.beds.slice(0, f.field ? 4 : 3).map((v, b) => row(img('bush_' + v + '_ripe', 30), 'Field ' + (b + 1) + ': ' + ART.varieties[v] + (isNative(f.loc, v) ? ' · native' : ''), fmtKg(VAR[v].kg * nativeKg(f.loc, v)) + ' kg a pick' + (isNative(f.loc, v) ? ' (×1.5 at home) · grows 20% faster' : ''), btn('Replant', '', 'bed:' + b, true, 'blue'))).join('');
       h += row(img('i_cherry', 28), 'Sell fresh cherries', '2 coins a kg. The Mill pays far more.', btn('Sell all', fmt(stored() * 2) + ' coins', 'sellraw', stored() > 0));
     }
   } else if (tab === 'roast' && roasteryOpen()) {
@@ -8319,7 +8321,7 @@ function renderPanel() {
     h += '<p class="note">' + icon('i_points') + ' ' + fmt(S.points) + ' know-how to spend.</p>' + help('kh', 'Unlocks and techniques stay for good.', 'Unlocks and techniques stay for good. Know-how you haven\'t spent when you prestige becomes cupping research, so none is lost.');
     h += '<div class="seg subtabs">' + [['coffees', 'Coffees'], ['processes', 'Process'], ['farms', 'Farms'], ['research', 'Research'], ['notebook', 'Notebook']].map(([k, tl]) => '<button type="button" data-act="untab:' + k + '" aria-pressed="' + (nt === k) + '">' + tl + (ready[k] ? ' <i class="dot" aria-label="something to unlock"></i>' : '') + '</button>').join('') + '</div>';
     if (nt === 'coffees') {
-    h += help('coffees', 'Each coffee is native to a farm. Plant it there for a bonus.', 'Each coffee is native to a farm: it grows 20% faster there, and one native field gives that farm +15% cherries. Plant your newest coffee before the next.') + VAR_ORDER.filter((v) => !S.vars[v]).map((v) => {
+    h += help('coffees', 'Each coffee is native to a farm. Plant it there for a bonus.', 'Each coffee is native to a farm: there it picks ×1.5 cherries and grows 20% faster, so each farm has its own best coffee. Geisha isn\'t always the answer.') + VAR_ORDER.filter((v) => !S.vars[v]).map((v) => {
       const have = S.vars[v], vr = VAR[v], rq = unlockReq('var:' + v);
       return row(img('bush_' + v + (have || rq.ok ? '_ripe' : '_sprout'), 34), ART.varieties[v] + ' · ' + vr.kg + ' kg · ×' + vr.value, vr.perk + (!have && !rq.ok ? ' ' + rq.why + ', then ' + fmt(vr.cost) + ' know-how.' : ''), have ? btn('Owned', '', 'noop', false, 'blue') : !rq.ok ? btn('Locked', rq.short, 'noop', false) : btn('Unlock', fmt(vr.cost) + ' know-how', 'var:' + v, S.points >= vr.cost, 'green'));
     }).join('') + doneStrip(VAR_ORDER.filter((v) => S.vars[v]).map((v) => ['bush_' + v + '_ripe', ART.varieties[v]]));
@@ -8769,12 +8771,12 @@ document.addEventListener('click', (e) => {
   else if (a === 'plantgo') { closeModal(); const home = (VAR_HOME[v] || []).find((l) => S.farms[l].unlocked && !S.dormant[l]); if (home) S.loc = home; S.isle = false; S.farmSub = 'fields'; setTab('farm'); toast('Tap a field to plant ' + ART.varieties[v]); }
   else if (a === 'crackgo') { const i = S.roastery.roasters.findIndex((r) => inCrack(r) && !r.crack); if (i > -1) crackRoast(i); }
   else if (a === 'taskgo') { S.farmSub = 'fields'; if (v === 'kona') { goKona(); return; } if (ISLE_IDS.includes(v)) { goIsle(v); return; } if (v === 'counter') { S.roastSub = 'counter'; v = 'roast'; } setTab(v); }
-  else if (a === 'replantask') showModal('<h2>Replant all</h2><p class="note">Every field on every open farm switches to the coffee you choose and starts again ' + (S.re && S.re.lv >= 10 ? 'half grown, with seedlings from Tante Lise\'s nursery.' : 'from sprouts.') + ' Each farm keeps one native field, or gets one if you own a coffee native there, so terroir stays on.</p>' + plantVars().filter((x) => S.vars[x]).map((x) => row(img('bush_' + x + '_ripe', 30), ART.varieties[x], VAR[x].kg + ' kg a pick · ×' + VAR[x].value + ' price', btn('Plant everywhere', '', 'replantall:' + x, true, 'green'))).join('') + '<button class="btn" data-act="close">Cancel</button>');
+  else if (a === 'replantask') showModal('<h2>Replant all</h2><p class="note">Every field on every open farm switches to the coffee you choose and starts again ' + (S.re && S.re.lv >= 10 ? 'half grown, with seedlings from Tante Lise\'s nursery.' : 'from sprouts.') + ' Each farm keeps one native field, or gets one if you own a coffee native there.</p>' + plantVars().filter((x) => S.vars[x]).map((x) => row(img('bush_' + x + '_ripe', 30), ART.varieties[x], VAR[x].kg + ' kg a pick · ×' + VAR[x].value + ' price', btn('Plant everywhere', '', 'replantall:' + x, true, 'green'))).join('') + '<button class="btn" data-act="close">Cancel</button>');
   else if (a === 'replantall') { if (hasPerk('replantall') && S.vars[v]) { const n = replantAll(v); closeModal(); SFX.play('dig'); toast(n ? n + ' field' + (n > 1 ? 's' : '') + ' replanted with ' + ART.varieties[v] : 'Every field already grows ' + ART.varieties[v]); } }
   else if (a === 'bed') {
     const b = +v, cur = f.beds[b];
-    const lastNative = isNative(f.loc, cur) && f.beds.slice(0, f.field ? 4 : 3).filter((x) => isNative(f.loc, x)).length === 1;
-    showModal('<h2>Replant field ' + (b + 1) + '</h2><p class="note">Now growing ' + ART.varieties[cur] + '. ' + (S.re && S.re.lv >= 10 ? 'Replanting starts the field half grown, with seedlings from Tante Lise\'s nursery.' : 'Replanting starts the field again from sprouts.') + ' Natives here: ' + nativeNames(f.loc) + '. They grow 20% faster, and one native field gives the whole farm +15% cherries from every pick.' + (lastNative ? ' <b>This is your only native field: planting a non-native here turns the terroir bonus off.</b>' : '') + '</p>' + plantVars().filter((x) => S.vars[x] || (eventDrop() && eventDrop().variety === x)).map((x) => row(img('bush_' + x + '_ripe', 30), ART.varieties[x] + (isNative(f.loc, x) ? ' · native' : ''), VAR[x].kg + ' kg a pick · ×' + VAR[x].value + ' price' + (wanted(x).length ? ' · <b>wanted by ' + [...new Set(wanted(x).map((c) => c.buyer.split(',')[0]))].join(', ') + '</b>' : ''), btn(x === cur ? 'Growing' : 'Plant', '', 'plant:' + b + '.' + x, x !== cur, 'green'))).join('') + '<button class="btn" data-act="close">Cancel</button>');
+    const own = plantVars().filter((x) => S.vars[x]), best = own.sort((a, b2) => worthHere(f.loc, b2) - worthHere(f.loc, a))[0];   /* the coffee that pays most a pick on this farm */
+    showModal('<h2>Replant field ' + (b + 1) + '</h2><p class="note">Now growing ' + ART.varieties[cur] + '. ' + (S.re && S.re.lv >= 10 ? 'Replanting starts the field half grown, with seedlings from Tante Lise\'s nursery.' : 'Replanting starts the field again from sprouts.') + ' Natives here: ' + nativeNames(f.loc) + '. They pick ×1.5 cherries here and grow 20% faster.</p>' + plantVars().filter((x) => S.vars[x] || (eventDrop() && eventDrop().variety === x)).map((x) => row(img('bush_' + x + '_ripe', 30), ART.varieties[x] + (isNative(f.loc, x) ? ' · native' : '') + (x === best ? ' · best here' : ''), fmtKg(VAR[x].kg * nativeKg(f.loc, x)) + ' kg a pick · ×' + VAR[x].value + ' price' + (wanted(x).length ? ' · <b>wanted by ' + [...new Set(wanted(x).map((c) => c.buyer.split(',')[0]))].join(', ') + '</b>' : ''), btn(x === cur ? 'Growing' : 'Plant', '', 'plant:' + b + '.' + x, x !== cur, 'green'))).join('') + '<button class="btn" data-act="close">Cancel</button>');
     return;
   }
   else if (a === 'plant') { const [b, x] = v.split('.'); if (S.vars[x] || (eventDrop() && eventDrop().variety === x)) { replantBed(f, +b, x); closeModal(); guideStep('plant'); toast('Field ' + (+b + 1) + ' planted with ' + ART.varieties[x]); } }
