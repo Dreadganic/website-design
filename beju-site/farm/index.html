@@ -3313,6 +3313,59 @@ function drawRack(t, x, y, tm, i) {
   }
   return true;
 }
+/* roaster remodels from prestige 7 (26 x 26, drum window at 9..17 x 10..17, chimney at 18..23): a lacquered pagoda roaster with a
+   turning drum; a horned hellmaw whose mouth is the drum, eyes and lava seams glowing; a marble seraph roaster with beating wings and
+   a halo; a rift engine: a floating portal with an eye that opens to roast, crystal shards in orbit and a beam up the flue. Picked in Looks › Prestige style */
+const roastOf = () => (S.roastPick === 0 ? 0 : S.roastPick >= 7 && S.roastPick <= tierOf(S.prestige) ? S.roastPick : tierOf(S.prestige) >= 7 ? tierOf(S.prestige) : 0);
+function drawRoaster(t, x, y, tm, busy, i) {
+  if (t < 7) return false;
+  const g = fx, R = (c, a, b, w, h) => { g.fillStyle = c; g.fillRect(x + a, y + b, w, h); }, still = calm, k = still ? 0 : tm + i * 0.9, on = busy && !still;
+  const spokes = (cx, cy, r, c) => { const a = on ? k * 6 : 0; for (let n = 0; n < 3; n++) { const an = a + n * 2.09; for (let d = 1; d <= r; d++) R(c, cx + Math.round(Math.cos(an) * d), cy + Math.round(Math.sin(an) * d), 1, 1); } };
+  if (t === 7) {
+    R('#3E2A1C', 3, 21, 2, 4); R('#3E2A1C', 21, 21, 2, 4); R('#2A1A10', 2, 25, 22, 1);
+    R('#3E2A1C', 2, 8, 22, 13); R('#B8302A', 3, 9, 20, 11); R('#E8B830', 3, 9, 20, 1); R('#E8B830', 3, 18, 20, 1); R('#8A2A20', 3, 19, 20, 1);
+    R('#3E2A1C', 8, 10, 10, 8); R(busy ? '#5A2A10' : '#2A1A10', 9, 11, 8, 6); if (busy) { g.globalAlpha = still ? 0.6 : 0.4 + 0.3 * Math.abs(Math.sin(k * 4)); R('#FF9A3A', 9, 11, 8, 6); g.globalAlpha = 1; } spokes(13, 14, 3, '#E8B830');
+    R('#3E2A1C', 11, 3, 4, 5); R('#B8302A', 12, 4, 2, 4); R('#3E2A1C', 8, 2, 10, 1); R('#E8B830', 7, 1, 2, 1); R('#E8B830', 17, 1, 2, 1); R('#3E2A1C', 10, 1, 6, 1);   /* a pagoda hopper */
+    R('#3E2A1C', 18, 3, 6, 5); R('#E8B830', 19, 4, 4, 3); R('#3E2A1C', 17, 2, 8, 1);
+    const sw = still ? 0 : Math.round(Math.sin(k * 2) * 1); [2, 23].forEach((a) => { R('#E8B830', a + sw, 20, 1, 1); R('#E83A30', a + sw, 21, 1, 3); });
+  } else if (t === 8) {
+    const gl = still ? 0.8 : 0.55 + 0.4 * Math.abs(Math.sin(k * 3.3));
+    R('#120808', 3, 21, 3, 4); R('#120808', 20, 21, 3, 4); R('#FF5A10', 3, 25, 3, 1); R('#FF5A10', 20, 25, 3, 1);   /* clawed feet */
+    R('#120808', 2, 8, 22, 13); R('#2A1414', 3, 9, 20, 11);
+    g.globalAlpha = gl; [[5, 10, 1, 4], [6, 13, 1, 3], [20, 11, 1, 5], [19, 15, 1, 3], [4, 17, 3, 1]].forEach(([a, b, w, h]) => R('#FF5A10', a, b, w, h)); g.globalAlpha = 1;   /* lava seams */
+    R('#120808', 0, 4, 3, 2); R('#120808', -1, 2, 2, 2); R('#120808', 23, 4, 3, 2); R('#120808', 25, 2, 2, 2); R('#E8E0D0', -1, 1, 1, 1); R('#E8E0D0', 26, 1, 1, 1);   /* horns */
+    R('#120808', 2, 5, 22, 3); g.globalAlpha = gl; R('#FFD040', 6, 6, 3, 1); R('#FFD040', 17, 6, 3, 1); g.globalAlpha = 1;   /* glowing eyes */
+    R('#000000', 8, 11, 10, 7); [9, 11, 13, 15].forEach((a) => R('#E8E0D0', a + 1, 11, 1, 2)); [10, 12, 14].forEach((a) => R('#E8E0D0', a + 1, 16, 1, 2));   /* the maw */
+    if (busy) for (let n = 0; n < 3; n++) { const f = still ? 0 : Math.floor(k * 10 + n * 3) % 3; R(n === 1 ? '#FFD040' : '#FF5A10', 10 + n * 2, 14 - f, 2, 2 + f); }
+    R('#120808', 19, 0, 4, 5); if (!still) for (let n = 0; n < 2; n++) { const u = (k * 0.9 + n / 2) % 1; g.globalAlpha = 1 - u; R(u < 0.4 ? '#FFD040' : '#FF5A10', 20 + Math.round(Math.sin(k * 4 + n) * 1), Math.round(-u * 10), 1, 1); g.globalAlpha = 1; }   /* the stack, sparking */
+  } else if (t === 9) {
+    const bob = still ? 0 : Math.round(Math.sin(k * 1.6) * 1), fl = still ? 0 : Math.round(Math.sin(k * 5) * 1.5);
+    [[3, 22, 7], [11, 23, 7], [17, 22, 7]].forEach(([a, b, w]) => { R('#FFFFFF', a, b, w, 3); R('#E8EEF8', a + 1, b + 2, w - 2, 1); });   /* a cloud for a stand */
+    [-1, 1].forEach((sd) => { for (let r = 0; r < 6; r++) { const w = 7 - r, a = sd < 0 ? 2 - w : 24; R(r % 2 ? '#E8E2D0' : '#FFFFFF', a, 9 + r - (r < 3 ? fl : 0) + bob, w, 1); } });   /* wings */
+    R('#D8D0BC', 2, 8 + bob, 22, 13); R('#F8F4EA', 3, 9 + bob, 20, 11); R('#F2C04A', 3, 9 + bob, 20, 1); R('#F2C04A', 3, 19 + bob, 20, 1);
+    g.fillStyle = '#F2C04A'; g.beginPath(); g.arc(x + 13, y + 14 + bob, 5, 0, 7); g.fill(); g.fillStyle = busy ? '#FFE8A0' : '#E8E2D0'; g.beginPath(); g.arc(x + 13, y + 14 + bob, 4, 0, 7); g.fill();   /* a round drum */
+    spokes(13, 14 + bob, 3, '#C8A040');
+    R('#D8D0BC', 11, 3 + bob, 4, 5); R('#F8F4EA', 12, 4 + bob, 2, 4); R('#D8D0BC', 19, 4 + bob, 4, 4); R('#F2C04A', 19, 4 + bob, 4, 1);
+    g.globalAlpha = still ? 0.9 : 0.6 + 0.35 * Math.abs(Math.sin(k * 2)); g.strokeStyle = '#F2C04A'; g.lineWidth = 1; g.beginPath(); g.ellipse(x + 13, y + 1 + bob, 5, 1.5, 0, 0, 7); g.stroke(); g.globalAlpha = 1;   /* a halo */
+  } else {
+    const hue = still ? 0 : Math.floor(k * 4) % 6, rb = ['#FF5A9A', '#F2C04A', '#7EF0C0', '#5AA0E8', '#C08AF0', '#FF5A9A'], bob = still ? 0 : Math.sin(k * 1.4) * 1.5;
+    const cx = x + 13, cy = y + 12 + bob, sp = still ? 0 : k * (busy ? 3 : 1), P = (c, px, py, w, h) => { g.fillStyle = c; g.fillRect(Math.round(px), Math.round(py), w || 1, h || 1); };
+    g.save(); g.translate(cx, y + 25); g.scale(1, 0.28); g.strokeStyle = '#C08AF0'; g.lineWidth = 3; g.setLineDash([3, 3]); g.lineDashOffset = still ? 0 : -k * 10; g.beginPath(); g.arc(0, 0, 13, 0, 7); g.stroke();
+    g.strokeStyle = '#7EE0F0'; g.lineWidth = 2; g.lineDashOffset = still ? 0 : k * 14; g.beginPath(); g.arc(0, 0, 7, 0, 7); g.stroke(); g.restore(); g.setLineDash([]);   /* a rune circle on the floor */
+    g.globalAlpha = still ? 0.35 : 0.25 + 0.15 * Math.sin(k * 3); P('#C08AF0', cx - 1, y - 4, 3, cy - y); g.globalAlpha = 1;   /* a beam up the flue */
+    if (!still) for (let n = 0; n < 4; n++) { const u = (k * 0.7 + n / 4) % 1; g.globalAlpha = 1 - u; P(rb[(n + hue) % 6], cx + Math.sin(k * 5 + n * 2) * 1.5, cy - 9 - u * 14); g.globalAlpha = 1; }   /* stars streaming up it */
+    for (let n = 0; n < 3; n++) { const an = sp * -0.6 + n * 2.09, ex = cx + Math.cos(an) * 12, ey = cy + Math.sin(an) * 5;   /* three crystal shards in orbit, tethered by light */
+      g.strokeStyle = 'rgba(192,138,240,0.45)'; g.lineWidth = 1; g.beginPath(); g.moveTo(cx, cy); g.lineTo(ex, ey); g.stroke();
+      P('#2A1650', ex - 1, ey - 3, 3, 6); P(n % 2 ? '#7EE0F0' : '#F0D8FF', ex, ey - 3, 1, 5); P('#FFFFFF', ex, ey - 4); }
+    for (let r = 10; r > 0; r--) { g.fillStyle = r > 8 ? rb[(r + hue) % 6] : r % 2 ? '#1A0E38' : '#05020E'; g.beginPath(); g.ellipse(cx, cy, r, r * 0.9, 0, 0, 7); g.fill(); }   /* the portal: a rainbow lip, banded dark within */
+    for (let n = 0; n < 14; n++) { const a = sp * 1.5 + n * 0.9, d = 1.5 + n * 0.5; P(n % 3 ? '#C08AF0' : '#7EE0F0', cx + Math.cos(a) * d, cy + Math.sin(a) * d * 0.9); }   /* a spiral pulled inward */
+    const open = busy ? (still ? 1 : 0.6 + 0.4 * Math.abs(Math.sin(k * 1.3))) : still ? 0.15 : (Math.sin(k * 0.8) > 0.92 ? 0.6 : 0.15);   /* an eye in the void, wide while it roasts */
+    g.fillStyle = '#F0D8FF'; g.beginPath(); g.ellipse(cx, cy, 4.5, 3 * open, 0, 0, 7); g.fill();
+    if (open > 0.3) { const lx = still ? 0 : Math.round(Math.sin(k * 0.9) * 1.5); P('#F2C04A', cx - 1.5 + lx, cy - 1.5, 3, 3); P('#000000', cx - 0.5 + lx, cy - 1.5, 1, 3); }
+    if (!still) for (let n = 0; n < 5; n++) { const an = k * 1.1 + n * 1.26, d = 14 + Math.sin(k * 2 + n) * 2; g.globalAlpha = 0.5 + 0.5 * Math.sin(k * 4 + n); P('#FFFFFF', cx + Math.cos(an) * d, cy + Math.sin(an) * d * 0.55); g.globalAlpha = 1; }   /* twinkles at the edge */
+  }
+  return true;
+}
 const crewOf = () => (S.crew === 'none' ? '' : S.crew && phatOwn(S.crew) && CREWS[S.crew] ? S.crew : ['p10', 'p9', 'p8'].find(phatOwn) || '');
 function phatOn(c, k) {   /* the model's top row and its middle, then the hat above it */
   const h = PHATS[k], x = c.getContext('2d'), d = x.getImageData(0, 0, c.width, c.height).data;
@@ -5146,8 +5199,9 @@ function drawRoast(time) {
     if (i >= roasterCount()) continue;
     const r = RS.roasters[i], x = BAYS[i];
     things.push({ y: BAY_Y + 24, draw: () => {
-      fx.drawImage(sprite((big ? 'roasterB_' : 'roaster_') + (r ? Math.floor(time * 3.3) % 2 : 2), finSwap(S.rcos.on.fin, big)), x, BAY_Y);
-      if (S.rcos.own['trim:gold'] && !S.rcos.hide['trim:gold']) { fx.fillStyle = '#F2C04A'; fx.fillRect(x + 8, BAY_Y + 10, 10, 1); fx.fillRect(x + 8, BAY_Y + 17, 10, 1); fx.fillRect(x + 8, BAY_Y + 10, 1, 8); fx.fillRect(x + 17, BAY_Y + 10, 1, 8); }
+      const rm = drawRoaster(roastOf(), x, BAY_Y, time, !!r, i);   /* a prestige remodel, or the roaster */
+      if (!rm) fx.drawImage(sprite((big ? 'roasterB_' : 'roaster_') + (r ? Math.floor(time * 3.3) % 2 : 2), finSwap(S.rcos.on.fin, big)), x, BAY_Y);
+      if (!rm && S.rcos.own['trim:gold'] && !S.rcos.hide['trim:gold']) { fx.fillStyle = '#F2C04A'; fx.fillRect(x + 8, BAY_Y + 10, 10, 1); fx.fillRect(x + 8, BAY_Y + 17, 10, 1); fx.fillRect(x + 8, BAY_Y + 10, 1, 8); fx.fillRect(x + 17, BAY_Y + 10, 1, 8); }
       if (repLevel() >= 2) {
         fx.drawImage(sprite('cool_tray'), x + 1, BAY_Y + 30);
         const cool = R.cool[i], hot = r && roastP(r) > 0.9 ? ROASTS[r.profile].col : cool && cool.until > Date.now() ? cool.col : null;
@@ -8773,6 +8827,7 @@ function renderPanel() {
           h += '<p class="note"><b>Hat</b></p>' + row('lookhat', [['', 'Outfit hat']].concat(Object.keys(PHATS).filter(phatOwn).map((k) => [k, PHATS[k].name])), S.look.hat && PHATS[S.look.hat] ? S.look.hat : '');
           h += '<p class="note"><b>Barn</b></p>' + row('barnpick', [[0, 'Classic']].concat([7, 8, 9, 10].filter((n) => n <= top).map((n) => [n, { 7: 'Pagoda', 8: 'Forge', 9: 'Temple', 10: 'Rift' }[n]])), barnOf());
           h += '<p class="note"><b>Drying racks</b></p>' + row('rackpick', [[0, 'Classic']].concat([7, 8, 9, 10].filter((n) => n <= top).map((n) => [n, { 7: 'Lacquer', 8: 'Lava', 9: 'Cloud', 10: 'Rift' }[n]])), rackOf());
+          h += '<p class="note"><b>Roasters</b></p>' + row('roastpick', [[0, 'Classic']].concat([7, 8, 9, 10].filter((n) => n <= top).map((n) => [n, { 7: 'Pagoda', 8: 'Hellmaw', 9: 'Seraph', 10: 'Rift engine' }[n]])), roastOf());
           h += '<p class="note"><b>Farm effects</b></p>' + row('tierfx', [['0', 'Off']].concat([7, 8, 9, 10].filter((n) => n <= top).map((n) => [n, NM[n]])), S.tierFx === false ? '0' : typeof S.tierFx === 'number' && S.tierFx <= top ? S.tierFx : top);
         }
         if (top >= 8) {
@@ -9121,6 +9176,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'crest') { const n = +v; if (Number.isFinite(n) && n >= 0 && n <= tierOf(S.prestige)) { S.look.crest = n; S.crestPick = n; } else { S.look.crest = tierOf(S.prestige); delete S.crestPick; } }   /* any crest you've reached */
   else if (a === 'dogskin') { if (v === 'shiba' || whaleOpen()) S.dogSkin = v; if (!$('modal').hidden && b.closest('#modalCard')) closeModal(); }
   else if (a === 'rackpick') S.rackPick = +v <= tierOf(S.prestige) ? +v : S.rackPick;
+  else if (a === 'roastpick') S.roastPick = +v <= tierOf(S.prestige) ? +v : S.roastPick;
   else if (a === 'barnpick') S.barnPick = +v <= tierOf(S.prestige) ? +v : S.barnPick;
   else if (a === 'floatpick') S.floatPick = v === 'auto' ? undefined : +v;
   else if (a === 'skin') { if (S.skins[+v]) S.look.skin = +v; }
