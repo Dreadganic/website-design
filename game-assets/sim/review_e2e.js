@@ -125,6 +125,10 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
   ok(!pk.p8.night && pk.p9.night && !pk.p9.res && pk.p10.res, 'prestige 9 opens the Night mill and 10 the Beju Reserve: ' + pk.names.join(', '));
   ok(pk.cup >= 92 && pk.pay === 1.3, 'a Reserve lot (cup 92 or more) pays ×1.3 at prestige 10: cup ' + pk.cup + ', ×' + pk.pay);
   ok(pk.curve[0] === 1.1 && pk.curve[1] === 1.15, 'levels cost ×1.15 each up to 58 (prestige 6), then ×1.10: ' + pk.curve);
+  /* prestige hats 7 to 10: a hat at each, on any model, picked in Looks */
+  const ht = await E(() => { const T = window.__T, S = T.S, keep = S.prestige; S.prestige = 8; const own = ['p7', 'p8', 'p9', 'p10'].map(T.phatOwn); T.act('lookhat:p9'); const refused = S.look.hat !== 'p9'; T.act('lookhat:p8'); const worn = S.look.hat;
+    const pics = ['none'].concat(T.CHAR_IDS.slice(0, 3)).map((c) => /data:image/.test(T.avatarHTML(8, 'p8', c))); S.look.hat = ''; S.prestige = keep; return { own, refused, worn, pics }; });
+  ok(ht.own.join() === 'true,true,false,false' && ht.refused && ht.worn === 'p8' && ht.pics.every(Boolean), 'prestige hats: owned from their prestige, worn from Looks, drawn on any model: ' + JSON.stringify(ht));
   const miss = await E(() => window.__noSprite || []); ok(!miss.length, 'every picture drawn exists: ' + miss.join(', '));
   ok(!errs.length, 'no page errors: ' + errs.join(' | '));
   console.log(pass + ' passed, ' + fail + ' failed'); await b.close(); process.exit(fail ? 1 : 0);

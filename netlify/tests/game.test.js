@@ -481,3 +481,12 @@ test("scores: an accepted score updates the shared board in place, so other inst
   assert.equal(snap.built, built, "no rebuild between the two posts");
   assert.ok(snap.rows.some((r) => r.name === "Second Row"), "the second row went into the shared snapshot in place");
 });
+
+test("prestiges 8 to 10: crests, outfits and hats up to 10, each only once reached; the Field surveyor title passes", () => {
+  const top = G.cleanLook({ crest: 10, skin: 10, hat: "p10", title: "ga:survey" }, 10);
+  assert.deepEqual([top.crest, top.skin, top.hat, top.title], [10, 10, "p10", "ga:survey"]);
+  const early = G.cleanLook({ skin: 9, hat: "p9" }, 8);
+  assert.deepEqual([early.crest, early.hat], [8, ""], "a hat from a prestige not yet reached is dropped");
+  assert.equal(G.cleanLook({ hat: "p7" }, 7).hat, "p7");
+  assert.equal(G.cleanLook({ hat: "p11" }, 10).hat, "", "no hat past 10");
+});

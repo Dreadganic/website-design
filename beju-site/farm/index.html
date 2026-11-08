@@ -2915,7 +2915,7 @@ const themeById = (id) => ART.seasons[Object.keys(ART.seasons).find((m) => ART.s
 const bgOpen = (id) => id === 'none' || (id.startsWith('s_') ? !!S.sitems.bg[sid(id)] : (id === 'beju' ? ORIGINS.every((l) => S.stamps[l]) : id === 'osaka' ? S.farms.osaka.unlocked : !!S.stamps[id]));
 const bgName = (id) => id.startsWith('s_') ? themeById(id).name : id === 'none' ? 'Plain' : id === 'beju' ? 'Beju gold' : ART.locations[id].name.split(',')[0];
 const bgHow = (id) => id.startsWith('s_') ? 'Season track' : id === 'beju' ? 'All 5 stamps' : id === 'osaka' ? 'Open Osaka' : bgName(id) + ' stamp';
-const normLook = (l) => { l = l || {}; const n = (x) => Math.max(0, Math.min(TIERS.length - 1, Math.floor(Number(x) || 0))); return { crest: n(l.crest !== undefined ? l.crest : l.plate), skin: n(l.skin), bg: BG_LIST.indexOf(l.bg) > -1 ? l.bg : 'none', char: ART.chars[l.char] ? l.char : 'none', hat: themeById(l.hat) ? 's_' + sid(l.hat) : '', charm: l.charm === 'qgrader' || l.charm === 'crack' || l.charm === 'founder' ? l.charm : themeById(l.charm) ? sid(l.charm) : '', title: /^(\d{4}-\d{2}|nbm?:[a-z]+|nbt:[a-z]+|rr:master|rr:crack)$/.test(l.title || '') ? l.title : '', roaster: RFIN[l.roaster] && l.roaster !== 'classic' ? l.roaster : '', pin: TROPHY_RE.test(l.pin || '') ? l.pin : '' }; };
+const normLook = (l) => { l = l || {}; const n = (x) => Math.max(0, Math.min(TIERS.length - 1, Math.floor(Number(x) || 0))); return { crest: n(l.crest !== undefined ? l.crest : l.plate), skin: n(l.skin), bg: BG_LIST.indexOf(l.bg) > -1 ? l.bg : 'none', char: ART.chars[l.char] ? l.char : 'none', hat: PHATS[l.hat] ? l.hat : themeById(l.hat) ? 's_' + sid(l.hat) : '', charm: l.charm === 'qgrader' || l.charm === 'crack' || l.charm === 'founder' ? l.charm : themeById(l.charm) ? sid(l.charm) : '', title: /^(\d{4}-\d{2}|nbm?:[a-z]+|nbt:[a-z]+|rr:master|rr:crack)$/.test(l.title || '') ? l.title : '', roaster: RFIN[l.roaster] && l.roaster !== 'classic' ? l.roaster : '', pin: TROPHY_RE.test(l.pin || '') ? l.pin : '' }; };
 /* character models replace the farmer's body; the outfit colours still go on top */
 const bodyOf = (look) => (look && ART.chars[look.char] ? 'chr_' + look.char + '_' : 'worker_');
 const CHAR_IDS = Object.keys(ART.chars).sort((a, b) => ART.chars[a].cost - ART.chars[b].cost);
@@ -3152,6 +3152,37 @@ function sprite(name, opt) {
   return (cache[key] = c);
 }
 const urls = {};
+/* prestige hats (7 to 10): pixel art drawn on top of any model's head, found from its top row, with the model's own hat (if it has one)
+   recoloured to match. 5 rows of headroom are added above the sprite */
+const PHAT_PAD = 5;
+const PHATS = {
+  p7: { p: 7, name: 'Golden Crane crown', hat: ['#F2D060', '#E8B830', '#A87818'], pal: { Y: '#FFF4B0', G: '#F2C04A', g: '#A87818', R: '#E83A30', B: '#5AA0E8', O: '#3E2A1C' },
+    art: ['Y.Y.Y.Y', 'GOGOGOG', 'GGGGGGG', 'GRgBgRG'] },
+  p8: { p: 8, name: 'Inferno horns', hat: ['#2A0A0A', '#5A0A04', '#C81E0A'], pal: { R: '#E8200A', D: '#7A0A04', F: '#FFB020', f: '#FF5A10', O: '#1A0606' },
+    art: ['R...F...R', 'RD.fFf.DR', '.RD.f.DR.', '..R...R..'] },
+  p9: { p: 9, name: 'Heaven halo', hat: ['#FFFFFF', '#EEF2FA', '#F2C04A'], pal: { W: '#FFFFFF', Y: '#F2D060', y: '#FFF4B0' },
+    art: ['.yWWWWWy.', 'Y.......Y', '.YYYYYYY.', '.........'] },
+  p10: { p: 10, name: 'Cosmos crown', hat: ['#2A1650', '#C08AF0', '#7EE0F0'], pal: { S: '#FFFFFF', P: '#9A5AE8', p: '#5A2AA8', R: '#F2C04A', C: '#7EE0F0' },
+    art: ['S...C...S', '...PPP...', 'RRpPPPpRR', '...ppp...', 'C.......S'] }
+};
+const phatOwn = (k) => !!PHATS[k] && S.prestige >= PHATS[k].p;
+function phatOn(c, k) {   /* the model's top row and its middle, then the hat above it */
+  const h = PHATS[k], x = c.getContext('2d'), d = x.getImageData(0, 0, c.width, c.height).data;
+  let top = -1, l = c.width, r = -1;
+  for (let y = PHAT_PAD; y < c.height && top < 0; y++) for (let i = 0; i < c.width; i++) if (d[(y * c.width + i) * 4 + 3] > 0) { if (top < 0) top = y; }
+  if (top < 0) return c;
+  for (let y = top; y < top + 3; y++) for (let i = 0; i < c.width; i++) if (d[(y * c.width + i) * 4 + 3] > 0) { l = Math.min(l, i); r = Math.max(r, i); }
+  const cx = Math.round((l + r) / 2), w = h.art[0].length, x0 = cx - Math.floor(w / 2), y0 = top + 1 - h.art.length;
+  h.art.forEach((row, j) => { for (let i = 0; i < row.length; i++) { const ch = row[i]; if (ch === '.') continue; x.fillStyle = h.pal[ch]; x.fillRect(x0 + i, y0 + j, 1, 1); } });
+  return c;
+}
+function phatSprite(name, opt, k) {   /* a sprite with its prestige hat, PHAT_PAD rows taller */
+  const key = name + '|' + JSON.stringify(opt || {}) + '|' + k;
+  if (cache[key]) return cache[key];
+  const base = sprite(name, Object.assign({}, opt, { hat: PHATS[k].hat })), c = document.createElement('canvas');
+  c.width = base.width; c.height = base.height + PHAT_PAD; c.getContext('2d').drawImage(base, 0, PHAT_PAD);
+  return (cache[key] = phatOn(c, k));
+}
 function url(name, opt) { const k = name + (opt ? JSON.stringify(opt) : ''); return urls[k] || (urls[k] = sprite(name, opt).toDataURL()); }
 const icon = (name, alt) => '<img class="ic" src="' + url(name) + '" alt="' + (alt || '') + '">';
 
@@ -4262,8 +4293,8 @@ function draw(time) {
       if (S.decor.bandana) { fx.fillStyle = (dvOpt('bandana') || { swap: { '#D8302C': '#D8302C' } }).swap['#D8302C']; const bx = g.flip ? X + 9 : X + 5; fx.fillRect(bx, Y + 6, 2, 2); fx.fillRect(bx + (g.flip ? 1 : 0), Y + 8, 1, 1); }
     } else if (o.me) {
       const fr = me.moving ? (me.dir === 'side' ? Math.floor(me.walk * 7) % 2 : WALK[Math.floor(me.walk * 7) % 4]) : 0;
-      const spr = sprite(bodyOf(S.look) + me.dir + '_' + (me.dir === 'side' ? Math.min(fr, 1) : fr), skinLook(S.look.skin)), X = Math.round(me.x) - 8, Y = Math.round(me.y) - 23;
-      fx.fillStyle = 'rgba(42,42,8,0.3)'; fx.beginPath(); fx.ellipse(X + 8, Y + 23, 5, 1.6, 0, 0, 7); fx.fill();
+      const ph = PHATS[S.look.hat] && phatOwn(S.look.hat), spr = ph ? phatSprite(bodyOf(S.look) + me.dir + '_' + (me.dir === 'side' ? Math.min(fr, 1) : fr), skinLook(S.look.skin), S.look.hat) : sprite(bodyOf(S.look) + me.dir + '_' + (me.dir === 'side' ? Math.min(fr, 1) : fr), skinLook(S.look.skin)), X = Math.round(me.x) - 8, Y = Math.round(me.y) - 23 - (ph ? PHAT_PAD : 0);   /* a prestige hat sits above the head */
+      fx.fillStyle = 'rgba(42,42,8,0.3)'; fx.beginPath(); fx.ellipse(X + 8, Y + 23 + (ph ? PHAT_PAD : 0), 5, 1.6, 0, 0, 7); fx.fill();
       if (me.dir === 'side' && me.flip) { fx.save(); fx.translate(X + 16, Y); fx.scale(-1, 1); fx.drawImage(spr, 0, 0); fx.restore(); } else fx.drawImage(spr, X, Y);
     } else if (o.mg) {
       const g = o.mg, fr = g.moving ? (g.dir === 'side' ? Math.floor(g.walk * 6) % 2 : WALK[Math.floor(g.walk * 6) % 4]) : 0;
@@ -8108,7 +8139,9 @@ function shopTabs() {
   const rdot = affordDots() && roasteryOpen() && RCOS.some((x) => !S.rcos.own[x.id] && x.src.coins && S.coins >= x.src.coins);
   return '<div class="seg subtabs">' + [['cranes', 'Boosts'], ['chars', 'Farmer'], ['bskin', 'Farm style']].concat(roasteryOpen() ? [['roast', 'Roast']] : [], [['beju', 'Real coffee']]).map(([k, t]) => '<button type="button" data-act="shoptab:' + k + '" aria-pressed="' + (st === k) + '">' + t + ((k === 'bskin' && dot) || (k === 'roast' && rdot) ? ' <i class="dot" aria-label="something to buy"></i>' : '') + '</button>').join('') + '</div>';
 }
-function avatar(look, size) { look = normLook(look); return '<span class="fr b-' + PLATES[look.crest] + (look.bg === 'beju' ? ' bg-beju' : '') + '" style="width:' + size + 'px;height:' + size + 'px">' + (bgThumb(look.bg) ? '<img class="fbg" src="' + bgThumb(look.bg) + '" alt="">' : '') + '<img src="' + url(bodyOf(look) + 'down_0', Object.assign(skinLook(look.skin), look.hat ? { hat: ART.hats[look.hat] } : {})) + '" alt="" style="height:' + Math.round(size * 0.78) + 'px"></span>'; }
+function avatar(look, size) { look = normLook(look); return '<span class="fr b-' + PLATES[look.crest] + (look.bg === 'beju' ? ' bg-beju' : '') + '" style="width:' + size + 'px;height:' + size + 'px">' + (bgThumb(look.bg) ? '<img class="fbg" src="' + bgThumb(look.bg) + '" alt="">' : '') + (PHATS[look.hat] ? '<img src="' + phatUrl(bodyOf(look) + 'down_0', skinLook(look.skin), look.hat) + '" alt="" style="height:' + Math.round(size * 0.78 * (24 + PHAT_PAD) / 24) + 'px">' : '<img src="' + url(bodyOf(look) + 'down_0', Object.assign(skinLook(look.skin), look.hat ? { hat: ART.hats[look.hat] } : {})) + '" alt="" style="height:' + Math.round(size * 0.78) + 'px">') + '</span>'; }
+const phatUrls = {};
+const phatUrl = (name, opt, k) => { const key = name + JSON.stringify(opt) + k; return phatUrls[key] || (phatUrls[key] = phatSprite(name, opt, k).toDataURL()); };
 const bgThumb = (id) => (id.startsWith('s_') ? url('sbg_' + sid(id)) : BG_THUMB[id]);
 function plate(name, i, stars, charm, pin) { return '<span class="plate p-' + PLATES[i] + '">' + name + (stars ? ' ' + '★'.repeat(Math.min(5, stars)) : '') + (charm ? '<img class="charm" src="' + url('charm_' + charm) + '" alt="' + charmName(charm) + ' charm">' : '') + (pin ? trophyImg(pin) : '') + '</span>'; }
 const starsFor = (p) => (p >= TIERS.length ? p - TIERS.length + 1 : 0);
@@ -8515,9 +8548,9 @@ function renderPanel() {
         const open = bgOpen(id);
         return '<button type="button" class="look" data-act="bg:' + id + '" aria-pressed="' + (S.look.bg === id) + '"' + (open ? '' : ' disabled') + '>' + avatar({ crest: S.look.crest, skin: S.look.skin, bg: id }, 40) + '<small>' + (open ? bgName(id) : bgHow(id)) + '</small></button>';
       }).join('') + '</div>';
-      const hats = Object.keys(S.hats).filter((k) => k.startsWith('s_')), charms = Object.keys(S.sitems.charm), titles = Object.keys(S.sitems.title).sort();
-      h += '<h3>Titles, hats and charms</h3>' + help('titles', 'From season tracks and the cupping notebook.', 'Earned on season tracks and in the cupping notebook. They sit around your crest and never replace it.');
-      h += '<p class="note"><b>Hat</b></p><div class="looks">' + [''].concat(hats).map((k) => '<button type="button" class="look" data-act="lookhat:' + k + '" aria-pressed="' + (S.look.hat === k) + '">' + avatar({ crest: S.look.crest, skin: S.look.skin, bg: S.look.bg, char: S.look.char, hat: k }, 40) + '<small>' + (k ? themeById(k).name : 'Outfit hat') + '</small></button>').join('') + '</div>';
+      const hats = Object.keys(PHATS).filter(phatOwn).concat(Object.keys(S.hats).filter((k) => k.startsWith('s_'))), charms = Object.keys(S.sitems.charm), titles = Object.keys(S.sitems.title).sort();
+      h += '<h3>Titles, hats and charms</h3>' + help('titles', 'From season tracks, the cupping notebook and prestiges 7 to 10.', 'Earned on season tracks, in the cupping notebook and, for hats, at prestiges 7 to 10. They sit around your crest and never replace it.');
+      h += '<p class="note"><b>Hat</b></p><div class="looks">' + [''].concat(hats).map((k) => '<button type="button" class="look" data-act="lookhat:' + k + '" aria-pressed="' + (S.look.hat === k) + '">' + avatar({ crest: S.look.crest, skin: S.look.skin, bg: S.look.bg, char: S.look.char, hat: k }, 40) + '<small>' + (k ? (PHATS[k] ? PHATS[k].name : themeById(k).name) : 'Outfit hat') + '</small></button>').join('') + '</div>' + (S.prestige < 10 ? '<p class="note">A new hat for every prestige from 7 to 10. They fit any character.</p>' : '');
       h += '<p class="note"><b>Nameplate charm</b></p><div class="looks">' + [''].concat(charms).map((k) => '<button type="button" class="look" data-act="lookcharm:' + k + '" aria-pressed="' + (S.look.charm === k) + '">' + plate('P' + S.prestige, S.look.crest, 0, k) + '<small>' + (k ? charmName(k) : 'None') + '</small></button>').join('') + '</div>';
       h += '<p class="note"><b>Title</b> (shown under your name on the board)</p><div class="looks">' + [''].concat(titles).map((k) => '<button type="button" class="look" data-act="looktitle:' + k + '" aria-pressed="' + (S.look.title === k) + '"><small>' + (k ? titleText(k) : 'Crest name') + '</small></button>').join('') + '</div>';
       if (!hats.length && !charms.length && !titles.length) h += '<p class="note">Reach tier 18 on the season track for a hat, 25 for a charm and 30 for a title.</p>';
@@ -8746,7 +8779,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'revpet') { if ((S.rev.pets || {})[v]) { S.rev.petHide = S.rev.petHide || {}; S.rev.petHide[v] = !S.rev.petHide[v]; } }
   else if (a === 'tier') { if (+v <= tierAt(S.season.stars)) grantTier(S.season.key, +v); }
   else if (a === 'tierall') { for (let n = 1; n <= tierAt(S.season.stars); n++) grantTier(S.season.key, n, true); SFX.play('achieve'); toast('Season track rewards claimed'); }
-  else if (a === 'lookhat') { if (!v || S.hats[v]) S.look.hat = v; }
+  else if (a === 'lookhat') { if (!v || S.hats[v] || phatOwn(v)) S.look.hat = v; }
   else if (a === 'lookcharm') { if (!v || S.sitems.charm[v]) S.look.charm = v; }
   else if (a === 'looktitle') { const k = b.dataset.act.slice(10); if (!k || S.sitems.title[k]) S.look.title = k; }   /* the whole key: titles like nb:catuai hold a colon */
   else if (a === 'pin') { const id = v.replace('~', ':'); S.look.pin = S.look.pin === id ? '' : id; }
