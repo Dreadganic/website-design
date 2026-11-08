@@ -51,6 +51,7 @@ const ok = (c, msg) => { console.log((c ? 'PASS ' : 'FAIL ') + msg); if (!c) pro
   ok(/Rosa/i.test(await modal(A)), 'then Rosa\'s first lesson starts, though a drop is on: ' + (await modal(A)).slice(0, 40));
   ok(await A.evaluate(() => !window.__T.S.event), 'the drop waits until the lessons are done');
   await A.evaluate(() => { const T = window.__T; T.S.guide = T.GUIDE.length; for (let i = 0; i < 6; i++) T.closeModal(); }); await A.waitForTimeout(1200);
+  await A.evaluate(() => { const T = window.__T, i = T.laterQ.findIndex((x) => /^New drop/.test(x.title)); if (i < 0) return; T.laterQ.unshift(T.laterQ.splice(i, 1)[0]); T.laterShow(); document.querySelector('#moment [data-act="later:open"]').click(); });   /* in the new HUD the drop waits as a card: open it */
   ok(/New drop: Huila Pink Bourbon/.test(await modal(A)) && await A.evaluate(() => window.__T.S.event && window.__T.S.event.id === 'pinknat'), 'once they are, the drop arrives: ' + (await modal(A)).slice(0, 40));
   await A.evaluate(() => { for (let i = 0; i < 6; i++) window.__T.closeModal(); });
 
