@@ -3370,14 +3370,14 @@ function millRoute(o, to) {
 const rackFoot = (i) => { const r = rackAt(i); return { x: r.x + 10 + rnd() * 20, y: r.y + 24 }; };
 function millSold(i, text) {   /* a sold lot leaves its rack on someone's shoulder, bound for the truck */
   const k = lotSlot.get(S.lots[i]); if (scene() !== 'mill' || k === undefined || k >= RACK_SHOWN) return;
-  const r = rackAt(k), c = walker(r.x + 20, r.y + 24, { shirt: ART.shirts[(k + 3) % ART.shirts.length], hat: ART.hats[S.hat] });
+  const r = rackAt(k), c = Object.assign(walker(r.x + 20, r.y + 24, { shirt: ART.shirts[(k + 3) % ART.shirts.length], hat: ART.hats[S.hat] }), { hand: true });
   floats.push({ x: r.x + 20, y: r.y + 2, text, t: 0 });
   c.path = millRoute(c, TRUCK); IN.mill.carry.push(c); if (IN.mill.carry.length > 6) IN.mill.carry.shift();
 }
 function tickMill(d) {
   const M = IN.mill, bySlot = rackSlots(), drying = bySlot.slice(0, RACK_SHOWN).map((l, i) => (l && l.left > 0 ? i : -1)).filter((i) => i > -1), full = bySlot.slice(0, RACK_SHOWN).map((l, i) => (l ? i : -1)).filter((i) => i > -1);
   const n = Math.min(4, Math.ceil(drying.length / 3));
-  while (M.hands.length < n) M.hands.push(walker(70 + M.hands.length * 26, 90, { shirt: ART.shirts[(M.hands.length + 1) % ART.shirts.length], hat: ART.hats[S.hat] }));
+  while (M.hands.length < n) M.hands.push(Object.assign(walker(70 + M.hands.length * 26, 90, { shirt: ART.shirts[(M.hands.length + 1) % ART.shirts.length], hat: ART.hats[S.hat] }), { hand: true }));
   if (M.hands.length > n) M.hands.length = n;
   M.hands.forEach((w) => {   /* mill hands rake the drying lots so they dry evenly */
     if (step(w, d, 22)) return;
@@ -3751,10 +3751,10 @@ function drawGuy(o) {
     const name = !moving && o.act > 0 && A[b + 'act_0'] ? b + 'act_' + (Math.floor(o.actPh * 2.6) % 2) : !moving && o.blinkT < 0 && o.dir === 'down' ? b + 'blink' : b + o.dir + '_' + fr;
     spr = sprite(A[name] ? name : b + 'down_0', o.look || undefined);
     if (o.say) npcSaid.push(o);
-  } else spr = o.me ? sprite(bodyOf(S.look) + o.dir + '_' + fr, skinLook(S.look.skin)) : sprite('worker_' + o.dir + '_' + fr, o.look);
-  const X = Math.round(o.x) - 8, Y = Math.round(o.y) - 23;
-  fx.fillStyle = 'rgba(42,42,8,0.3)'; fx.beginPath(); fx.ellipse(X + 8, Y + 23, 5, 1.6, 0, 0, 7); fx.fill();
-  if (o.dir === 'side' && o.flip) { fx.save(); fx.translate(X + 16, Y); fx.scale(-1, 1); fx.drawImage(spr, 0, 0); fx.restore(); } else fx.drawImage(spr, X, Y);
+  } else spr = o.me ? sprite(bodyOf(S.look) + o.dir + '_' + fr, skinLook(S.look.skin)) : o.hand && crewOf() ? crewBody('worker_' + o.dir + '_' + fr, crewOf()) : sprite('worker_' + o.dir + '_' + fr, o.look);   /* mill and roastery hands join your picker crew */
+  const cx = !o.me && o.hand && crewOf() ? CREW_X : 0, cy = cx ? PHAT_PAD : 0, X = Math.round(o.x) - 8, Y = Math.round(o.y) - 23 - cy;
+  fx.fillStyle = 'rgba(42,42,8,0.3)'; fx.beginPath(); fx.ellipse(X + 8, Y + 23 + cy, 5, 1.6, 0, 0, 7); fx.fill();
+  if (o.dir === 'side' && o.flip) { fx.save(); fx.translate(X + 16 + cx, Y); fx.scale(-1, 1); fx.drawImage(spr, 0, 0); fx.restore(); } else fx.drawImage(spr, X - cx, Y);
   if (o.look === MGR_LOOK && o.dir !== 'up' && !o.npc) { fx.fillStyle = '#3E2A1C'; fx.fillRect(X + 11, Y + 14, 4, 5); fx.fillStyle = '#F8F4EC'; fx.fillRect(X + 12, Y + 15, 2, 3); }
   if (o.npc && o.act > 0 && !moving) npcActFx(o, X, Y);
   return { X, Y };
