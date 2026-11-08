@@ -133,6 +133,28 @@ const SEL = ['.top', '#hearts', '#hudLevel', '.hud-r .clock', '#hudCoins', '#hud
     const fl = await g.evaluate(() => { const T = window.__T; T.floats.length = 0; for (let i = 0; i < 4; i++) T.floatKg(50 + i * 10, 100, 3); return T.floats.map((f) => f.text); });
     ok(fl.length === 1 && fl[0] === '+12 kg', 'four quick picks show one float: ' + fl.join(', '));
 
+    /* the moment card: a window the game would open by itself waits at the bottom of the map, one at a time, and opens on a tap */
+    const mc = await g.evaluate(async () => { const T = window.__T, S = T.S; T.setTab('farm'); T.act('sheetmin'); for (let i = 0; i < 5 && !document.getElementById('guide').hidden; i++) { const gb = document.querySelector('#guide button'); if (!gb) break; gb.click(); T.refreshHud(); } T.laterQ.length = 0; T.toastQ.length = 0; document.getElementById('toast').hidden = true; document.getElementById('app').classList.remove('notice'); T.refreshHud();
+      T.later('Contract complete!', 'Kenji: +9,000 coins', '<h2>Contract complete!</h2><button class="btn green" data-act="close">Great</button>');
+      T.later('Free coffee earned!', 'A free 100 g sample', '<h2>Free coffee earned!</h2><button class="btn green" data-act="close">Wonderful</button>');
+      const m = document.getElementById('moment'), q = m.getBoundingClientRect(), tabs = document.getElementById('tabs').getBoundingClientRect();
+      const r = { cls: document.getElementById('app').className, guide: document.getElementById('guide').hidden ? '' : document.getElementById('guide').innerText.slice(0, 60), modal: !document.getElementById('modal').hidden, shown: !!m.offsetParent, text: m.innerText, gap: Math.round(tabs.top - q.bottom) };
+      m.querySelector('[data-act="later:open"]').click(); r.opened = document.getElementById('modal').hidden ? '' : document.getElementById('modalCard').innerText; T.closeModal(); document.getElementById('modal').hidden = true;
+      r.next = m.innerText; m.querySelector('[data-act="later:skip"]').click(); r.after = !!m.offsetParent; r.q = T.laterQ.length; return r; });
+    ok(!mc.modal && mc.shown && /Contract complete!/.test(mc.text) && /\+1/.test(mc.text), 'a contract completing waits as a card, with one more behind it: ' + JSON.stringify(mc).slice(0, 160));
+    ok(mc.gap >= 0 && mc.gap <= 12, 'the card sits just above the tabs (' + mc.gap + ' px)');
+    ok(/Contract complete!/.test(mc.opened), 'Open shows the full window');
+    ok(/Free coffee earned!/.test(mc.next) && !mc.after && mc.q === 0, 'then the next card, and the cross puts it away');
+    const ns = await g.evaluate(() => { const T = window.__T; T.toast('Level 42! Hearts refilled.'); const t = document.getElementById('toast').getBoundingClientRect(), tabs = document.getElementById('tabs').getBoundingClientRect(), stage = document.getElementById('stage').getBoundingClientRect(); return { gap: Math.round(tabs.top - t.bottom), inMap: t.top > stage.top + stage.height / 2, h: Math.round(t.height) }; });
+    ok(ns.gap >= 0 && ns.gap <= 12 && ns.inMap && ns.h <= 64, 'a notice is a card in the same place, at most two lines: ' + JSON.stringify(ns));
+    const so = await g.evaluate(async () => { const T = window.__T; document.getElementById('toast').hidden = true; document.getElementById('app').classList.remove('notice'); T.setTab('mill'); T.later('Order delivered', 'Colombia arrived', '<h2>Order delivered</h2>'); T.refreshHud(); await new Promise((r) => setTimeout(r, 400)); const m = document.getElementById('moment').getBoundingClientRect(), sh = document.getElementById('sheet'); const r = { open: !sh.hidden, gap: Math.round(sh.getBoundingClientRect().top - m.bottom) }; T.laterQ.length = 0; T.laterShow(); return r; });
+    ok(so.open && so.gap >= 0 && so.gap <= 12, 'with a sheet open the card sits just above it: ' + JSON.stringify(so));
+    const cl = await g.evaluate(() => { const T = window.__T; T.act('hudmode:classic'); T.later('Order delivered', 'x', '<h2>Order delivered</h2>'); const r = !document.getElementById('modal').hidden && /Order delivered/.test(document.getElementById('modalCard').innerText); T.closeModal(); document.getElementById('modal').hidden = true; T.act('hudmode:new'); return r; });
+    ok(cl, 'Classic opens the window as before');
+    const day = await g.evaluate(() => { const T = window.__T, S = T.S; T.setTab('farm'); T.act('sheetmin'); S.checkin.n = 3; S.checkin.last = '2000-1-1'; T.checkIn(); return { modal: !document.getElementById('modal').hidden && document.getElementById('modalCard').innerText.slice(0, 40), card: document.getElementById('moment').innerText }; });
+    ok(!day.modal && /Daily brew calendar/.test(day.card), 'the day\'s calendar comes as a card, not a window: ' + JSON.stringify(day));
+    await g.evaluate(() => { const T = window.__T; T.laterQ.length = 0; T.laterShow(); });
+
     /* 7. a crack is never queued behind notices */
     const ck = await g.evaluate(async () => { const T = window.__T, S = T.S, R = S.roastery; T.setTab('farm');
       for (let i = 0; i < 4; i++) T.toast('Notice number ' + i + ' for the queue.');

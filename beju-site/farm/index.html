@@ -456,7 +456,18 @@ canvas.hint { transform: none !important; }
 .h2 .pill img, .h2 .pill .ic { width: calc(16px * var(--ts)); height: calc(16px * var(--ts)); }
 .h2 #hudStore.full { background: #6A3A0C; box-shadow: 0 0 0 2px #F2C04A; }
 .h2 #hudStore .sfull { padding: 0 4px; margin-left: 2px; border-radius: 4px; background: #F2C04A; color: #3E2A1C; font-size: calc(11px * var(--ts)); font-weight: 800; letter-spacing: 0.04em; }
-.h2 .toast { left: 54px; right: 104px; font-size: calc(13px * var(--ts)); } .h2 .toast.long { font-size: calc(11.5px * var(--ts)); }
+.h2.open { --mb: calc(var(--sh) + 6px); } .h2.open.full { --mb: calc(100% - var(--ft, 80px) + 6px); }   /* the moment zone: just above the tabs, or just above an open sheet (over the place bar when the sheet fills the screen) */
+.h2 > .toast { left: 0; right: 0; top: auto; bottom: var(--mb, var(--dock)); min-height: 0; z-index: 14; padding: 9px 12px; border-width: 3px; border-radius: 10px; box-shadow: 0 3px 0 #1E140C; font-size: calc(13px * var(--ts)); }
+.h2 > .toast.long { font-size: calc(12px * var(--ts)); }
+.h2.notice:not(.open) > .guide { visibility: hidden; }   /* one card at a time: a notice takes the moment, then the lesson or event comes back */
+.moment { position: absolute; z-index: 13; left: 0; right: 0; bottom: var(--mb, var(--dock)); display: flex; align-items: center; gap: 6px; padding: 6px 4px 6px 12px; background: var(--paper); color: var(--ink); border: 3px solid var(--edge); border-radius: 10px; box-shadow: 0 3px 0 #1E140C; }
+.moment[hidden], .h2.notice .moment, .h2.guiding:not(.open) .moment, .app:not(.h2) .moment { display: none; }   /* a card waits while a notice, a lesson or an event has the moment */
+.moment .m-t { flex: 1; min-width: 0; line-height: 1.25; }
+.moment .m-t b { display: block; font-size: calc(14px * var(--ts)); }
+.moment .m-t small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 calc(12px * var(--ts)) var(--body); color: #5A4630; }
+.moment .btn { min-width: 64px; }
+.moment .m-x { width: 44px; height: 44px; flex: none; border: 0; background: transparent; color: var(--ink); font-size: 16px; cursor: pointer; }
+.moment .m-n { position: absolute; top: -10px; left: 10px; padding: 0 6px; border-radius: 8px; background: var(--edge); color: #FFF4DE; font: 700 11px var(--body); font-style: normal; line-height: 18px; }
 .h2 .guide { font-size: calc(13px * var(--ts)); }
 .tapfloat { font-size: calc(13px * var(--ts)); }
 .h2.big #panel, .h2.big #modalCard { zoom: var(--ts); }
@@ -506,6 +517,7 @@ canvas.hint { transform: none !important; }
   </div>
   </div>
   <div class="guide" id="guide" hidden></div>
+  <div class="moment" id="moment" hidden role="status" aria-live="polite"></div>
   <div class="garrow" id="garrow" hidden aria-hidden="true"></div>
   <div class="pcer" id="pcer" hidden role="dialog" aria-modal="true" aria-label="Prestige"></div>
 
@@ -2732,7 +2744,7 @@ function roasteryTick() {
   if ((R.lvSeen || 1) < lv) {
     const got = Object.keys(REP_PERKS).filter((k) => +k > (R.lvSeen || 1) && +k <= lv).map((k) => REP_PERKS[k]).concat(newCos.map((n) => n + ' (Shop › Roastery)'));
     R.lvSeen = lv; if (lv >= 20) S.sitems.title['rr:master'] = true;
-    SFX.play('achieve'); showModal('<h2>Roastery reputation ' + lv + '</h2>' + img('roaster_0', 52) + '<p class="note">' + (got.length ? got.map((g) => '<b>' + g + '</b>').join('<br>') : 'Buyers across Japan are talking about your roasts.') + '</p><button class="btn green" data-act="close">Lovely</button>');
+    SFX.play('achieve'); later('Roastery reputation ' + lv, got.length ? plain(got.join(', ')) : 'Buyers across Japan are talking about your roasts', '<h2>Roastery reputation ' + lv + '</h2>' + img('roaster_0', 52) + '<p class="note">' + (got.length ? got.map((g) => '<b>' + g + '</b>').join('<br>') : 'Buyers across Japan are talking about your roasts.') + '</p><button class="btn green" data-act="close">Lovely</button>');
   } else if (newCos.length) { SFX.play('achieve'); toast('New for your roastery: ' + newCos.join(', ') + '. See Shop › Roastery'); }
 }
 function repInfo() {   /* the roastery's reputation and what it brings next (shown in the bar over the roastery, like a farm's level) */
@@ -2920,13 +2932,13 @@ function seasonTick() {   /* a new season closes the old one: unclaimed track ti
   const finish = (rank, rookieRank) => {
     if (!played && (!rank || rank > 10)) return;
     if (!rank) {   /* the server couldn't say where you finished: no guessed badge */
-      showModal('<h2>' + seasonName(old) + ' season over</h2><p class="note">You finished with <b>' + ss.stars + ' season stars</b> (track tier ' + reached + ' of ' + TRACK_TIERS + '). Your final place couldn\'t be checked with the leaderboard, so no place badge this time.</p>' + (got.length ? '<p class="note">Track rewards you hadn\'t claimed are now yours: ' + got.join(', ') + '.</p>' : '') + '<button class="btn green" data-act="close">Start the ' + theme().name + ' season</button>');
+      later(seasonName(old) + ' season over', ss.stars + ' season stars, track tier ' + reached, '<h2>' + seasonName(old) + ' season over</h2><p class="note">You finished with <b>' + ss.stars + ' season stars</b> (track tier ' + reached + ' of ' + TRACK_TIERS + '). Your final place couldn\'t be checked with the leaderboard, so no place badge this time.</p>' + (got.length ? '<p class="note">Track rewards you hadn\'t claimed are now yours: ' + got.join(', ') + '.</p>' : '') + '<button class="btn green" data-act="close">Start the ' + theme().name + ' season</button>');
       save(); return;
     }
     S.badges.push({ key: old, rank, label: BADGE(rank), theme: t.id, gold: done });
     if (wasRookie && rookieRank && rookieRank <= 10) S.badges.push({ key: old, rank: rookieRank, label: 'Rookie ' + BADGE(rookieRank), theme: t.id, gold: done });   /* the best newcomers get their own badge */
     const nt = theme();
-    showModal('<h2>' + seasonName(old) + ' season over</h2><p class="note">You finished <b>#' + rank + '</b> with <b>' + ss.stars + ' season stars</b> (track tier ' + reached + ' of ' + TRACK_TIERS + ') and ' + fmt(ss.kh || 0) + ' know-how this season. Your <b>' + BADGE(rank) + '</b> badge' + (wasRookie && (rookieRank || 99) <= 10 ? ' and a <b>Rookie ' + BADGE(rookieRank) + '</b> badge for finishing #' + rookieRank + ' among first-season farmers' : '') + (done ? ', framed in gold for finishing the track,' : '') + ' is on your profile.</p>' +
+    later(seasonName(old) + ' season over', '#' + rank + ' with ' + ss.stars + ' season stars', '<h2>' + seasonName(old) + ' season over</h2><p class="note">You finished <b>#' + rank + '</b> with <b>' + ss.stars + ' season stars</b> (track tier ' + reached + ' of ' + TRACK_TIERS + ') and ' + fmt(ss.kh || 0) + ' know-how this season. Your <b>' + BADGE(rank) + '</b> badge' + (wasRookie && (rookieRank || 99) <= 10 ? ' and a <b>Rookie ' + BADGE(rookieRank) + '</b> badge for finishing #' + rookieRank + ' among first-season farmers' : '') + (done ? ', framed in gold for finishing the track,' : '') + ' is on your profile.</p>' +
       (got.length ? '<p class="note">Track rewards you hadn\'t claimed are now yours: ' + got.join(', ') + '.</p>' : '') +
       '<p class="note">The <b>' + nt.name + '</b> season starts now with a fresh board and track. ' + nt.rule + ' Your farm, prestige, level and looks stay as they are.</p><button class="btn green" data-act="close">Start the ' + nt.name + ' season</button>');
     save();
@@ -2949,7 +2961,7 @@ function startDrop(id, server) {
   S.event = { id: d.id, ends: server ? Date.parse(server.ends) : Date.now() + 7 * 86400000, done: 0, drop: server ? { id: d.id, name: d.name, variety: d.variety, method: d.method, note: d.note } : null };
   S.contracts = S.contracts.filter((c) => !c.event);
   for (let k = 0; k < 3; k++) S.contracts.push(eventContract(d, k));
-  showModal('<div class="push"><span class="push-app">BEJU · now</span><b>New drop: ' + d.name + '</b><span>' + d.note + ' Plant it free all week in Beju Farm.</span></div><h2>Drop event</h2><p class="note">For ' + eventDays() + ' day' + (eventDays() === 1 ? '' : 's') + ': ' + ART.varieties[d.variety] + ' seeds are free to plant, ' + d.method + ' and ' + ART.varieties[d.variety] + ' lots sell for ×' + EVENT_MULT + ', and Beju has three event contracts for you. Finish all three for the event badge and 10 cranes.</p><p class="note"><a href="https://bejucoffee.com" target="_blank" rel="noopener">See the real coffee on bejucoffee.com</a></p><button class="btn green" data-act="close">Let\'s grow it</button>');
+  later('New drop: ' + d.name, 'Free to plant for ' + eventDays() + ' day' + (eventDays() === 1 ? '' : 's'), '<div class="push"><span class="push-app">BEJU · now</span><b>New drop: ' + d.name + '</b><span>' + d.note + ' Plant it free all week in Beju Farm.</span></div><h2>Drop event</h2><p class="note">For ' + eventDays() + ' day' + (eventDays() === 1 ? '' : 's') + ': ' + ART.varieties[d.variety] + ' seeds are free to plant, ' + d.method + ' and ' + ART.varieties[d.variety] + ' lots sell for ×' + EVENT_MULT + ', and Beju has three event contracts for you. Finish all three for the event badge and 10 cranes.</p><p class="note"><a href="https://bejucoffee.com" target="_blank" rel="noopener">See the real coffee on bejucoffee.com</a></p><button class="btn green" data-act="close">Let\'s grow it</button>');
   SFX.play('achieve');
 }
 function eventContract(d, k) {
@@ -5749,7 +5761,7 @@ function bmIntro() {
 }
 function bmTease() {   /* halfway through prestige 4, a letter: the island is coming */
   if (S.prestige !== 4 || S.bmTease || S.guide < GUIDE.length || level() < Math.ceil(prestigeNeed() / 2) || !$('modal').hidden) return;
-  S.bmTease = true; showModal(coachCard('A letter from Jamaica', 'Miss Pearl, who grows old Typica up in the Blue Mountains, writes that her terraces need a partner with steady hands. Reach prestige 5 and they\'re yours to look after.'));
+  S.bmTease = true; later('A letter from Jamaica', 'From Miss Pearl, in the Blue Mountains', coachCard('A letter from Jamaica', 'Miss Pearl, who grows old Typica up in the Blue Mountains, writes that her terraces need a partner with steady hands. Reach prestige 5 and they\'re yours to look after.'));
 }
 const bmInfo = () => { const B = S.bm; return B ? { lv: B.lv, badge: 'Cert ' + B.lv, pct: B.lv >= 12 ? 100 : Math.round(B.xp / bmNeed(B.lv) * 100), text: 'Blue Mountain certification ' + B.lv + (B.lv < 12 ? ': ' + Math.max(0, bmNeed(B.lv) - Math.floor(B.xp)) + ' to go for ' + BM_UNLOCKS[B.lv + 1] : '') } : null; };
 /* ---------- the Island Route: from prestige 5 a harbour past Osaka joins the islands. They share one treasure, cowrie shells: a
@@ -7108,7 +7120,7 @@ function musicPage() {
   return h;
 }
 const NEWS = [   /* newest first; the card shows what arrived since you last saw it */
-  { v: '2026-11-07', title: 'A steadier week', items: ['More farm, less screen: hearts, your level and the cherry store now show when they matter, the clock and cranes have gone from the farm, and sound and Settings sit under one gear. Settings › Screen switches back to Classic, sets a larger text size, or keeps the level bar and store up all the time', 'On a phone, the farm is played upright: turn your phone sideways and it asks you to turn it back', 'The Mill\'s market pick now holds for a whole day, so you can plan around it; the foreman on Best pay follows it', 'With the guide full, Dr. Inés asks for five species a week on Galápagos for her survey', 'The +500 know-how boost has gone from the Shop: cranes are for looks', 'Daily rewards follow the game\'s own calendar, which never runs backwards'] },
+  { v: '2026-11-07', title: 'A steadier week', items: ['More farm, less screen: hearts, your level and the cherry store now show when they matter, the clock and cranes have gone from the farm, and sound and Settings sit under one gear. Notices, rewards, deliveries and the day\'s calendar come as a card at the bottom of the farm instead of a window: tap Open to see one. Settings › Screen switches back to Classic, sets a larger text size, or keeps the level bar and store up all the time', 'On a phone, the farm is played upright: turn your phone sideways and it asks you to turn it back', 'The Mill\'s market pick now holds for a whole day, so you can plan around it; the foreman on Best pay follows it', 'With the guide full, Dr. Inés asks for five species a week on Galápagos for her survey', 'The +500 know-how boost has gone from the Shop: cranes are for looks', 'Daily rewards follow the game\'s own calendar, which never runs backwards'] },
   { v: '2026-11-06', title: 'Faces, and fairer pay', items: ['Everyone you meet has a face of their own: the islanders, the estate managers, the Counter regulars and Rosa stroll, work and speak up on their maps; tap one to chat', 'Réunion\'s shed restocks a tray of seedlings every 30 minutes and keeps three, like Bali\'s barometer', 'Know-how no longer snowballs: island rewards and regulars\' requests stop raising the rate they\'re paid from', 'Welcome back shows the coins and know-how earned while you were away, and a cleared fourth field picks too', 'Shorter numbers in the top bar, and long notices come in short pieces', 'With a foreman, your pickers and mill keep going gently through the night', 'A new coffee plants straight from its unlock window; Rosa talks in the lesson bar', 'Settings start with your own options, now with haptics and a way to delete your online farm'] },
   { v: '2026-11-04', title: 'Your collection and your music', items: ['A collection log in Looks › Collection: everything you\'ve found in one place, with a rank as it grows', 'Music in Looks › Music: each place\'s song as you hear it, a jukebox to play any of them anywhere, and a setting for how often music plays', 'The daily check-in is now a calendar that never resets: miss a day and it simply waits for you', 'The odds of each rare find are shown where you find it, with how close you are to a sure one', 'And this card, whenever something new arrives. Find it again in Settings'] },
   { v: '2026-11-03', title: 'The Island Route', items: ['The harbour at prestige 5: cowries, the ledger, the board and voyages', 'Three new islands: Réunion\'s nursery and Bali\'s storms at prestige 6, and the Galápagos camp at prestige 7', 'Where to? Tap the place name to go anywhere, or swipe the map sideways'] }
@@ -7121,7 +7133,7 @@ function newsSoon() {   /* once after each update, when no other card is open; n
   const v = NEWS[0].v;
   if (S.newsSeen === 'fresh' || !(S.stats && S.stats.lotsSold)) { S.newsSeen = v; return; }
   if (S.newsSeen >= v) return;
-  const show = () => { if (S.newsSeen >= v) return; const card = newsCard(false); S.newsSeen = v; showModal(card); };   /* build the card before marking it seen */
+  const show = () => { if (S.newsSeen >= v) return; const card = newsCard(false); S.newsSeen = v; later('What\'s new on the farm', 'Tap Open to see this update', card); };   /* build the card before marking it seen */
   if ($('modal').hidden) show(); else { const w = setInterval(() => { if ($('modal').hidden) { clearInterval(w); show(); } }, 500); }
 }
 function playerSettings() {   /* what a player changes: sound, help, haptics, name, online, starting again (test tools come after, on the beta build) */
@@ -7427,9 +7439,9 @@ function deliver(i, id, quiet, haggle, staff) {
   if (done) {
     S.contracts = S.contracts.filter((x) => x !== c); S.nextContract = Math.min(S.nextContract, S.minutesTotal + 10); S.stats.contracts = (S.stats.contracts || 0) + 1; SFX.play('contract');
     star('contract'); task('contract', 1); if (c.event) star('drop'); if (c.cranes && !c.hm) { earn({ cranes: c.cranes }); SFX.play('crane'); } if (c.boat && !haggle) task('boat', 1);
-    if (c.event && S.event) { S.event.done += 1; if (S.event.done >= 3) { earn({ cranes: 10 }); S.badges.push({ event: eventDrop() ? eventDrop().name : 'Drop event', label: 'Drop', rank: 99 }); setTimeout(() => showModal('<h2>Drop event complete!</h2><p class="note">All three event contracts are delivered. The event badge is on your profile, and 10 cranes are yours.</p><button class="btn green" data-act="close">Brilliant</button>'), 600); } }
+    if (c.event && S.event) { S.event.done += 1; if (S.event.done >= 3) { earn({ cranes: 10 }); S.badges.push({ event: eventDrop() ? eventDrop().name : 'Drop event', label: 'Drop', rank: 99 }); setTimeout(() => later('Drop event complete!', 'The event badge and 10 cranes are yours', '<h2>Drop event complete!</h2><p class="note">All three event contracts are delivered. The event badge is on your profile, and 10 cranes are yours.</p><button class="btn green" data-act="close">Brilliant</button>'), 600); } }
     if (quiet || (S.stats.contracts > 1 && !c.boat && !c.event)) { toast('Contract for ' + c.buyer + ' complete: +' + fmt(c.coins) + ' coins, +' + fmt(c.points) + ' know-how in all'); return; }
-    showModal(img('board', 64) + '<h2>Contract complete!</h2><p class="note">' + c.buyer + ' received ' + fmt(c.kg) + ' kg' + (c.note ? ' (' + c.note.toLowerCase() + ')' : '') + '.' + (spare > 0.05 ? ' The spare ' + fmtKg(spare) + ' kg sold at the market price.' : '') + '</p><div class="stats"><div><small>Coins</small><b>+' + fmt(c.coins + extra.coins) + '</b></div><div><small>Know-how</small><b>+' + fmt(c.points + extra.points) + '</b></div></div><p class="note">Totals for the whole contract, including what earlier deliveries already paid.</p><button class="btn green" data-act="close">Great</button>');
+    later('Contract complete!', c.buyer + ': +' + fmt(c.coins + extra.coins) + ' coins', img('board', 64) + '<h2>Contract complete!</h2><p class="note">' + c.buyer + ' received ' + fmt(c.kg) + ' kg' + (c.note ? ' (' + c.note.toLowerCase() + ')' : '') + '.' + (spare > 0.05 ? ' The spare ' + fmtKg(spare) + ' kg sold at the market price.' : '') + '</p><div class="stats"><div><small>Coins</small><b>+' + fmt(c.coins + extra.coins) + '</b></div><div><small>Know-how</small><b>+' + fmt(c.points + extra.points) + '</b></div></div><p class="note">Totals for the whole contract, including what earlier deliveries already paid.</p><button class="btn green" data-act="close">Great</button>');
   } else if (!quiet) SFX.play('stamp'), tapNote('+' + fmt(pay.coins) + ' · ' + fmt(c.have) + ' / ' + fmt(c.kg) + ' kg', fmt(use) + ' kg delivered to ' + c.buyer + ': +' + fmt(pay.coins) + ' coins, +' + fmt(pay.points) + ' know-how (' + fmt(c.have) + ' / ' + fmt(c.kg) + ' kg)');
 }
 function staffTick() {
@@ -7488,7 +7500,7 @@ function applyGrant(g) {   /* a real order, counted by the server */
   const got = [].concat(...(g.coffees || []).map(applyCoffee));
   if (g.gift) { S.giftCodes = (S.giftCodes || []).concat([g.gift]); NET.giftsAt = 0; }
   if ((g.sub || g.reason === 'subscription') && S.fx.hanabi === undefined) { S.fx.hanabi = fxOn().length < FX_MAX; got.push('Hanabi fireworks for your farm, for subscribers'); }
-  showModal('<h2>Order linked!</h2><p class="note">Your bejucoffee.com order ' + g.order + ' is now part of your farm: <b>+' + g.cranes + ' cranes</b>' + (g.bonus ? ' (with ' + g.bonus + ' bonus for ' + (g.reason === 'subscription' ? 'subscribing' : 'your first order this month') + ')' : '') + (got.length ? ', plus ' + got.join(', ') : '') + '.</p>' +
+  later('Order linked!', 'Your bejucoffee.com order: +' + g.cranes + ' cranes', '<h2>Order linked!</h2><p class="note">Your bejucoffee.com order ' + g.order + ' is now part of your farm: <b>+' + g.cranes + ' cranes</b>' + (g.bonus ? ' (with ' + g.bonus + ' bonus for ' + (g.reason === 'subscription' ? 'subscribing' : 'your first order this month') + ')' : '') + (got.length ? ', plus ' + got.join(', ') : '') + '.</p>' +
     (g.gift ? '<p class="note">It came with a gift for a friend: code <b class="code">' + g.gift + '</b>. They open it in Shop › Real coffee, and you get 10 cranes.</p>' : '') + '<button class="btn green" data-act="close">Wonderful</button>');
   SFX.play('crane');
 }
@@ -7501,7 +7513,7 @@ function realOrder(id) {   /* the Test tab's pretend order, paid like a real one
   if (c.method && !S.methods[c.method]) { S.methods[c.method] = true; msg += ', and ' + METHODS[c.method].name.toLowerCase() + ' processing unlocked'; }
   if (BEJU_CARDS[id] && !(S.bejuCards || {})[id]) { S.bejuCards = S.bejuCards || {}; S.bejuCards[id] = true; msg += ', a Roasted by Beju card for your notebook'; }
   if (RLABEL[id] && !S.rcos.own['label:' + id]) { S.rcos.own['label:' + id] = true; msg += ', and its bag label for your roastery'; }
-  showModal('<h2>Order delivered</h2><p class="note">' + c.name + ' arrived from bejucoffee.com: ' + msg + '.</p>' + (next ? '<img src="' + url('stamp_' + next) + '" alt="" style="width:72px;image-rendering:pixelated">' : '') + '<button class="btn green" data-act="close">Collect</button>');
+  later('Order delivered', c.name + ' arrived from bejucoffee.com', '<h2>Order delivered</h2><p class="note">' + c.name + ' arrived from bejucoffee.com: ' + msg + '.</p>' + (next ? '<img src="' + url('stamp_' + next) + '" alt="" style="width:72px;image-rendering:pixelated">' : '') + '<button class="btn green" data-act="close">Collect</button>');
 }
 function unlockFarm(loc) {
   const f = S.farms[loc];
@@ -7708,7 +7720,7 @@ function grantSample(id, quiet) {
   if (sampleOf(id)) return false;
   const r = SAMPLE_LADDER.find((x) => x.id === id), coffee = r ? ART.locations[r.origin].reward : "Roaster's choice";
   S.samples.push({ id, kind: id === 'welcome' ? 'welcome' : r ? 'origin' : 'monthly', origin: r ? r.origin : '', coffee, earned: Date.now(), expires: Date.now() + SAMPLE_DAYS * 864e5, status: 'earned', local: true });
-  if (!quiet) { SFX.play('achieve'); showModal('<h2>Free coffee earned!</h2>' + img('green_sack', 56) + '<p class="note">A free <b>100 g ' + coffee + '</b> sample from Beju. ' + (ordersLive() ? 'Redeem it with any bejucoffee.com order of ¥' + fmt(SAMPLE_MIN) + ' or more in the next ' + SAMPLE_DAYS + ' days: it comes in the same box.' : preLaunch() + 'samples become redeemable when Beju Farm launches on bejucoffee.com.') + '</p><button class="btn green" data-act="close">Wonderful</button>'); }
+  if (!quiet) { SFX.play('achieve'); later('Free coffee earned!', 'A free 100 g ' + plain(coffee) + ' sample', '<h2>Free coffee earned!</h2>' + img('green_sack', 56) + '<p class="note">A free <b>100 g ' + coffee + '</b> sample from Beju. ' + (ordersLive() ? 'Redeem it with any bejucoffee.com order of ¥' + fmt(SAMPLE_MIN) + ' or more in the next ' + SAMPLE_DAYS + ' days: it comes in the same box.' : preLaunch() + 'samples become redeemable when Beju Farm launches on bejucoffee.com.') + '</p><button class="btn green" data-act="close">Wonderful</button>'); }
   syncSamples();
   return true;
 }
@@ -7738,7 +7750,7 @@ function checkIn() {   /* once per real day: the calendar moves on a day. It nev
   const idx = (c.n - 1) % 7, r = ciReward(CHECKIN[idx]); earn(r); unRate(r); star('checkin');
   const rl = (x) => { x = ciReward(x); return x.coins ? fmt(x.coins) + ' coins' : x.points ? fmt(x.points) + ' know-how' : x.cranes + ' cranes'; };
   if (c.n === 1) { toast('Day 1 of your daily calendar: ' + rl(r) + '. It moves on a day each day you play, in Daily'); SFX.play('coins'); return; }   /* the first day comes straight after the lessons: a notice, not another window */
-  showModal('<h2>Daily brew calendar</h2><p class="note">Day ' + c.n + ' on the farm. Today: <b>' + rl(r) + '</b>.</p><div class="streak">' + CHECKIN.map((x, i) => '<span class="' + (i < idx ? 'done' : i === idx ? 'now' : '') + '"><b>' + (i + 1) + '</b>' + rl(x) + '</span>').join('') + '</div><p class="note">The calendar never resets. Miss a day and it simply waits for you.</p><button class="btn green" data-act="close">Collect</button>');
+  later('Daily brew calendar', 'Day ' + c.n + ': ' + rl(r), '<h2>Daily brew calendar</h2><p class="note">Day ' + c.n + ' on the farm. Today: <b>' + rl(r) + '</b>.</p><div class="streak">' + CHECKIN.map((x, i) => '<span class="' + (i < idx ? 'done' : i === idx ? 'now' : '') + '"><b>' + (i + 1) + '</b>' + rl(x) + '</span>').join('') + '</div><p class="note">The calendar never resets. Miss a day and it simply waits for you.</p><button class="btn green" data-act="close">Collect</button>');
   SFX.play('coins');
 }
 function guideStep(ev) {
@@ -7956,7 +7968,7 @@ function shopWaitCard() {   /* what you earned before the Shop opened */
   const w = S.shopWait || []; if (!w.length) return; S.shopWait = [];
   const rows = w.map(([l, k, lv]) => row(img(k === 'skin' ? 'build_housing_' + ORIGIN[l].skin : 'stamp_' + l, 34), k === 'skin' ? ART.bskins[ORIGIN[l].skin].name + ' building style' : 'A gold ' + fname(l) + ' passport stamp', fname(l) + ' farm level ' + lv, '')).join('');
   const skin = w.some((x) => x[1] === 'skin');
-  showModal('<h2>Waiting for you in the Shop</h2><p class="note">You earned these while the Shop was closed.' + (skin ? ' Building styles work on any farm, in Shop › Farm style.' : ' Your passport is in Shop › Real coffee.') + '</p>' + rows + '<button class="btn green" data-act="shopwait:' + (skin ? 'bskin' : 'beju') + '">Show me</button><button class="btn" data-act="close">Later</button>');
+  later('Waiting for you in the Shop', 'Earned while the Shop was closed', '<h2>Waiting for you in the Shop</h2><p class="note">You earned these while the Shop was closed.' + (skin ? ' Building styles work on any farm, in Shop › Farm style.' : ' Your passport is in Shop › Real coffee.') + '</p>' + rows + '<button class="btn green" data-act="shopwait:' + (skin ? 'bskin' : 'beju') + '">Show me</button><button class="btn" data-act="close">Later</button>');
 }
 function checkTabs() {
   if (!S.buyers && S.guide >= GUIDE.length && level() >= BUYERS_LV) { S.buyers = true; S.contracts = S.contracts.filter((c) => c.event); S.nextContract = 0; showModal(coachCard('Buyers', 'Buyers have started posting contracts in the Mill. Fill one with a matching lot for about twice the usual pay.', 'Show me', 'coachgo:mill')); }   /* Rosa first; the walk to the contracts waits for her card */
@@ -7990,7 +8002,7 @@ function tapNote(text, long) {
 }
 const toastQ = [];
 const TOAST_MAX = 110;
-const toastMax = () => (S.hud === 'classic' ? TOAST_MAX : 84);   /* the new place bar keeps both arrows and the gear in view, so a notice gets the middle only: shorter pieces */
+const toastMax = () => (S.hud === 'classic' ? TOAST_MAX : 84);   /* in the new HUD a notice is a card of at most two lines: shorter pieces */
 function toastSplit(msg, MAX = toastMax()) {   /* whole sentences where they fit, a long one broken at its commas, packed into pieces short enough for two lines */
   const TOAST_MAX = MAX;
   const bits = msg.split(/(?<=[.;!?])\s+/).flatMap((b) => (b.length > TOAST_MAX ? b.split(/,\s+/).map((x, i, all) => (i < all.length - 1 ? x + ',' : x)) : [b]));
@@ -8005,9 +8017,24 @@ function toast(msg) {   /* one notice at a time: one that arrives within a secon
   if (!t.hidden && toastT > 1.6 && !mine) { if (msg !== t.textContent && !toastQ.includes(msg) && toastQ.length < 3) toastQ.push(msg); return; }
   if (!t.hidden && mine && t.textContent && t.textContent !== msg && !toastQ.includes(t.textContent)) toastQ.unshift(t.textContent);   /* what was showing comes back after it */
   if (msg.length > toastMax()) { const parts = toastSplit(msg); msg = parts.shift(); toastQ.unshift(...parts.filter((x) => !toastQ.includes(x))); }   /* a long notice comes in short pieces, one after another, rather than spilling out of the bar */
-  t.textContent = msg; t.hidden = false; toastT = msg.length > 70 ? 3.4 : 2.6; t.classList.toggle('long', msg.length > 70); t.classList.remove('pop'); void t.offsetWidth; t.classList.add('pop');
+  t.textContent = msg; t.hidden = false; $('app').classList.add('notice'); toastT = msg.length > 70 ? 3.4 : 2.6; t.classList.toggle('long', msg.length > 70); t.classList.remove('pop'); void t.offsetWidth; t.classList.add('pop');
 }
 const modalQueue = [];
+/* the moment card (new HUD): a window the game would open by itself (a reward, a delivery, a season's end, the day's calendar) waits at the
+   bottom of the map as one card, and opens on a tap. Windows still open by themselves only for something opening for the first time,
+   prestige and the welcome back (design doc "Beju Farm: HUD design", Notifications). Classic opens them as before. */
+const laterQ = [];
+const plain = (h) => String(h).replace(/<[^>]+>/g, '');
+function later(title, sub, html) {
+  if (S.hud === 'classic') { showModal(html); return; }
+  laterQ.push({ title: plain(title), sub: plain(sub || ''), html }); laterShow();
+}
+function laterShow() {
+  const m = $('moment'), it = laterQ[0];
+  if (!it) { m.hidden = true; m.innerHTML = ''; return; }
+  m.innerHTML = '<span class="m-t"><b>' + it.title + '</b>' + (it.sub ? '<small>' + it.sub + '</small>' : '') + '</span>' + (laterQ.length > 1 ? '<i class="m-n" aria-label="' + (laterQ.length - 1) + ' more">+' + (laterQ.length - 1) + '</i>' : '') + '<button class="btn green" type="button" data-act="later:open">Open</button><button class="m-x" type="button" data-act="later:skip" aria-label="Put away">✕</button>';
+  m.hidden = false;
+}
 function dropPrestigeCard() {   /* the prestige walk picks the outfit in Looks, so its summary card goes, wherever it is in the queue; other windows stay */
   if (!$('modal').hidden && $('modalCard').querySelector('.psum')) { closeModal(); return; }
   const i = modalQueue.findIndex((h) => h.includes('class="psum"')); if (i > -1) modalQueue.splice(i, 1);
@@ -8569,6 +8596,7 @@ document.addEventListener('click', (e) => {
   const [a, v] = b.dataset.act.split(':');
   const f = S.farms[S.loc];
   if (a === 'close') { SFX.play('close'); closeModal(); return; }
+  if (a === 'later') { const it = laterQ.shift(); SFX.play(v === 'open' ? 'page' : 'close'); if (v === 'open' && it) showModal(it.html); laterShow(); return; }
   if (a === 'pcer') { SFX.play('page'); $('pcer').hidden = true; if (S.pwalk === 3) { dropPrestigeCard(); setTab('looks'); setTimeout(() => showModal(coachCard('Looks', 'Every prestige lets you pick one new outfit. Tap one to keep it.')), 300); } return; }
   if (!TEST_TOOLS && ['add', 'order', 'away', 'day', 'speed', 'season', 'revtest', 'konatest', 'bmtest'].includes(a)) return;   /* no cheats in the public game */
   const wallet = S.coins + S.points + S.cranes, decorOwned = S.decor[v] !== undefined;
@@ -8816,6 +8844,9 @@ function hudShow(full) {   /* the new HUD: hearts while picking by hand or low, 
   if (lv !== hudLvLast) { if (hudLvLast) hudLvAt = now; hudLvLast = lv; }
   const ts = on ? S.textScale || 1 : 1; document.documentElement.style.setProperty('--ts', ts);
   app.classList.toggle('h2', on); app.classList.toggle('big', on && ts > 1);
+  { const t = $('toast'), home = on ? app : document.querySelector('.top'); if (t.parentElement !== home) home.insertBefore(t, home.firstChild); }   /* notices: the moment zone in the new HUD, the place bar in Classic */
+  if (!on && laterQ.length) { laterQ.splice(0).forEach((x) => showModal(x.html)); laterShow(); }
+  app.classList.toggle('guiding', !$('guide').hidden && $('guide').parentElement === app);
   app.classList.toggle('sub2', ISLE_IDS.includes(sc) || sc === 'hb' || sc === 'bm' || sc === 'kona');   /* an island's second line is its own purse and status, so it stays */
   app.classList.toggle('sh-hearts', now - hudPickAt < 3000 || S.hearts <= Math.ceil(mh / 4) || lessons);
   app.classList.toggle('sh-lv', !!S.showLv || lessons || frac >= 0.9 || (lv >= prestigeNeed() && (S.prestige > 0 || S.tabs.ranks)) || now - hudLvAt < 6000);
@@ -9113,7 +9144,7 @@ async function harvestClaim() {
   SFX.play('achieve'); S.hv.half = true;
   if (r.data.half) { earn({ cranes: r.data.cranes }); toast('Halfway there together! +' + r.data.cranes + ' cranes'); renderPanel(); return; }
   S.hv.claimed = true; S.hvWins = (S.hvWins || 0) + 1; if (r.data.cranes) earn({ cranes: r.data.cranes });
-  if (r.data.reward === 'decor') { S.decor.harvest = true; showModal('<h2>Harvest Day reached!</h2>' + img('deco_harvest', 56) + '<p class="note">Everyone who helped gets the <b>Harvest basket</b>. It\'s on your farms now; hide or show it in Shop › Farm style.</p><button class="btn green" data-act="close">Lovely</button>'); }
+  if (r.data.reward === 'decor') { S.decor.harvest = true; later('Harvest Day reached!', 'The Harvest basket is on your farms', '<h2>Harvest Day reached!</h2>' + img('deco_harvest', 56) + '<p class="note">Everyone who helped gets the <b>Harvest basket</b>. It\'s on your farms now; hide or show it in Shop › Farm style.</p><button class="btn green" data-act="close">Lovely</button>'); }
   else toast('Harvest Day reached! +' + r.data.cranes + ' cranes');
   renderPanel();
 }
@@ -9419,7 +9450,7 @@ function loop(t) {
   const dt = Math.min(0.05, (t - last) / 1000); last = t;
   tick(dt); revTick(dt); counterTick(dt); konaTick(); bmTick(); routeTick(); ISLE_IDS.forEach((id) => ISLE_FN[id].tick()); draw(t / 1000);
   uiT += dt; saveT += dt;
-  if (toastT > 0) { toastT -= dt; if (toastT <= 0) { if (toastQ.length) toast(toastQ.shift()); else $('toast').hidden = true; } }
+  if (toastT > 0) { toastT -= dt; if (toastT <= 0) { if (toastQ.length) toast(toastQ.shift()); else { $('toast').hidden = true; $('app').classList.remove('notice'); } } }
   if (uiT > 0.5) { uiT = 0; refreshHud(); syncMusic(); if (!panelBusy()) { if (!(document.activeElement && document.activeElement.matches('#panel select, #panel input, #panel textarea'))) renderPanel();   /* a menu or box you're using stays open while you use it */ checkTabs(); renderTabs(); renderGuide(); } harvestSync(); coopSync(); coeTick(); konaIntro(); bmIntro(); hbIntro(); ISLE_IDS.forEach((id) => ISLE_FN[id].intro()); bmTease(); dropLater(); }
   if (saveT > 5) { saveT = 0; save(); }
   requestAnimationFrame(loop);
