@@ -16,7 +16,7 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
   const clean = () => E(() => { const T = window.__T; for (let i = 0; i < 8; i++) T.closeModal(); document.getElementById('modal').hidden = true; document.getElementById('toast').hidden = true; });
   const modal = () => E(() => document.getElementById('modal').hidden ? '' : document.getElementById('modalCard').innerText);
   const panel = () => E(() => document.getElementById('panel').innerText);
-  await E(() => { const T = window.__T, S = T.S, d = new Date(); S.checkin.last = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); S.name = S.nameOk = 'Tess'; S.guide = T.GUIDE.length; S.prestige = 7; S.pwalkDone = true; S.practiceTip = true; S.roastery.tip = true; Object.keys(S.tabs).forEach((k) => { S.tabs[k] = true; }); S.tabs.looks = true; S.navSeen = new Proxy({}, { get: () => true }); S.nav = null; S.rev.cur = null; S.stats.lotsSold = 40;
+  await E(() => { const T = window.__T, S = T.S, d = new Date(); S.checkin.last = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); S.name = S.nameOk = 'Tess'; S.guide = T.GUIDE.length; S.prestige = 7; S.pwalkDone = true; S.practiceTip = true; S.specTip = true; S.roastery.tip = true; Object.keys(S.tabs).forEach((k) => { S.tabs[k] = true; }); S.tabs.looks = true; S.navSeen = new Proxy({}, { get: () => true }); S.nav = null; S.rev.cur = null; S.stats.lotsSold = 40;
     S.route = T.routeFresh(); S.route.seen = true; S.route.mig = 1; ['pier', 'isle_re', 'isle_ba', 'isle_ga'].forEach((k) => { S.route.bd[k] = 1; }); S.re = T.reFresh(); S.re.seen = true; S.ba = T.baFresh(); S.ba.seen = true; S.ga = T.gaFresh(); S.ga.seen = true; });
   await clean();
 

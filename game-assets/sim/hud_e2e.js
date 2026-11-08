@@ -15,7 +15,7 @@ const SEL = ['.top', '#hearts', '#hudLevel', '.hud-r .clock', '#hudCoins', '#hud
   const open = async (w, h, o = {}) => {
     const g = await b.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 1, hasTouch: true, ...o }); g.on('pageerror', (e) => errs.push(e.stack.slice(0, 400)));
     await g.goto('file://' + file); await g.waitForTimeout(800);
-    await g.evaluate(() => { const T = window.__T, S = T.S; S.name = S.nameOk = 'Tess'; S.guide = T.GUIDE.length; S.prestige = 7; S.pwalkDone = true; S.practiceTip = true; S.coins = 5e7; S.cranes = 545;
+    await g.evaluate(() => { const T = window.__T, S = T.S; S.name = S.nameOk = 'Tess'; S.guide = T.GUIDE.length; S.prestige = 7; S.pwalkDone = true; S.practiceTip = true; S.specTip = true; S.coins = 5e7; S.cranes = 545;
       Object.keys(S.tabs).forEach((k) => { S.tabs[k] = true; }); S.xp = (T.XP_AT(40) + T.XP_AT(41)) / 2; S.hearts = T.maxHearts(); Object.keys(S.cherries).forEach((k) => { S.cherries[k] = 0; });
       for (let i = 0; i < 9; i++) T.closeModal(); document.getElementById('modal').hidden = true; document.getElementById('toast').hidden = true; T.refreshHud(); T.renderPanel(); });
     await g.waitForTimeout(200);

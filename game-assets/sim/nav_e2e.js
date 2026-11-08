@@ -12,7 +12,7 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
   await g.goto('file://' + file); await g.waitForTimeout(800);
   const E = (f, a) => g.evaluate(f, a);
   const clean = () => E(() => { const T = window.__T; for (let i = 0; i < 8; i++) T.closeModal(); document.getElementById('modal').hidden = true; document.getElementById('toast').hidden = true; });
-  await E(() => { const T = window.__T, S = T.S, d = new Date(); S.checkin.last = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); S.name = S.nameOk = 'Tess'; S.guide = T.GUIDE.length; S.prestige = 6; S.pwalkDone = true; S.practiceTip = true; S.roastery.tip = true; Object.keys(S.tabs).forEach((k) => { S.tabs[k] = true; }); S.nav = null; S.navSeen = new Proxy({}, { get: () => true });
+  await E(() => { const T = window.__T, S = T.S, d = new Date(); S.checkin.last = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); S.name = S.nameOk = 'Tess'; S.guide = T.GUIDE.length; S.prestige = 6; S.pwalkDone = true; S.practiceTip = true; S.specTip = true; S.roastery.tip = true; Object.keys(S.tabs).forEach((k) => { S.tabs[k] = true; }); S.nav = null; S.navSeen = new Proxy({}, { get: () => true });
     T.LOCS.forEach((l) => { S.farms[l].unlocked = true; }); T.bmTick(); S.bm.seen = true; S.route = T.routeFresh(); S.route.seen = true; S.route.mig = 1; T.konaTick(); S.kona.seen = true; S.rev.cur = null; S.loc = 'mogiana'; S.isle = false; T.setTab('farm', true); });
   await clean(); await g.waitForTimeout(600);
   await g.click('#locTap'); await g.waitForTimeout(200);

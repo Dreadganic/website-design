@@ -22,7 +22,7 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
   const trap = (i) => E((i) => { const a = window.__T.GA_TRAPS[i]; return [a.x, a.y - 7]; }, i);
   const spot = (k) => E((k) => { const p = window.__T.GA_SPOTS[k]; return [p.x, p.y]; }, k);
   const head = [96, 280], ines = await E(() => [window.__T.GA_INES.x, window.__T.GA_INES.y - 10]);
-  await E(() => { const T = window.__T, S = T.S, d = new Date(); S.checkin.last = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); S.name = S.nameOk = 'Tess'; S.guide = T.GUIDE.length; S.prestige = 6; S.pwalkDone = true; S.practiceTip = true; S.roastery.tip = true; Object.keys(S.tabs).forEach((k) => { S.tabs[k] = true; }); S.rev.cur = null; T.revSess = 0; S.loc = 'osaka'; S.isle = false; T.setTab('farm', true); T.bmTick(); S.bm.seen = true; T.routeTick(); S.route.seen = true; for (const l of Object.keys(S.farms)) S.farms[l].build = Object.assign({}, S.farms[l].build, { shade: 0 }); });
+  await E(() => { const T = window.__T, S = T.S, d = new Date(); S.checkin.last = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); S.name = S.nameOk = 'Tess'; S.guide = T.GUIDE.length; S.prestige = 6; S.pwalkDone = true; S.practiceTip = true; S.specTip = true; S.roastery.tip = true; Object.keys(S.tabs).forEach((k) => { S.tabs[k] = true; }); S.rev.cur = null; T.revSess = 0; S.loc = 'osaka'; S.isle = false; T.setTab('farm', true); T.bmTick(); S.bm.seen = true; T.routeTick(); S.route.seen = true; for (const l of Object.keys(S.farms)) S.farms[l].build = Object.assign({}, S.farms[l].build, { shade: 0 }); });
   await clean();
 
   /* opening: prestige 7, a first voyage to Galápagos, then the board's project */

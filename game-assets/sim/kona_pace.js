@@ -10,7 +10,7 @@ const file = path.resolve(process.argv[2]), mins = +(process.argv[3] || 6);
   const b = await chromium.launch({ executablePath: process.env.PW_CHROMIUM || '/opt/pw-browsers/chromium' });
   const g = await b.newPage({ viewport: { width: 390, height: 844 } }); const errs = []; g.on('pageerror', (e) => errs.push(e.message));
   await g.goto('file://' + file); await g.waitForTimeout(800);
-  await g.evaluate(() => { const T = window.__T, S = T.S; S.name = S.nameOk = 'Tess'; S.guide = T.GUIDE.length; S.prestige = 6; S.pwalkDone = true; S.practiceTip = true; S.roastery.tip = true; Object.keys(S.tabs).forEach((k) => { S.tabs[k] = true; }); T.goKona(); T.konaTick(); S.kona.seen = true; for (let i = 0; i < 8; i++) T.closeModal(); });
+  await g.evaluate(() => { const T = window.__T, S = T.S; S.name = S.nameOk = 'Tess'; S.guide = T.GUIDE.length; S.prestige = 6; S.pwalkDone = true; S.practiceTip = true; S.specTip = true; S.roastery.tip = true; Object.keys(S.tabs).forEach((k) => { S.tabs[k] = true; }); T.goKona(); T.konaTick(); S.kona.seen = true; for (let i = 0; i < 8; i++) T.closeModal(); });
   await g.evaluate(() => {
     const T = window.__T, t0 = Date.now(); window.__pace = { first: null, log: [], item: null };
     setInterval(() => {

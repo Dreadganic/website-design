@@ -7,6 +7,7 @@ python3 game-assets/play/build.py /tmp/beju-farm.html
 python3 game-assets/sim/mk.py /tmp/beju-farm.html game-assets/sim/sim.html        # exposes game internals to the bot
 python3 game-assets/sim/mkvar.py game-assets/sim/sim.html game-assets/sim/v.html hire,realday,offline,build5,life8,geo118,mastery,research
 node game-assets/sim/run.js active 5 a.json v.html 5    # mode (active|casual), target prestige, output, page, max building level
+# SPEC=grow|mill|roast|trade|wander|off picks the focus the bot takes at each prestige from 3 (default: Grower, or keeps its last)
 node game-assets/sim/cmp.js a.json                       # one-line summary; rep.js gives a detailed timeline
 ```
 
@@ -89,6 +90,7 @@ The design audit of 6 November 2026 ("Beju Farm: design audit and roadmap") rank
 
 ```
 node game-assets/sim/review_e2e.js /tmp/test.html   # 31 checks
+node game-assets/sim/spec_e2e.js /tmp/test.html     # specialties: the focus per run from prestige 3 (bonuses, goals, titles, prestige window)
 ```
 
 ## The new HUD
@@ -98,3 +100,7 @@ The HUD design ("Beju Farm: HUD design") keeps on the farm only what you'd play 
 ```
 node game-assets/sim/hud_e2e.js /tmp/test.html [shots]   # 53 checks
 ```
+
+## Specialties
+
+From prestige 3 each run has a focus, picked in the prestige window and changeable once a run (Ranks › Prestige): Grower (pickers ×1.25, golden bushes ×1.5 as often; goal 15 golden bushes), Miller (lots dry ×1.25 faster, hand-cupping +2; goal 60 cupped lots), Roaster (crack window ×1.5, bags ×1.15; goal 25 perfect cracks), Trader (contracts ×1.2, one more slot, every 14 minutes; goal 15 contracts) and Wanderer (no farm goes dormant; goal a lot sold of each open farm's own coffee). A goal gives the specialty's title and a star, up to five. `spec_e2e.js` checks it. Measured with `SPEC=... run.js casual 5` (one run each, so about ±0.3 h of noise): prestige 5 at 3.3 h with no focus, 3.0 Grower, 2.9 Miller, 2.7 Trader, 3.0 Wanderer, 2.8 Roaster.

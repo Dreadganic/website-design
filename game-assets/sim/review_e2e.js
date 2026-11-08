@@ -14,7 +14,7 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
   const E = (f, a) => g.evaluate(f, a);
   const clean = () => E(() => { const T = window.__T; for (let i = 0; i < 8; i++) T.closeModal(); document.getElementById('modal').hidden = true; document.getElementById('toast').hidden = true; });
   const modal = () => E(() => document.getElementById('modal').hidden ? '' : document.getElementById('modalCard').innerText);
-  await E(() => { const T = window.__T, S = T.S, d = new Date(); S.checkin.last = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); S.name = S.nameOk = 'Tess'; S.guide = T.GUIDE.length; S.prestige = 3; S.pwalkDone = true; S.practiceTip = true; S.coins = 50016310; S.points = 5123456; S.xp = 9e6; });
+  await E(() => { const T = window.__T, S = T.S, d = new Date(); S.checkin.last = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); S.name = S.nameOk = 'Tess'; S.guide = T.GUIDE.length; S.prestige = 3; S.pwalkDone = true; S.practiceTip = true; S.specTip = true; S.coins = 50016310; S.points = 5123456; S.xp = 9e6; });
   await clean();
 
   /* a regular's request: paid, and taken back out of the rate it was priced from */
