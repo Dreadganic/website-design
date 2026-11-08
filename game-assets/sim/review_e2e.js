@@ -138,6 +138,8 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
   const mx = await E(() => { const T = window.__T, S = T.S, keep = [S.prestige, S.look.crest]; S.prestige = 10; T.act('crest:3'); const c3 = S.look.crest; T.act('crest:11'); const capped = S.look.crest; T.act('floatpick:0'); const none = T.S.floatPick === 0; T.act('floatpick:8'); const f8 = S.floatPick === 8; T.act('floatpick:auto');
     S.looksSub = 'looks'; T.setTab('looks'); T.renderPanel(); const txt = document.getElementById('panel').innerText; S.prestige = keep[0]; S.look.crest = keep[1]; delete S.crestPick; return { c3, capped, none, f8, sec: /Prestige style/.test(txt) && /Picker crew/.test(txt) && /Farm effects/.test(txt) && /Float/.test(txt) }; });
   ok(mx.c3 === 3 && mx.capped === 10 && mx.none && mx.f8 && mx.sec, 'Looks › Prestige style: any crest, float, crew and farm effect reached, mixed and matched: ' + JSON.stringify(mx));
+  const wh = await E(() => { const T = window.__T, S = T.S, keep = Object.assign({}, S.stamps); T.ORIGINS.forEach((l) => { delete S.stamps[l]; }); T.act('dogskin:whale'); const early = S.dogSkin === 'whale'; T.ORIGINS.forEach((l) => { S.stamps[l] = true; }); T.act('dogskin:whale'); const got = S.dogSkin === 'whale'; T.act('dogskin:shiba'); S.stamps = keep; delete S.dogSkin; return [early, got]; });
+  ok(wh.join() === 'false,true', 'the whale for the farm dog: only with all five origin stamps: ' + wh);
   const miss = await E(() => window.__noSprite || []); ok(!miss.length, 'every picture drawn exists: ' + miss.join(', '));
   ok(!errs.length, 'no page errors: ' + errs.join(' | '));
   console.log(pass + ' passed, ' + fail + ' failed'); await b.close(); process.exit(fail ? 1 : 0);
