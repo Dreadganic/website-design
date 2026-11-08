@@ -66,7 +66,7 @@ const ok = (c, msg) => { console.log((c ? 'PASS ' : 'FAIL ') + msg); if (!c) pro
   // renaming in Settings: a taken name is refused, a free one frees the old
   await B.evaluate(() => { const T = window.__T; T.S.guide = T.GUIDE.length; T.S.cranes = 100; for (let i = 0; i < 6; i++) T.closeModal(); });
   await B.waitForTimeout(1200); await B.evaluate(() => { for (let i = 0; i < 6; i++) window.__T.closeModal(); });   /* B's held-back drop card arrives now; put it away */
-  await B.click('#gearBtn'); await B.waitForTimeout(400);
+  await B.click('#gearTop'); await B.waitForTimeout(400);
   ok(await B.evaluate(() => !!document.querySelector('#panel #nameIn')), 'Settings has the name box');
   await type(B, '#nameIn', 'mika');
   ok(await B.waitForFunction(() => /Another farmer is already called mika/.test(document.getElementById('toast').innerText), null, { timeout: 8000 }).then(() => true, () => false), 'Settings refuses a taken name');   /* it may wait its turn behind another notice */
