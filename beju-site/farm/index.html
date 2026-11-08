@@ -4217,7 +4217,7 @@ function floatKg(x, y, kg) {   /* picks in quick succession add up in one float 
    Drawn over the farm at the screen's 2x scale; with reduced motion only a still tint; Settings › Prestige effects turns it off */
 const hsh = (i, k) => { const x = Math.sin(i * 127.1 + k * 311.7) * 43758.5453; return x - Math.floor(x); };
 function tierFx(time) {
-  const t = tierOf(S.prestige); if (t < 7 || S.tierFx === false) return;
+  const top = tierOf(S.prestige), t = typeof S.tierFx === 'number' && S.tierFx >= 7 && S.tierFx <= top ? S.tierFx : top; if (t < 7 || S.tierFx === false) return;   /* your highest, or an earlier one you picked */
   const c = ctx, w = W * 2, h = H * 2; c.save();
   if (t === 7) {   /* Golden Crane: glints drifting down */
     if (!calm) for (let i = 0; i < 22; i++) { const u = (time * (0.05 + hsh(i, 1) * 0.04) + hsh(i, 2)) % 1, x = hsh(i, 3) * w + Math.sin(time * 1.3 + i) * 10, y = u * h, a = Math.sin(u * Math.PI);
@@ -7301,7 +7301,8 @@ function playerSettings() {   /* what a player changes: sound, help, haptics, na
     const seg = (act, opts, cur) => '<div class="seg">' + opts.map(([v, tl]) => '<button type="button" data-act="' + act + ':' + v + '" aria-pressed="' + (String(cur) === v) + '">' + tl + '</button>').join('') + '</div>';
     const h2 = S.hud !== 'classic';
     h += '<h3>Screen</h3>' + seg('hudmode', [['new', 'New (test)'], ['classic', 'Classic']], h2 ? 'new' : 'classic') + '<p class="note">' + (h2 ? 'The farm first: hearts, level and the cherry store show when they matter. Switch back to Classic any time.' : 'Every number on screen all the time. Try New to see more of your farm.') + '</p>';
-    if (S.prestige >= 7) h += '<h3>Prestige effects</h3>' + seg('tierfx', [['1', 'On'], ['0', 'Off']], S.tierFx === false ? '0' : '1') + '<p class="note">Your crest\'s weather on the farm: gold, fire, heaven or the stars.</p>';
+    if (S.prestige >= 7) { const top = tierOf(S.prestige), cur = S.tierFx === false ? '0' : String(typeof S.tierFx === 'number' && S.tierFx >= 7 && S.tierFx <= top ? S.tierFx : top);
+      h += '<h3>Prestige effects</h3>' + seg('tierfx', [['0', 'Off']].concat([7, 8, 9, 10].filter((n) => n <= top).map((n) => [String(n), { 7: 'Gold', 8: 'Inferno', 9: 'Heaven', 10: 'Cosmos' }[n]])), cur) + '<p class="note">Weather on your farms from any crest you\'ve reached: gold glints, fire, heaven\'s light or the stars.</p>'; }
     if (h2) {
       h += '<h3>Text size</h3>' + seg('tscale', [['1', 'Normal'], ['1.25', 'Large'], ['1.5', 'Largest']], S.textScale || 1);
       h += '<h3>Always show</h3><div class="seg"><button type="button" data-act="hudshow:lv" aria-pressed="' + !!S.showLv + '">Level bar</button><button type="button" data-act="hudshow:store" aria-pressed="' + !!S.showStore + '">Cherry store</button></div><p class="note">Off, they show by themselves when they matter.</p>';
@@ -8792,7 +8793,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'sell') sellLot(+v);
   else if (a === 'haptics') { S.haptics = v === '1'; buzz('pop'); }
   else if (a === 'hudmode') { S.hud = v; refreshHud(); }
-  else if (a === 'tierfx') S.tierFx = v === '1';
+  else if (a === 'tierfx') S.tierFx = v === '0' ? false : Math.min(+v, tierOf(S.prestige));
   else if (a === 'setp' && TEST_TOOLS) { S.prestige = +v; S.look.crest = tierOf(S.prestige); for (let i = 0; i <= Math.min(+v, SKINS.length - 1); i++) S.skins[i] = true; if (+v >= 7) S.look.skin = Math.min(+v, SKINS.length - 1); if (PHATS['p' + v]) S.look.hat = 'p' + v; checkTabs(); toast('Prestige ' + v + ' for testing'); }
   else if (a === 'crew') { if (v === 'none' || phatOwn(v)) S.crew = v; }
   else if (a === 'tscale') { S.textScale = +v || 1; refreshHud(); }
