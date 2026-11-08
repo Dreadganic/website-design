@@ -1963,6 +1963,53 @@ function crewBody(name, k) {
   g.putImageData(img, 0, 0);
   return (cache[key] = c);
 }
+/* barn remodels from prestige 7, each its own building, drawn and animated in place of the barn (40 x 38 at STORE_AT):
+   a gold pagoda with a turning crane vane, an obsidian forge with lava cracks and a furnace, a marble temple on a cloud
+   with a halo, and an observatory whose telescope sweeps the sky. Picked in Looks › Prestige style */
+const barnOf = () => (S.barnPick === 0 ? 0 : S.barnPick >= 7 && S.barnPick <= tierOf(S.prestige) ? S.barnPick : tierOf(S.prestige) >= 7 ? tierOf(S.prestige) : 0);
+function drawBarn(t, x, y, tm) {
+  if (t < 7) return false;
+  const g = fx, R = (c, a, b, w, h) => { g.fillStyle = c; g.fillRect(x + a, y + b, w, h); }, still = calm, k = still ? 0 : tm;
+  if (t === 7) {   /* Golden Crane pagoda */
+    R('#3E2A1C', 4, 22, 32, 16); R('#B8302A', 5, 23, 30, 14); R('#E8B830', 5, 23, 30, 1); R('#E8B830', 5, 36, 30, 1);
+    R('#3E2A1C', 15, 27, 10, 11); R('#6A1A14', 16, 28, 8, 10); R('#F2C04A', 19, 32, 2, 2);
+    R('#3E2A1C', 0, 19, 40, 4); R('#E8B830', 1, 19, 38, 3); R('#A87818', 0, 22, 40, 1); R('#F2C04A', 0, 18, 3, 2); R('#F2C04A', 37, 18, 3, 2);   /* lower roof, upturned ends */
+    R('#3E2A1C', 9, 12, 22, 7); R('#B8302A', 10, 13, 20, 6); R('#F2C04A', 13, 14, 3, 3); R('#F2C04A', 24, 14, 3, 3);
+    R('#3E2A1C', 5, 9, 30, 4); R('#E8B830', 6, 9, 28, 3); R('#A87818', 5, 12, 30, 1); R('#F2C04A', 4, 8, 3, 2); R('#F2C04A', 33, 8, 3, 2);   /* upper roof */
+    R('#3E2A1C', 19, 3, 2, 6);
+    const v = still ? 0 : Math.floor(k * 1.2) % 4, wv = [6, 3, 1, 3][v];   /* the crane vane turns */
+    R('#FFFFFF', 20 - wv / 2, 1, wv, 2); R('#E83A30', 19, 0, 2, 1);
+    if (!still) { const sx = Math.floor((k * 22) % 60) - 10; if (sx >= 0 && sx < 36) { R('#FFF4B0', sx + 2, 10, 2, 1); R('#FFF4B0', sx, 20, 2, 1); } }   /* light runs along the roofs */
+  } else if (t === 8) {   /* Inferno forge */
+    const glow = still ? 0.8 : 0.6 + 0.4 * Math.abs(Math.sin(k * 3.3));
+    R('#120808', 3, 14, 34, 24); R('#2A1A1A', 4, 15, 32, 22);
+    [[8, 17, 1, 6], [9, 22, 3, 1], [27, 18, 1, 5], [25, 22, 3, 1], [30, 28, 1, 6], [6, 30, 4, 1]].forEach(([a, b, w, h]) => { g.globalAlpha = glow; R('#FF5A10', a, b, w, h); g.globalAlpha = 1; });   /* lava cracks */
+    [[2, 14, 6], [9, 10, 4], [15, 6, 10], [25, 10, 4], [32, 14, 6]].forEach(([a, b, w]) => { R('#120808', a, b, w, 15 - b); R('#3A2020', a + 1, b + 1, Math.max(1, w - 2), 1); });   /* spiked roof */
+    R('#120808', 13, 24, 14, 14); const fl = still ? 1 : Math.floor(k * 8) % 3;
+    R('#7A0A04', 14, 26, 12, 12); R('#FF5A10', 15, 31 - fl, 10, 7 + fl); R('#FFD040', 17, 33 - fl, 6, 5 + fl); R('#FFF0A0', 19, 35, 2, 3);   /* the furnace */
+    R('#120808', 29, 2, 5, 12); R('#3A2020', 30, 3, 3, 1);
+    if (!still) for (let i = 0; i < 4; i++) { const u = (k * 0.9 + i / 4) % 1; g.globalAlpha = 1 - u; R(u < 0.4 ? '#FFD040' : '#FF5A10', 31 + Math.round(Math.sin(k * 4 + i) * 2), Math.round(1 - u * 14), 1, 1); R('#5A4A4A', 30 + Math.round(Math.sin(k + i) * 3), Math.round(-u * 18), 2, 2); g.globalAlpha = 1; }   /* sparks and smoke */
+  } else if (t === 9) {   /* Heaven temple on a cloud */
+    R('#FFFFFF', 1, 33, 38, 5); R('#E8EEF8', 0, 35, 40, 2); [3, 11, 20, 29].forEach((a, i) => R('#FFFFFF', a + (still ? 0 : Math.round(Math.sin(k * 1.2 + i) * 1)), 31, 8, 3));
+    R('#D8D0BC', 3, 30, 34, 3); R('#F8F4EA', 3, 30, 34, 1);
+    [5, 13, 23, 31].forEach((a) => { R('#F8F4EA', a, 15, 4, 15); R('#D8D0BC', a + 3, 15, 1, 15); });
+    const dg = still ? 0.8 : 0.6 + 0.3 * Math.sin(k * 2); R('#3E2A1C', 17, 19, 6, 11); g.globalAlpha = dg; R('#FFF4C0', 18, 20, 4, 10); g.globalAlpha = 1;   /* a glowing doorway */
+    R('#D8D0BC', 2, 12, 36, 3); R('#F2C04A', 2, 14, 36, 1);
+    for (let i = 0; i < 9; i++) R('#F8F4EA', 4 + i * 2, 11 - i, 32 - i * 4, 1);   /* the pediment */
+    R('#F2C04A', 19, 4, 2, 2);
+    g.save(); g.translate(x + 20, y + 0); g.scale(1, 0.35); g.strokeStyle = '#F2D060'; g.lineWidth = 2; g.globalAlpha = still ? 0.9 : 0.7 + 0.3 * Math.sin(k * 2.5);
+    g.beginPath(); g.ellipse(0, 0, 9, 9, 0, 0, Math.PI * 2); g.stroke(); g.restore(); g.globalAlpha = 1;   /* the halo above */
+  } else {   /* Cosmos observatory */
+    R('#140A30', 3, 22, 34, 16); R('#2A1650', 4, 23, 32, 14);
+    [8, 18, 28].forEach((a, i) => { R(still || Math.floor(k * 2 + i) % 3 ? '#7EE0F0' : '#BFF4FF', a, 27, 4, 5); });   /* windows */
+    for (let r = 0; r < 14; r++) { const w = Math.round(Math.sqrt(1 - Math.pow((13 - r) / 14, 2)) * 17); R('#1E1040', 20 - w, 8 + r, w * 2, 1); R('#3A2A7A', 20 - w, 8 + r, 2, 1); }   /* the dome */
+    [[12, 12], [26, 11], [17, 16], [30, 17], [9, 18], [22, 10]].forEach(([a, b], i) => { if (still || Math.floor(k * 3 + i) % 4) R(i % 2 ? '#FFFFFF' : '#F2C04A', a, b, 1, 1); });
+    const ang = still ? -0.6 : -0.6 + Math.sin(k * 0.5) * 0.5; R('#5A3AA8', 18, 8, 4, 14);   /* the slit, and the telescope sweeping */
+    g.save(); g.translate(x + 20, y + 12); g.rotate(ang); g.fillStyle = '#C08AF0'; g.fillRect(-2, -12, 4, 12); g.fillStyle = '#7EE0F0'; g.fillRect(-2, -13, 4, 2); g.restore();
+    const oa = still ? 0.5 : k * 1.4; R('#F2C04A', 20 + Math.round(Math.cos(oa) * 22), 14 + Math.round(Math.sin(oa) * 5), 3, 3); R('#FFF4B0', 20 + Math.round(Math.cos(oa) * 22), 14 + Math.round(Math.sin(oa) * 5), 1, 1);   /* a little planet in orbit */
+  }
+  return true;
+}
 const crewOf = () => (S.crew === 'none' ? '' : S.crew && phatOwn(S.crew) && CREWS[S.crew] ? S.crew : ['p10', 'p9', 'p8'].find(phatOwn) || '');
 function phatOn(c, k) {   /* the model's top row and its middle, then the hat above it */
   const h = PHATS[k], x = c.getContext('2d'), d = x.getImageData(0, 0, c.width, c.height).data;
@@ -3110,7 +3157,7 @@ function draw(time) {
   Object.keys(DECOR_AT).forEach((k) => { if (S.decor[k]) DECOR_AT[k].forEach(([x, y]) => fx.drawImage(sprite('deco_' + k, dvOpt(k)), x, y)); });
   drawShowoff(fx, S.loc, S.decor.shelf ? myTrophies() : [], S.decor.sacks ? ORIGINS.filter((l) => S.stamps[l]) : []);
   if (hasPerk('goldsign')) {   /* Golden Crane: the gold sign, and a crane crossing the sky every 45 seconds */
-    fx.drawImage(sprite('perk_sign'), 100, 66);
+    if (barnOf()) fx.drawImage(sprite('perk_sign'), 76, 82); else fx.drawImage(sprite('perk_sign'), 100, 66);   /* beside a barn remodel, not under it */
     const ct = (Date.now() / 1000) % 45;
     if (ct < 9) fx.drawImage(sprite('crane_fly_' + (Math.floor(Date.now() / 260) % 2)), Math.round(-14 + ct / 9 * (W + 28)), Math.round(14 + Math.sin(ct * 1.3) * 3));
   }
@@ -3118,7 +3165,7 @@ function draw(time) {
   if (f.field && S.loc !== 'osaka') fx.drawImage(sprite('bed_open'), 104, 160);
   const asleep = !!S.dormant[S.loc];
   if (!f.field) fx.drawImage(sprite('sign'), 134, 168);
-  fx.drawImage(sprite(storeSprite(S.lv.storage)), STORE_AT.x, STORE_AT.y);
+  if (!drawBarn(barnOf(), STORE_AT.x, STORE_AT.y, time)) fx.drawImage(sprite(storeSprite(S.lv.storage)), STORE_AT.x, STORE_AT.y);   /* a prestige remodel, or the barn */
   if (S.lv.storage > 5) { fx.fillStyle = '#F2C04A'; for (let k = 0; k < S.lv.storage - 5; k++) fx.fillRect(STORE_AT.x + 4 + k * 4, STORE_AT.y + 1, 2, 2); }   /* a gold mark for each level past the barn */
   revVane(); revDecor('farm', time);
   if (stored() >= cap() && Math.floor(time * 2) % 2 === 0) fx.drawImage(sprite('bubble_full'), STORE_AT.x + 12, STORE_AT.y - 8);
@@ -7421,6 +7468,7 @@ function renderPanel() {
         h += '<h3>Prestige style</h3><p class="note">Everything earned at prestiges 7 to 10, to mix and match with any crest and outfit.</p>';
         if (top >= 7) {
           h += '<p class="note"><b>Hat</b></p>' + row('lookhat', [['', 'Outfit hat']].concat(Object.keys(PHATS).filter(phatOwn).map((k) => [k, PHATS[k].name])), S.look.hat && PHATS[S.look.hat] ? S.look.hat : '');
+          h += '<p class="note"><b>Barn</b></p>' + row('barnpick', [[0, 'Classic']].concat([7, 8, 9, 10].filter((n) => n <= top).map((n) => [n, { 7: 'Pagoda', 8: 'Forge', 9: 'Temple', 10: 'Observatory' }[n]])), barnOf());
           h += '<p class="note"><b>Farm effects</b></p>' + row('tierfx', [['0', 'Off']].concat([7, 8, 9, 10].filter((n) => n <= top).map((n) => [n, NM[n]])), S.tierFx === false ? '0' : typeof S.tierFx === 'number' && S.tierFx <= top ? S.tierFx : top);
         }
         if (top >= 8) {
@@ -7768,6 +7816,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'reccopy') { const c = NET.acct ? NET.acct.player + '.' + NET.acct.token : ''; (navigator.clipboard ? navigator.clipboard.writeText(c) : Promise.reject()).then(() => toast('Recovery code copied')).catch(() => toast('Hold the code to select and copy it')); }
   else if (a === 'crest') { const n = +v; if (Number.isFinite(n) && n >= 0 && n <= tierOf(S.prestige)) { S.look.crest = n; S.crestPick = n; } else { S.look.crest = tierOf(S.prestige); delete S.crestPick; } }   /* any crest you've reached */
   else if (a === 'dogskin') { if (v === 'shiba' || whaleOpen()) S.dogSkin = v; if (!$('modal').hidden && b.closest('#modalCard')) closeModal(); }
+  else if (a === 'barnpick') S.barnPick = +v <= tierOf(S.prestige) ? +v : S.barnPick;
   else if (a === 'floatpick') S.floatPick = v === 'auto' ? undefined : +v;
   else if (a === 'skin') { if (S.skins[+v]) S.look.skin = +v; }
   else if (a === 'pickskin') { const i = +v; if (!S.skins[i] && skinOpen(i) && S.skinPicks > 0) { S.skinPicks -= 1; S.skins[i] = true; S.look.skin = i; toast(SKINS[i].name + ' outfit is yours'); SFX.play('achieve'); if (S.pwalk === 3) { const sl = Object.keys(S.dormant)[0], wl = sl && S.dormant[sl]; S.pwalk = sl ? 4 : 0; S.pwalkDone = !sl; setTab('farm'); if (sl) setTimeout(() => showModal(coachCard('Resting farm', ART.locations[sl].name.split(',')[0] + ' rests after a prestige. It wakes again at level ' + wl + ', just as you left it.', 'Got it', 'pwalkend')), 400); } if (!$('modal').hidden && $('modalCard').querySelector('[data-act^="pickskin"]')) closeModal(); } }
