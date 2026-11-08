@@ -68,6 +68,8 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
   /* the daily calendar */
   await clean();
   ok(await E(() => { const T = window.__T, S = T.S; S.checkin = { last: '2026-1-1', n: 5, streak: 5, freezes: 0, days: {} }; T.checkIn(); return S.checkin.n === 6 && S.checkin.last !== '2026-1-1'; }), 'a check-in after weeks away moves the calendar on a day: nothing resets');
+  const openCard = () => E(() => { const m = document.getElementById('moment'), t = m.querySelector('.m-t b'), b = m.querySelector('[data-act="later:open"]'); if (b) b.click(); return t ? t.textContent : ''; });   /* the new HUD: a window the game opens by itself waits as a card at the bottom of the map */
+  ok(await openCard() === 'Daily brew calendar', 'the calendar waits as a card at the bottom of the map, not a window');
   ok(/Daily brew calendar/.test(await modal()) && /Day 6 on the farm/.test(await modal()) && /never resets/.test(await modal()), 'the card shows the day and says it never resets');
   ok(await E(() => document.querySelectorAll('#modalCard .streak > span.now')[0] === document.querySelectorAll('#modalCard .streak > span')[5]), 'day 6 lights the sixth reward');
   await clean();
@@ -83,7 +85,8 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
 
   /* What's new */
   await clean();
-  ok(await E(() => { const T = window.__T, S = T.S; S.newsSeen = undefined; S.stats.lotsSold = 40; T.newsSoon(); return S.newsSeen === T.NEWS[0].v; }), 'after an update, a returning farmer sees What\'s new once');
+  ok(await E(() => { const T = window.__T, S = T.S; S.newsSeen = undefined; S.stats.lotsSold = 40; T.laterQ.length = 0; T.laterShow(); T.newsSoon(); return S.newsSeen === T.NEWS[0].v; }), 'after an update, a returning farmer sees What\'s new once');
+  ok(await openCard() === 'What\'s new on the farm', 'What\'s new waits as a card too');
   ok(/What's new on the farm/.test(await modal()) && /steadier week/.test(await modal()) && /fairer pay/.test(await modal()), 'the card lists what arrived since they last looked');
   await clean();
   ok(await E(() => { window.__T.newsSoon(); return document.getElementById('modal').hidden; }), 'and not again');
