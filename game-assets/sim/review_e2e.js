@@ -115,6 +115,16 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
   ok(/Pink Bourbon · native · best here/.test(fp) && /3\.9 kg a pick/.test(fp), 'the replant window marks the best coffee for the farm and shows its home pick: ' + fp.slice(0, 200).replace(/\n/g, ' | '));
   const tip = await E(() => { const T = window.__T, S = T.S; for (let i = 0; i < 12; i++) T.closeModal(); T.laterQ.length = 0; T.laterShow(); delete S.nativeTip; S.stats.lotsSold = Math.max(1, S.stats.lotsSold); T.refreshHud(); const r = T.laterQ.map((x) => x.title); T.refreshHud(); return { first: r, again: T.laterQ.length, flag: S.nativeTip }; });
   ok(tip.first.includes('Coffee picks best at home') && tip.again === tip.first.length && tip.flag === true, 'a farm made before the change hears about it once: ' + JSON.stringify(tip));
+  /* prestiges 8 to 10: one real unlock each, and a curve that flattens past prestige 6 so they can be reached */
+  const pk = await E(() => { const T = window.__T, S = T.S, keep = [S.prestige, S.xp]; const at = (p) => { S.prestige = p; S.xp = T.XP_AT(80); return { sort: T.hasPerk('lotsorter'), gold: T.hasPerk('goldsign'), night: T.hasPerk('nightmill'), res: T.hasPerk('reserve'), micro: T.microChance('washed') }; };
+    const r = { p7: at(7), p8: at(8), p9: at(9), p10: at(10) };
+    S.prestige = 9; const lot = { cupped: true }; const c9 = T.saleFor('geisha', 'washed', 100, lot); S.prestige = 10; const c10 = T.saleFor('geisha', 'washed', 100, lot);
+    r.cup = c10.cup; r.pay = Math.round(c10.coins / c9.coins * 100) / 100; r.curve = [Math.round(T.XP_AT(59) / T.XP_AT(58) * 100) / 100, Math.round(T.XP_AT(58) / T.XP_AT(57) * 100) / 100]; r.names = [8, 9, 10].map((p) => T.PERKS[p].name);
+    S.prestige = keep[0]; S.xp = keep[1]; return r; });
+  ok(!pk.p7.sort && pk.p8.sort && pk.p8.gold && pk.p8.micro === 0.04 && pk.p7.micro === 0, 'prestige 8: Lot sorters (a micro-lot from any process, 4%) with the Golden Crane: ' + JSON.stringify([pk.p7, pk.p8]));
+  ok(!pk.p8.night && pk.p9.night && !pk.p9.res && pk.p10.res, 'prestige 9 opens the Night mill and 10 the Beju Reserve: ' + pk.names.join(', '));
+  ok(pk.cup >= 92 && pk.pay === 1.3, 'a Reserve lot (cup 92 or more) pays ×1.3 at prestige 10: cup ' + pk.cup + ', ×' + pk.pay);
+  ok(pk.curve[0] === 1.1 && pk.curve[1] === 1.15, 'levels cost ×1.15 each up to 58 (prestige 6), then ×1.10: ' + pk.curve);
   const miss = await E(() => window.__noSprite || []); ok(!miss.length, 'every picture drawn exists: ' + miss.join(', '));
   ok(!errs.length, 'no page errors: ' + errs.join(' | '));
   console.log(pass + ' passed, ' + fail + ' failed'); await b.close(); process.exit(fail ? 1 : 0);

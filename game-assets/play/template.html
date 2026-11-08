@@ -662,7 +662,8 @@ function estateNext(loc) {   /* the next stage to build: its cost, and what it s
 }
 const estDry = (m) => (m === 'natural' ? (estOn('mogiana', 2) ? 0.6 : 1) * (estOn('toba', 2) ? 0.7 : 1) : m === 'honey' ? (estOn('huila', 2) ? 0.7 : 1) : m === 'strawberry' ? (estOn('toba', 2) ? 0.7 : 1) : m === 'washed' ? (estOn('turrialba', 1) ? 0.75 : 1) : 1);
 const estCup = (m) => (m === 'natural' && estOn('mogiana', 3) ? 1 : 0) + (m === 'washed' && estOn('gedeo', 3) ? 1 : 0);
-const microChance = (m) => (['honey', 'rum', 'whiskey'].includes(m) ? (estOn('huila', 3) ? 0.12 : estOn('huila', 1) ? 0.05 : 0) : 0);
+const RESERVE_CUP = 92;   /* Beju Reserve (prestige 10) */
+const microChance = (m) => (['honey', 'rum', 'whiskey'].includes(m) ? (estOn('huila', 3) ? 0.12 : estOn('huila', 1) ? 0.05 : 0) : 0) + (hasPerk('lotsorter') ? 0.04 : 0);   /* Lot sorters (prestige 8): any process */
 const pickKg = (v) => (v === 'heirloom' && estOn('gedeo', 1) ? 1.15 : 1);
 const cerOn = () => Date.now() < ((S.estate || {}).cerUntil || 0);
 const koiOn = () => Date.now() < ((S.estate || {}).koiUntil || 0);
@@ -1061,8 +1062,10 @@ const PERKS = {
   5: { id: 'lookout', name: 'Lookout', text: 'Golden bushes can appear on any open farm, and a Go button takes you there.' },
   6: { id: 'reroll', name: 'Tasting notes', text: 'Swap one daily task a day for a different one. The reward stays the same.' },
   7: { id: 'notebook', name: 'Foreman\'s ledger', text: 'Set the mill foreman\'s process for each coffee, instead of one rule for everything.' },
-  8: { id: 'goldsign', name: 'Golden Crane', text: 'A gold Beju sign on every farm, and a red-crowned crane that flies over your fields.' }
-};
+  8: { id: 'lotsorter', also: 'goldsign', name: 'Lot sorters', text: 'Any process can turn out a gold-tagged micro-lot that pays double (about 1 lot in 25). And the Golden Crane: a gold Beju sign on every farm, and a red-crowned crane over your fields.' },
+  9: { id: 'nightmill', name: 'Night mill', text: 'While you\'re away, your farms and mill keep going at twice the night pace, so storage and racks pay off overnight.' },
+  10: { id: 'reserve', name: 'Beju Reserve', text: 'A lot that cups 92 or more is a Reserve lot: it pays ×1.3, at the mill and in the roastery.' }
+};   /* prestiges 8 to 10 each open something real (the curve flattens past prestige 6 so they can be reached) */
 const AWAKE = ['huila', 'gedeo'];   /* the farms Old friends keeps awake through a prestige */
 const awayCap = () => (hasPerk('nightshift') ? 18 : 12) + techSum('away');
 function replantAll(v) {   /* the Seed catalogue perk: every field on every open farm, except one native field per farm */
@@ -1080,7 +1083,7 @@ function replantAll(v) {   /* the Seed catalogue perk: every field on every open
   return n;
 }
 const PERK_LV = { replantall: 4 };   /* a perk that switches on a few levels into its run */
-const hasPerk = (id) => Object.keys(PERKS).some((p) => PERKS[p].id === id && (S.prestige > +p || (S.prestige === +p && level() >= (PERK_LV[id] || 1))));
+const hasPerk = (id) => Object.keys(PERKS).some((p) => (PERKS[p].id === id || PERKS[p].also === id) && (S.prestige > +p || (S.prestige === +p && level() >= (PERK_LV[id] || 1))));
 const perkAt = (p) => PERKS[p] || null;
 const prestigeNeed = () => PRESTIGE_LEVEL + 8 * S.prestige;   /* 10, 18, 26, 34 ... and each level past 10 costs 1.22x the last */
 const BADGE = (rank) => (rank === 1 ? 'Champion' : rank <= 3 ? 'Top 3' : rank <= 10 ? 'Top 10' : 'Farmer');
@@ -1981,7 +1984,7 @@ const carryKg = () => ART.carry[S.lv.carry - 1].kg;
 const maxHearts = () => 24 + S.lv.hearts * 6;
 const pickerMult = () => (1 + 0.18 * (S.lv.speed - 1)) * (S.boosts.pick > S.minutesTotal ? 2 : 1);
 const XP_EARLY = (l) => (l <= 10 ? 5 : l < 26 ? Math.pow(5, (26 - l) / 16) : 1);   /* early levels take up to 5x the know-how, easing back by level 26, so the first prestige lands about an hour in */
-const XP_AT = (l) => Math.round((l <= 10 ? 100 * Math.pow(l - 1, 2.4) : l <= 30 ? 100 * Math.pow(9, 2.4) * Math.pow(1.22, l - 10) : 100 * Math.pow(9, 2.4) * Math.pow(1.22, 20) * Math.pow(1.15, l - 30)) * XP_EARLY(l));   /* early levels come quickly, later ones take longer; past 30 the climb eases to 1.15x so late prestiges stay reachable. Keep in step with netlify/lib/game.js */
+const XP_AT = (l) => Math.round((l <= 10 ? 100 * Math.pow(l - 1, 2.4) : l <= 30 ? 100 * Math.pow(9, 2.4) * Math.pow(1.22, l - 10) : l <= 58 ? 100 * Math.pow(9, 2.4) * Math.pow(1.22, 20) * Math.pow(1.15, l - 30) : 100 * Math.pow(9, 2.4) * Math.pow(1.22, 20) * Math.pow(1.15, 28) * Math.pow(1.10, l - 58)) * XP_EARLY(l));   /* early levels come quickly, later ones take longer; past 30 the climb eases to 1.15x, and past 58 (prestige 6) to 1.10x, so prestiges 8 to 10 and their unlocks can be reached. Keep in step with netlify/lib/game.js */
 const level = () => { let l = 1; while (S.xp >= XP_AT(l + 1)) l++; return l; };
 const levelSpan = () => { const l = level(), a = XP_AT(l), b = XP_AT(l + 1); return [(S.xp - a) / (b - a), l]; };
 if (!isFinite(S.minutesTotal)) S.minutesTotal = 0;   /* repair saves where the clock was lost */
@@ -6120,7 +6123,7 @@ const seasonSale = (method) => ((rule('momiji') && method === 'honey') || (rule(
 const MILL_PAY = 1.1;   /* lots pay 10% more since racks were cut back (the mill now limits a farm at times), so a run takes as long as before */
 function saleFor(v, method, green, lot) {
   const bonus = 1, cup = cupFor(v, method) + (lot && lot.cupped ? CUP_BONUS : 0) + ((lot && lot.aged) || 0) + ((lot && lot.raked) || 0);
-  return { cup, coins: Math.round((1 + techSum('sale')) * (lot && lot.cupped ? CUP_PAY : 1) * (lot && lot.micro ? 2 : 1) * (lot && lot.aged ? 1 + 0.1 * lot.aged : 1) * green * 22 * MILL_PAY * priceOf(v) * METHODS[method].mult * bonus * (method === marketPick() ? MARKET : 1) * (eventDrop() && (v === eventDrop().variety || method === eventDrop().method) ? EVENT_MULT : 1) * seasonSale(method) * originMult(v, method)), points: Math.round(green * (3 + Math.max(0, cup - 80)) * 0.8 * MILL_PAY * bonus * researchMult()) };
+  return { cup, coins: Math.round((1 + techSum('sale')) * (lot && lot.cupped ? CUP_PAY : 1) * (lot && lot.micro ? 2 : 1) * (hasPerk('reserve') && cup >= RESERVE_CUP ? 1.3 : 1) * (lot && lot.aged ? 1 + 0.1 * lot.aged : 1) * green * 22 * MILL_PAY * priceOf(v) * METHODS[method].mult * bonus * (method === marketPick() ? MARKET : 1) * (eventDrop() && (v === eventDrop().variety || method === eventDrop().method) ? EVENT_MULT : 1) * seasonSale(method) * originMult(v, method)), points: Math.round(green * (3 + Math.max(0, cup - 80)) * 0.8 * MILL_PAY * bonus * researchMult()) };
 }
 function cupLot(i) {
   const l = S.lots[i]; if (!l || l.cupped) return;
@@ -6381,7 +6384,7 @@ function away(hours) {
   /* the night shift: with a foreman the farm keeps going through the night in rounds, picking into storage while he dries and sells, so
      storage is a buffer and racks set the pace. Pickers work at a quarter of your pace past the first hour (they rest); without a foreman
      the store fills once and stops, as before */
-  const night = S.staff.foreman ? Math.max(0, hours - 1) : 0, kgNight = kg / Math.max(hours, 1e-6) * night * (AWAY_NIGHT / 0.5);   /* kg is at the away pace of a half */
+  const night = S.staff.foreman ? Math.max(0, hours - 1) : 0, kgNight = kg / Math.max(hours, 1e-6) * night * (AWAY_NIGHT * (hasPerk('nightmill') ? 2 : 1) / 0.5);   /* kg is at the away pace of a half */
   if (night > 0) { const sc = Math.min(hours, 1) / hours; kg *= sc; byFarm.forEach((x) => { x[1] *= sc; }); }   /* the first hour at the usual away pace */
   const room = Math.max(0, cap() - before), got = Math.min(room, Math.round(kg));
   if (got > 0) byFarm.forEach(([f, fk]) => f.beds.slice(0, awayBeds(f)).forEach((v) => { S.cherries[v] = (S.cherries[v] || 0) + Math.round(got * fk / kg / awayBeds(f)); }));
