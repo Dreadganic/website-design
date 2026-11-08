@@ -25,7 +25,7 @@ const ok = (c, msg) => { if (c) pass++; else { fail++; console.log('FAIL ' + msg
   ok(await E(() => window.__T.S.loc === 'mogiana' && !window.__T.S.isle), 'the arrows skip the island before prestige 5');
   await E(() => { const T = window.__T, S = T.S; S.xp = T.XP_AT(Math.ceil(T.prestigeNeed() / 2)); });
   let letter = false;   /* the game's own loop sends it once the screen is free: clear whatever else arrives first (the level-ups) */
-  for (let k = 0; k < 30 && !letter; k++) { const m = await modal(); if (/a letter from jamaica/i.test(m)) letter = /prestige 5/.test(m); else { if (m) await E(() => window.__T.closeModal()); await g.waitForTimeout(250); } }
+  for (let k = 0; k < 30 && !letter; k++) { const m = await modal(); if (/a letter from jamaica/i.test(m)) letter = /prestige 5/.test(m); else if (await E(() => window.__T.laterQ.some((x) => x.title === 'A letter from Jamaica'))) await E(() => { const T = window.__T; while (T.laterQ.length && T.laterQ[0].title !== 'A letter from Jamaica') T.laterQ.shift(); T.laterShow(); document.querySelector('#moment [data-act="later:open"]').click(); }); else {   /* in the new HUD the letter waits as a card: open it */ if (m) await E(() => window.__T.closeModal()); await g.waitForTimeout(250); } }
   ok(letter, 'halfway through prestige 4 a letter teases the island');
   await clean(); await E(() => window.__T.bmTease());
   ok(!(await modal()), 'the letter comes once');
