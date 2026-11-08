@@ -450,6 +450,9 @@ canvas.hint { transform: none !important; }
 .h2 .top .name b { font-size: calc(17px * var(--ts)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .h2:not(.sub2) .top .name > span, .h2 #locLvBar, .h2 #seasonChip, .h2 .hud-r .clock, .h2 #hudCranes, .h2 #sfxBtn, .h2 #musicBtn, .h2 #gearBtn { display: none !important; }
 .h2:not(.sh-hearts) #hearts, .h2:not(.sh-lv) #hudLevel, .h2:not(.sh-store) #hudStore { display: none !important; }
+.h2.peek #hearts, .h2.peek #hudLevel, .h2.sh-lvtab #hudLevel, .h2.peek:not(.sub2) #hudStore, .h2.peek #hudCranes, .h2.sh-cranes #hudCranes { display: flex !important; }   /* tap your coins: the purse opens; a page shows what's spent there */
+.h2 #hudCoins::before { content: ''; order: 9; width: 0; height: 0; margin-left: 1px; border: 4px solid transparent; border-top-color: #E8D8B8; transform: translateY(2px); }   /* a small caret: there's more behind the coins */
+.h2.peek #hudCoins::before { border-top-color: transparent; border-bottom-color: #E8D8B8; transform: translateY(-2px); }
 .h2 .pill { background: rgba(46,30,18,0.94); font-size: calc(14px * var(--ts)); }
 .h2 .hearts { align-self: flex-start; align-items: center; max-width: none; flex-wrap: nowrap; padding: 3px 6px; border-radius: 10px; background: rgba(46,30,18,0.94); } .h2 .hearts .hn { color: #FFF4DE; font-size: calc(12px * var(--ts)); margin-left: 3px; }
 .h2 .hud-l, .h2 .hud-r { top: 10px; }   /* room for a pill's 44 px tap area inside the map */
@@ -5862,7 +5865,7 @@ function musicPage() {
   return h;
 }
 const NEWS = [   /* newest first; the card shows what arrived since you last saw it */
-  { v: '2026-11-07', title: 'A steadier week', items: ['More farm, less screen: hearts, your level and the cherry store now show when they matter, the clock and cranes have gone from the farm, and sound and Settings sit under one gear. Notices, rewards, deliveries and the day\'s calendar come as a card at the bottom of the farm instead of a window: tap Open to see one. Settings › Screen switches back to Classic, sets a larger text size, or keeps the level bar and store up all the time', 'On a phone, the farm is played upright: turn your phone sideways and it asks you to turn it back', 'The Mill\'s market pick now holds for a whole day, so you can plan around it; the foreman on Best pay follows it', 'With the guide full, Dr. Inés asks for five species a week on Galápagos for her survey', 'The +500 know-how boost has gone from the Shop: cranes are for looks', 'Daily rewards follow the game\'s own calendar, which never runs backwards'] },
+  { v: '2026-11-07', title: 'A steadier week', items: ['More farm, less screen: hearts, your level and the cherry store now show when they matter, the clock and cranes have gone from the farm, and sound and Settings sit under one gear. Tap your coins to see your level, know-how, cherries and cranes at once; Unlock and the Shop show what you spend there. Notices, rewards, deliveries and the day\'s calendar come as a card at the bottom of the farm instead of a window: tap Open to see one. Settings › Screen switches back to Classic, sets a larger text size, or keeps the level bar and store up all the time', 'On a phone, the farm is played upright: turn your phone sideways and it asks you to turn it back', 'The Mill\'s market pick now holds for a whole day, so you can plan around it; the foreman on Best pay follows it', 'With the guide full, Dr. Inés asks for five species a week on Galápagos for her survey', 'The +500 know-how boost has gone from the Shop: cranes are for looks', 'Daily rewards follow the game\'s own calendar, which never runs backwards'] },
   { v: '2026-11-06', title: 'Faces, and fairer pay', items: ['Everyone you meet has a face of their own: the islanders, the estate managers, the Counter regulars and Rosa stroll, work and speak up on their maps; tap one to chat', 'Réunion\'s shed restocks a tray of seedlings every 30 minutes and keeps three, like Bali\'s barometer', 'Know-how no longer snowballs: island rewards and regulars\' requests stop raising the rate they\'re paid from', 'Welcome back shows the coins and know-how earned while you were away, and a cleared fourth field picks too', 'Shorter numbers in the top bar, and long notices come in short pieces', 'With a foreman, your pickers and mill keep going gently through the night', 'A new coffee plants straight from its unlock window; Rosa talks in the lesson bar', 'Settings start with your own options, now with haptics and a way to delete your online farm'] },
   { v: '2026-11-04', title: 'Your collection and your music', items: ['A collection log in Looks › Collection: everything you\'ve found in one place, with a rank as it grows', 'Music in Looks › Music: each place\'s song as you hear it, a jukebox to play any of them anywhere, and a setting for how often music plays', 'The daily check-in is now a calendar that never resets: miss a day and it simply waits for you', 'The odds of each rare find are shown where you find it, with how close you are to a sure one', 'And this card, whenever something new arrives. Find it again in Settings'] },
   { v: '2026-11-03', title: 'The Island Route', items: ['The harbour at prestige 5: cowries, the ledger, the board and voyages', 'Three new islands: Réunion\'s nursery and Bali\'s storms at prestige 6, and the Galápagos camp at prestige 7', 'Where to? Tap the place name to go anywhere, or swipe the map sideways'] }
@@ -5997,8 +6000,15 @@ const HUD_GO = {   /* tap a number on the map to go where it's spent; each only 
   hudCranes: () => (S.tabs.shop ? 'shop' : null),
   hudStore: () => 'mill'
 };
-Object.keys(HUD_GO).forEach((id) => $(id).addEventListener('click', () => { const t = HUD_GO[id](); if (t) setTab(t); }));
-const hudGoMark = () => Object.keys(HUD_GO).forEach((id) => { const on = id === 'hudStore' || (id === 'hudLevel' ? !!(S.tabs.unlock || S.tabs.ranks) : id === 'hudCoins' ? !!S.tabs.upgrades : !!S.tabs.shop); $(id).classList.toggle('go', on); if (on) $(id).setAttribute('role', 'button'); else $(id).removeAttribute('role'); });
+Object.keys(HUD_GO).forEach((id) => $(id).addEventListener('click', () => {
+  if (id === 'hudCoins' && S.hud !== 'classic' && Date.now() > peekUntil) { peek(); return; }   /* new HUD: the first tap on your coins opens the purse; a tap on any number in it goes where it's spent */
+  const t = HUD_GO[id](); if (t) { peekUntil = 0; setTab(t); } else if (id === 'hudCoins') { peekUntil = 0; refreshHud(); }
+}));
+let peekUntil = 0;
+function peek() {   /* the purse: level and know-how, cherries, cranes and hearts, all at once for 6 seconds */
+  peekUntil = Date.now() + 6000; S.peekTip = true; SFX.play('tick'); refreshHud(); setTimeout(refreshHud, 6100);
+}
+const hudGoMark = () => Object.keys(HUD_GO).forEach((id) => { const on = id === 'hudStore' || (id === 'hudLevel' ? !!(S.tabs.unlock || S.tabs.ranks) : id === 'hudCoins' ? (!!S.tabs.upgrades || S.hud !== 'classic') : !!S.tabs.shop); $(id).classList.toggle('go', on); if (on) $(id).setAttribute('role', 'button'); else $(id).removeAttribute('role'); });
 $('nextLoc').addEventListener('click', () => travel(1));
 
 function spend(cur, n) { if (S[cur] < n) return false; S[cur] -= n; return true; }
@@ -7593,6 +7603,11 @@ function hudShow(full) {   /* the new HUD: hearts while picking by hand or low, 
   app.classList.toggle('sh-hearts', now - hudPickAt < 3000 || S.hearts <= Math.ceil(mh / 4) || lessons);
   app.classList.toggle('sh-lv', !!S.showLv || lessons || frac >= 0.9 || (lv >= prestigeNeed() && (S.prestige > 0 || S.tabs.ranks)) || now - hudLvAt < 6000);
   app.classList.toggle('sh-store', !!S.showStore || sc === 'mill' || stored() >= cap() * 0.8);
+  app.classList.toggle('peek', on && now < peekUntil);
+  app.classList.toggle('sh-lvtab', on && sheetOpen && (tab === 'unlock' || tab === 'ranks'));   /* the page you spend in shows what you spend there */
+  app.classList.toggle('sh-cranes', on && sheetOpen && tab === 'shop');
+  if (on && !S.peekTip && !lessons && S.tabs.upgrades && $('modal').hidden && !$('app').classList.contains('notice')) { S.peekTip = true; toast('Tap your coins to see your level, know-how, cherries and cranes.'); }
+  $('hudCoins').setAttribute('aria-label', fmt(S.coins) + ' coins' + (on ? '. Tap to see your level, know-how, cherries and cranes' : ''));
   const st = $('hudStore'); st.classList.toggle('full', full);
   if (on && full && !st.querySelector('.sfull')) { st.insertAdjacentHTML('beforeend', '<b class="sfull">FULL</b>'); st.setAttribute('aria-label', 'Cherry store full: pickers are waiting'); }
   if (!full) st.removeAttribute('aria-label');
@@ -7627,7 +7642,7 @@ function refreshHud() {
     hl.innerHTML = '<span class="lvrow">' + icon('i_points') + (S.prestige ? 'P' + S.prestige + ' · ' : '') + 'Lv ' + lv + ' · ' + fmtShort(S.points) + '</span><span class="lvbar' + (ready ? ' ready' : '') + '"><i style="width:' + (ready ? 100 : pct) + '%"></i></span>';
     hl.setAttribute('aria-label', (S.prestige ? 'Prestige ' + S.prestige + ', ' : '') + 'level ' + lv + ', ' + pct + '% of the way to level ' + (lv + 1) + ', ' + fmt(S.points) + ' know-how' + (ready ? ', prestige ready' : '')); }
   hudGoMark();
-  $('hudCoins').innerHTML = icon('i_coin') + fmtShort(S.coins); $('hudCoins').setAttribute('aria-label', fmt(S.coins) + ' coins');   /* short in the pill, so the pills leave the farm in view on a small phone */
+  $('hudCoins').innerHTML = icon('i_coin') + fmtShort(S.coins);    /* short in the pill, so the pills leave the farm in view on a small phone */
   $('hudCranes').innerHTML = icon('i_crane') + S.cranes;
   const full = stored() >= cap();
   $('hudStore').innerHTML = icon('i_cherry') + '<span style="color:' + (full ? '#FF9A8A' : '#FFF4DE') + '">' + fmt(stored()) + '/' + fmt(cap()) + '</span>'; $('hudStore').style.display = scene() === 'bm' || scene() === 'hb' || ISLE_IDS.includes(scene()) ? 'none' : '';   /* mainland storage means nothing up the mountain, and its pill would sit on the top terrace on a small phone */

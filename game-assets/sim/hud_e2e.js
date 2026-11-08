@@ -36,13 +36,14 @@ const SEL = ['.top', '#hearts', '#hudLevel', '.hud-r .clock', '#hudCoins', '#hud
     ok(r.scroll <= 0, w + 'x' + h + ': the page does not scroll (' + r.scroll + ' px over)');
     ok(r.top >= 0 && r.bottom <= h, w + 'x' + h + ': the place bar and tabs are on screen (' + Math.round(r.top) + ', ' + Math.round(r.bottom) + ')');
     if (w === 360) {
+      await g.evaluate(() => { const T = window.__T; for (let i = 0; i < 12; i++) T.closeModal(); document.getElementById('modal').hidden = true; });   /* a window the game sends late would sit over everything */
       /* 3. tap targets: 44 px, or a 44 px hit area around a small pill */
       const small = await g.evaluate(() => [...document.querySelectorAll('.top button, #tabs button, .pill.go')].filter((e) => e.offsetParent && !e.hidden).map((e) => {
         const q = e.getBoundingClientRect(), cx = q.left + q.width / 2, cy = q.top + q.height / 2;
         if (e.matches('#tabs .tab') && q.height >= 44 && q.width >= 36) return null;   /* eight tabs on a 360 px phone are 38 wide: the tab bar is not being changed (design doc, Layout zones) */
         if (q.width >= 44 && q.height >= 44) return null;
         const hits = [[cx, cy - 21], [cx, cy + 21], [q.left + 2, cy], [q.right - 2, cy]].every(([x, y]) => { const t = document.elementFromPoint(x, y); return t && (t === e || e.contains(t)); });
-        return hits && q.width >= 40 ? null : (e.id || e.className) + ' ' + Math.round(q.width) + 'x' + Math.round(q.height); }).filter(Boolean));
+        return hits && q.width >= 40 ? null : (e.id || e.className) + ' ' + Math.round(q.width) + 'x' + Math.round(q.height) + ' [' + [[cx, cy - 21], [cx, cy + 21], [q.left + 2, cy], [q.right - 2, cy]].map(([x, y]) => { const t = document.elementFromPoint(x, y); return t ? t.id || t.className : '-'; }).join(',') + ']'; }).filter(Boolean));
       ok(small.length === 0, 'everything tappable on the HUD is 44 px to tap: ' + small.join('; '));
       /* 4. text: 11 px on the HUD, 10 px on tabs, 4.5 to 1 against white and black under any see-through background */
       await g.evaluate(() => { const S = window.__T.S; S.hearts = 2; S.xp = window.__T.XP_AT(41) - 1; window.__T.refreshHud(); });
@@ -132,6 +133,23 @@ const SEL = ['.top', '#hearts', '#hudLevel', '.hud-r .clock', '#hudCoins', '#hud
     ok(tq[0] === 'A crow flew over the farm.' && tq[1] === 0, 'ten identical notices in a second show once, with none waiting: ' + tq.join(', '));
     const fl = await g.evaluate(() => { const T = window.__T; T.floats.length = 0; for (let i = 0; i < 4; i++) T.floatKg(50 + i * 10, 100, 3); return T.floats.map((f) => f.text); });
     ok(fl.length === 1 && fl[0] === '+12 kg', 'four quick picks show one float: ' + fl.join(', '));
+
+    /* on demand: a tap on the coins opens the purse (level and know-how, cherries, cranes, hearts) for 6 s; a tap on a number in it goes where it's spent; a page shows its own currency */
+    const pk = await g.evaluate(async () => { const T = window.__T, S = T.S; T.setTab('farm'); T.act('sheetmin'); S.cherries.caturra = 10; T.refreshHud();
+      const vis = () => ['hearts', 'hudLevel', 'hudStore', 'hudCranes'].filter((id) => !!document.getElementById(id).offsetParent);
+      const before = vis(); document.getElementById('hudCoins').click(); const open = vis(), tab1 = T.tab;
+      const lv = document.getElementById('hudLevel').getBoundingClientRect(); const hit = document.elementFromPoint(lv.left + lv.width / 2, lv.top + lv.height / 2);
+      hit.closest('#hudLevel').click(); const went = T.tab; T.act('sheetmin'); T.refreshHud(); const after = vis();
+      T.setTab('shop'); T.refreshHud(); const shop = vis(); T.setTab('unlock'); T.refreshHud(); const unl = vis(); T.act('sheetmin'); T.refreshHud();
+      return { before, open, tab1, went, after, shop, unl, tip: S.peekTip }; });
+    ok(pk.before.length === 0 && ['hearts', 'hudLevel', 'hudStore', 'hudCranes'].every((x) => pk.open.includes(x)) && pk.tab1 !== 'farm' + 'x', 'a tap on the coins opens the purse: ' + JSON.stringify(pk));
+    ok(pk.went === 'unlock' || pk.went === 'ranks', 'a tap on the level in it goes to Unlock: ' + pk.went);
+    ok(pk.after.length === 0, 'going there closes the purse');
+    ok(pk.shop.includes('hudCranes') && pk.unl.includes('hudLevel'), 'the Shop shows your cranes and Unlock your level and know-how while open');
+    await g.evaluate(() => { const T = window.__T; document.getElementById('hudCoins').click(); });
+    await g.waitForTimeout(6400);
+    ok(await g.evaluate(() => { window.__T.refreshHud(); return !document.getElementById('hudLevel').offsetParent && !document.getElementById('hudCranes').offsetParent; }), 'left alone, the purse closes after 6 s');
+    if (shots) { await g.evaluate(() => document.getElementById('hudCoins').click()); await g.waitForTimeout(150); await g.screenshot({ path: shots + '/hud_purse.png' }); await g.evaluate(() => { window.__T.refreshHud(); }); }
 
     /* the moment card: a window the game would open by itself waits at the bottom of the map, one at a time, and opens on a tap */
     const mc = await g.evaluate(async () => { const T = window.__T, S = T.S; T.setTab('farm'); T.act('sheetmin'); for (let i = 0; i < 5 && !document.getElementById('guide').hidden; i++) { const gb = document.querySelector('#guide button'); if (!gb) break; gb.click(); T.refreshHud(); } T.laterQ.length = 0; T.toastQ.length = 0; document.getElementById('toast').hidden = true; document.getElementById('app').classList.remove('notice'); T.refreshHud();

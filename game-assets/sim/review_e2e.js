@@ -49,7 +49,7 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
   await E(() => { window.__T.renderPanel(); }); await g.waitForTimeout(300);
   const hud = await E(() => ({ c: document.getElementById('hudCoins').textContent, l: document.getElementById('hudLevel').textContent, aria: document.getElementById('hudCoins').getAttribute('aria-label') }));
   ok(hud.c.trim() === '50M' && /5\.1M/.test(hud.l), 'coins and know-how are short in the pills: ' + hud.c + ' / ' + hud.l);
-  ok(/^50,0\d\d,\d{3} coins$/.test(hud.aria), 'the full number is read out: ' + hud.aria);
+  ok(/^50,0\d\d,\d{3} coins(\. Tap to see your level, know-how, cherries and cranes)?$/.test(hud.aria), 'the full number is read out: ' + hud.aria);
 
   /* the welcome-back card */
   await E(() => { const T = window.__T, S = T.S; S.staff.foreman = true; S.lots = []; Object.values(S.farms).forEach((f) => { f.field = 0; }); });
