@@ -99,20 +99,22 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
   ok(/survey photo/.test(sv.firstNote) && !/survey photo/.test(sv.againNote) && sv.surveys === 1, 'each wanted species pays once, and all five complete the week\'s survey');
   const nb = await E(() => { const T = window.__T, S = T.S; S.vars.pointu = false; const m0 = T.nbMax(); S.vars.pointu = true; const m1 = T.nbMax(); const t0 = T.nbTotal(); T.nbAdd('pointu', 'washed', 1); return { m0, m1, gain: T.nbTotal() - t0 }; });
   ok(nb.m0 === 162 && nb.m1 === 180 && nb.gain === 1, 'Bourbon Pointu counts in the cupping notebook once Réunion gives it to you: ' + JSON.stringify(nb));
-  /* five farms, five games: a coffee picks ×1.5 cherries on its home farm, so each farm has its own best coffee (was +15% on the whole farm, Geisha best everywhere) */
+  /* five farms, five games: a coffee picks ×1.3 cherries on its home farm and ×0.85 elsewhere, so each farm has its own best coffee (was +15% on the whole farm, Geisha best everywhere) */
   const nat = await E(() => { const T = window.__T, S = T.S; ['caturra', 'catuai', 'mundonovo', 'yellowbourbon', 'pinkbourbon', 'heirloom', 'geisha', 'catimor', 'castillo'].forEach((v) => { S.vars[v] = true; });
     const best = (l) => ['caturra', 'catuai', 'mundonovo', 'yellowbourbon', 'pinkbourbon', 'heirloom', 'geisha', 'catimor'].sort((a, b) => T.worthHere(l, b) - T.worthHere(l, a))[0];
     return { kg: [T.nativeKg('huila', 'pinkbourbon'), T.nativeKg('mogiana', 'pinkbourbon')], best: ['huila', 'mogiana', 'gedeo', 'turrialba'].map(best) }; });
-  ok(nat.kg[0] === 1.5 && nat.kg[1] === 1, 'Pink Bourbon picks ×1.5 at Huila, its home, and ×1 elsewhere: ' + nat.kg);
+  ok(nat.kg[0] === 1.3 && nat.kg[1] === 0.85, 'Pink Bourbon picks ×1.3 at Huila, its home, and ×0.85 elsewhere: ' + nat.kg);
   ok(nat.best.join() === 'pinkbourbon,mundonovo,heirloom,geisha', 'each farm has its own best coffee: ' + nat.best.join(', '));
   const aw = await E(() => { const T = window.__T, S = T.S, f = S.farms.huila; const keep = { beds: f.beds.slice(), w: f.workers.length, loc: S.loc }; f.unlocked = true; const w0 = f.workers.length; while (f.workers.length < 4) f.workers.push({ x: 40, y: 40, state: 'seek', path: [], carry: 0, t: 0, idle: 0, shirt: 1, dir: 'down', flip: false, walk: 0 });
     const run = (v) => { f.beds = f.beds.map(() => v); Object.keys(S.cherries).forEach((k) => { S.cherries[k] = 0; }); LOCS_OFF(); T.away(0.4); return Object.values(S.cherries).reduce((a, b) => a + b, 0); };
     function LOCS_OFF() { T.LOCS.forEach((l) => { if (l !== 'huila') S.dormant[l] = true; }); }
     const nat = run('pinkbourbon'), off = run('yellowbourbon'); T.LOCS.forEach((l) => { delete S.dormant[l]; }); f.beds = keep.beds; f.workers.length = w0; return { nat, off, r: Math.round(nat / off * 100) / 100 }; });
-  ok(aw.r >= 1.7 && aw.r <= 1.9, 'away from Huila, a native field brings in about 1.8 times a stranger (×1.5 cherries, 20% faster): ' + JSON.stringify(aw));
+  ok(aw.r >= 1.7 && aw.r <= 1.9, 'away from Huila, a native field brings in about 1.8 times a stranger (×1.3 against ×0.85, and 20% faster): ' + JSON.stringify(aw));
   await E(() => { const T = window.__T, S = T.S; T.travel && (S.loc = 'huila'); T.setTab('farm'); S.farmSub = 'fields'; T.renderPanel(); });
   const fp = await E(() => { const T = window.__T; for (let i = 0; i < 12; i++) T.closeModal(); document.getElementById('modal').hidden = true; T.act('bed:0'); const m = document.getElementById('modal').hidden ? '' : document.getElementById('modalCard').innerText; T.closeModal(); return m; });
-  ok(/Pink Bourbon · native · best here/.test(fp) && /4\.5 kg a pick/.test(fp), 'the replant window marks the best coffee for the farm and shows its home pick: ' + fp.slice(0, 200).replace(/\n/g, ' | '));
+  ok(/Pink Bourbon · native · best here/.test(fp) && /3\.9 kg a pick/.test(fp), 'the replant window marks the best coffee for the farm and shows its home pick: ' + fp.slice(0, 200).replace(/\n/g, ' | '));
+  const tip = await E(() => { const T = window.__T, S = T.S; for (let i = 0; i < 12; i++) T.closeModal(); T.laterQ.length = 0; T.laterShow(); delete S.nativeTip; S.stats.lotsSold = Math.max(1, S.stats.lotsSold); T.refreshHud(); const r = T.laterQ.map((x) => x.title); T.refreshHud(); return { first: r, again: T.laterQ.length, flag: S.nativeTip }; });
+  ok(tip.first.includes('Coffee picks best at home') && tip.again === tip.first.length && tip.flag === true, 'a farm made before the change hears about it once: ' + JSON.stringify(tip));
   const miss = await E(() => window.__noSprite || []); ok(!miss.length, 'every picture drawn exists: ' + miss.join(', '));
   ok(!errs.length, 'no page errors: ' + errs.join(' | '));
   console.log(pass + ' passed, ' + fail + ' failed'); await b.close(); process.exit(fail ? 1 : 0);
