@@ -102,9 +102,9 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
   /* five farms, five games: a coffee picks ×1.3 cherries on its home farm and ×0.85 elsewhere, so each farm has its own best coffee (was +15% on the whole farm, Geisha best everywhere) */
   const nat = await E(() => { const T = window.__T, S = T.S; ['caturra', 'catuai', 'mundonovo', 'yellowbourbon', 'pinkbourbon', 'heirloom', 'geisha', 'catimor', 'castillo'].forEach((v) => { S.vars[v] = true; });
     const best = (l) => ['caturra', 'catuai', 'mundonovo', 'yellowbourbon', 'pinkbourbon', 'heirloom', 'geisha', 'catimor'].sort((a, b) => T.worthHere(l, b) - T.worthHere(l, a))[0];
-    return { kg: [T.nativeKg('huila', 'pinkbourbon'), T.nativeKg('mogiana', 'pinkbourbon')], best: ['huila', 'mogiana', 'gedeo', 'turrialba'].map(best) }; });
+    return { kg: [T.nativeKg('huila', 'pinkbourbon'), T.nativeKg('mogiana', 'pinkbourbon')], best: ['huila', 'mogiana', 'gedeo', 'toba', 'turrialba'].map(best) }; });
   ok(nat.kg[0] === 1.3 && nat.kg[1] === 0.85, 'Pink Bourbon picks ×1.3 at Huila, its home, and ×0.85 elsewhere: ' + nat.kg);
-  ok(nat.best.join() === 'pinkbourbon,mundonovo,heirloom,geisha', 'each farm has its own best coffee: ' + nat.best.join(', '));
+  ok(nat.best.join() === 'pinkbourbon,mundonovo,heirloom,catimor,geisha', 'each farm has its own best coffee: ' + nat.best.join(', '));
   const aw = await E(() => { const T = window.__T, S = T.S, f = S.farms.huila; const keep = { beds: f.beds.slice(), w: f.workers.length, loc: S.loc }; f.unlocked = true; const w0 = f.workers.length; while (f.workers.length < 4) f.workers.push({ x: 40, y: 40, state: 'seek', path: [], carry: 0, t: 0, idle: 0, shirt: 1, dir: 'down', flip: false, walk: 0 });
     const run = (v) => { f.beds = f.beds.map(() => v); Object.keys(S.cherries).forEach((k) => { S.cherries[k] = 0; }); LOCS_OFF(); T.away(0.4); return Object.values(S.cherries).reduce((a, b) => a + b, 0); };
     function LOCS_OFF() { T.LOCS.forEach((l) => { if (l !== 'huila') S.dormant[l] = true; }); }

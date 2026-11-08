@@ -19,7 +19,7 @@ window.BOT = (function () {
   const H = () => !!B.cfg.human;
   const log = (e) => B.events.push({ t: Math.round(B.t), lv: G.level(), p: G.S.prestige, e });
   const closeAll = () => { let g = 0; while (!document.getElementById('modal').hidden && g++ < 20) G.closeModal(); };
-  const score = (v) => G.VAR[v].kg * G.VAR[v].speed * G.VAR[v].value;
+  const score = (v) => G.VAR[v].kg * G.VAR[v].speed * (G.VAR[v].price || G.VAR[v].value);
   const live = (l) => G.S.farms[l].unlocked && !G.S.dormant[l];
   function bought(what, cost, cur) { B.buys.push({ t: B.t, what, cost, cur }); if (B.t - B.lastBuy > 120) B.gaps.push([Math.round(B.lastBuy), Math.round(B.t - B.lastBuy)]); B.lastBuy = B.t; }
   function tap() {
