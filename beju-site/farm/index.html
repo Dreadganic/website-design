@@ -2357,14 +2357,55 @@ const rule = (id) => theme().id === id;
 /* prestige perks: free, permanent conveniences that arrive with a prestige, timed for when the farm outgrows doing that job by hand */
 /* ---------- specialties: from prestige 3, each run has a focus with its own bonus, a goal for the run and a title kept for good.
    Chosen in the prestige window, changeable once a run. Each bends one loop by 20-25%; finishing the goal again adds a star, up to 5 */
+/* the Grower's companion plantings, one per field: banana shade (the coffee cups up to +2 where it is shaded, but picks 20% less),
+   legumes (bushes regrow 35% faster) and wildflowers (bees: each flowering field brings golden bushes 10% sooner, to 40%) */
+const COMPS = { shade: { name: 'Banana shade', pic: 'bush_typica_ripe', text: 'Cups up to +2 for this coffee, picks 20% less' }, legume: { name: 'Legumes', pic: 'bush_caturra_ripe', text: 'Bushes regrow 35% faster' }, flower: { name: 'Wildflowers', pic: 'sparkle', text: 'Bees: golden bushes come 10% sooner' } };
+const compOf = (f, i) => (specOn('grow') && f.comp ? f.comp[Math.floor(i / 8)] || '' : '');
+const compBeds = (k) => { let n = 0, of = 0; LOCS.forEach((l) => { const f = S.farms[l]; if (!f.unlocked || S.dormant[l] || !f.comp) return; f.beds.slice(0, f.field ? 4 : 3).forEach((v, b) => { if (f.comp[b] === k) n++; }); }); return n; };
+function compCup(v) {   /* banana shade: the share of this coffee's fields that are shaded, times 2 */
+  if (!specOn('grow')) return 0; let all = 0, sh = 0;
+  LOCS.forEach((l) => { const f = S.farms[l]; if (!f.unlocked || S.dormant[l]) return; f.beds.slice(0, f.field ? 4 : 3).forEach((x, b) => { if (x === v) { all++; if (f.comp && f.comp[b] === 'shade') sh++; } }); });
+  return all ? 2 * sh / all : 0;
+}
+const compGold = () => Math.max(0.6, 1 - 0.1 * compBeds('flower'));
+/* the Miller's sealed tanks: every new lot ferments sealed for 1, 2 or 3 shifts first. Longer takes a little more time (+15% a
+   shift) and moves the cup further, mostly up (+1.2 a shift on average, give or take 1.3 a shift). Each cup point it gains pays +10%;
+   a batch that turns sour (2 to 3 in 100) sells at half price. The best result for each coffee goes in the tank book */
+const SEAL_NAMES = ['Open', '1 shift', '2 shifts', '3 shifts'];
+const sealLv = () => (specOn('mill') ? Math.max(0, Math.min(3, (S.spec && S.spec.seal) || 0)) : 0);
+function sealRoll(L) { if (!L) return null; const z = Math.sqrt(-2 * Math.log(1 - rnd())) * Math.cos(2 * Math.PI * rnd()), d = Math.round((1.2 * L + 1.3 * L * z) * 10) / 10; return { seal: L, ferm: d, sour: d < -1.5 * L || undefined }; }
+const sealPay = (l) => (l && l.seal ? (l.sour ? 0.5 : Math.max(0.6, 1 + 0.1 * (l.ferm || 0))) : 1);
+/* the Trader's bidding: under the Trader every new contract draws 2 or 3 buyers who outbid each other while it stays open, +10% an
+   hour up to +25% (two buyers) or +40% (three), paid on each delivery at the bid of the moment. But each buyer has patience: after
+   2 to 5 hours the bidding closes and the contract leaves the board. Or sign it as a future: +40% fixed now, 12 hours to fill it,
+   and a missed future leaves buyers cold for 6 hours (no new contracts) */
+const bidCap = (c) => (c.bidN === 3 ? 0.4 : 0.25);
+const tradeMult = (c) => (!c || c.t0 === undefined ? 1 : c.fut ? 1.4 : 1 + Math.min(bidCap(c), 0.1 * Math.max(0, S.minutesTotal - c.t0) / 60));
+function tradeTick() {
+  if (!specOn('trade')) return;
+  S.contracts = S.contracts.filter((c) => { if (c.t0 === undefined || c.event || c.boat) return true; const gone = c.fut ? S.minutesTotal > c.due : S.minutesTotal > c.leave;
+    if (gone) { if (c.fut && c.have < c.kg - 0.01) { S.spec.cold = S.minutesTotal + 360; later('A future missed', c.buyer.split(',')[0] + ' went cold: no new contracts for 6 hours', '<h2>A future missed</h2><p class="note">' + c.buyer + ' waited for ' + fmt(c.kg) + ' kg and it did not come. Buyers are cool on you for 6 hours: no new contracts until then. What you delivered was paid.</p><button class="btn green" data-act="close">Understood</button>'); } else if (!c.fut) toast(c.buyer.split(',')[0] + ' stopped bidding: the contract left the board'); }
+    return !gone; });
+}
+/* the Roaster calls the drop: under the Roaster a perfect crack doesn't end the roast. The beans develop and you tap Drop: early
+   is light, then medium, then dark, and past second crack (85%) the batch scorches. Dropping in the profile you set gives +20
+   quality on top of the crack's +15 (a better price); dropping elsewhere gives the profile you landed on. Leave it, and second
+   crack scorches it: the crack's +15 is lost and it sells as dark. Roasts you don't crack, and your head roaster's, finish as they always have */
+const DEV = { light: [0, 0.3], medium: [0.3, 0.6], dark: [0.6, 0.85] };
+const devP = (r) => (r && r.dev ? Math.min(1, (Date.now() - r.dev) / r.devDur) : 0);
+const devZone = (d) => (d >= 0.85 ? 'burnt' : d >= 0.6 ? 'dark' : d >= 0.3 ? 'medium' : 'light');
+function devRow(r, i) {
+  const d = devP(r), z = devZone(d), t = DEV[r.profile];
+  return '<div class="rslot crack">' + img('roaster_' + (Math.floor(Date.now() / 300) % 2), 40) + '<div><b>Developing · aim ' + ROASTS[r.profile].name.toLowerCase() + '</b><span class="bar"><i style="width:' + Math.round(d * 100) + '%;background:' + (z === 'burnt' ? '#2A1A12' : ROASTS[z].col) + '"></i><em class="cz" style="left:' + Math.round(t[0] * 100) + '%;width:' + Math.round((t[1] - t[0]) * 100) + '%"></em></span><small>' + (z === 'burnt' ? 'Second crack! Drop now or it burns' : 'Now: ' + ROASTS[z].name.toLowerCase() + (z === r.profile ? ' · in your window' : '')) + '</small></div>' + btn('Drop', z === r.profile ? 'now!' : z, 'drop:' + i, true, z === r.profile ? 'gold' : '') + '</div>';
+}
 const SPEC_P = 3;
-const SPEC_FARMS = ['huila', 'mogiana', 'gedeo', 'toba', 'turrialba'];
+const WANDER_V = ['pinkbourbon', 'mundonovo', 'heirloom', 'catimor', 'geisha'];   /* each farm's best coffee: the Wanderer grows them abroad */
 const SPECS = {
-  grow: { name: 'Grower', title: 'Master grower', pic: 'worker_side_0', bonus: 'Pickers work 25% faster, and golden bushes come 50% more often.', goal: 'Tap 15 golden bushes', n: () => 15, stat: () => S.stats.golden || 0 },
-  mill: { name: 'Miller', title: 'Master miller', pic: 'proc_washed', bonus: 'Lots dry 25% faster, and hand-cupping adds 2 more cup points.', goal: 'Hand-cup 60 lots', n: () => 60, stat: () => S.stats.cupped || 0 },
-  roast: { name: 'Roaster', title: 'Roastmaster', pic: 'roaster_0', bonus: 'The first-crack window is 50% wider, and roasted bags sell for 15% more.', goal: 'Catch 25 perfect cracks', n: () => 25, stat: () => S.rcos.cracks || 0, ok: () => roasteryOpen() },
-  trade: { name: 'Trader', title: 'Master trader', pic: 'board', bonus: 'Contracts pay 20% more, you hold one more, and new ones come sooner.', goal: 'Deliver 15 contracts', n: () => 15, stat: () => S.stats.contracts || 0 },
-  wander: { name: 'Wanderer', title: 'Wanderer', pic: 'stamp_huila', bonus: 'No farm goes dormant when you prestige: every farm keeps working.', goal: 'Sell a lot of each farm\'s own coffee', n: () => Math.max(1, SPEC_FARMS.filter((l) => S.farms[l] && S.farms[l].unlocked).length), stat: () => Object.keys((S.spec && S.spec.far) || {}).filter((l) => S.farms[l] && S.farms[l].unlocked).length }
+  grow: { name: 'Grower', title: 'Master grower', pic: 'worker_side_0', verb: 'Plan', bonus: 'Companion plantings: give each field banana shade (higher cup, fewer cherries), legumes (faster regrowth) or wildflowers (golden bushes sooner), in Farm › Fields.', goal: 'Sell 3 lots that cup 90 or more from shaded coffee', n: () => 3, stat: () => (S.spec && S.spec.g90) || 0 },
+  mill: { name: 'Miller', title: 'Master miller', pic: 'proc_washed', verb: 'Experiment', bonus: 'Sealed tanks: lots ferment sealed for 1 to 3 shifts first. Longer moves the cup further, mostly up, and each point gained pays +10%, but now and then a batch turns sour. Set it in the Mill.', goal: 'Sell a sealed lot that cups 92 or more', n: () => 1, stat: () => (S.spec && S.spec.a92) || 0 },
+  roast: { name: 'Roaster', title: 'Roastmaster', pic: 'roaster_0', verb: 'Time', bonus: 'You call the drop: after a perfect crack the beans keep developing until you tap Drop. Land in the profile you set for +20 quality; go past second crack and it burns.', goal: 'Drop 20 roasts in their window', n: () => 20, stat: () => (S.spec && S.spec.drops) || 0, ok: () => roasteryOpen() },
+  trade: { name: 'Trader', title: 'Master trader', pic: 'board', verb: 'Negotiate', bonus: 'Bidding: 2 or 3 buyers bid up each contract while it stays open (+10% an hour, up to +40%), until their patience runs out and it leaves. Or sign it as a future for +40% now, with 12 hours to fill it.', goal: 'Complete 10 contracts at +20% or better', n: () => 10, stat: () => (S.spec && S.spec.won) || 0 },
+  wander: { name: 'Wanderer', title: 'Wanderer', pic: 'stamp_huila', verb: 'Roam', bonus: 'Seeds travel with you: a coffee picks at full weight on any farm, not ×0.85 away from home, and no farm goes dormant when you prestige.', goal: 'Harvest each farm\'s best coffee on another farm', n: () => Math.max(1, WANDER_V.filter((v) => S.vars[v]).length), stat: () => Object.keys((S.spec && S.spec.far) || {}).filter((v) => S.vars[v]).length }
 };
 const specOn = (k) => !!(S.spec && S.spec.cur === k);
 const specOk = (k) => !SPECS[k].ok || SPECS[k].ok();
@@ -2374,8 +2415,10 @@ function specSet(k, fresh) {   /* a new focus: its goal counts from now */
   S.spec = S.spec || { stars: {} }; S.spec.stars = S.spec.stars || {};
   S.spec.cur = k; S.spec.base = SPECS[k].stat(); S.spec.done = false; if (fresh) { S.spec.swap = false; S.spec.far = {}; }
   if (k === 'wander') S.dormant = {};   /* the Wanderer wakes every farm */
+  if (k === 'grow') LOCS.forEach((l) => { const f = S.farms[l]; f.comp = f.comp || []; for (let b = 0; b < 4; b++) if (!f.comp[b]) f.comp[b] = 'legume'; });   /* bare fields start with legumes */
+  if (k === 'mill' && S.spec.seal === undefined) S.spec.seal = 1;   /* the tanks start at one shift */
 }
-function specSold(v) { if (!specOn('wander')) return; (VAR_HOME[v] || []).forEach((l) => { if (l !== 'osaka') S.spec.far[l] = 1; }); }
+function specSold() {}
 function specCheck() {
   const sp = S.spec, d = sp && SPECS[sp.cur]; if (!d || sp.done || specProg() < d.n()) return;
   sp.done = true; sp.stars[sp.cur] = Math.min(5, (sp.stars[sp.cur] || 0) + 1); S.sitems.title['sp:' + sp.cur] = true; SFX.play('achieve');
@@ -2600,8 +2643,7 @@ function moodCard() {   /* T2.1: the week's board, on the Daily tab */
   return '<h2>This week\'s moods</h2>' + help('moods', 'A new coffee is in fashion every week.', 'Each buyer and regular fancies one coffee for the week, fresh every Monday at the same moment worldwide. Sell it to the buyer, or serve it to the regular, for +15–25% extra coins. Everyone sees the same board.') + rows + regs;
 }
 const bagName = (b) => (b.seasonal ? b.seasonal + ' · ' : '') + (b.blend || beanName(b.key)) + (b.blend ? '' : ' · ' + ROASTS[b.profile].name.toLowerCase());
-const bagPrice = (b, k) => Math.round(bagPrice0(b, k) * (specOn('roast') ? 1.15 : 1));   /* the Roaster focus sells bags 15% higher */
-const bagPrice0 = (b, k) => { const rb = RBUYERS[k], want = b.blend || !rb.wants || b.profile === rb.wants; return Math.round(b.coins * (want ? rb.mult * (b.blend ? 1.1 : 1) : 1) * (0.7 + b.q / 200) * (1 + shopCharm()) * (b.seasonal && b.skey === S.season.key ? 1.2 : 1) * (1 + 0.01 * masterStars()) * (b.pc && estOn('osaka', 3) ? 1.1 : 1) * revBagMult() * (b.key === moodKey(k) ? moodMult(k) : 1)); };
+const bagPrice = (b, k) => { const rb = RBUYERS[k], want = b.blend || !rb.wants || b.profile === rb.wants; return Math.round(b.coins * (want ? rb.mult * (b.blend ? 1.1 : 1) : 1) * (0.7 + b.q / 200) * (1 + shopCharm()) * (b.seasonal && b.skey === S.season.key ? 1.2 : 1) * (1 + 0.01 * masterStars()) * (b.pc && estOn('osaka', 3) ? 1.1 : 1) * revBagMult() * (b.key === moodKey(k) ? moodMult(k) : 1)); };
 /* how many roasts' worth of green coffee the foreman keeps waiting in the roastery (0 = off); on by default, so you never race him for lots */
 const feedRoasts = () => (S.roastery.feed === true ? 2 : S.roastery.feed === undefined ? 4 : +S.roastery.feed || 0);
 const roasteryFeedWants = () => roasteryOpen() && feedRoasts() > 0 && Object.values(S.roastery.beans).reduce((a, b) => a + b.kg, 0) < roastCap() * roasterCount() * feedRoasts();
@@ -2783,7 +2825,7 @@ const roastP = (r) => Math.min(1, (Date.now() - r.start) / r.dur);
 /* crack difficulty: everyday beans and simple processes give a wide first-crack window, rare beans and fancy processes a tight one */
 const CRACK_BEAN = { catimor: 0, caturra: 0.1, castillo: 0.1, mundonovo: 0.1, catuai: 0.2, yellowbourbon: 0.4, pinkbourbon: 0.5, heirloom: 0.7, geisha: 1 };
 const CRACK_METHOD = { washed: 0, honey: 0.2, natural: 0.25, rum: 0.6, whiskey: 0.7, strawberry: 1 };
-const crackSecs = (key) => { const [v, m] = key.split('.'); return (specOn('roast') ? 1.5 : 1) * (10 - 7.5 * (0.55 * (CRACK_BEAN[v] || 0) + 0.45 * (CRACK_METHOD[m] || 0)) + (koiOn() ? (estOn('osaka', 3) ? 2 : 1) * ((S.estate || {}).koiMult || 1) : 0)); };   /* fed koi widen it, less when the estate manager fed them */   /* the window lasts 10 s for everyday beans, down to 2.5 s for the rarest */
+const crackSecs = (key) => { const [v, m] = key.split('.'); return (10 - 7.5 * (0.55 * (CRACK_BEAN[v] || 0) + 0.45 * (CRACK_METHOD[m] || 0)) + (koiOn() ? (estOn('osaka', 3) ? 2 : 1) * ((S.estate || {}).koiMult || 1) : 0)); };   /* fed koi widen it, less when the estate manager fed them */   /* the window lasts 10 s for everyday beans, down to 2.5 s for the rarest */
 const crackLabel = (secs) => (secs >= 8 ? 'wide' : secs >= 6 ? 'normal' : secs >= 4 ? 'tight' : 'very tight');
 const inCrack = (r) => roastP(r) >= 0.7 && roastP(r) <= 0.7 + (r.cw || 0.16);
 function blendBags(i, j) {   /* two bags into one house blend: their weight and value together, quality the average +5 */
@@ -2822,9 +2864,11 @@ function roasteryTick() {
   for (let i = R.roasters.length - 1; i >= 0; i--) {
     const r = R.roasters[i];
     if (inCrack(r) && !r.warned) { r.warned = true; SFX.play('crack'); }   /* the crack's own sound, the orange Crack button and the tab's dot say so */
-    if (roastP(r) < 1) continue;
+    if (r.dev && !r.dropped) { if (devP(r) >= 1) r.dropped = 'burnt'; else continue; }   /* the Roaster's development: wait for the drop */
+    if (!r.dev && roastP(r) < 1) continue;
+    const onT = r.dropped === r.profile, burnt = r.dropped === 'burnt'; if (r.dropped && !onT) r.profile = burnt ? 'dark' : r.dropped; if (onT) S.spec.drops = (S.spec.drops || 0) + 1;
     const [v, m] = r.key.split('.'), best = bestRoast(v, m) === r.profile;
-    const q = Math.max(20, Math.min(100, Math.round(r.cup - 40 + (best ? 15 : -5) + (r.crack === 1 ? 15 : 0) + (repLevel() >= 6 ? 5 : 0))));
+    const q = Math.max(20, Math.min(100, Math.round(r.cup - 40 + (best ? 15 : -5) + (r.crack === 1 ? 15 : 0) + (repLevel() >= 6 ? 5 : 0) + (onT ? 20 : 0) - (burnt ? 15 : 0))));
     const sr = seasonRoast(), seasonal = sr && sr.known && r.profile === sr.profile && (!sr.method || r.key.split('.')[1] === sr.method);
     if (best && r.crack === 1 && isleKey(r.key)) routeFind('f_roast');
     R.bags.push({ key: r.key, profile: r.profile, kg: r.kg, coins: r.coins, pts: r.pts, np: r.np || undefined, q, cup: Math.round(r.cup * 10) / 10, pc: r.crack === 1 || undefined, seasonal: seasonal ? sr.name : undefined, skey: seasonal ? S.season.key : undefined, sid: seasonal ? sr.id : undefined });
@@ -2921,6 +2965,7 @@ function roasteryPanel() {   /* the reputation sits in the bar over the roastery
   for (let i = 0; i < roasterCount(); i++) {
     const r = R.roasters[i];
     if (!r) { h += '<div class="rslot idle">' + img('roaster_0', 40) + '<span>Free: tap a roast on a bin below</span></div>'; continue; }
+    if (r.dev && !r.dropped) { h += devRow(r, i); continue; }
     const p = roastP(r), cr = inCrack(r);
     h += '<div class="rslot' + (cr ? ' crack' : '') + '">' + img('roaster_' + (Math.floor(Date.now() / 300) % 2), 40) + '<div><b>' + fmtKg(r.kg) + ' kg ' + beanName(r.key) + ' · ' + ROASTS[r.profile].name.toLowerCase() + '</b><span class="bar"><i style="width:' + Math.round(p * 100) + '%;background:' + ROASTS[r.profile].col + '"></i><em class="cz" style="width:' + Math.round((r.cw || 0.16) * 100) + '%"></em></span><small>' + (r.crack === 2 ? 'Missed the crack. ' : cr ? 'First crack: tap now to finish! ' : p < 0.7 ? 'Drying and browning… crack window ' + crackLabel((r.cw || 0.16) * r.dur / 1000) + ' (' + Math.max(1, Math.round((r.cw || 0.16) * r.dur / 100) / 10) + ' s). ' : '') + Math.max(0, Math.ceil((1 - p) * r.dur / 1000)) + ' s left</small></div>' + (r.crack ? '' : btn('Crack', cr ? 'now!' : 'wait', 'crack:' + i, true, cr ? 'gold' : '')) + '</div>';
   }
@@ -3074,7 +3119,7 @@ const NATIVE_BOOST = 1.2;   /* a variety grows 20% faster on a farm where it is 
 const NATIVE_KG = 1.3, AWAY_KG = 0.85;
 const isNative = (loc, v) => ART.locations[loc].beds.includes(v);
 const nativeNames = (loc) => [...new Set(ART.locations[loc].beds)].map((v) => ART.varieties[v]).join(', ');
-const nativeKg = (loc, v) => (isNative(loc, v) ? NATIVE_KG : AWAY_KG);
+const nativeKg = (loc, v) => (isNative(loc, v) ? NATIVE_KG : specOn('wander') ? 1 : AWAY_KG);   /* the Wanderer's coffees lose nothing away from home */
 const priceOf = (v) => VAR[v].price || VAR[v].value;   /* what a coffee sells for (×); only Catimor's differs from its quality */
 const worthHere = (loc, v) => VAR[v].kg * nativeKg(loc, v) * priceOf(v);   /* what a pick is worth on this farm, before the mill */
 const varGrowth = (f, v) => (VAR[v].allSeason ? 1.5 : growth(f.loc)) * VAR[v].speed * (ART.locations[f.loc].beds.includes(v) ? NATIVE_BOOST : 1) * (1 + 0.1 * ((f.build && f.build.compost) || 0)) * (v === 'pinkbourbon' && estOn('huila', 3) ? 1.2 : 1);
@@ -3716,7 +3761,7 @@ function store(f, v, kg) {
   const room = cap() - stored(), take = Math.min(room, kg);
   if (take <= 0) return 0;
   S.cherries[v] = (S.cherries[v] || 0) + take;
-  S.stats.picked += take; task('store', take);
+  S.stats.picked += take; task('store', take); if (specOn('wander') && WANDER_V.includes(v) && f && !isNative(f.loc, v)) S.spec.far[v] = 1;
   f.harvested = Math.min(f.goal, f.harvested + take);
   if (f.loc === 'mogiana' && !f.rewarded && f.harvested >= f.goal) {   /* the welcome sample */
     f.rewarded = true; grantSample('welcome');
@@ -3726,8 +3771,8 @@ function store(f, v, kg) {
 }
 function tickFarm(f, d, visible) {
   const g = d * (S.boosts.grow > S.minutesTotal ? 2 : 1);
-  const rg = revGrow(f); f.shrubs.forEach((s) => { if (s.p < 1) s.p = Math.min(1, s.p + g * rg * varGrowth(f, s.v) / s.g); });
-  const full = stored() >= cap(), pm = (1 + techSum('pick')) * pickerMult() * (f.manager ? mgrBoost(f.loc) : 1) * masteryMult(f) * (cerOn() ? 1.2 : 1) * (specOn('grow') ? 1.25 : 1), carry = carryKg();
+  const rg = revGrow(f); f.shrubs.forEach((s, i) => { if (s.p < 1) s.p = Math.min(1, s.p + g * rg * varGrowth(f, s.v) * (compOf(f, i) === 'legume' ? 1.35 : 1) / s.g); });
+  const full = stored() >= cap(), pm = (1 + techSum('pick')) * pickerMult() * (f.manager ? mgrBoost(f.loc) : 1) * masteryMult(f) * (cerOn() ? 1.2 : 1), carry = carryKg();
   f.workers.forEach((w) => {
     if (w.state === 'seek') {
       let best = null, bd = 1e9;
@@ -3747,7 +3792,7 @@ function tickFarm(f, d, visible) {
       w.t += d * pm; w.dir = 'up';
       if (!w.target || w.target.p < 1) { w.state = 'seek'; return; }
       if (w.t >= 2.4) {
-        const s = w.target; s.p = 0; s.claim = null; w.target = null; w.carry += VAR[s.v].kg * nativeKg(f.loc, s.v) * pickKg(s.v); w.lastV = s.v;
+        const s = w.target; s.p = 0; s.claim = null; w.target = null; w.carry += VAR[s.v].kg * nativeKg(f.loc, s.v) * pickKg(s.v) * (compOf(f, f.shrubs.indexOf(s)) === 'shade' ? 0.8 : 1); w.lastV = s.v;
         if (w.carry >= carry) { w.path = route(w, DROP); w.state = 'walk'; w.next = 'deposit'; } else w.state = 'seek';
       }
     } else if (w.state === 'deposit') {
@@ -3826,7 +3871,7 @@ function tick(dt) {
   { const gg = $('goldGo'), away = golden && golden.loc !== S.loc, txt = away ? 'Golden bush at ' + ART.locations[golden.loc].name.split(',')[0] + ' · Go (' + Math.ceil(golden.t) + ' s)' : ''; gg.hidden = !away; if (gg.textContent !== txt) gg.textContent = txt; }   /* Lookout: a Go button when the golden bush is on another farm */
   if (golden) { golden.t -= dt; if (golden.t <= 0) { golden = null; toast('The golden bush faded'); } }
   else if ((S.guide >= GUIDE.length || level() >= 3) && (goldenT -= dt) <= 0) {   /* a golden bush appears every 3-6 minutes while you play */
-    goldenT = (180 + Math.random() * 180) * (1 - techSum('gold')) * (rule('tanabata') ? 0.8 : 1) * (lastHarvest() ? 0.5 : 1) * (cerOn() ? 0.5 : 1) * (specOn('grow') ? 0.67 : 1);   /* the Gedeo ceremony brings them sooner too */   /* Tanabata and the season's last 3 days bring them sooner */
+    goldenT = (180 + Math.random() * 180) * (1 - techSum('gold')) * (rule('tanabata') ? 0.8 : 1) * (lastHarvest() ? 0.5 : 1) * (cerOn() ? 0.5 : 1) * (specOn('grow') ? compGold() : 1);   /* the Gedeo ceremony brings them sooner too */   /* Tanabata and the season's last 3 days bring them sooner */
     const gs = rule('lights') ? 45 : 30, open = LOCS.filter((l) => S.farms[l].unlocked && !S.dormant[l] && S.farms[l].shrubs.length);
     const gl = hasPerk('lookout') && open.length ? open[Math.floor(Math.random() * open.length)] : S.loc;   /* Lookout: any open farm */
     const fs = S.farms[gl]; if (fs.unlocked && !S.dormant[gl]) { golden = { loc: gl, i: Math.floor(Math.random() * fs.shrubs.length), t: gs }; SFX.play('achieve'); toast(gl === S.loc ? 'A golden bush appeared on the farm! Tap it within ' + gs + ' s' : 'A golden bush appeared at ' + ART.locations[gl].name.split(',')[0] + '! Tap Go within ' + gs + ' s'); if (!S.goldenTip && $('modal').hidden) { S.goldenTip = true; showModal(coachCard('Golden bush', 'See that glowing bush? Golden bushes turn up every few minutes while you play, and only last 30 seconds. Tap one for about two minutes of your income at once. Your staff can\'t pick them for you.', 'Show me', 'goldtip')); } }
@@ -4854,6 +4899,7 @@ function millRoute(o, to) {
 }
 const rackFoot = (i) => { const r = rackAt(i); return { x: r.x + 10 + rnd() * 20, y: r.y + 24 }; };
 function millSold(i, text) {   /* a sold lot leaves its rack on someone's shoulder, bound for the truck */
+  { const l = S.lots[i]; if (l && specOn('grow') && compCup(l.v) > 0 && lotCup(l) >= 90) S.spec.g90 = (S.spec.g90 || 0) + 1; if (l && specOn('mill') && l.seal) { const bk = (S.spec.book = S.spec.book || {}), key = l.v + '.' + l.method; if (!l.sour && (bk[key] === undefined || lotCup(l) > bk[key])) bk[key] = Math.round(lotCup(l) * 10) / 10; } if (l && specOn('mill') && l.seal && !l.sour && lotCup(l) >= 92) S.spec.a92 = (S.spec.a92 || 0) + 1; }
   const k = lotSlot.get(S.lots[i]); if (scene() !== 'mill' || k === undefined || k >= RACK_SHOWN) return;
   const r = rackAt(k), c = Object.assign(walker(r.x + 20, r.y + 24, { shirt: ART.shirts[(k + 3) % ART.shirts.length], hat: ART.hats[S.hat] }), { hand: true });
   floats.push({ x: r.x + 20, y: r.y + 2, text, t: 0 });
@@ -7629,7 +7675,7 @@ cv.addEventListener('click', (e) => {
     if (stored() >= cap()) { SFX.play('knock'); floats.push({ x: s.x + 9, y: s.y, text: 'storage full', t: 0 }); return; }
     if (s.claim) { const w = s.claim; w.target = null; if (w.state === 'pick' || w.state === 'walk') w.state = 'seek'; }
     s.p = 0; s.claim = null; S.hearts -= 1; S.taps += 1; task('pick', 1); guideStep('pick');
-    const kg = store(f, s.v, VAR[s.v].kg * nativeKg(f.loc, s.v) * pickKg(s.v) * (rule('akimatsuri') ? 1.2 : 1));
+    const kg = store(f, s.v, VAR[s.v].kg * nativeKg(f.loc, s.v) * pickKg(s.v) * (rule('akimatsuri') ? 1.2 : 1) * (compOf(f, f.shrubs.indexOf(s)) === 'shade' ? 0.8 : 1));
     SFX.play('harvest');
     floatKg(s.x + 9, s.y, kg); hudPickAt = Date.now(); $('app').classList.add('sh-hearts');
     for (let i = 0; i < 7; i++) bursts.push({ x: s.x + 9, y: s.y + 8, vx: (rnd() - 0.5) * 60, vy: -30 - rnd() * 40, t: 0, c: i % 2 ? '#E83A30' : '#3E8036' });
@@ -7776,20 +7822,20 @@ function buyUpgrade(key) {
   if (key === 'storage') toast(STORE[S.lv.storage - 1].name + ' built: storage holds ' + fmt(cap()) + ' kg');   /* other upgrades need no notice: the button shows the new level */
 }
 /* how long a new lot of a process takes to dry, in drying units (seconds at the base rate; the foreman's training and test speed shorten real time) */
-const lotTime = (method) => METHODS[method].time * (method === 'washed' ? 1 - wetCut() : 1) * estDry(method) / (specOn('mill') ? 1.25 : 1) / (1 + techSum('dry') + (method === 'washed' || method === 'honey' ? techSum('wetdry') : 0));
+const lotTime = (method) => METHODS[method].time * (method === 'washed' ? 1 - wetCut() : 1) * estDry(method) / (1 + techSum('dry') + (method === 'washed' || method === 'honey' ? techSum('wetdry') : 0));
 const durText = (sec) => { const x = Math.max(1, Math.ceil(sec)); return x < 60 ? x + ' s' : Math.floor(x / 60) + ' min' + (x % 60 ? ' ' + (x % 60) + ' s' : ''); };
 const dryText = (units) => durText(units / dryMult() / (S.speed || 1));   /* real time left */
 function startLot(v, method, quiet) {
   const busy = S.lots.length, have = S.cherries[v] || 0, kg = have - rackCap() < 1 ? have : rackCap();   /* a lot fills one rack; the rest waits in storage */
   if (busy >= racks() || kg <= 0 || !S.methods[method]) return false;
   const tutorial = !quiet && S.guide < 4 && !S.stats.lotsSold;   /* the guide's first lot dries twice as fast */
-  const m = METHODS[method], time = lotTime(method) * (tutorial ? 0.5 : 1);
+  const m = METHODS[method], sl = sealRoll(sealLv()), time = lotTime(method) * (tutorial ? 0.5 : 1) * (sl ? 1 + 0.15 * sl.seal : 1);
   const micro = rnd() < microChance(method);   /* Huila's marquesinas: now and then a micro-lot */
   const carried = Math.min(kg, (S.carriedKg || {})[v] || 0);   /* cherries carried over a prestige go into lots first */
   if (carried > 0) { S.carriedKg[v] -= carried; if (S.carriedKg[v] < 1) delete S.carriedKg[v]; }
   if (S.kona) S.kona.compost = Math.min(200, S.kona.compost + kg / 100);   /* the pulp goes to Kona Ridge as compost */
   S.cherries[v] = have - kg; S.millT = S.minutesTotal; S.mlots = S.mlots || {}; S.mlots[method] = (S.mlots[method] || 0) + 1;
-  S.lots.push(Object.assign({ v, kg, method, left: time, total: time }, micro ? { micro: true } : {}, method === 'natural' && rakeCup() ? { raked: rakeCup() } : {}, carried > 0 ? { carry: carried / kg } : {}));
+  S.lots.push(Object.assign({ v, kg, method, left: time, total: time }, micro ? { micro: true } : {}, method === 'natural' && rakeCup() ? { raked: rakeCup() } : {}, carried > 0 ? { carry: carried / kg } : {}, sl || {}));
   if (micro) { S.stats.micro = (S.stats.micro || 0) + 1; task('micro', 1); if (!quiet) SFX.play('achieve'); }
   task('store', 0);
   if (!quiet) guideStep('lot');
@@ -7802,15 +7848,15 @@ const realDay = () => { const d = gameDate(); return Math.floor(Date.UTC(d.getFu
 const marketPick = () => { const ms = Object.keys(METHODS).filter((k) => S.methods[k]); return ms[(realDay() * 7 + 3) % ms.length]; };   /* one process a real day (it was every farm day, under ten minutes, too quick to plan round); the foreman's Best pay already follows it */
 const MARKET = 1.4;
 const REAL_MIN = 150;   /* S.minutesTotal moves 2.5 game minutes a second, so 150 per real minute */
-const cupFor = (v, method) => { const vr = VAR[v]; return Math.min(95, METHODS[method].cup + (vr.value - 1) * 2 + ((vr.cup || {})[method] || 0) + shadeCup() + nbBonus(v, method) + estCup(method) + techSum('cup')); };
+const cupFor = (v, method) => { const vr = VAR[v]; return Math.min(95, METHODS[method].cup + (vr.value - 1) * 2 + ((vr.cup || {})[method] || 0) + shadeCup() + compCup(v) + nbBonus(v, method) + estCup(method) + techSum('cup')); };
 /* active play beats the staff: a lot you cup by hand scores +1.5 and pays 20% more, and golden bushes pay a burst of income to whoever taps them */
 const CUP_BASE = 1.5, CUP_PAY = 1.2;
-const cupBonus = () => CUP_BASE + (specOn('mill') ? 2 : 0);   /* the Miller focus cups 2 points better */
-const lotCup = (l) => cupFor(l.v, l.method) + (l.cupped ? cupBonus() : 0) + (l.aged || 0) + (l.raked || 0);
+const cupBonus = () => CUP_BASE;
+const lotCup = (l) => cupFor(l.v, l.method) + (l.cupped ? cupBonus() : 0) + (l.aged || 0) + (l.raked || 0) + (l.ferm || 0);
 const seasonSale = (method) => ((rule('momiji') && method === 'honey') || (rule('ume') && method === 'natural') || (rule('koinobori') && method === 'washed') ? 1.15 : 1);   /* season rules */
 const MILL_PAY = 1.1;   /* lots pay 10% more since racks were cut back (the mill now limits a farm at times), so a run takes as long as before */
 function saleFor(v, method, green, lot) {
-  const bonus = 1, cup = cupFor(v, method) + (lot && lot.cupped ? cupBonus() : 0) + ((lot && lot.aged) || 0) + ((lot && lot.raked) || 0);
+  const bonus = sealPay(lot), cup = cupFor(v, method) + (lot && lot.cupped ? cupBonus() : 0) + ((lot && lot.aged) || 0) + ((lot && lot.raked) || 0) + ((lot && lot.ferm) || 0);
   return { cup, coins: Math.round((1 + techSum('sale')) * (lot && lot.cupped ? CUP_PAY : 1) * (lot && lot.micro ? 2 : 1) * (hasPerk('reserve') && cup >= RESERVE_CUP ? 1.3 : 1) * (lot && lot.aged ? 1 + 0.1 * lot.aged : 1) * green * 22 * MILL_PAY * priceOf(v) * METHODS[method].mult * bonus * (method === marketPick() ? MARKET : 1) * (eventDrop() && (v === eventDrop().variety || method === eventDrop().method) ? EVENT_MULT : 1) * seasonSale(method) * originMult(v, method)), points: Math.round(green * (3 + Math.max(0, cup - 80)) * 0.8 * MILL_PAY * bonus * researchMult()) };
 }
 function cupLot(i) {
@@ -7825,7 +7871,7 @@ function cupAll() {
 function crackRoast(i) {
   const r = S.roastery.roasters[i]; if (!r || r.crack) return;
   if (revOn('power')) { SFX.play('nope'); floats.push({ x: BAYS[Math.min(i, BAYS.length - 1)] + 13, y: BAY_Y, text: 'no power', t: 0 }); return; }   /* a power cut: no catching the crack */
-  r.crack = inCrack(r) ? 1 : 2; r.auto = false; SFX.play(r.crack === 1 ? 'achieve' : 'nope'); if (r.crack === 1) { S.rcos.cracks = (S.rcos.cracks || 0) + 1; task('crack', 1); r.start = Date.now() - r.dur; }   /* a perfect crack finishes the roast on the spot */
+  r.crack = inCrack(r) ? 1 : 2; r.auto = false; SFX.play(r.crack === 1 ? 'achieve' : 'nope'); if (r.crack === 1) { S.rcos.cracks = (S.rcos.cracks || 0) + 1; task('crack', 1); if (specOn('roast')) { r.dev = Date.now(); r.devDur = Math.max(6000, r.dur * 0.35); } else r.start = Date.now() - r.dur; }   /* a perfect crack finishes the roast on the spot */
   tapNote(r.crack === 1 ? 'Perfect crack! +15 quality' : roastP(r) < 0.7 ? 'Too early: crack is near 70%' : 'Too late: the crack passed');   /* a small label where you tapped, not the banner */
 }
 function sellLot(i, quiet, staff) {   /* staff: the share of your price a staff member gets */
@@ -7847,7 +7893,7 @@ function sellLot(i, quiet, staff) {   /* staff: the share of your price a staff 
   showModal('<img src="' + url('green_sack') + '" alt="" style="width:72px;image-rendering:pixelated"><h2>' + (pea ? 'Peaberry lot!' : l.micro ? 'Micro-lot sold!' : 'Sold to the Osaka roastery') + '</h2><p class="note">' + fmt(green) + ' kg of ' + m.name.toLowerCase() + ' ' + ART.varieties[l.v] + ', cup score ' + r.cup.toFixed(1) + '.' + (pea ? ' Your sorting table picked out the round peaberries: double coins and points.' : '') + '</p><div class="stats"><div><small>Coins</small><b>+' + fmt(r.coins) + '</b></div><div><small>Know-how</small><b>+' + fmt(r.points) + '</b></div><div><small>Cup</small><b>' + r.cup.toFixed(1) + '</b></div></div><button class="btn green" data-act="close">Nice</button>');
   return r;
 }
-const contractSlots = () => 3 + (S.staff.agent ? 1 : 0) + (specOn('trade') ? 1 : 0);
+const contractSlots = () => 3 + (S.staff.agent ? 1 : 0);
 function newContract() {
   const vs = VAR_ORDER.filter((v) => S.vars[v]), ms = Object.keys(METHODS).filter((k) => S.methods[k]);
   const buyer = BUYERS[Math.floor(rnd() * BUYERS.length)];
@@ -7858,16 +7904,16 @@ function newContract() {
   const base = saleFor(cupV, cupM, kg), mult = 1.8 + rnd() * 0.6 + (v ? 0.2 : 0) + (method ? 0.2 : 0);
   const home = v && LOCS.find((l) => l !== 'osaka' && ART.locations[l].beds.includes(v));
   const note = buyer === 'Beju Roastery' && home ? 'For the ' + ART.locations[home].reward : '';
-  return { id: Math.floor(rnd() * 1e9), buyer, note, v, method, minCup, kg, have: 0, coins: Math.round(base.coins * mult * (1 + techSum('contract')) * (specOn('trade') ? 1.2 : 1)), points: Math.round(base.points * mult), due: S.minutesTotal + 1440 * (1.5 + rnd() * 1.5) };
+  return { id: Math.floor(rnd() * 1e9), buyer, note, v, method, minCup, kg, have: 0, coins: Math.round(base.coins * mult * (1 + techSum('contract'))), points: Math.round(base.points * mult), due: S.minutesTotal + 1440 * (1.5 + rnd() * 1.5), ...(specOn('trade') ? { t0: S.minutesTotal, bidN: rnd() < 0.5 ? 3 : 2, leave: S.minutesTotal + 60 * (2 + rnd() * 3) } : {}) };
 }
 const fits = (c, l) => (!c.v || c.v === l.v) && (!c.method || c.method === l.method) && lotCup(l) >= c.minCup && c.have < c.kg;
 function contractsTick() {
   if (!buyersOn()) return;   /* no contracts until the Orders tab is open */
-  S.contracts = S.contracts.filter((c) => c.due > S.minutesTotal);   /* a contract that runs out just leaves the board, without a notice: new ones keep coming */
+  tradeTick(); S.contracts = S.contracts.filter((c) => c.due > S.minutesTotal);   /* a contract that runs out just leaves the board, without a notice: new ones keep coming */
   if (S.event && !eventOn() && S.contracts.some((c) => c.event)) { S.contracts = S.contracts.filter((c) => !c.event); toast('The drop event has ended'); }
   if (!S.nextContract) { while (S.contracts.length < 3) S.contracts.push(newContract()); }   /* a full board on a new save */
   boatTick();
-  if (S.contracts.filter((c) => !c.event && !c.boat).length < contractSlots() && S.minutesTotal >= S.nextContract) { S.contracts.push(newContract()); S.nextContract = S.minutesTotal + (specOn('trade') ? 14 : 20); }
+  if (S.contracts.filter((c) => !c.event && !c.boat).length < contractSlots() && S.minutesTotal >= S.nextContract && !(S.spec && S.spec.cold > S.minutesTotal)) { S.contracts.push(newContract()); S.nextContract = S.minutesTotal + 20; }
 }
 function deliver(i, id, quiet, haggle, staff) {
   const l = S.lots[i], c = S.contracts.find((x) => x.id === id);
@@ -7882,9 +7928,10 @@ function deliver(i, id, quiet, haggle, staff) {
   const done = c.have >= c.kg - 0.01, pay = done ? { coins: c.coins - (c.paidC || 0), points: c.points - (c.paidP || 0) } : { coins: Math.round(c.coins * use / c.kg), points: Math.round(c.points * use / c.kg) };
   c.paidC = (c.paidC || 0) + pay.coins; c.paidP = (c.paidP || 0) + pay.points;
   if (haggle) { const mk = saleFor(l.v, l.method, use, l).coins; pay.coins = Math.round(mk + Math.max(0, pay.coins - mk) * haggle); c.hm = true; }   /* the harbour master gets part of the boat's premium */
+  { const tm = tradeMult(c); if (tm > 1) earn({ coins: Math.round(pay.coins * (tm - 1) * (staff || 1)) }); }   /* the Trader's bid on top */
   const npay = pay.points * (l.carry || 0); earn(staff ? { coins: Math.round(pay.coins * staff), points: pay.points, noXp: npay } : Object.assign({ noXp: npay }, pay)); if (l.cupped) earn({ coins: Math.round(pay.coins * (CUP_PAY - 1)) }); if (l.micro) earn({ coins: pay.coins }); if (rule('hina')) earn({ coins: Math.round(pay.coins * 0.1) });   /* buyers pay extra for hand-cupped coffee */
   if (done) {
-    S.contracts = S.contracts.filter((x) => x !== c); S.nextContract = Math.min(S.nextContract, S.minutesTotal + 10); S.stats.contracts = (S.stats.contracts || 0) + 1; SFX.play('contract');
+    S.contracts = S.contracts.filter((x) => x !== c); S.nextContract = Math.min(S.nextContract, S.minutesTotal + 10); S.stats.contracts = (S.stats.contracts || 0) + 1; SFX.play('contract'); if (specOn('trade') && tradeMult(c) >= 1.2) S.spec.won = (S.spec.won || 0) + 1;
     star('contract'); task('contract', 1); if (c.event) star('drop'); if (c.cranes && !c.hm) { earn({ cranes: c.cranes }); SFX.play('crane'); } if (c.boat && !haggle) task('boat', 1);
     if (c.event && S.event) { S.event.done += 1; if (S.event.done >= 3) { earn({ cranes: 10 }); S.badges.push({ event: eventDrop() ? eventDrop().name : 'Drop event', label: 'Drop', rank: 99 }); setTimeout(() => later('Drop event complete!', 'The event badge and 10 cranes are yours', '<h2>Drop event complete!</h2><p class="note">All three event contracts are delivered. The event badge is on your profile, and 10 cranes are yours.</p><button class="btn green" data-act="close">Brilliant</button>'), 600); } }
     if (quiet || (S.stats.contracts > 1 && !c.boat && !c.event)) { toast('Contract for ' + c.buyer + ' complete: +' + fmt(c.coins) + ' coins, +' + fmt(c.points) + ' know-how in all'); return; }
@@ -8523,8 +8570,9 @@ function eventBanner() {
 }
 function contractCard(c) {
   const what = (c.method ? METHODS[c.method].name.toLowerCase() + ' ' : '') + (c.v ? ART.varieties[c.v] : 'any coffee'), hrs = Math.max(0, (c.due - S.minutesTotal) / 60);
-  const when = c.event ? 'until the drop ends' : (hrs >= 1 ? Math.floor(hrs) + ' h' : Math.ceil(hrs * 60) + ' min') + ' left';
-  return '<div class="ccard' + (c.event ? ' ev' : '') + (c.boat ? ' boat' : '') + '">' + img(c.v ? 'bush_' + c.v + '_ripe' : 'board', 28) + '<div class="cc-t"><b>' + c.buyer.split(',')[0] + '</b><span>' + fmt(c.kg) + ' kg ' + what + ' · cup ' + c.minCup.toFixed(1) + '+</span><span class="bar"><i style="width:' + Math.round(c.have / c.kg * 100) + '%"></i></span>' + (c.have > 0 || c.boat ? '<small>' + fmt(Math.floor(c.have)) + ' / ' + fmt(c.kg) + ' kg · <b>' + fmt(Math.max(0, Math.ceil(c.kg - c.have))) + ' kg to go</b></small>' : '') + '<small>' + icon('i_coin') + fmt(c.coins) + ' · ' + icon('i_points') + fmt(c.points) + (c.cranes ? ' · +' + c.cranes + ' cranes' : '') + ' · ' + when + '</small></div>' + (c.event ? '' : '<button type="button" class="cc-x" data-act="skip:' + c.id + '" aria-label="Skip this contract">✕</button>') + '</div>';
+  const lh = c.t0 !== undefined && !c.fut ? Math.max(0, (c.leave - S.minutesTotal) / 60) : hrs, when = c.event ? 'until the drop ends' : (c.t0 !== undefined && !c.fut ? (lh < 1 ? 'bidding ends soon' : 'bidding open, buyers getting restless') : (hrs >= 1 ? Math.floor(hrs) + ' h' : Math.ceil(hrs * 60) + ' min') + ' left');
+  const bidRow = c.t0 === undefined ? '' : '<small class="bid">' + (c.fut ? 'Future: +40% fixed · fill it in ' + (hrs >= 1 ? Math.floor(hrs) + ' h' : Math.ceil(hrs * 60) + ' min') : c.bidN + ' buyers bidding · now +' + Math.round((tradeMult(c) - 1) * 100) + '% (up to +' + Math.round(bidCap(c) * 100) + '%) · ' + '<button type="button" class="linkbtn" data-act="future:' + c.id + '">sign as future +40%</button>') + '</small>';
+  return '<div class="ccard' + (c.event ? ' ev' : '') + (c.boat ? ' boat' : '') + '">' + img(c.v ? 'bush_' + c.v + '_ripe' : 'board', 28) + '<div class="cc-t"><b>' + c.buyer.split(',')[0] + '</b><span>' + fmt(c.kg) + ' kg ' + what + ' · cup ' + c.minCup.toFixed(1) + '+</span><span class="bar"><i style="width:' + Math.round(c.have / c.kg * 100) + '%"></i></span>' + bidRow + (c.have > 0 || c.boat ? '<small>' + fmt(Math.floor(c.have)) + ' / ' + fmt(c.kg) + ' kg · <b>' + fmt(Math.max(0, Math.ceil(c.kg - c.have))) + ' kg to go</b></small>' : '') + '<small>' + icon('i_coin') + fmt(c.coins) + ' · ' + icon('i_points') + fmt(c.points) + (c.cranes ? ' · +' + c.cranes + ' cranes' : '') + ' · ' + when + '</small></div>' + (c.event ? '' : '<button type="button" class="cc-x" data-act="skip:' + c.id + '" aria-label="Skip this contract">✕</button>') + '</div>';
 }
 /* what a lot of this variety and process would earn: the best matching contract or the roastery */
 function lotValue(v, method, kg) {
@@ -8615,7 +8663,7 @@ function renderPanel() {
       h += row(img(storeSprite(S.lv.storage), 44), STORE[S.lv.storage - 1].name + ': ' + fmt(stored()) + ' / ' + fmt(cap()) + ' kg', (stored() >= cap() ? 'Full! Pickers have stopped. Process or sell cherries.' : 'Cherries from every farm come here.') + (sackKg() >= 1 ? ' ' + fmt(sackKg()) + ' kg more wait in pickers\' sacks.' : ''), btn('Mill', 'process', 'tab:mill', true, 'blue'));
       h += '<h3>Fields</h3>' + (!ART.locations[f.loc].beds.some((v) => S.vars[v]) ? '' : help('terroir', 'Native here: ' + nativeNames(f.loc) + '. ×1.3 cherries.', 'Coffee picks best at home. Coffees native to this farm (' + nativeNames(f.loc) + ') pick ×1.3 cherries here and grow 20% faster; any other coffee picks ×0.85. That counts for your picks, your pickers\' and while you\'re away, so each farm has its own best coffee.'));
       if (hasPerk('replantall')) h += btn('Replant all', 'every farm, natives kept', 'replantask', true, 'blue');
-      h += f.beds.slice(0, f.field ? 4 : 3).map((v, b) => row(img('bush_' + v + '_ripe', 30), 'Field ' + (b + 1) + ': ' + ART.varieties[v] + (isNative(f.loc, v) ? ' · native' : ''), fmtKg(VAR[v].kg * nativeKg(f.loc, v)) + ' kg a pick' + (isNative(f.loc, v) ? ' (×1.3 at home) · grows 20% faster' : ' (×0.85 away from home)'), btn('Replant', '', 'bed:' + b, true, 'blue'))).join('');
+      h += f.beds.slice(0, f.field ? 4 : 3).map((v, b) => row(img('bush_' + v + '_ripe', 30), 'Field ' + (b + 1) + ': ' + ART.varieties[v] + (isNative(f.loc, v) ? ' · native' : ''), fmtKg(VAR[v].kg * nativeKg(f.loc, v)) + ' kg a pick' + (isNative(f.loc, v) ? ' (×1.3 at home) · grows 20% faster' : ' (×0.85 away from home)'), btn('Replant', '', 'bed:' + b, true, 'blue')) + (specOn('grow') ? '<div class="seg" style="margin:-4px 0 8px 52px">' + [['', 'Bare']].concat(Object.keys(COMPS).map((k) => [k, COMPS[k].name])).map(([k, n]) => '<button type="button" class="' + (((f.comp || [])[b] || '') === k ? 'blue' : '') + '" data-act="comp:' + b + '.' + (k || 'none') + '" title="' + (k ? COMPS[k].text : 'No companion') + '">' + n + '</button>').join('') + '</div>' : '')).join('') + (specOn('grow') ? '<p class="note">Grower: ' + Object.keys(COMPS).map((k) => '<b>' + COMPS[k].name + '</b> ' + COMPS[k].text.toLowerCase()).join(' · ') + '.</p>' : '');
       h += row(img('i_cherry', 28), 'Sell fresh cherries', '2 coins a kg. The Mill pays far more.', btn('Sell all', fmt(stored() * 2) + ' coins', 'sellraw', stored() > 0));
     }
   } else if (tab === 'roast' && roasteryOpen()) {
@@ -8633,6 +8681,7 @@ function renderPanel() {
       const boats = S.contracts.filter((c) => c.boat); if (boats.length) h += '<div class="ccards">' + boats.map(contractCard).join('') + '</div>';
     } else if (buyersOn()) h += '<h3>Buyers waiting · ' + S.contracts.length + (S.staff.agent ? ' <button type="button" class="linkbtn" data-act="buyersopen">fold</button>' : '') + '</h3>' + help('buyers', 'Contracts pay about twice the roastery. Swipe to see them all.', 'Contracts pay about twice the roastery, as each delivery arrives. Swipe to see them all; lots that fit are tagged.') + '<div class="ccards">' + (S.contracts.length ? S.contracts.map(contractCard).join('') : '<p class="note">No buyers right now. New ones arrive shortly.</p>') + '</div>';
     h += requestCard();
+    if (specOn('mill')) { const bk = (S.spec && S.spec.book) || {}, best = Object.keys(bk).sort((a, b) => bk[b] - bk[a]).slice(0, 3); h += '<h3>Sealed tanks</h3><div class="seg">' + SEAL_NAMES.map((n, L) => '<button type="button" class="' + (sealLv() === L ? 'blue' : '') + '" data-act="seal:' + L + '">' + n + '</button>').join('') + '</div><p class="note">New lots ferment sealed first' + (sealLv() ? ': ' + SEAL_NAMES[sealLv()] + ', about +' + (1.2 * sealLv()).toFixed(1) + ' cup (give or take ' + (1.3 * sealLv()).toFixed(1) + '), +' + Math.round(15 * sealLv()) + '% drying time' : ' (off)') + '. Your foreman uses it too.' + (best.length ? ' Tank book: ' + best.map((k) => { const [v, m] = k.split('.'); return ART.varieties[v] + ' ' + METHODS[m].name.toLowerCase() + ' ' + bk[k]; }).join(', ') + '.' : '') + '</p>'; }
     h += '<h3>Drying racks ' + S.lots.length + ' / ' + racks() + ' · ' + fmt(rackCap()) + ' kg each</h3>';
     if (S.staff.foreman && ctRack()) h += '<p class="note">The foreman leaves one rack free for you, for a lot of your own.</p>';
     /* with many racks the lots become a grid of small tiles, with one-tap Cup all and Sell all, so nothing needs scrolling */
@@ -8650,7 +8699,7 @@ function renderPanel() {
       if (S.lots.length) h += help('cup', 'Cup by hand: +' + Math.round((CUP_PAY - 1) * 100) + '% pay.', 'Cup adds +' + cupBonus() + ' cup score and +' + Math.round((CUP_PAY - 1) * 100) + '% pay. Lots tagged for a buyer deliver to that contract.');
     } else S.lots.forEach((l, i) => {
       const m = METHODS[l.method], done = l.left <= 0, fit = buyersOn() && S.contracts.find((c) => fits(c, l));
-      h += row(img(m.art, 36), fmt(l.kg) + ' kg ' + ART.varieties[l.v] + ', ' + m.name.toLowerCase() + (fit ? ' <span class="fit">for ' + fit.buyer.split(',')[0] + '</span>' : '') + (l.micro ? ' <span class="fit gold">★ micro-lot ×2</span>' : '') + (l.aged ? ' <span class="fit">aged +' + l.aged + '</span>' : ''), done ? 'Dry and ready to sell' : '<span class="bar" style="display:block"><i style="width:' + Math.round((1 - l.left / l.total) * 100) + '%"></i></span> ' + dryText(l.left) + ' left', btn('Sell', done ? 'ready' : 'drying', 'sell:' + i, done, 'green'));
+      h += row(img(m.art, 36), fmt(l.kg) + ' kg ' + ART.varieties[l.v] + ', ' + m.name.toLowerCase() + (fit ? ' <span class="fit">for ' + fit.buyer.split(',')[0] + '</span>' : '') + (l.micro ? ' <span class="fit gold">★ micro-lot ×2</span>' : '') + (l.seal ? ' <span class="fit">' + (l.left > 0 ? 'sealed · ' + SEAL_NAMES[l.seal] : l.sour ? 'sour batch ×0.5' : 'sealed ' + (l.ferm >= 0 ? '+' : '') + l.ferm + ' cup') + '</span>' : '') + (l.aged ? ' <span class="fit">aged +' + l.aged + '</span>' : ''), done ? 'Dry and ready to sell' : '<span class="bar" style="display:block"><i style="width:' + Math.round((1 - l.left / l.total) * 100) + '%"></i></span> ' + dryText(l.left) + ' left', btn('Sell', done ? 'ready' : 'drying', 'sell:' + i, done, 'green'));
       h += '<div class="seg" style="margin:-4px 0 6px 52px">' + (l.cupped ? '<span class="cupped">Hand-cupped · +' + cupBonus() + ' cup · +' + Math.round((CUP_PAY - 1) * 100) + '% pay</span>' : btn('Cup by hand', '+' + cupBonus() + ' cup · +' + Math.round((CUP_PAY - 1) * 100) + '% pay', 'cup:' + i, true, 'gold')) + (done && roasteryOpen() && !reqLot(l) ? btn('Roast', 'send to the roastery', 'toroast:' + i, true, 'blue') : '') + '</div>';
       if (done && buyersOn()) S.contracts.filter((c) => fits(c, l)).forEach((c) => { h += '<div class="seg" style="margin:-4px 0 6px 52px">' + btn('Deliver to ' + c.buyer.split(',')[0], fmt(Math.min(l.kg * 0.2, c.kg - c.have)) + ' kg · contract', 'deliver:' + i + '.' + c.id, true, 'blue') + '</div>'; });
     });
@@ -9246,6 +9295,10 @@ document.addEventListener('click', (e) => {
   else if (a === 'task') { const tk = S.tasks[+v]; if (tk.have >= tk.goal && !tk.done) { tk.done = true; const rr = tk.practice ? tk.reward : taskReward(tk.reward); const got = rule('shogatsu') && rr.coins ? { coins: rr.coins * 2 } : rr; earn(got); unRate(got); if (!tk.practice) star('task'); guideStep('task'); toast('Task complete!'); } }
   else if (a === 'weekly') { S.weekly.claimed = true; S.cranes += WEEKLY_CRANES; star('weekly'); showModal('<h2>Order delivered!</h2><p class="note">Beju\'s farms delivered ' + fmt(S.weekly.target) + ' kg of washed coffee to the roastery together. +' + WEEKLY_CRANES + ' cranes and ' + STAR_PER.weekly + ' season stars.</p><button class="btn green" data-act="close">Hooray</button>'); }
   else if (a === 'specopen') S.specOpen = true;
+  else if (a === 'drop') { const r = S.roastery.roasters[+v]; if (r && r.dev && !r.dropped) { r.dropped = devZone(devP(r)); SFX.play(r.dropped === r.profile ? 'achieve' : r.dropped === 'burnt' ? 'nope' : 'drop'); tapNote(r.dropped === r.profile ? 'Dropped in the window: +20 quality' : r.dropped === 'burnt' ? 'Scorched past second crack' : 'Dropped ' + r.dropped + ', not ' + r.profile); roasteryTick(); } }
+  else if (a === 'future') { const c = S.contracts.find((x) => String(x.id) === v); if (c && specOn('trade') && c.t0 !== undefined && !c.fut) { c.fut = true; c.due = S.minutesTotal + 720; SFX.play('stamp'); toast('Signed as a future: +40%, fill it within 12 hours'); } }
+  else if (a === 'seal') { if (specOn('mill')) { S.spec.seal = Math.max(0, Math.min(3, +v || 0)); SFX.play('click'); } }
+  else if (a === 'comp') { const [bi, k] = v.split('.'); if (specOn('grow') && (COMPS[k] || k === 'none')) { f.comp = f.comp || []; f.comp[+bi] = k === 'none' ? '' : k; SFX.play('click'); } }
   else if (a === 'specpick') { if (SPECS[v] && specOk(v) && !(S.spec && S.spec.swap) && S.prestige >= SPEC_P) { const had = S.spec && S.spec.cur; specSet(v, !had); if (had) S.spec.swap = true; if (v === 'wander') S.spec.far = S.spec.far || {}; S.specOpen = false; closeModal(); toast('Focus: ' + SPECS[v].name); } }
   else if (a === 'prestigeAsk') {
     const asleep = LOCS.filter((l) => FARM_LEVEL[l] && S.farms[l].unlocked && !((hasPerk('awake') || perkAt(S.prestige + 1) === PERKS[4]) && AWAKE.includes(l)));
