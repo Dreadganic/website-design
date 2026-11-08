@@ -3166,6 +3166,13 @@ const PHATS = {
     art: ['S...C...S', '...PPP...', 'RRpPPPpRR', '...ppp...', 'C.......S'] }
 };
 const phatOwn = (k) => !!PHATS[k] && S.prestige >= PHATS[k].p;
+/* picker crews from prestige 8: pickers and the farm shiba in the crest's colours, wearing its hat; your highest crew unless you pick another or Classic */
+const CREWS = {
+  p8: { name: 'Demons', shirt: ['#3A0A0A', '#1E0404', '#FF6A1A'], swap: { '#F8D2B0': '#E0503A', '#E2A882': '#A82A18' }, dog: { '#E89048': '#8A1A10', '#C86C30': '#5A0A04', '#FFF4E4': '#2A1A18', '#F8B070': '#E8401A' } },
+  p9: { name: 'Angels', shirt: ['#FFFFFF', '#EEF2FA', '#F2C04A'], swap: { '#F8D2B0': '#FFE8D8', '#E2A882': '#F0C8A8' }, dog: { '#E89048': '#FFFFFF', '#C86C30': '#E8E2D0', '#FFF4E4': '#FFF8E0', '#F8B070': '#F2D060' } },
+  p10: { name: 'Cosmic beings', shirt: ['#2A1650', '#1A0E38', '#7EE0F0'], swap: { '#F8D2B0': '#A8C8F8', '#E2A882': '#7A8AE0' }, dog: { '#E89048': '#9A7AE8CC', '#C86C30': '#5A3AA8CC', '#FFF4E4': '#D8F0FFCC', '#F8B070': '#7EE0F0' } }
+};
+const crewOf = () => (S.crew === 'none' ? '' : S.crew && phatOwn(S.crew) && CREWS[S.crew] ? S.crew : ['p10', 'p9', 'p8'].find(phatOwn) || '');
 function phatOn(c, k) {   /* the model's top row and its middle, then the hat above it */
   const h = PHATS[k], x = c.getContext('2d'), d = x.getImageData(0, 0, c.width, c.height).data;
   let top = -1, l = c.width, r = -1;
@@ -4317,8 +4324,8 @@ function draw(time) {
       if (s === gold) { for (let k = 0; k < 3; k++) { const a = time * 3 + k * 2.1; fx.drawImage(sprite('sparkle'), Math.round(s.x + 5 + Math.cos(a) * 9), Math.round(s.y + 6 + Math.sin(a) * 9)); } }
       if (s.p >= 1 && Math.floor(time * 3 + s.x / 18 + s.y / 17) % 6 === 0) fx.drawImage(sprite('sparkle'), s.x + 11, s.y + 1);
     } else if (o.dog) {
-      const g = o.dog, spr = sprite('shiba_' + (g.moving ? Math.floor(g.walk * 8) % 2 : 0)), X = Math.round(g.x) - 8, Y = Math.round(g.y) - 11;
-      fx.fillStyle = 'rgba(42,42,8,0.28)'; fx.beginPath(); fx.ellipse(X + 8, Y + 11, 6, 1.5, 0, 0, 7); fx.fill();
+      const cw = crewOf(), g = o.dog, spr = cw ? phatSprite('shiba_' + (g.moving ? Math.floor(g.walk * 8) % 2 : 0), { swap: CREWS[cw].dog }, cw) : sprite('shiba_' + (g.moving ? Math.floor(g.walk * 8) % 2 : 0)), X = Math.round(g.x) - 8, Y = Math.round(g.y) - 11 - (cw ? PHAT_PAD : 0);   /* the crew's shiba */
+      fx.fillStyle = 'rgba(42,42,8,0.28)'; fx.beginPath(); fx.ellipse(X + 8, Y + 11 + (cw ? PHAT_PAD : 0), 6, 1.5, 0, 0, 7); fx.fill();
       if (g.flip) { fx.save(); fx.translate(X + 16, Y); fx.scale(-1, 1); fx.drawImage(spr, 0, 0); fx.restore(); } else fx.drawImage(spr, X, Y);
       if (S.decor.bandana) { fx.fillStyle = (dvOpt('bandana') || { swap: { '#D8302C': '#D8302C' } }).swap['#D8302C']; const bx = g.flip ? X + 9 : X + 5; fx.fillRect(bx, Y + 6, 2, 2); fx.fillRect(bx + (g.flip ? 1 : 0), Y + 8, 1, 1); }
     } else if (o.me) {
@@ -4338,8 +4345,8 @@ function draw(time) {
       if (moving) fr = w.dir === 'side' ? Math.floor(w.walk * 7) % 2 : WALK[Math.floor(w.walk * 7) % 4];
       else if (w.state === 'pick') fr = Math.floor(w.t * 4) % 2 ? 1 : 2;
       if (w.dir === 'side') fr = Math.min(fr, 1);
-      const spr = sprite('worker_' + w.dir + '_' + fr, { shirt: ART.shirts[w.shirt % ART.shirts.length], hat }), X = Math.round(w.x) - 8, Y = Math.round(w.y) - 23;
-      fx.fillStyle = 'rgba(42,42,8,0.3)'; fx.beginPath(); fx.ellipse(X + 8, Y + 23, 5, 1.6, 0, 0, 7); fx.fill();
+      const cw = crewOf(), spr = cw ? phatSprite('worker_' + w.dir + '_' + fr, { shirt: CREWS[cw].shirt, swap: CREWS[cw].swap }, cw) : sprite('worker_' + w.dir + '_' + fr, { shirt: ART.shirts[w.shirt % ART.shirts.length], hat }), X = Math.round(w.x) - 8, Y = Math.round(w.y) - 23 - (cw ? PHAT_PAD : 0);
+      fx.fillStyle = 'rgba(42,42,8,0.3)'; fx.beginPath(); fx.ellipse(X + 8, Y + 23 + (cw ? PHAT_PAD : 0), 5, 1.6, 0, 0, 7); fx.fill();
       if (w.dir === 'side' && w.flip) { fx.save(); fx.translate(X + 16, Y); fx.scale(-1, 1); fx.drawImage(spr, 0, 0); fx.restore(); } else fx.drawImage(spr, X, Y);
       if (w.carry && w.dir !== 'up') {
         const gear = ART.carry[S.lv.carry - 1].sprite, gs = sprite(gear);
@@ -8616,6 +8623,7 @@ function renderPanel() {
       return '<div class="tile">' + avatar({ crest: S.look.crest, skin: S.look.skin, bg: S.look.bg, char: id }, 56) + '<b>' + c.name + '</b><span>From ' + c.from + '</span>' + btn('Buy', c.cost + ' cranes', 'buychar:' + id, S.cranes >= c.cost) + '</div>';
     }).join('') + '</div>';
     const hatKeys = Object.keys(ART.hats).filter((k) => !(k.startsWith('s_') || k.startsWith('ev_')) || S.hats[k]), hatName = (k) => ({ straw: 'Straw', beju: 'Beju green', sakura: 'Sakura', indigo: 'Indigo', harvest: 'Harvest orange', ev_bee: 'Beekeeper', ev_re_straw: 'Nursery straw', ev_ba_bamboo: 'Bamboo hat', ev_ga_field: 'Field hat' })[k] || themeById(k).name + ' (season)', hatPic = (k) => url('worker_down_0', { hat: ART.hats[k] });
+    { const cr = ['p8', 'p9', 'p10'].filter(phatOwn); if (cr.length) h += '<h3>Picker crew</h3><div class="seg">' + [['none', 'Classic']].concat(cr.map((k) => [k, CREWS[k].name])).map(([k, tl]) => '<button type="button" data-act="crew:' + k + '" aria-pressed="' + ((crewOf() || 'none') === k) + '">' + tl + '</button>').join('') + '</div><p class="note">From prestige 8 your pickers and the shiba can join your crest: demons, angels or cosmic beings.</p>'; }
     h += '<h3>Picker hats</h3><p class="note">Hats for your pickers, bought with cranes.</p>' + ownStrip(hatKeys.filter((k) => S.hats[k]).map((k) => [chipImg(hatPic(k)), hatName(k), 'hat:' + k, S.hat === k ? 'on' : 'no']), 'Tap a hat for your pickers to wear it.') + '<div class="grid2">' + hatKeys.filter((k) => !S.hats[k]).map((k) => {
       const cost = { straw: 0, beju: 15, sakura: 20, indigo: 15, harvest: 20 }[k];
       return '<div class="tile"><div style="display:flex;align-items:center;gap:6px"><img src="' + hatPic(k) + '" alt="" style="width:32px;image-rendering:pixelated"><b>' + hatName(k) + '</b></div>' + btn('Buy', cost + ' cranes', 'buyhat:' + k, S.cranes >= cost) + '</div>';
@@ -8740,6 +8748,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'haptics') { S.haptics = v === '1'; buzz('pop'); }
   else if (a === 'hudmode') { S.hud = v; refreshHud(); }
   else if (a === 'tierfx') S.tierFx = v === '1';
+  else if (a === 'crew') { if (v === 'none' || phatOwn(v)) S.crew = v; }
   else if (a === 'tscale') { S.textScale = +v || 1; refreshHud(); }
   else if (a === 'hudshow') { if (v === 'lv') S.showLv = !S.showLv; else S.showStore = !S.showStore; refreshHud(); }
   else if (a === 'snd') { if (v === 'sfx') { S.sfx = !S.sfx; syncSound(); if (S.sfx) SFX.play('tick'); } else { S.music = !S.music; syncSound(); syncMusic(); } }

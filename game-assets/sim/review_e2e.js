@@ -131,6 +131,8 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
   ok(ht.own.join() === 'true,true,false,false' && ht.refused && ht.worn === 'p8' && ht.pics.every(Boolean), 'prestige hats: owned from their prestige, worn from Looks, drawn on any model: ' + JSON.stringify(ht));
   const tf = await E(() => { const T = window.__T, S = T.S, keep = S.prestige; S.prestige = 7; const g7 = T.hasPerk('goldsign'); S.prestige = 6; const g6 = T.hasPerk('goldsign'); S.prestige = 9; T.act('tierfx:0'); const off = S.tierFx === false; T.act('tierfx:1'); const on = S.tierFx === true; S.prestige = keep; return [g6, g7, off, on]; });
   ok(tf.join() === 'false,true,true,true', 'the Golden Crane flies from prestige 7, and Settings turns the crest effects off and on: ' + tf);
+  const cr = await E(() => { const T = window.__T, S = T.S, keep = S.prestige; S.prestige = 7; const c7 = T.crewOf(); S.prestige = 10; const auto = T.crewOf(); T.act('crew:p8'); const picked = T.crewOf(); T.act('crew:none'); const classic = T.crewOf(); S.prestige = 8; T.act('crew:p10'); const refused = S.crew !== 'p10'; delete S.crew; S.prestige = keep; return [c7, auto, picked, classic, refused]; });
+  ok(cr.join() === ',p10,p8,,true', 'picker crews from prestige 8: the highest by default, any owned one or Classic, none not yet reached: ' + cr);
   const miss = await E(() => window.__noSprite || []); ok(!miss.length, 'every picture drawn exists: ' + miss.join(', '));
   ok(!errs.length, 'no page errors: ' + errs.join(' | '));
   console.log(pass + ' passed, ' + fail + ' failed'); await b.close(); process.exit(fail ? 1 : 0);
