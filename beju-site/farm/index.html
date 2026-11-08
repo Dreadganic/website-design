@@ -4204,7 +4204,8 @@ function revPage() {   /* Ranks › Records: each event, how often you've stoppe
 function nameTag(x, y) {   /* your name tag, in your tier's colour, with stars past the top tier */
   const stars = S.prestige >= TIERS.length ? ' ' + '★'.repeat(Math.min(5, S.prestige - TIERS.length + 1)) : '', label = S.name + stars;
   ctx.font = '700 12px "Pixelify Sans", monospace'; ctx.textAlign = 'center';
-  const tx = Math.round(x) * 2, ty = (Math.round(y) - 27) * 2, w = ctx.measureText(label).width + 10;
+  const lift = (PHATS[S.look.hat] && phatOwn(S.look.hat) ? PHATS[S.look.hat].art.length + 2 : 0) + (FLAIR[S.look.skin] && FLAIR[S.look.skin].hover ? 4 : 0);   /* a prestige hat or the Seraph's hover: the tag goes above it */
+  const tx = Math.round(x) * 2, ty = (Math.round(y) - 27 - lift) * 2, w = ctx.measureText(label).width + 10;
   ctx.fillStyle = 'rgba(30,20,12,0.72)'; ctx.fillRect(tx - w / 2, ty - 11, w, 15); ctx.fillStyle = TAG_COLOR[tierOf(S.prestige)]; ctx.fillText(label, tx, ty);
   if ((S.rev || {}).streak >= 5) revFlame(Math.round(tx - w / 2 - 13), ty - 12);
 }
