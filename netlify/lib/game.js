@@ -167,19 +167,19 @@ async function claimName(store, me, raw, now) {   /* -> { name } or { error }; a
   if (row && row.name !== name) { row.name = name; await store.set("scores/" + me.id, row); await store.del("board/rows"); }   /* the board shows the new name straight away */
   return { name };
 }
-/* A look is a crest (nameplate and border, capped at the tier the player's prestige has reached), an outfit (any of the 8 once they have prestiged, since each prestige picks one) and a background. Old clients sent plate/border. */
+/* A look is a crest (nameplate and border, capped at the tier the player's prestige has reached), an outfit (any of the 11 once they have prestiged, since each prestige picks one) and a background. Old clients sent plate/border. */
 const BGS = ["none", "mogiana", "huila", "gedeo", "toba", "turrialba", "osaka", "beju"];
 const CHARS = ["none", "shiba", "capybara", "bear", "gelada", "orangutan", "sloth", "tanuki", "kitsune", "robot", "crane"];   /* character models, bought with cranes */
 const ROASTER_FINISHES = ["copper", "showa", "sakura", "beju", "cream", "gold"];   /* roastery cosmetics that show on the board */
 const cleanLook = (l, prestige) => {
   const n = (x, max) => Math.max(0, Math.min(max, Math.floor(Number(x) || 0)));
   l = l || {};
-  const cap = prestige === undefined ? 7 : n(prestige, 7);
+  const cap = prestige === undefined ? 10 : n(prestige, 10);   /* crests up to Cosmic Roast at prestige 10 */
   const sid = (x) => String(x || "").replace(/^s_/, ""), now = seasonKey();
-  return { crest: prestige === undefined ? n(l.crest !== undefined ? l.crest : l.plate, cap) : cap,   /* the crest is always the highest the prestige has reached */ skin: cap > 0 ? n(l.skin, 7) : 0, bg: BGS.includes(l.bg) || (/^s_/.test(l.bg || "") && SEASON_IDS.includes(sid(l.bg))) ? l.bg : "none", char: CHARS.includes(l.char) ? l.char : "none",
+  return { crest: prestige === undefined ? n(l.crest !== undefined ? l.crest : l.plate, cap) : cap,   /* the crest is always the highest the prestige has reached */ skin: cap > 0 ? n(l.skin, 10) : 0, bg: BGS.includes(l.bg) || (/^s_/.test(l.bg || "") && SEASON_IDS.includes(sid(l.bg))) ? l.bg : "none", char: CHARS.includes(l.char) ? l.char : "none",
     hat: SEASON_IDS.includes(sid(l.hat)) ? "s_" + sid(l.hat) : "", charm: l.charm === "qgrader" || l.charm === "crack" || l.charm === "founder" ? l.charm : SEASON_IDS.includes(sid(l.charm)) ? sid(l.charm) : "",
     roaster: ROASTER_FINISHES.includes(l.roaster) ? l.roaster : "", pin: TROPHY_ID.test(l.pin || "") ? l.pin : "",
-    title: (/^\d{4}-\d{2}$/.test(l.title || "") && l.title <= now) || /^nbm?:[a-z]{3,16}$|^nbt:(cupper|head|q)$|^rr:(master|crack)$|^ev:(steady|trouble)$|^ct:nbr$|^kona:master$|^bm:grader$|^route:islander$|^re:keeper$|^ba:rain$|^ga:nat$/.test(l.title || "") ? l.title : "" };   /* season titles, and cupping notebook titles */   /* season track cosmetics; a title names a season that has started */
+    title: (/^\d{4}-\d{2}$/.test(l.title || "") && l.title <= now) || /^nbm?:[a-z]{3,16}$|^nbt:(cupper|head|q)$|^rr:(master|crack)$|^ev:(steady|trouble)$|^ct:nbr$|^kona:master$|^bm:grader$|^route:islander$|^re:keeper$|^ba:rain$|^ga:(nat|survey)$/.test(l.title || "") ? l.title : "" };   /* season titles, and cupping notebook titles */   /* season track cosmetics; a title names a season that has started */
 };
 
 /* Trophies: wins the server checks for itself (Cup of Excellence, the Co-op Derby, Harvest Day, season and rookie finishes) and Founding farmer.
