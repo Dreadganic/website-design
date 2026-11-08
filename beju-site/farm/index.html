@@ -2351,8 +2351,8 @@ const PERKS = {
   4: { id: 'awake', name: 'Old friends', text: 'After a prestige, Huila and Gedeo keep working straight away; only Toba and Turrialba sleep until you level back up.' },
   5: { id: 'lookout', name: 'Lookout', text: 'Golden bushes can appear on any open farm, and a Go button takes you there.' },
   6: { id: 'reroll', name: 'Tasting notes', text: 'Swap one daily task a day for a different one. The reward stays the same.' },
-  7: { id: 'notebook', name: 'Foreman\'s ledger', text: 'Set the mill foreman\'s process for each coffee, instead of one rule for everything.' },
-  8: { id: 'lotsorter', also: 'goldsign', name: 'Lot sorters', text: 'Any process can turn out a gold-tagged micro-lot that pays double (about 1 lot in 25). And the Golden Crane: a gold Beju sign on every farm, and a red-crowned crane over your fields.' },
+  7: { id: 'notebook', also: 'goldsign', name: 'Foreman\'s ledger', text: 'Set the mill foreman\'s process for each coffee, instead of one rule for everything. And the Golden Crane: a gold Beju sign on every farm, and a red-crowned crane over your fields.' },
+  8: { id: 'lotsorter', name: 'Lot sorters', text: 'Any process can turn out a gold-tagged micro-lot that pays double (about 1 lot in 25).' },
   9: { id: 'nightmill', name: 'Night mill', text: 'While you\'re away, your farms and mill keep going at twice the night pace, so storage and racks pay off overnight.' },
   10: { id: 'reserve', name: 'Beju Reserve', text: 'A lot that cups 92 or more is a Reserve lot: it pays ×1.3, at the mill and in the roastery.' }
 };   /* prestiges 8 to 10 each open something real (the curve flattens past prestige 6 so they can be reached) */
@@ -4190,6 +4190,36 @@ function floatKg(x, y, kg) {   /* picks in quick succession add up in one float 
   const f = floats.find((t) => t.kg && t.t < 0.5);
   if (f) { f.kg += kg; f.text = '+' + fmtKg(f.kg) + ' kg'; f.x = x; f.y = y; f.t = 0; } else floats.push({ x, y, text: '+' + fmtKg(kg) + ' kg', t: 0, kg });
 }
+/* the crest's weather on the farm, from prestige 7: gold glints, the inferno's embers, heaven's light and feathers, the cosmos's stars.
+   Drawn over the farm at the screen's 2x scale; with reduced motion only a still tint; Settings › Prestige effects turns it off */
+const hsh = (i, k) => { const x = Math.sin(i * 127.1 + k * 311.7) * 43758.5453; return x - Math.floor(x); };
+function tierFx(time) {
+  const t = tierOf(S.prestige); if (t < 7 || S.tierFx === false) return;
+  const c = ctx, w = W * 2, h = H * 2; c.save();
+  if (t === 7) {   /* Golden Crane: glints drifting down */
+    if (!calm) for (let i = 0; i < 22; i++) { const u = (time * (0.05 + hsh(i, 1) * 0.04) + hsh(i, 2)) % 1, x = hsh(i, 3) * w + Math.sin(time * 1.3 + i) * 10, y = u * h, a = Math.sin(u * Math.PI);
+      c.globalAlpha = a; c.fillStyle = (Math.floor(time * 4 + i) % 2) ? '#FFF4B0' : '#F2C04A'; c.fillRect(Math.round(x) - 1, Math.round(y) - 3, 2, 8); c.fillRect(Math.round(x) - 3, Math.round(y) - 1, 6, 2); }
+  } else if (t === 8) {   /* Inferno: a hot glow along the bottom, and embers rising */
+    const g = c.createLinearGradient(0, h, 0, h * 0.5), k = calm ? 0.5 : 0.45 + 0.15 * Math.sin(time * 3.1);
+    g.addColorStop(0, 'rgba(232,48,10,' + (0.85 * k) + ')'); g.addColorStop(1, 'rgba(232,48,10,0)'); c.fillStyle = g; c.fillRect(0, h * 0.5, w, h * 0.5);
+    if (!calm) for (let i = 0; i < 48; i++) { const u = (time * (0.08 + hsh(i, 1) * 0.08) + hsh(i, 2)) % 1, x = hsh(i, 3) * w + Math.sin(time * 2 + i * 1.7) * 14, y = h * (1 - u);
+      c.globalAlpha = Math.min(1, (1 - u) * 1.4); c.fillStyle = u < 0.3 ? '#FFE070' : u < 0.65 ? '#FF7A1A' : '#C81E0A'; c.fillRect(Math.round(x), Math.round(y), u < 0.5 ? 6 : 4, u < 0.5 ? 6 : 4); }
+  } else if (t === 9) {   /* Heaven: light from above, and feathers drifting down */
+    for (let i = 0; i < 3; i++) { const cx = w * (0.2 + 0.3 * i) + (calm ? 0 : Math.sin(time * 0.4 + i * 2) * 30), g = c.createLinearGradient(0, 0, 0, h * 0.75);
+      g.addColorStop(0, 'rgba(255,248,214,0.38)'); g.addColorStop(1, 'rgba(255,248,214,0)'); c.fillStyle = g;
+      c.beginPath(); c.moveTo(cx - 18, 0); c.lineTo(cx + 18, 0); c.lineTo(cx + 90, h * 0.75); c.lineTo(cx - 40, h * 0.75); c.closePath(); c.fill(); }
+    if (!calm) for (let i = 0; i < 12; i++) { const u = (time * (0.035 + hsh(i, 1) * 0.03) + hsh(i, 2)) % 1, x = hsh(i, 3) * w + Math.sin(time * 1.1 + i) * 24, y = u * h;
+      c.globalAlpha = 0.9 * Math.sin(u * Math.PI); c.fillStyle = '#FFFFFF'; c.fillRect(Math.round(x), Math.round(y), 6, 3); c.fillStyle = '#E8E2D0'; c.fillRect(Math.round(x) + 1, Math.round(y) + 3, 4, 1);
+      if (i % 3 === 0) { c.fillStyle = '#F2D060'; c.fillRect(Math.round(x) + 8, Math.round(y) - 4, 2, 2); } }
+  } else {   /* Cosmos: an aurora haze, twinkling stars and a shooting star */
+    const g = c.createLinearGradient(0, 0, 0, h * 0.4); g.addColorStop(0, 'rgba(90,40,170,0.5)'); g.addColorStop(1, 'rgba(90,40,170,0)'); c.fillStyle = g; c.fillRect(0, 0, w, h * 0.4);
+    for (let i = 0; i < 60; i++) { const x = hsh(i, 1) * w, y = hsh(i, 2) * h * 0.9, tw = calm ? 0.7 : 0.35 + 0.65 * Math.abs(Math.sin(time * (1 + hsh(i, 3) * 2) + i));
+      c.globalAlpha = tw; c.fillStyle = ['#FFFFFF', '#C08AF0', '#7EE0F0', '#F2C04A'][i % 4]; const z = i % 5 ? 3 : 6; c.fillRect(Math.round(x), Math.round(y), z, z); if (i % 5 === 0) { c.fillRect(Math.round(x) - 3, Math.round(y) + 2, 12, 2); c.fillRect(Math.round(x) + 2, Math.round(y) - 3, 2, 12); } }
+    if (!calm) { const sp = (time % 7) / 7; if (sp < 0.22) { const k = sp / 0.22, sx = w * (0.1 + k * 0.9), sy = h * (0.05 + k * 0.3);
+      c.globalAlpha = 1 - k; c.strokeStyle = '#FFFFFF'; c.lineWidth = 4; c.beginPath(); c.moveTo(sx, sy); c.lineTo(sx - 110, sy - 36); c.stroke(); } }
+  }
+  c.restore();
+}
 function drawFloats() {
   drawSays();
   ctx.textAlign = 'center'; ctx.font = '700 ' + Math.round(19 * (S.hud === 'classic' ? 1 : S.textScale || 1)) + 'px "Zen Kaku Gothic New", system-ui, sans-serif';   /* floating +coins and +kg read best in the body font */
@@ -4354,6 +4384,7 @@ function draw(time) {
     ctx.fillStyle = '#9C6C3C'; ctx.fillRect(W - w / 2, 226, w, 2); ctx.fillStyle = '#FFF4DE'; ctx.fillText(tx, W, 233);
   }
   if (!f.field) { ctx.font = '700 13px "Pixelify Sans", monospace'; ctx.fillStyle = '#4A2E18'; ctx.fillText('EXPAND', 142 * 2, 173 * 2); }
+  tierFx(time);
   revTop('farm', time);
   drawHint('farm', time);
   drawFloats();
@@ -7219,6 +7250,7 @@ function playerSettings() {   /* what a player changes: sound, help, haptics, na
     const seg = (act, opts, cur) => '<div class="seg">' + opts.map(([v, tl]) => '<button type="button" data-act="' + act + ':' + v + '" aria-pressed="' + (String(cur) === v) + '">' + tl + '</button>').join('') + '</div>';
     const h2 = S.hud !== 'classic';
     h += '<h3>Screen</h3>' + seg('hudmode', [['new', 'New (test)'], ['classic', 'Classic']], h2 ? 'new' : 'classic') + '<p class="note">' + (h2 ? 'The farm first: hearts, level and the cherry store show when they matter. Switch back to Classic any time.' : 'Every number on screen all the time. Try New to see more of your farm.') + '</p>';
+    if (S.prestige >= 7) h += '<h3>Prestige effects</h3>' + seg('tierfx', [['1', 'On'], ['0', 'Off']], S.tierFx === false ? '0' : '1') + '<p class="note">Your crest\'s weather on the farm: gold, fire, heaven or the stars.</p>';
     if (h2) {
       h += '<h3>Text size</h3>' + seg('tscale', [['1', 'Normal'], ['1.25', 'Large'], ['1.5', 'Largest']], S.textScale || 1);
       h += '<h3>Always show</h3><div class="seg"><button type="button" data-act="hudshow:lv" aria-pressed="' + !!S.showLv + '">Level bar</button><button type="button" data-act="hudshow:store" aria-pressed="' + !!S.showStore + '">Cherry store</button></div><p class="note">Off, they show by themselves when they matter.</p>';
@@ -8707,6 +8739,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'sell') sellLot(+v);
   else if (a === 'haptics') { S.haptics = v === '1'; buzz('pop'); }
   else if (a === 'hudmode') { S.hud = v; refreshHud(); }
+  else if (a === 'tierfx') S.tierFx = v === '1';
   else if (a === 'tscale') { S.textScale = +v || 1; refreshHud(); }
   else if (a === 'hudshow') { if (v === 'lv') S.showLv = !S.showLv; else S.showStore = !S.showStore; refreshHud(); }
   else if (a === 'snd') { if (v === 'sfx') { S.sfx = !S.sfx; syncSound(); if (S.sfx) SFX.play('tick'); } else { S.music = !S.music; syncSound(); syncMusic(); } }

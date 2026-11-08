@@ -129,6 +129,8 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
   const ht = await E(() => { const T = window.__T, S = T.S, keep = S.prestige; S.prestige = 8; const own = ['p7', 'p8', 'p9', 'p10'].map(T.phatOwn); T.act('lookhat:p9'); const refused = S.look.hat !== 'p9'; T.act('lookhat:p8'); const worn = S.look.hat;
     const pics = ['none'].concat(T.CHAR_IDS.slice(0, 3)).map((c) => /data:image/.test(T.avatarHTML(8, 'p8', c))); S.look.hat = ''; S.prestige = keep; return { own, refused, worn, pics }; });
   ok(ht.own.join() === 'true,true,false,false' && ht.refused && ht.worn === 'p8' && ht.pics.every(Boolean), 'prestige hats: owned from their prestige, worn from Looks, drawn on any model: ' + JSON.stringify(ht));
+  const tf = await E(() => { const T = window.__T, S = T.S, keep = S.prestige; S.prestige = 7; const g7 = T.hasPerk('goldsign'); S.prestige = 6; const g6 = T.hasPerk('goldsign'); S.prestige = 9; T.act('tierfx:0'); const off = S.tierFx === false; T.act('tierfx:1'); const on = S.tierFx === true; S.prestige = keep; return [g6, g7, off, on]; });
+  ok(tf.join() === 'false,true,true,true', 'the Golden Crane flies from prestige 7, and Settings turns the crest effects off and on: ' + tf);
   const miss = await E(() => window.__noSprite || []); ok(!miss.length, 'every picture drawn exists: ' + miss.join(', '));
   ok(!errs.length, 'no page errors: ' + errs.join(' | '));
   console.log(pass + ' passed, ' + fail + ' failed'); await b.close(); process.exit(fail ? 1 : 0);
