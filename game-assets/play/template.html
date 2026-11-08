@@ -2021,6 +2021,40 @@ function drawBarn(t, x, y, tm) {
   }
   return true;
 }
+/* drying rack remodels from prestige 7 (40 x 18, the lot drawn on the bed at +2,+2): a red lacquer rack with gold legs and
+   swinging tassels; an obsidian slab over a lava trough with embers rising; a marble bed on a cloud with beating wings; a crystal
+   plate hovering over a rune circle with motes in orbit. Picked in Looks › Prestige style */
+const rackOf = () => (S.rackPick === 0 ? 0 : S.rackPick >= 7 && S.rackPick <= tierOf(S.prestige) ? S.rackPick : tierOf(S.prestige) >= 7 ? tierOf(S.prestige) : 0);
+function drawRack(t, x, y, tm, i) {
+  if (t < 7) return false;
+  const g = fx, R = (c, a, b, w, h) => { g.fillStyle = c; g.fillRect(x + a, y + b, w, h); }, still = calm, k = still ? 0 : tm + i * 0.7;
+  const bed = (c1, c2) => { for (let r = 2; r < 10; r++) for (let q = 2; q < 38; q += 2) R((q + r) % 4 ? c1 : c2, q, r, 2, 1); };
+  if (t === 7) {
+    R('#3E2A1C', 0, 0, 40, 12); R('#B8302A', 1, 1, 38, 10); R('#E8B830', 1, 1, 38, 1); R('#E8B830', 1, 10, 38, 1); bed('#8A2A20', '#A8382C');
+    [2, 35].forEach((a) => { R('#3E2A1C', a, 12, 3, 5); R('#E8B830', a + 1, 12, 1, 5); }); R('#3E2A1C', 2, 17, 36, 1);
+    [0, 39].forEach((a, n) => { const sw = still ? 0 : Math.round(Math.sin(k * 2.2 + n) * 1); R('#E8B830', a + sw, 11, 1, 2); R('#E83A30', a + sw, 13, 1, 3); });   /* tassels */
+    if (!still) { const sx = Math.floor((k * 30) % 70) - 15; if (sx >= 0 && sx < 38) R('#FFF4B0', sx + 1, 1, 3, 1); }
+  } else if (t === 8) {
+    const gl = still ? 0.7 : 0.55 + 0.35 * Math.abs(Math.sin(k * 3));
+    R('#120808', 0, 12, 40, 6); g.globalAlpha = gl; R('#FF5A10', 3, 13, 34, 3); R('#FFD040', 8, 14, 24, 1); g.globalAlpha = 1;   /* the lava trough */
+    R('#120808', 0, 0, 40, 12); R('#2A1A1A', 1, 1, 38, 10); bed('#1E1212', '#3A2020'); R('#FF5A10', 0, 11, 40, 1);
+    [[4, 1], [19, 1], [33, 1]].forEach(([a]) => { g.globalAlpha = gl; R('#FF7A1A', a, 0, 3, 1); g.globalAlpha = 1; });
+    if (!still) for (let n = 0; n < 3; n++) { const u = (k * 0.8 + n / 3) % 1; g.globalAlpha = 1 - u; R(u < 0.5 ? '#FFD040' : '#FF5A10', 6 + n * 13 + Math.round(Math.sin(k * 3 + n) * 2), Math.round(10 - u * 14), 1, 1); g.globalAlpha = 1; }   /* embers */
+  } else if (t === 9) {
+    const bob = still ? 0 : Math.round(Math.sin(k * 1.5) * 1);
+    [[2, 13, 12], [12, 14, 16], [26, 13, 12]].forEach(([a, b, w]) => { R('#FFFFFF', a, b, w, 4); R('#E8EEF8', a + 1, b + 3, w - 2, 1); });   /* the cloud */
+    R('#D8D0BC', 0, 0 + bob, 40, 12); R('#F8F4EA', 1, 1 + bob, 38, 10); R('#F2C04A', 1, 10 + bob, 38, 1); for (let r = 2; r < 10; r++) for (let q = 2; q < 38; q += 2) R((q + r) % 4 ? '#F0ECE0' : '#E4DECE', q, r + bob, 2, 1);
+    const fl = still ? 0 : Math.round(Math.sin(k * 5) * 1.5); [-1, 1].forEach((sd) => { const a = sd < 0 ? -6 : 40; for (let r = 0; r < 4; r++) R(r % 2 ? '#E8E2D0' : '#FFFFFF', sd < 0 ? a + r : a, 2 + r - (r < 2 ? fl : 0) + bob, 6 - r, 1); });   /* little wings */
+  } else {
+    const bob = still ? 0 : Math.round(Math.sin(k * 1.7) * 1.5);
+    g.save(); g.translate(x + 20, y + 15); g.scale(1, 0.25); g.strokeStyle = '#C08AF0'; g.lineWidth = 3; g.setLineDash([4, 3]); g.lineDashOffset = still ? 0 : -k * 10; g.beginPath(); g.arc(0, 0, 18, 0, Math.PI * 2); g.stroke(); g.strokeStyle = '#7EE0F0'; g.lineDashOffset = still ? 0 : k * 14; g.beginPath(); g.arc(0, 0, 11, 0, Math.PI * 2); g.stroke(); g.restore(); g.setLineDash([]);   /* a rune circle */
+    R('#05020E', 0, 0 + bob, 40, 12); const hue = still ? 0 : Math.floor(k * 4) % 6, rb = ['#FF5A9A', '#F2C04A', '#7EF0C0', '#5AA0E8', '#C08AF0', '#FF5A9A'];
+    for (let q = 0; q < 40; q++) { R(rb[(q + hue) % 6], q, 0 + bob, 1, 1); R(rb[(q + hue + 3) % 6], q, 11 + bob, 1, 1); }   /* a rainbow rim */
+    for (let r = 1; r < 11; r++) for (let q = 1; q < 39; q += 2) R((q * 7 + r * 3) % 17 === 0 ? '#FFFFFF' : (q + r) % 4 ? '#1A0E38' : '#2A1650', q, r + bob, 2, 1);
+    if (!still) for (let n = 0; n < 3; n++) { const an = k * 1.8 + n * 2.1; R(n % 2 ? '#F2C04A' : '#7EE0F0', 20 + Math.round(Math.cos(an) * 22), 6 + Math.round(Math.sin(an) * 4) + bob, 2, 2); }   /* motes in orbit */
+  }
+  return true;
+}
 const crewOf = () => (S.crew === 'none' ? '' : S.crew && phatOwn(S.crew) && CREWS[S.crew] ? S.crew : ['p10', 'p9', 'p8'].find(phatOwn) || '');
 function phatOn(c, k) {   /* the model's top row and its middle, then the hat above it */
   const h = PHATS[k], x = c.getContext('2d'), d = x.getImageData(0, 0, c.width, c.height).data;
@@ -3832,7 +3866,7 @@ function drawMill(time) {
       return;
     }
     const i = t.rack, r = rackAt(i), l = bySlot[i];
-    fx.drawImage(sprite('mill_rack'), r.x, r.y);
+    if (!drawRack(rackOf(), r.x, r.y, time, i)) fx.drawImage(sprite('mill_rack'), r.x, r.y);   /* a prestige remodel, or the rack */
     if (!l) return;
     fx.drawImage(lotTile(l.method, lotStage(l)), r.x + 2, r.y + 2);
     if (l.method === 'washed' && l.left > 0 && Math.floor(time * 2 + i) % 5 === 0) { fx.fillStyle = '#FFFFFF'; fx.fillRect(r.x + 8 + (i * 7) % 22, r.y + 4, 2, 1); }
@@ -7479,7 +7513,8 @@ function renderPanel() {
         h += '<h3>Prestige style</h3><p class="note">Everything earned at prestiges 7 to 10, to mix and match with any crest and outfit.</p>';
         if (top >= 7) {
           h += '<p class="note"><b>Hat</b></p>' + row('lookhat', [['', 'Outfit hat']].concat(Object.keys(PHATS).filter(phatOwn).map((k) => [k, PHATS[k].name])), S.look.hat && PHATS[S.look.hat] ? S.look.hat : '');
-          h += '<p class="note"><b>Barn</b></p>' + row('barnpick', [[0, 'Classic']].concat([7, 8, 9, 10].filter((n) => n <= top).map((n) => [n, { 7: 'Pagoda', 8: 'Forge', 9: 'Temple', 10: 'Observatory' }[n]])), barnOf());
+          h += '<p class="note"><b>Barn</b></p>' + row('barnpick', [[0, 'Classic']].concat([7, 8, 9, 10].filter((n) => n <= top).map((n) => [n, { 7: 'Pagoda', 8: 'Forge', 9: 'Temple', 10: 'Rift' }[n]])), barnOf());
+          h += '<p class="note"><b>Drying racks</b></p>' + row('rackpick', [[0, 'Classic']].concat([7, 8, 9, 10].filter((n) => n <= top).map((n) => [n, { 7: 'Lacquer', 8: 'Lava', 9: 'Cloud', 10: 'Rift' }[n]])), rackOf());
           h += '<p class="note"><b>Farm effects</b></p>' + row('tierfx', [['0', 'Off']].concat([7, 8, 9, 10].filter((n) => n <= top).map((n) => [n, NM[n]])), S.tierFx === false ? '0' : typeof S.tierFx === 'number' && S.tierFx <= top ? S.tierFx : top);
         }
         if (top >= 8) {
@@ -7827,6 +7862,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'reccopy') { const c = NET.acct ? NET.acct.player + '.' + NET.acct.token : ''; (navigator.clipboard ? navigator.clipboard.writeText(c) : Promise.reject()).then(() => toast('Recovery code copied')).catch(() => toast('Hold the code to select and copy it')); }
   else if (a === 'crest') { const n = +v; if (Number.isFinite(n) && n >= 0 && n <= tierOf(S.prestige)) { S.look.crest = n; S.crestPick = n; } else { S.look.crest = tierOf(S.prestige); delete S.crestPick; } }   /* any crest you've reached */
   else if (a === 'dogskin') { if (v === 'shiba' || whaleOpen()) S.dogSkin = v; if (!$('modal').hidden && b.closest('#modalCard')) closeModal(); }
+  else if (a === 'rackpick') S.rackPick = +v <= tierOf(S.prestige) ? +v : S.rackPick;
   else if (a === 'barnpick') S.barnPick = +v <= tierOf(S.prestige) ? +v : S.barnPick;
   else if (a === 'floatpick') S.floatPick = v === 'auto' ? undefined : +v;
   else if (a === 'skin') { if (S.skins[+v]) S.look.skin = +v; }
