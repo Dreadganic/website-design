@@ -3257,14 +3257,25 @@ function drawBarn(t, x, y, tm) {
     R('#F2C04A', 19, 4, 2, 2);
     g.save(); g.translate(x + 20, y + 0); g.scale(1, 0.35); g.strokeStyle = '#F2D060'; g.lineWidth = 2; g.globalAlpha = still ? 0.9 : 0.7 + 0.3 * Math.sin(k * 2.5);
     g.beginPath(); g.ellipse(0, 0, 9, 9, 0, 0, Math.PI * 2); g.stroke(); g.restore(); g.globalAlpha = 1;   /* the halo above */
-  } else {   /* Cosmos observatory */
-    R('#140A30', 3, 22, 34, 16); R('#2A1650', 4, 23, 32, 14);
-    [8, 18, 28].forEach((a, i) => { R(still || Math.floor(k * 2 + i) % 3 ? '#7EE0F0' : '#BFF4FF', a, 27, 4, 5); });   /* windows */
-    for (let r = 0; r < 14; r++) { const w = Math.round(Math.sqrt(1 - Math.pow((13 - r) / 14, 2)) * 17); R('#1E1040', 20 - w, 8 + r, w * 2, 1); R('#3A2A7A', 20 - w, 8 + r, 2, 1); }   /* the dome */
-    [[12, 12], [26, 11], [17, 16], [30, 17], [9, 18], [22, 10]].forEach(([a, b], i) => { if (still || Math.floor(k * 3 + i) % 4) R(i % 2 ? '#FFFFFF' : '#F2C04A', a, b, 1, 1); });
-    const ang = still ? -0.6 : -0.6 + Math.sin(k * 0.5) * 0.5; R('#5A3AA8', 18, 8, 4, 14);   /* the slit, and the telescope sweeping */
-    g.save(); g.translate(x + 20, y + 12); g.rotate(ang); g.fillStyle = '#C08AF0'; g.fillRect(-2, -12, 4, 12); g.fillStyle = '#7EE0F0'; g.fillRect(-2, -13, 4, 2); g.restore();
-    const oa = still ? 0.5 : k * 1.4; R('#F2C04A', 20 + Math.round(Math.cos(oa) * 22), 14 + Math.round(Math.sin(oa) * 5), 3, 3); R('#FFF4B0', 20 + Math.round(Math.cos(oa) * 22), 14 + Math.round(Math.sin(oa) * 5), 1, 1);   /* a little planet in orbit */
+  } else {   /* Cosmos: a rift, not a barn. A floating rock with crystals, a swirling portal with an eye that watches the farm,
+     the barn's own pieces tumbling round it and a crystal spire hanging upside down above */
+    const bob = still ? 0 : Math.round(Math.sin(k * 1.3) * 1.5), cx = x + 20, cy = y + 14;
+    const rock = [[6, 30, 28, 3], [8, 33, 24, 2], [11, 35, 18, 2], [15, 37, 10, 1]];
+    rock.forEach(([a, b, w, h]) => R('#1A1030', a, b + bob, w, h)); R('#3A2A6A', 6, 30 + bob, 28, 1);
+    [[9, 26, 2, 4], [12, 24, 2, 6], [27, 25, 2, 5], [30, 27, 2, 3]].forEach(([a, b, w, h], n) => { R('#7EE0F0', a, b + bob, w, h); R('#E8FFFF', a, b + bob, 1, 1); });   /* crystals */
+    g.save(); g.translate(cx, cy + bob); const spin = still ? 0 : k * 1.6;
+    for (let r = 13; r >= 3; r -= 2) { g.beginPath(); g.ellipse(0, 0, r, r * 0.8, 0, 0, Math.PI * 2); g.strokeStyle = ['#FF5A9A', '#F2C04A', '#7EF0C0', '#5AA0E8', '#C08AF0', '#FF5A9A'][(Math.floor(spin * 3) + r) % 6]; g.lineWidth = 1.5; g.setLineDash([3, 2]); g.lineDashOffset = -spin * 8 * (r % 4 ? 1 : -1); g.stroke(); }
+    g.setLineDash([]); g.fillStyle = '#05020E'; g.beginPath(); g.ellipse(0, 0, 6, 5, 0, 0, Math.PI * 2); g.fill();
+    const blink = !still && (k % 4.2) < 0.18, lx = still ? 0 : Math.round(Math.sin(k * 0.7) * 2), ly = still ? 0 : Math.round(Math.cos(k * 0.9));   /* the eye */
+    if (blink) { g.fillStyle = '#C08AF0'; g.fillRect(-5, 0, 10, 1); } else { g.fillStyle = '#F0E8FF'; g.beginPath(); g.ellipse(0, 0, 5, 3, 0, 0, Math.PI * 2); g.fill(); g.fillStyle = '#7A2AE0'; g.fillRect(lx - 2, ly - 2, 4, 4); g.fillStyle = '#05020E'; g.fillRect(lx - 1, ly - 1, 2, 2); g.fillStyle = '#FFFFFF'; g.fillRect(lx - 2, ly - 2, 1, 1); }
+    if (!still) for (let n = 0; n < 6; n++) { const u = (k * 0.35 + n / 6) % 1, an = n * 1.05 + u * 6, rr = 20 * (1 - u); g.globalAlpha = u; g.fillStyle = n % 2 ? '#FFFFFF' : '#F2C04A'; g.fillRect(Math.round(Math.cos(an) * rr), Math.round(Math.sin(an) * rr * 0.7), 1, 1); }   /* stars spiralling in */
+    g.globalAlpha = 1;
+    [['#B8302A', 6, 4, 0, 19], ['#6A4A30', 5, 7, 2.1, 17], ['#7EE0F0', 4, 4, 4.2, 21], ['#D8B868', 7, 3, 1.1, 15]].forEach(([col, w, h, ph, rad], n) => {   /* the barn's pieces, tumbling round */
+      const an = (still ? ph : k * (0.5 + n * 0.15) + ph); g.save(); g.translate(Math.round(Math.cos(an) * rad), Math.round(Math.sin(an) * rad * 0.55)); g.rotate(still ? 0.3 : k * (n % 2 ? 1.4 : -1.1)); g.fillStyle = '#3E2A1C'; g.fillRect(-w / 2 - 1, -h / 2 - 1, w + 2, h + 2); g.fillStyle = col; g.fillRect(-w / 2, -h / 2, w, h); g.restore(); });
+    g.restore();
+    const sb = still ? 0 : Math.round(Math.sin(k * 0.9 + 1) * 1.5);   /* the spire, hanging point down */
+    for (let r = 0; r < 7; r++) R(r % 2 ? '#9A5AE8' : '#C08AF0', 20 - Math.max(1, 3 - Math.floor(r / 2)), -6 + r + sb, Math.max(1, 3 - Math.floor(r / 2)) * 2, 1);
+    R('#E8FFFF', 19, -6 + sb, 1, 3);
   }
   return true;
 }
