@@ -421,6 +421,12 @@ canvas.hint { transform: none !important; }
 @keyframes twinkle { 50% { filter: brightness(1.35); } }
 @keyframes shoot { 0%, 70% { transform: translate(0, 0); opacity: 0; } 72% { opacity: 1; } 100% { transform: translate(560%, 260%); opacity: 0; } }
 @keyframes orbit { from { transform: rotate(0deg) translateX(26px) rotate(0deg); } to { transform: rotate(360deg) translateX(26px) rotate(-360deg); } }
+.ska7 { animation: ska7 2s ease-in-out infinite alternate; } .ska8 { animation: ska8 0.8s ease-in-out infinite alternate; } .ska9 { animation: ska9 2.4s ease-in-out infinite alternate; } .ska10 { animation: ska10 3s linear infinite; }
+@keyframes ska7 { from { filter: drop-shadow(0 0 2px #F2C04A); } to { filter: drop-shadow(0 0 5px #FFE070); } }
+@keyframes ska8 { from { filter: drop-shadow(0 0 2px #FF4A10); } to { filter: drop-shadow(0 0 6px #FF8A1A) drop-shadow(0 -2px 2px #FFD040); } }
+@keyframes ska9 { from { filter: drop-shadow(0 0 3px #FFFFFF); transform: translateY(0); } to { filter: drop-shadow(0 0 7px #FFF4C0); transform: translateY(-2px); } }
+@keyframes ska10 { 0% { filter: drop-shadow(0 0 4px #C08AF0); } 33% { filter: drop-shadow(0 0 4px #7EE0F0); } 66% { filter: drop-shadow(0 0 4px #F2C04A); } 100% { filter: drop-shadow(0 0 4px #C08AF0); } }
+@media (prefers-reduced-motion: reduce) { .ska { animation: none !important; } }
 @keyframes hellglow { from { box-shadow: 0 0 6px #FF4A10, 0 0 12px rgba(200,30,10,0.6); } to { box-shadow: 0 0 12px #FF8A1A, 0 0 22px rgba(255,60,10,0.95); } }
 @keyframes flames { 0% { transform: translateY(0) scaleY(1); filter: brightness(1); } 50% { transform: translateY(-6%) scaleY(1.12) skewX(3deg); } 100% { transform: translateY(-2%) scaleY(0.94) skewX(-3deg); filter: brightness(1.25); } }
 @keyframes embers { from { transform: translateY(0); opacity: 1; } to { transform: translateY(-70%); opacity: 0; } }
@@ -2238,12 +2244,21 @@ function tickFarm(f, d, visible) {
 }
 const me = { x: 150, y: 96, tx: 150, ty: 96, t: 0, walk: 0, dir: 'down', flip: false, moving: false };
 const aura = [];
+/* the prestige 7 to 10 outfits on the map: a glow, wings, a hover, footprints or after-images (drawn round your farmer in drawMe) */
+const FLAIR = { 7: { glow: '242,192,74', step: 'gold' }, 8: { glow: '255,90,20', step: 'fire', wings: 'bat' }, 9: { glow: '255,250,220', step: 'light', wings: 'angel', hover: 1 }, 10: { glow: '170,110,255', step: 'star', ghosts: 1, orbit: 1 } };
+const steps = [];   /* footprints and trail bits: { x, y, t, kind } */
 let fireworks = 0, fwT = 0;
 function tickMe(d) {
   me.t -= d;
   if (me.t <= 0) { me.t = 2.5 + rnd() * 4; const sp = [[150, 96], [120, 104], [70, 108], [96, 140], [96, 186], [160, 104], [40, 106], [60, 262], [134, 262]][Math.floor(rnd() * 9)]; me.tx = sp[0]; me.ty = sp[1]; }
   const mx = me.tx - me.x, my = me.ty - me.y, md = Math.hypot(mx, my);
   if (md > 1) { const v = Math.min(md, 20 * d); me.x += mx / md * v; me.y += my / md * v; me.walk += d; me.dir = Math.abs(mx) > Math.abs(my) ? 'side' : my < 0 ? 'up' : 'down'; me.flip = mx < 0; me.moving = true; } else { me.moving = false; me.dir = 'down'; }
+  const fl = FLAIR[S.look.skin];
+  if (fl && !calm) {
+    me.hist = me.hist || []; if (me.moving) { me.hist.unshift({ x: me.x, y: me.y, dir: me.dir, flip: me.flip, walk: me.walk }); if (me.hist.length > 18) me.hist.pop(); } else if (me.hist.length) me.hist.pop();
+    me.stepT = (me.stepT || 0) - d; if (me.moving && me.stepT <= 0) { me.stepT = fl.step === 'star' || fl.step === 'light' ? 0.08 : 0.22; me.foot = !me.foot; steps.push({ x: me.x + (me.foot ? -2 : 2) + (fl.step === 'star' ? (rnd() - 0.5) * 6 : 0), y: me.y - (fl.step === 'star' ? 4 + rnd() * 10 : 0), t: 0, kind: fl.step }); }
+  }
+  for (let i = steps.length - 1; i >= 0; i--) { steps[i].t += d; if (steps[i].t > (steps[i].kind === 'gold' ? 2.4 : 1.4)) steps.splice(i, 1); }
   const kind = SKINS[S.look.skin].aura;
   if (kind && rnd() < d * (kind === 'hellfire' ? 14 : 6)) aura.push({ x: me.x + (rnd() - 0.5) * 14, y: me.y - 10 - rnd() * 14, vx: (rnd() - 0.5) * 6, vy: kind === 'ember' || kind === 'gold' || kind === 'hellfire' || kind === 'cosmos' ? -8 - rnd() * 6 : 6 + rnd() * 4, t: 0, kind });
   for (let i = aura.length - 1; i >= 0; i--) { const a = aura[i]; a.t += d; a.x += a.vx * d; a.y += a.vy * d; if (a.t > 1.6) aura.splice(i, 1); }
@@ -3058,6 +3073,17 @@ function draw(time) {
   const gold = golden && golden.loc === S.loc && f.shrubs[golden.i];
   const things = f.shrubs.map((s) => ({ y: s.y + 22, s })).concat(f.workers.map((w) => ({ y: w.y, w })), [{ y: f.dog.y, dog: f.dog }], f.manager ? [{ y: f.manager.y, mg: f.manager }] : [], [{ y: me.y, me: true }]);
   things.sort((p, q) => p.y - q.y);
+  { const fl = FLAIR[S.look.skin]; if (fl) {   /* the outfit's glow and footprints, under everything else */
+    const tm = performance.now() / 1000, ph = PHATS[S.look.hat] && phatOwn(S.look.hat), X = Math.round(me.x) - 8, Yb = Math.round(me.y) - 23, hov = fl.hover ? -2 : 0;
+    steps.forEach((p) => { const a = Math.max(0, 1 - p.t / (p.kind === 'gold' ? 2.4 : 1.4)); fx.globalAlpha = a;
+      if (p.kind === 'gold') { fx.fillStyle = '#E8B830'; fx.fillRect(Math.round(p.x) - 1, Math.round(p.y) - 1, 3, 2); if (Math.floor(p.t * 6) % 3 === 0) { fx.fillStyle = '#FFF4B0'; fx.fillRect(Math.round(p.x), Math.round(p.y) - 2, 1, 1); } }
+      else if (p.kind === 'fire') { fx.fillStyle = p.t < 0.4 ? '#FFE070' : p.t < 0.8 ? '#FF7A1A' : '#5A3A30'; const hgt = p.t < 0.8 ? 5 - Math.floor(p.t * 5) : 1; fx.fillRect(Math.round(p.x) - 1, Math.round(p.y) - hgt - Math.floor(p.t * 6), 3, hgt); }
+      else if (p.kind === 'light') { fx.fillStyle = '#FFFFFF'; fx.fillRect(Math.round(p.x), Math.round(p.y) - 6 - Math.floor(p.t * 8), 1, 2); }
+      else { fx.fillStyle = ['#FFFFFF', '#C08AF0', '#7EE0F0', '#F2C04A'][Math.floor(p.x + p.y) % 4]; fx.fillRect(Math.round(p.x), Math.round(p.y) + Math.floor(p.t * 3), 1, 1); } });
+    fx.globalAlpha = 1;
+    const pulse = calm ? 0.55 : 0.5 + 0.18 * Math.sin(tm * 3), gr = fx.createRadialGradient(X + 8, Yb + 13 + hov, 2, X + 8, Yb + 13 + hov, 22);
+    gr.addColorStop(0, 'rgba(' + fl.glow + ',' + pulse + ')'); gr.addColorStop(1, 'rgba(' + fl.glow + ',0)'); fx.fillStyle = gr; fx.fillRect(X - 16, Yb - 10 + hov, 48, 46);
+  } }
   const hat = ART.hats[S.hat];
   things.forEach((o) => {
     if (o.s) {
@@ -3075,7 +3101,24 @@ function draw(time) {
       const fr = me.moving ? (me.dir === 'side' ? Math.floor(me.walk * 7) % 2 : WALK[Math.floor(me.walk * 7) % 4]) : 0;
       const ph = PHATS[S.look.hat] && phatOwn(S.look.hat), spr = ph ? phatSprite(bodyOf(S.look) + me.dir + '_' + (me.dir === 'side' ? Math.min(fr, 1) : fr), skinLook(S.look.skin), S.look.hat) : sprite(bodyOf(S.look) + me.dir + '_' + (me.dir === 'side' ? Math.min(fr, 1) : fr), skinLook(S.look.skin)), X = Math.round(me.x) - 8, Y = Math.round(me.y) - 23 - (ph ? PHAT_PAD : 0);   /* a prestige hat sits above the head */
       fx.fillStyle = 'rgba(42,42,8,0.3)'; fx.beginPath(); fx.ellipse(X + 8, Y + 23 + (ph ? PHAT_PAD : 0), 5, 1.6, 0, 0, 7); fx.fill();
-      if (me.dir === 'side' && me.flip) { fx.save(); fx.translate(X + 16, Y); fx.scale(-1, 1); fx.drawImage(spr, 0, 0); fx.restore(); } else fx.drawImage(spr, X, Y);
+      const fl = FLAIR[S.look.skin], tm = performance.now() / 1000, Yb = Y + (ph ? PHAT_PAD : 0);   /* Yb: the sprite's own top, without the hat's headroom */
+      const hov = fl && fl.hover && !calm ? -3 + Math.round(Math.sin(tm * 2.4) * 1.5) : fl && fl.hover ? -2 : 0;
+      if (fl) {
+        if (fl.ghosts && me.hist) [12, 7, 3].forEach((k, j) => { const hpos = me.hist[k]; if (!hpos) return; fx.globalAlpha = [0.12, 0.2, 0.3][j]; const gx = Math.round(hpos.x) - 8, gy = Math.round(hpos.y) - 23 - (ph ? PHAT_PAD : 0);
+          if (me.dir === 'side' && hpos.flip) { fx.save(); fx.translate(gx + 16, gy); fx.scale(-1, 1); fx.drawImage(spr, 0, 0); fx.restore(); } else fx.drawImage(spr, gx, gy); });
+        fx.globalAlpha = 1;
+        if (fl.wings) {   /* wings behind: angel white, demon bat; they beat as you walk */
+          const flap = calm ? 0 : Math.round(Math.sin(tm * (me.moving ? 14 : 4)) * 1.5), wy = Yb + 4 + hov, cx = X + 8;
+          const art = fl.wings === 'angel' ? ['....aaa', '..aaaab', '.aaaabb', 'aaaabb.', 'aaabb..', '.abb...', '..b....'] : ['c......', 'cc...c.', 'cdc.cdc', 'cddcddc', '.cdddc.', '..cdc..', '...c...'];
+          const pal = fl.wings === 'angel' ? { a: '#FFFFFF', b: '#D8DCE8' } : { c: '#2A0404', d: '#B81E0A' };
+          art.forEach((row, r) => { for (let i = 0; i < 7; i++) { const ch = row[i]; if (ch === '.') continue; fx.fillStyle = pal[ch]; const lift = r < 3 ? flap : 0;
+            fx.fillRect(cx - 4 - 7 + i, wy + r - lift, 1, 1); fx.fillRect(cx + 4 + 6 - i, wy + r - lift, 1, 1); } });
+        }
+      }
+      if (me.dir === 'side' && me.flip) { fx.save(); fx.translate(X + 16, Y + hov); fx.scale(-1, 1); fx.drawImage(spr, 0, 0); fx.restore(); } else fx.drawImage(spr, X, Y + hov);
+      if (fl && fl.orbit) { const n2 = 2; for (let k = 0; k < n2; k++) { const an = (calm ? 0.8 : tm * 2.2) + k * Math.PI; const ox = Math.round(X + 8 + Math.cos(an) * 10), oy = Math.round(Yb + 12 + Math.sin(an) * 4);
+        if (Math.sin(an) > -0.2 || calm) { fx.fillStyle = k ? '#7EE0F0' : '#F2C04A'; fx.fillRect(ox, oy, 2, 2); fx.fillStyle = '#FFFFFF'; fx.fillRect(ox, oy, 1, 1); } } }
+      if (fl && S.look.skin === 7 && !calm && Math.floor(tm * 2) % 3 === 0) { fx.fillStyle = '#FFF4B0'; const k = Math.floor(tm * 6) % 4; fx.fillRect(X + [2, 13, 4, 12][k], Yb + [4, 8, 16, 2][k], 1, 1); }
     } else if (o.mg) {
       const g = o.mg, fr = g.moving ? (g.dir === 'side' ? Math.floor(g.walk * 6) % 2 : WALK[Math.floor(g.walk * 6) % 4]) : 0;
       const own = npcArt('foreman'), spr = own ? sprite('npc_foreman_' + (g.dir || 'down') + '_' + (g.dir === 'side' ? Math.min(fr, 1) : fr)) : sprite('worker_' + (g.dir || 'down') + '_' + (g.dir === 'side' ? Math.min(fr, 1) : fr), MGR_LOOK), X = Math.round(g.x) - 8, Y = Math.round(g.y) - 23;
@@ -6921,7 +6964,7 @@ function shopTabs() {
   const rdot = affordDots() && roasteryOpen() && RCOS.some((x) => !S.rcos.own[x.id] && x.src.coins && S.coins >= x.src.coins);
   return '<div class="seg subtabs">' + [['cranes', 'Boosts'], ['chars', 'Farmer'], ['bskin', 'Farm style']].concat(roasteryOpen() ? [['roast', 'Roast']] : [], [['beju', 'Real coffee']]).map(([k, t]) => '<button type="button" data-act="shoptab:' + k + '" aria-pressed="' + (st === k) + '">' + t + ((k === 'bskin' && dot) || (k === 'roast' && rdot) ? ' <i class="dot" aria-label="something to buy"></i>' : '') + '</button>').join('') + '</div>';
 }
-function avatar(look, size) { look = normLook(look); return '<span class="fr b-' + PLATES[look.crest] + (look.bg === 'beju' ? ' bg-beju' : '') + '" style="width:' + size + 'px;height:' + size + 'px">' + (bgThumb(look.bg) ? '<img class="fbg" src="' + bgThumb(look.bg) + '" alt="">' : '') + (PHATS[look.hat] ? '<img src="' + phatUrl(bodyOf(look) + 'down_0', skinLook(look.skin), look.hat) + '" alt="" style="height:' + Math.round(size * 0.78 * (24 + PHAT_PAD) / 24) + 'px">' : '<img src="' + url(bodyOf(look) + 'down_0', Object.assign(skinLook(look.skin), look.hat ? { hat: ART.hats[look.hat] } : {})) + '" alt="" style="height:' + Math.round(size * 0.78) + 'px">') + '</span>'; }
+function avatar(look, size) { look = normLook(look); return '<span class="fr b-' + PLATES[look.crest] + (look.bg === 'beju' ? ' bg-beju' : '') + '" style="width:' + size + 'px;height:' + size + 'px">' + (bgThumb(look.bg) ? '<img class="fbg" src="' + bgThumb(look.bg) + '" alt="">' : '') + (PHATS[look.hat] ? '<img' + (look.skin >= 7 ? ' class="ska ska' + look.skin + '"' : '') + ' src="' + phatUrl(bodyOf(look) + 'down_0', skinLook(look.skin), look.hat) + '" alt="" style="height:' + Math.round(size * 0.78 * (24 + PHAT_PAD) / 24) + 'px">' : '<img' + (look.skin >= 7 ? ' class="ska ska' + look.skin + '"' : '') + ' src="' + url(bodyOf(look) + 'down_0', Object.assign(skinLook(look.skin), look.hat ? { hat: ART.hats[look.hat] } : {})) + '" alt="" style="height:' + Math.round(size * 0.78) + 'px">') + '</span>'; }
 const phatUrls = {};
 const phatUrl = (name, opt, k) => { const key = name + JSON.stringify(opt) + k; return phatUrls[key] || (phatUrls[key] = phatSprite(name, opt, k).toDataURL()); };
 const bgThumb = (id) => (id.startsWith('s_') ? url('sbg_' + sid(id)) : BG_THUMB[id]);
