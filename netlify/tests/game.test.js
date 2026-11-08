@@ -489,4 +489,5 @@ test("prestiges 8 to 10: crests, outfits and hats up to 10, each only once reach
   assert.deepEqual([early.crest, early.hat], [8, ""], "a hat from a prestige not yet reached is dropped");
   assert.equal(G.cleanLook({ hat: "p7" }, 7).hat, "p7");
   assert.equal(G.cleanLook({ hat: "p11" }, 10).hat, "", "no hat past 10");
+  assert.deepEqual([G.cleanLook({ skin: 10 }, 3).skin, G.cleanLook({ skin: 8 }, 8).skin, G.cleanLook({ skin: 5 }, 1).skin], [0, 8, 5], "outfits 7 to 10 only from their prestige; the rest in any order");
 });
