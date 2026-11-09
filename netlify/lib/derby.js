@@ -24,7 +24,9 @@ function housePts(id, realPts, wk, now) {   /* the middle of the real co-ops' po
   const frac = Math.max(0, Math.min(1, (now - C.weekStart(wk)) / (7 * C.DAY)));
   return Math.round(Math.max(mid, 900 * frac) * (h ? h.m : 1));
 }
+const ensureMp = (rec) => { if (rec && !rec.mp) { rec.mp = {}; Object.keys(rec.m || {}).forEach((pid) => { rec.mp[pid] = Object.keys(rec.m[pid] || {}).reduce((a, k) => a + (rec.m[pid][k] || 0) * ((DERBY_TASKS[k] || { pts: 0 }).pts), 0); }); } return rec; };   /* a week begun before per-member points: rebuilt from the counts, so nothing restarts mid-week */
 const scoreOf = (rec, members) => {   /* the best five members' points, and the full-table bonus */
+  ensureMp(rec);
   const mp = Object.values(rec.mp || {}).sort((a, b) => b - a), sum = mp.slice(0, BEST).reduce((a, x) => a + x, 0);
   const active = Object.keys(rec.mp || {}).filter((k) => rec.mp[k] > 0).length;
   return Math.round(sum * (members >= 2 && active >= members ? FULL_TABLE : 1));
@@ -61,7 +63,7 @@ async function ensureWeek(store, wk, now) {   /* group this week's co-ops, settl
 async function settle(store, wk, d) {   /* last week's places, league moves and crane rewards */
   if (d.settled) return;
   for (const g of d.groups) {
-    const real = await Promise.all(g.filter((id) => !isHouse(id)).map(async (id) => { const c = await store.get("coops/" + id), r = (await store.get("derby/" + wk + "/c/" + id)) || {}; return { id, pts: r.mp ? scoreOf(r, (c && c.members.length) || 1) : r.pts || 0 }; }));
+    const real = await Promise.all(g.filter((id) => !isHouse(id)).map(async (id) => { const c = await store.get("coops/" + id), r = (await store.get("derby/" + wk + "/c/" + id)) || {}; return { id, pts: r.m && Object.keys(r.m).length ? scoreOf(r, (c && c.members.length) || 1) : r.pts || 0 }; }));
     const all = real.concat(g.filter(isHouse).map((id) => ({ id, pts: housePts(id, real.map((x) => x.pts), wk, C.weekStart(wk) + 7 * C.DAY), house: true })));
     all.sort((a, b) => b.pts - a.pts);
     const pts = all.filter((x) => !x.house);   /* places and rewards among real co-ops only: a house can never take one */
@@ -82,8 +84,7 @@ async function derbyAdd(store, coop, me, counts, now) {   /* a member's task cou
   if (!counts || typeof counts !== "object") return;
   const wk = C.weekKey(now), d = await joinLate(store, await ensureWeek(store, wk, now), coop);
   if (!d.on || !d.groups.some((g) => g.includes(coop.id))) return;
-  const key = "derby/" + wk + "/c/" + coop.id, rec = (await store.get(key)) || { pts: 0, m: {}, mp: {} }, mine = rec.m[me.id] || {};
-  rec.mp = rec.mp || {};
+  const key = "derby/" + wk + "/c/" + coop.id, rec = ensureMp((await store.get(key)) || { pts: 0, m: {}, mp: {} }), mine = rec.m[me.id] || {};
   let changed = false;
   d.board.forEach((k) => { if (k === "neigh") return; const t = DERBY_TASKS[k], n = Math.min(t.cap, Math.max(0, Math.floor(Number(counts[k]) || 0))); if (n > (mine[k] || 0)) { rec.mp[me.id] = (rec.mp[me.id] || 0) + (n - (mine[k] || 0)) * t.pts; mine[k] = n; changed = true; } });
   if (changed) { rec.m[me.id] = mine; rec.pts = scoreOf(rec, coop.members.length); await store.set(key, rec); }
@@ -92,7 +93,7 @@ async function derbyNeigh(store, coop, meId, pts, now) {   /* the neighbour row,
   if (!coop) return;
   const wk = C.weekKey(now), d = await joinLate(store, await ensureWeek(store, wk, now), coop);
   if (!d.on || !d.groups.some((g) => g.includes(coop.id))) return;
-  const key = "derby/" + wk + "/c/" + coop.id, rec = (await store.get(key)) || { pts: 0, m: {}, mp: {} }; rec.mp = rec.mp || {};
+  const key = "derby/" + wk + "/c/" + coop.id, rec = ensureMp((await store.get(key)) || { pts: 0, m: {}, mp: {} });
   const mine = rec.m[meId] || {}, had = mine.neigh || 0, add = Math.max(0, Math.min(DERBY_TASKS.neigh.cap - had, pts));
   if (!add) return;
   mine.neigh = had + add; rec.m[meId] = mine; rec.mp[meId] = (rec.mp[meId] || 0) + add; rec.pts = scoreOf(rec, coop.members.length); await store.set(key, rec);
@@ -105,7 +106,7 @@ async function derbyView(store, coop, me, now) {
   if (!d.on) return { on: false, need: DERBY_MIN_COOPS, have: d.have, last };
   const g = d.groups.find((x) => x.includes(coop.id));
   if (!g) return { on: false, need: DERBY_MIN_COOPS, have: d.groups.flat().length, joinsNext: true, last };
-  const realRows = await Promise.all(g.filter((id) => !isHouse(id)).map(async (id) => { const c = await store.get("coops/" + id), r = (await store.get("derby/" + wk + "/c/" + id)) || { pts: 0, m: {} }; return { id, you: id === coop.id, name: (c && c.name) || "Co-op", banner: (c && c.banner) || "", n: c ? c.members.length : 0, pts: r.mp ? scoreOf(r, (c && c.members.length) || 1) : r.pts || 0, m: r.m }; }));
+  const realRows = await Promise.all(g.filter((id) => !isHouse(id)).map(async (id) => { const c = await store.get("coops/" + id), r = (await store.get("derby/" + wk + "/c/" + id)) || { pts: 0, m: {} }; return { id, you: id === coop.id, name: (c && c.name) || "Co-op", banner: (c && c.banner) || "", n: c ? c.members.length : 0, pts: r.m && Object.keys(r.m).length ? scoreOf(r, (c && c.members.length) || 1) : r.pts || 0, m: r.m }; }));
   const rows = realRows.concat(g.filter(isHouse).map((id) => ({ id, house: true, name: houseOf(id).name, banner: "house", pts: housePts(id, realRows.map((x) => x.pts), wk, now), m: {} })));
   rows.sort((a, b) => b.pts - a.pts);
   const mineRow = rows.find((r) => r.you), at = rows.indexOf(mineRow), rival = at > 0 ? rows[at - 1] : null;

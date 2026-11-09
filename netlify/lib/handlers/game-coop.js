@@ -212,6 +212,7 @@ exports.handler = async (event) => {
   if (act === "kick") {   /* a mate leaves when more than half of the others vote; votes last a week */
     const to = Number.isInteger(b.i) ? coop.members[b.i] : null;
     if (!to || to === me.id) return G.json(422, { error: "bad_mate" });
+    if (coop.members.length < 3) return G.json(422, { error: "too_small" });   /* in a co-op of two, one vote would be a coup */
     coop.kick = coop.kick || {}; const v = (coop.kick[to] || []).filter((x) => now - x.at < 7 * C.DAY && x.by !== me.id && coop.members.includes(x.by)).concat([{ by: me.id, at: now }]);
     coop.kick[to] = v;
     const others = coop.members.filter((m) => m !== to).length, out = v.length * 2 > others;

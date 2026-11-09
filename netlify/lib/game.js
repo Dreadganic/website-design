@@ -108,7 +108,8 @@ function checkScore(prev, next, now, fresh) {
   if (sameSeason && n.seasonP > prev.seasonP + (n.prestige - prev.prestige)) return "season_jump";
   /* totals, not just steps: the allowance per score added up when scores came every 15 seconds, so everything is also held to what the
      time since the row's anchors allows (the season's first score, and the row's first score ever) */
-  const sSince = sameSeason ? Math.max(0, (now - (prev.s0At || prev.at)) / 1000) : 0, lSince = Math.max(0, (now - (prev.p0At || prev.at)) / 1000);
+  const sStart = Date.parse(seasonKey(now) + "-01T00:00:00+09:00") || now;   /* rows from before the anchors existed count from the season's start, not their last score */
+  const sSince = sameSeason ? Math.max(0, (now - (prev.s0At || sStart)) / 1000) : Math.max(0, (now - sStart) / 1000), lSince = Math.max(0, (now - (prev.p0At || prev.at)) / 1000);
   if (n.seasonStars > RULES.starsPerDay * (sSince / 86400 + 1) + RULES.starsBurst + RULES.starsPerPrestige * n.seasonP) return "too_many_stars";
   if (n.seasonKh > RULES.xpPerSecond * sSince + RULES.xpBurst * 4) return "too_fast";
   if (n.points > (prev.p0Pts !== undefined ? prev.p0Pts : prev.points) + RULES.xpPerSecond * lSince + RULES.xpBurst * 4) return "too_fast";

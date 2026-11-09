@@ -164,6 +164,16 @@ test("scores: small steps every 15 seconds can't add up past what the time allow
   assert.ok(st < 200, "before it gets far: " + st);
 });
 
+test("scores: a row saved before the anchors existed keeps scoring (counted from the season start, not its last score)", async () => {
+  const a = await newPlayer();
+  const s = (st) => ({ name: "Old Row", prestige: 0, seasonP: 0, seasonKh: 0, seasonStars: st, level: 1, points: 0 });
+  assert.equal((await call(score, "POST", s(10), a)).status, 200);
+  const id = a.split(".")[0], row = await store.get("scores/" + id);
+  delete row.s0At; delete row.p0At; delete row.p0Pts; delete row.p0Pr; row.seasonStars = 170; await store.set("scores/" + id, row);   /* the old format, 170 stars on day 16 */
+  clock += 60000;
+  assert.equal((await call(score, "POST", s(175), a)).status, 200, "not frozen");
+});
+
 test("seasons: the first request of a new season saves the final board, and final ranks come from it", async () => {
   clock = Date.parse("2026-11-29T03:00:00Z");
   const a = await newPlayer(), b = await newPlayer();

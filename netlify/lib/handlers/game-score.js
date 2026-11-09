@@ -84,7 +84,7 @@ exports.handler = async (event) => {
   const row = Object.assign(next, { id: me.id, name, look: G.cleanLook(b.look, next.prestige), season, at: now, prestigeAt: reset || !prev || next.prestige > prev.prestige ? now : prev.prestigeAt,
     starsAt: !prev || prev.season !== season || next.seasonStars > (prev.seasonStars || 0) ? now : prev.starsAt,   /* when they reached this star total, for ties */
     firstSeason: prev ? prev.firstSeason || "" : season, code: me.farmCode || "",
-    s0At: prev && !reset && prev.season === season ? prev.s0At || prev.at : now,   /* anchors for the totals check */
+    s0At: prev && !reset && prev.season === season ? prev.s0At || Date.parse(season + "-01T00:00:00+09:00") || prev.at : now,   /* anchors for the totals check */
     p0At: prev && !reset ? prev.p0At || prev.at : now, p0Pts: prev && !reset ? (prev.p0Pts !== undefined ? prev.p0Pts : prev.points) : next.points, p0Pr: prev && !reset ? (prev.p0Pr !== undefined ? prev.p0Pr : prev.prestige) : next.prestige }, G.cleanCounter(reset ? null : prev, b.counter, now, season));   /* rows from before rookies existed count as veterans */
   const founder = G.isFounder(row);
   if (founder) await G.addTrophy(store, me, { k: "founder", s: row.firstSeason }, now);

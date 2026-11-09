@@ -357,6 +357,15 @@ test("co-ops: banner, kick by majority, reports", async () => {
   assert.equal(r.kicked, true); assert.equal(r.coop.members.length, 3);
   assert.equal((await call(coop, "GET", undefined, ps[3])).body.coop, null, "the kicked farmer is out");
   assert.equal((await call(coop, "POST", { act: "report", i: 1 }, ps[0])).body.ok, true);
+  const x = await newPlayer("Kx"), y = await newPlayer("Ky"), two = (await call(coop, "POST", { act: "create", name: "Two Co" }, x)).body.coop;
+  await call(coop, "POST", { act: "join", code: two.code }, y);
+  assert.equal((await call(coop, "POST", { act: "kick", i: 1 }, x)).body.error, "too_small", "no vote-outs in a co-op of two");
+});
+
+test("derby: a week begun before per-member points keeps its score", async () => {
+  const D2 = require("../lib/derby");
+  const rec = { pts: 50, m: { a: { sell: 30, cup: 10 }, b: { sell: 0 } } };
+  assert.equal(D2.scoreOf(rec, 2), 30 * D2.DERBY_TASKS.sell.pts + 10 * D2.DERBY_TASKS.cup.pts, "rebuilt from the counts");
 });
 
 test("co-op projects: slots fill from normal play, a matching focus counts double, a stage a week, a trophy when built", async () => {
