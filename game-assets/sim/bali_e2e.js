@@ -1,5 +1,5 @@
 /* Bali, the Monsoon, end to end in the real game: closed until prestige 6, a first voyage there and the harbour board's project;
-   Wayan's welcome; the barometer banking a storm every 40 minutes (three, four from level 10); a storm from the barn: picking into
+   Wayan's welcome; the barometer banking a storm every 4 hours (three, four from level 10); a storm from the barn: picking into
    the basket (its size from your pickers' gear), spreading on the raised beds (more of them from your farms' drying beds), turning
    as they dry, bagging, the barn; a gust held on the rope or a bed blown over; a leak spoiling the barn until patched; the storm
    waiting while you're away; the break with its glinting cherries; the score and the draws from the co-op pool; being rained
@@ -47,8 +47,8 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
   ok(await E(() => { const h = window.__T.hintAt('ba'); return h && h[0] === 96 && h[1] === window.__T.BA_BARN.y + 2; }), 'the map arrow points at the barn');
 
   /* the barometer */
-  ok(await E(() => { const T = window.__T, B = T.S.ba; B.charge = 0; B.chargeAt = Date.now() - 41 * 60e3; T.baBank(); return B.charge === 1 && Date.now() - B.chargeAt < 2 * 60e3; }), 'the barometer banks a storm every 40 minutes');
-  ok(await E(() => { const T = window.__T, B = T.S.ba; B.chargeAt = Date.now() - 10 * 3600e3; T.baBank(); return B.charge === 3; }), 'up to three while you\'re away');
+  ok(await E(() => { const T = window.__T, B = T.S.ba; B.charge = 0; B.chargeAt = Date.now() - 4.1 * 3600e3; T.baBank(); return B.charge === 1 && Date.now() - B.chargeAt < 0.2 * 3600e3; }), 'the barometer banks a storm every 4 hours');
+  ok(await E(() => { const T = window.__T, B = T.S.ba; B.chargeAt = Date.now() - 30 * 3600e3; T.baBank(); return B.charge === 3; }), 'up to three while you\'re away');
   await E(() => { window.__T.S.ba.charge = 1; });
 
   /* a storm: pick, spread, turn, bag, carry in */
@@ -170,7 +170,7 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
   await lvTo(5);
   ok(await E(() => { const T = window.__T, B = T.S.ba; B.charge = 1; T.baStart(); B.st.gust.next = 1; T.baStep(50); const w = B.st.gust.warn; B.st = null; return w > 3500; }), 'level 5: a gust gives 4 seconds\' warning');
   await lvTo(10);
-  ok(await E(() => { const T = window.__T, B = T.S.ba; B.charge = 0; B.chargeAt = Date.now() - 10 * 3600e3; T.baBank(); return B.charge === 4 && T.S.route.got.ba_l10; }), 'level 10: the barometer banks up to four storms; a find for the level');
+  ok(await E(() => { const T = window.__T, B = T.S.ba; B.charge = 0; B.chargeAt = Date.now() - 30 * 3600e3; T.baBank(); return B.charge === 4 && T.S.route.got.ba_l10; }), 'level 10: the barometer banks up to four storms; a find for the level');
   ok(await E(() => window.__T.roastBins() === 4), 'four roastery bins before level 15');
   await lvTo(15);
   ok(await E(() => window.__T.roastBins() === 5), 'level 15: a fifth roastery bin in Osaka');

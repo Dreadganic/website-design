@@ -89,7 +89,7 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
   await clean();
   ok(await E(() => window.__T.TASK_KINDS.gtrail.ok() && /tortoise trails/.test(window.__T.TASK_KINDS.gtrail.text) && window.__T.TASK_KINDS.gtrail.goal === 2), 'the daily task "Finish 2 tortoise trails" can come up');
   await clean();
-  ok(await E(() => { const T = window.__T, G = T.S.ga; G.tracks = 0; G.tracksAt = Date.now() - 31 * 60e3; T.gaBank(); const one = G.tracks === 1; G.tracksAt = Date.now() - 10 * 3600e3; T.gaBank(); return one && G.tracks === 4; }), 'fresh tracks every 30 minutes, up to four, while you\'re away');
+  ok(await E(() => { const T = window.__T, G = T.S.ga; G.tracks = 0; G.tracksAt = Date.now() - 4.1 * 3600e3; T.gaBank(); const one = G.tracks === 1; G.tracksAt = Date.now() - 30 * 3600e3; T.gaBank(); return one && G.tracks === 4; }), 'fresh tracks every 4 hoursutes, up to four, while you\'re away');
   ok(await E(() => { const T = window.__T, G = T.S.ga, S = T.S; delete (S.rev.pets || {}).tortoise; G.tortoiseDry = 249; T.gaTrailStart(); G.tr.k = G.tr.n - 1; T.gaSign(G.tr.right); return !!(S.rev.pets || {}).tortoise && S.route.got.ga_pet; }), 'the young tortoise is sure by the 250th trail: a companion and a find');
   await clean();
 
@@ -131,7 +131,7 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
   /* levels */
   const lvTo = (n) => E((n) => { const T = window.__T, G = T.S.ga; while (G.lv < n) T.isleXp('ga', T.isleNeed(G.lv) - G.xp); }, n);
   await lvTo(5);
-  ok(await E(() => window.__T.gaTrackMs() === 25 * 60e3), 'level 5: fresh tracks every 25 minutes');
+  ok(await E(() => window.__T.gaTrackMs() === 3.5 * 3600e3), 'level 5: fresh tracks every 3½ hours');
   await lvTo(10);
   ok(await E(() => window.__T.gaTrapN() === 6), 'level 10: six traps');
   await lvTo(15);

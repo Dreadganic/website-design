@@ -60,6 +60,7 @@ const ok = (c, msg) => { console.log((c ? 'PASS ' : 'FAIL ') + msg); if (!c) pro
 
   // a second farmer can't take it, whatever the capitals and spaces
   const B = await dev();
+  await B.evaluate(() => { const S = window.__T.S; S.stats.lotsSold = 1; window.__T.closeModal(); const b = document.createElement('button'); b.dataset.act = 'close'; document.body.appendChild(b); b.click(); b.remove(); }); await B.waitForSelector('#nameAsk');   /* asked after the first sale */
   await type(B, '#nameAsk', 'MI KA');
   m = await modal(B);
   ok(/Another farmer is already called MI KA/.test(m), 'MI KA is taken: ' + m.slice(0, 90));

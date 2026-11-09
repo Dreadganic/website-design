@@ -221,8 +221,8 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
 
   /* Looks: the crest follows the prestige */
   await E(() => { const T = window.__T, S = T.S; S.look.crest = 0; T.act('crest:0'); T.setTab('looks'); T.renderPanel(); }); await g.waitForTimeout(300); await clean();
-  ok((await E(() => window.__T.S.look.crest)) === 2, 'a crest can\'t be swapped for an older one');
-  ok(await E(() => !document.querySelector('[data-act^="crest:"]')), 'no crest picker in Looks');
+  ok(await E(() => window.__T.S.crestPick === 0), 'any crest you\'ve reached can be picked (Looks › Crest)');
+  ok(await E(() => !!document.querySelector('[data-act^="crest:"]')), 'the crest picker is in Looks');
   ok(await E(() => !!document.querySelector('.crestl.now')), 'the ladder marks your crest');
 
   /* T2.1 weekly moods: the board, the event, the pay; T2.2 regulars: weekly want, stories, title */
