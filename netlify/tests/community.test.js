@@ -213,17 +213,17 @@ test("co-ops: care packages mail one bag a day, arrive at the mate's next check-
   assert.equal(((await call(coop, "GET", undefined, a)).body.coop.care.got.map((p) => p.name)).join(), "Ben", "Ana finds Ben's package at her next check-in");
 });
 
-test("derby: from 4 co-ops as one group without leagues; leagues and moves from 20", async () => {
+test("derby: always on (house co-ops fill a small group), one group without leagues; leagues and moves from 20", async () => {
   const lead = [];
   const addCoop = async (i) => { const a = await newPlayer("L" + i), b = await newPlayer("M" + i), made = (await call(coop, "POST", { act: "create", name: "Coop " + i }, a)).body.coop; await call(coop, "POST", { act: "join", code: made.code }, b); lead.push(a); };
   for (let i = 0; i < D.DERBY_MIN_COOPS - 1; i++) await addCoop(i);
   let v = (await call(coop, "GET", undefined, lead[0])).body.coop;
-  assert.equal(v.derby.on, false); assert.equal(v.derby.have, D.DERBY_MIN_COOPS - 1);
+  assert.equal(v.derby.on, true, "always on: house co-ops make up the four"); assert.equal(v.derby.group.length, 4); assert.equal(v.derby.group.filter((g) => g.house).length, 1); assert.equal(v.derby.leagues, false, "no leagues yet");
   await addCoop(99);
   v = (await call(coop, "GET", undefined, lead[0])).body.coop;
-  assert.equal(v.derby.on, true, "the 4th co-op starts it"); assert.equal(v.derby.group.length, 4); assert.equal(v.derby.leagues, false, "no leagues yet");
+  assert.equal(v.derby.group.length, 4, "a co-op formed mid-week joins straight away, taking the house co-op's place"); assert.equal(v.derby.group.filter((g) => g.house).length, 0);
   await addCoop(98);
-  assert.equal((await call(coop, "GET", undefined, lead[lead.length - 1])).body.coop.derby.group.length, 5, "without leagues, a co-op formed mid-week joins the one group straight away");
+  assert.equal((await call(coop, "GET", undefined, lead[lead.length - 1])).body.coop.derby.group.length, 5, "and the next joins the group");
   const k = v.derby.board[0], counts = {}; counts[k.id] = 1e6;
   v = (await call(coop, "POST", { act: "sync", week: v.derby.week, kg: 0, derby: counts }, lead[0])).body.coop;
   assert.equal(v.derby.board[0].mine, k.cap, "capped per member"); assert.equal(v.derby.group[0].you, true);
@@ -322,4 +322,39 @@ test("co-ops: the farm's own estimate is bounded by the prestige the board has s
   const b = await newPlayer("Honest Farm", 2);
   await call(coop, "POST", { act: "create", name: "Small Holders", est: 40000 }, b);
   assert.equal((await store.get("players/" + b.split(".")[0])).coopEst, 40000, "an honest estimate is kept as it is");
+});
+
+test("derby v2: best five members count, everyone scoring adds 10%, the neighbour row is counted on the server, house co-ops never place", async () => {
+  const ps = []; for (let i = 0; i < 7; i++) ps.push(await newPlayer("Big" + i));
+  const made = (await call(coop, "POST", { act: "create", name: "Big Co" }, ps[0])).body.coop;
+  for (let i = 1; i < 7; i++) await call(coop, "POST", { act: "join", code: made.code }, ps[i]);
+  let v = (await call(coop, "GET", undefined, ps[0])).body.coop;
+  assert.equal(v.derby.on, true); assert.ok(v.derby.group.some((g) => g.house), "a lone co-op races house co-ops");
+  const k = v.derby.board[0].id, cnt = (n) => ({ [k]: n });
+  for (let i = 0; i < 7; i++) await call(coop, "POST", { act: "sync", week: v.derby.week, kg: 0, derby: cnt(10 * (i + 1)) }, ps[i]);
+  v = (await call(coop, "GET", undefined, ps[0])).body.coop;
+  const per = D.DERBY_TASKS[k].pts, best5 = [70, 60, 50, 40, 30].reduce((a, x) => a + x * per, 0);
+  assert.equal(v.derby.group.find((g) => g.you).pts, Math.round(best5 * 1.1), "the best five, +10% as all seven scored");
+  assert.ok(v.derby.board.some((t) => t.id === "neigh"), "the neighbour row is on every board");
+  assert.ok(v.derby.mvp[k], "the best member at a task is named");
+  await call(coop, "POST", { act: "help", i: 1 }, ps[0]);
+  v = (await call(coop, "GET", undefined, ps[0])).body.coop;
+  assert.equal(v.derby.board.find((t) => t.id === "neigh").mine, 5, "helping a mate: 5 on the neighbour row");
+  clock += 7 * C.DAY;
+  v = (await call(coop, "GET", undefined, ps[0])).body.coop;
+  assert.equal(v.derby.last.rank, 1, "house co-ops never take a place"); assert.equal(v.derby.last.of, 1);
+});
+
+test("co-ops: banner, kick by majority, reports", async () => {
+  const ps = []; for (let i = 0; i < 4; i++) ps.push(await newPlayer("K" + i));
+  const made = (await call(coop, "POST", { act: "create", name: "Kick Co" }, ps[0])).body.coop;
+  for (let i = 1; i < 4; i++) await call(coop, "POST", { act: "join", code: made.code }, ps[i]);
+  assert.equal((await call(coop, "POST", { act: "banner", id: "crane" }, ps[0])).body.coop.banner, "crane");
+  assert.equal((await call(coop, "POST", { act: "banner", id: "<b>" }, ps[0])).body.error, "bad_banner");
+  let r = (await call(coop, "POST", { act: "kick", i: 3 }, ps[0])).body;
+  assert.equal(r.kicked, false); assert.equal(r.need, 2, "more than half of the other three");
+  r = (await call(coop, "POST", { act: "kick", i: 3 }, ps[1])).body;
+  assert.equal(r.kicked, true); assert.equal(r.coop.members.length, 3);
+  assert.equal((await call(coop, "GET", undefined, ps[3])).body.coop, null, "the kicked farmer is out");
+  assert.equal((await call(coop, "POST", { act: "report", i: 1 }, ps[0])).body.ok, true);
 });

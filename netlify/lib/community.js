@@ -69,5 +69,6 @@ const coopAutoName = (n) => "Cooperativa " + COOP_WORDS[n % COOP_WORDS.length] +
 /* how much green coffee one sync may add: an hour's worth at a generous rate per hour since the last sync (up to 12), plus a week's baseline for time away */
 const coopAllowed = (baseline, lastAt, now) => Math.round(Math.max(5000, baseline * 0.5) * Math.max(1 / 60, Math.min(12, (now - (lastAt || now - 3600e3)) / 3600e3)) + baseline);
 
-module.exports = { JST, DAY, weekKey, weekStart, prevWeek, activePlayers, HARVEST_GOALS, HARVEST_UNIT, firstSaturday, harvestFor, harvestAllowed,
+const BANNERS = ["bean", "cherry", "leaf", "crane", "mountain", "wave", "sun", "moon"];   /* co-op banners: preset only */
+module.exports = { BANNERS, JST, DAY, weekKey, weekStart, prevWeek, activePlayers, HARVEST_GOALS, HARVEST_UNIT, firstSaturday, harvestFor, harvestAllowed,
   COOP_MAX, COOP_PROCESSES, COOP_TIERS, COOP_MIN_PER, coopFloor, COOP_RULES, coopSize, COOP_AWAY_DAYS, COOP_GONE_DAYS, STICKERS, HELPS_PER_DAY, coopProcess, cleanCoopName, coopAutoName, coopAllowed };

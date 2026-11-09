@@ -59,6 +59,7 @@ exports.handler = async (event) => {
     seen.by.push(me.id); mine.n += 1; farm.cheers = (farm.cheers || 0) + 1;
     { const srow = (await store.get("scores/" + me.id)) || {}; if (me.farmCode) farm.recent = (farm.recent || []).filter((x) => x.code !== me.farmCode).concat([{ code: me.farmCode, name: srow.name || "A farmer", at: now }]).slice(-8); }   /* who cheered: the host can cheer back */
     await store.set(seenKey, seen); await store.set(mineKey, mine); await store.set("farms/" + id, farm);
+    if (me.coop && mine.n <= 3) { const host = await store.get("players/" + id), coop = await store.get("coops/" + me.coop); if (coop && coop.members.includes(me.id) && (!host || host.coop !== me.coop)) await require("../derby").derbyNeigh(store, coop, me.id, 2, now); }   /* cheering a farm outside your co-op: the Derby's neighbour row, three a day */
     return G.json(200, { cheers: farm.cheers, pc });
   }
   return G.json(405, { error: "method_not_allowed" });

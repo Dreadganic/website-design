@@ -5,7 +5,10 @@
      { act: "flagged", rate? }                  -> leaderboard rows whose know-how this season grew faster than play allows (default 400 a second)
      { act: "clamp", id, points?, seasonKh?, prestige? }  -> lowers a row's numbers (never raises them); the level follows the points
      { act: "restore", id, slot }               -> puts a saved copy (h0..h2, d0..d2) back as the cloud save, as a new version
-     { act: "delete", id }                      -> deletes the player's online farm, as their own Delete does */
+     { act: "delete", id }                      -> deletes the player's online farm, as their own Delete does
+     { act: "reports" }                         -> the last week's reported names (co-ops and players)
+     { act: "rename", id }                      -> replaces a reported player name with "Farmer xxxx"
+     { act: "coopname", coop, name? }           -> renames a co-op (or hides its name as "Co-op CODE") */
 const G = require("../game");
 const { removePlayer } = require("./game-account");
 
@@ -27,6 +30,13 @@ exports.handler = async (event) => {
       if (perSec > rate || r.points > G.XP_AT(r.level + 3)) out.push({ id: r.id, name: r.name, prestige: r.prestige, level: r.level, points: r.points, seasonKh: r.seasonKh, perSec: Math.round(perSec) });
     }
     return G.json(200, { rate, rows: out.sort((x, y) => y.perSec - x.perSec) });
+  }
+  if (b.act === "reports") { const out = []; for (let i = 0; i < 7; i++) { const r = await store.get("reports/" + G.dayJST(now - i * 864e5)); if (r) out.push(...r.items); } return G.json(200, { items: out }); }
+  if (b.act === "coopname") {   /* rename a co-op whose name was reported (or hide it as "Co-op <code>") */
+    const c = /^c_[A-Za-z0-9_-]{6,20}$/.test(b.coop || "") && await store.get("coops/" + b.coop); if (!c) return G.json(404, { error: "no_coop" });
+    c.name = b.name ? require("../community").cleanCoopName(b.name) || "Co-op " + c.code : "Co-op " + c.code; await store.set("coops/" + c.id, c);
+    const idx = (await store.get("coopidx")) || {}; if (idx[c.id]) { idx[c.id].name = c.name; await store.set("coopidx", idx); }
+    return G.json(200, { name: c.name });
   }
   if (!id) return G.json(400, { error: "bad_id" });
   const me = await store.get("players/" + id);
@@ -50,6 +60,12 @@ exports.handler = async (event) => {
     const next = { version: (cur ? cur.version : 0) + 1, at: now, data: copy.data, histH: now, histD: now };   /* a new version, so every device sees it as newer */
     await store.set("saves/" + id, next);
     return G.json(200, { version: next.version, from: copy.at });
+  }
+  if (b.act === "rename") {   /* a reported player name: replaced with "Farmer" and a short tag; they pick a new one next time they play */
+    const row = await store.get("scores/" + id), nm = "Farmer " + id.slice(-4);
+    if (row) { if (row.name) await store.del("names/" + G.nameKey(row.name)); row.name = nm; await store.set("scores/" + id, row); await G.boardPut(store, row, now); }
+    if (me.nameKey) me.nameBan = (me.nameBan || []).concat([me.nameKey]).slice(-5); delete me.name; delete me.nameKey; await G.savePlayer(store, me);   /* the game asks them for a new name */
+    return G.json(200, { name: nm });
   }
   if (b.act === "delete") { await removePlayer(store, Object.assign(me, { id })); return G.json(200, { deleted: true }); }
   return G.json(400, { error: "bad_act" });

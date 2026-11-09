@@ -80,7 +80,7 @@ async function view(store, coop, me, now) {
   const rows = await Promise.all(coop.members.map((m) => scoreRow(store, m)));
   const total = Object.values(w.shares).reduce((a, b) => a + b, 0);
   return {
-    id: coop.id, name: coop.name, code: coop.code, league: coop.league || 1,
+    id: coop.id, name: coop.name, code: coop.code, league: coop.league || 1, banner: coop.banner || "", kicks: Object.fromEntries(Object.entries(coop.kick || {}).map(([pid, v]) => [coop.members.indexOf(pid), v.filter((x) => now - x.at < 7 * C.DAY).length]).filter(([i]) => i > -1)),
     members: coop.members.map((m, i) => ({ you: m === me.id, name: rows[i].name || "Farmer", look: rows[i].look || {}, prestige: rows[i].prestige || 0, level: rows[i].level || 1, share: Math.round(w.shares[m] || 0), away: m !== me.id && awayFor(coop, m, rows[i], now) >= C.COOP_AWAY_DAYS * C.DAY, helped: help.pairs.includes(me.id + ">" + m), code: rows[i].code || "" })),
     order: { week: wk, ends: C.weekStart(wk) + 7 * C.DAY, process: w.process, target: w.target, total: Math.round(total), tiers: C.COOP_TIERS.map(([f, cr]) => ({ at: Math.round(w.target * f), cranes: cr })), claimed: w.claimed[me.id] || [] },
     feed: feed.items.slice(-12), helpsIn: help.inbox[me.id] || 0, care,
@@ -168,7 +168,7 @@ exports.handler = async (event) => {
     if ((h.got || {})[b.to] >= C.HELPS_PER_DAY) return G.json(422, { error: "mate_has_enough" });
     h.pairs.push(pair); h.inbox[b.to] = (h.inbox[b.to] || 0) + 1; h.got = h.got || {}; h.got[b.to] = (h.got[b.to] || 0) + 1;
     h.from = h.from || {}; h.from[b.to] = (h.from[b.to] || []).concat([(await scoreRow(store, me.id)).name || "Farmer"]).slice(-7);
-    await store.set(key, h);
+    await store.set(key, h); await D.derbyNeigh(store, coop, me.id, 5, now);   /* a good neighbour, on the Derby's neighbour row */
     return G.json(200, { coop: await view(store, coop, me, now) });
   }
   if (act === "care") {   /* T2.3: mail a mate one bag of your roast. One a day; the bag's value is rebuilt by the mate's own game, so nothing client-declared is trusted */
@@ -182,7 +182,7 @@ exports.handler = async (event) => {
     c.sent[me.id] = b.to;
     c.inbox[b.to] = (c.inbox[b.to] || []).concat([{ from: me.id, name: (await scoreRow(store, me.id)).name || "Farmer", key, profile, cup }]).slice(-3);
     const first = !c.star[me.id]; if (first) c.star[me.id] = true;   /* both sides +1 season star, once a day */
-    await store.set(cKey, c);
+    await store.set(cKey, c); await D.derbyNeigh(store, coop, me.id, 5, now);
     return G.json(200, { coop: await view(store, coop, me, now), star: first, to: (await scoreRow(store, b.to)).name || "Farmer" });
   }
   if (act === "takehelp") {
@@ -198,6 +198,28 @@ exports.handler = async (event) => {
     if (!ready.length) return G.json(422, { error: total >= w.target * C.COOP_TIERS[0][0] ? "already_claimed" : "not_reached" });
     w.claimed[me.id] = mine.concat(ready); await store.set("coops/" + coop.id + "/week/" + wk, w);
     return G.json(200, { cranes: ready.reduce((a, i) => a + C.COOP_TIERS[i][1], 0), tiers: ready, full: ready.includes(C.COOP_TIERS.length - 1) });
+  }
+  if (act === "banner") {   /* the co-op's own banner, from a preset set: on Derby rows and in the co-op card */
+    if (!C.BANNERS.includes(b.id)) return G.json(422, { error: "bad_banner" });
+    coop.banner = b.id; await store.set("coops/" + coop.id, coop);
+    return G.json(200, { coop: await view(store, coop, me, now) });
+  }
+  if (act === "kick") {   /* a mate leaves when more than half of the others vote; votes last a week */
+    const to = Number.isInteger(b.i) ? coop.members[b.i] : null;
+    if (!to || to === me.id) return G.json(422, { error: "bad_mate" });
+    coop.kick = coop.kick || {}; const v = (coop.kick[to] || []).filter((x) => now - x.at < 7 * C.DAY && x.by !== me.id && coop.members.includes(x.by)).concat([{ by: me.id, at: now }]);
+    coop.kick[to] = v;
+    const others = coop.members.filter((m) => m !== to).length, out = v.length * 2 > others;
+    if (out) { coop.members = coop.members.filter((m) => m !== to); delete coop.kick[to]; const p = await store.get("players/" + to); if (p && p.coop === coop.id) { delete p.coop; await G.savePlayer(store, p); } await reindex(store, coop, now); }
+    await store.set("coops/" + coop.id, coop);
+    return G.json(200, { coop: await view(store, coop, me, now), kicked: out, votes: v.length, need: Math.floor(others / 2) + 1 });
+  }
+  if (act === "report") {   /* a name that shouldn't be there: the co-op's, or a mate's. Kept for the admin tool */
+    const to = Number.isInteger(b.i) ? coop.members[b.i] : null, what = to ? "player" : "coop";
+    const key = "reports/" + G.dayJST(now), r = (await store.get(key)) || { items: [] };
+    if (r.items.filter((x) => x.by === me.id).length >= 10) return G.json(429, { error: "enough_today" });
+    r.items.push({ by: me.id, what, id: to || coop.id, name: to ? (await scoreRow(store, to)).name || "" : coop.name, at: now }); await store.set(key, r);
+    return G.json(200, { ok: true });
   }
   if (act === "derbyclaim") {
     const r = await D.derbyClaim(store, coop, me, now);

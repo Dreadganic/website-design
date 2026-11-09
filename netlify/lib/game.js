@@ -160,6 +160,7 @@ async function claimName(store, me, raw, now) {   /* -> { name } or { error }; a
   const name = cleanName(raw), key = nameKey(name);
   if (!name || key.length < 2) return { error: "bad_name" };
   if (genericName(name)) return { error: "generic_name" };
+  if ((me.nameBan || []).includes(key)) return { error: "name_taken" };   /* a name the admin took away after a report */
   await legacyNames(store);
   Object.assign(me, await store.get("players/" + me.id));
   const renames = (me.renames || []).filter((t) => now - t < 864e5);
