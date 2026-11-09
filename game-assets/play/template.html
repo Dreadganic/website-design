@@ -2188,7 +2188,7 @@ const remTop = (k) => { const t = tierOf(S.prestige); if (t < 7 || !REM_AT[k]) r
 const remLevel = (k) => Math.ceil(prestigeNeed() * REM_AT[k]);
 const REM_NAME = { rack: { 7: 'Lacquer', 8: 'Lava', 9: 'Cloud', 10: 'Rift' }, roast: { 7: 'Pagoda', 8: 'Hellmaw', 9: 'Seraph', 10: 'Rift engine' } };
 function remCheck() {   /* a moment when the racks or roasters of the new tier arrive */
-  S.remSeen = S.remSeen || {};
+  S.remSeen = S.remSeen || {}; if (S.remSeen.p !== S.prestige) S.remSeen = { p: S.prestige };   /* a new prestige (or a save from before): start from where it stands */
   ['rack', 'roast'].forEach((k) => { const t = remTop(k); if (S.remSeen[k] === undefined) { S.remSeen[k] = t; return; } if (t > S.remSeen[k] && t >= 7) { S.remSeen[k] = t;
     later('New ' + (k === 'rack' ? 'drying racks' : 'roasters') + ': ' + REM_NAME[k][t], 'Your ' + (k === 'rack' ? 'mill' : 'roastery') + ' has been remodelled', '<h2>' + REM_NAME[k][t] + ' ' + (k === 'rack' ? 'drying racks' : 'roasters') + '</h2><p class="note">Halfway through the climb, your ' + (k === 'rack' ? 'mill\'s racks' : 'roastery\'s roasters') + ' have been remodelled for ' + TIERS[t] + '. Mix and match in Looks › Prestige style.</p><button class="btn green" data-act="' + (k === 'rack' ? 'tab:mill' : 'tab:roast') + '">Go and see</button>'); } else if (t < S.remSeen[k]) S.remSeen[k] = t; });
 }

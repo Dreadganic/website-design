@@ -24,18 +24,18 @@ const ok = (c, msg) => { console.log((c ? 'PASS ' : 'FAIL ') + msg); if (!c) pro
   // when they start: never in a session's first minute or during the lessons; a new session's first roll comes 1 minute in, whenever the last event was; after that 5 minutes between
   await p.evaluate(() => { const T = window.__T; T.revSess = 0; T.revSessEv = false; T.S.rev.since = 100; T.S.guideSaid = 0; T.S.guide = 0; Math.random0 = Math.random; Math.random = () => 0.01; });   /* (Rosa's card for the step already said) */
   await p.waitForTimeout(1500);
-  ok(!(await E()), 'no event in the first minute of a session');
-  await p.evaluate(() => { window.__T.revSess = 70; }); await p.waitForTimeout(1500);
+  ok(!(await E()), 'no event in the first 3 minutes of a session');
+  await p.evaluate(() => { window.__T.revSess = 190; }); await p.waitForTimeout(1500);
   ok(!(await E()), 'none during the lessons');
   await p.evaluate(() => { const T = window.__T; T.S.guide = T.GUIDE.length; }); await clean();
   await p.waitForFunction(() => !!window.__T.S.rev.cur, null, { timeout: 5000 }).catch(() => {});
   const auto = await E();
-  ok(!!auto, '1 minute into a new session one can start, though the last was only 1.7 min of play ago: ' + (auto && auto.id));
+  ok(!!auto, '3 minutes into a new session one can start, though the last was only 1.7 min of play ago: ' + (auto && auto.id));
   await p.evaluate(() => { const T = window.__T; T.S.rev.cur = null; T.revEnd(false); T.S.rev.since = 100; }); await clean(); await p.waitForTimeout(1500);
-  ok(!(await E()), 'later in the session, none within 5 minutes of the last one');
-  await p.evaluate(() => { window.__T.S.rev.since = 5000; });
+  ok(!(await E()), 'a short session gets one event, no more');
+  await p.evaluate(() => { window.__T.S.rev.since = 5000; window.__T.revSess = 950; });   /* past 15 minutes, the usual gap again */
   await p.waitForFunction(() => !!window.__T.S.rev.cur, null, { timeout: 70000 }).catch(() => {});
-  ok(!!(await E()), 'and one starts on a roll after that');
+  ok(!!(await E()), 'and past 15 minutes one starts on a roll again');
   await p.evaluate(() => { Math.random = Math.random0; const T = window.__T; T.S.rev.cur = null; T.revEnd(false); });
   await clean();
 
