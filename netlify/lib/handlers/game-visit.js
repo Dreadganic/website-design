@@ -35,8 +35,8 @@ exports.handler = async (event) => {
     if (cur && now - cur.at < G.RULES.minFarmGapSec * 1000) return G.json(429, { error: "too_soon", code: cur.code });
     let c = cur && cur.code;
     if (!c) { do { c = newCode(); } while (await store.get("codes/" + c)); await store.set("codes/" + c, me.id); me.farmCode = c; await G.savePlayer(store, me); }
-    await store.set(key, { code: c, farm, cheers: cur ? cur.cheers || 0 : 0, at: now });
-    return G.json(200, { code: c, cheers: cur ? cur.cheers || 0 : 0 });
+    await store.set(key, { code: c, farm, cheers: cur ? cur.cheers || 0 : 0, recent: cur ? cur.recent || [] : [], at: now });
+    return G.json(200, { code: c, cheers: cur ? cur.cheers || 0 : 0, recent: cur ? (cur.recent || []).map((x) => ({ code: x.code, name: x.name, at: x.at })) : [] });
   }
   if (event.httpMethod === "POST") {
     if (!/^[A-Z2-9]{6}$/.test(code)) return G.json(400, { error: "bad_code" });
@@ -57,6 +57,7 @@ exports.handler = async (event) => {
       await store.set(ck, cards);
     }
     seen.by.push(me.id); mine.n += 1; farm.cheers = (farm.cheers || 0) + 1;
+    { const srow = (await store.get("scores/" + me.id)) || {}; if (me.farmCode) farm.recent = (farm.recent || []).filter((x) => x.code !== me.farmCode).concat([{ code: me.farmCode, name: srow.name || "A farmer", at: now }]).slice(-8); }   /* who cheered: the host can cheer back */
     await store.set(seenKey, seen); await store.set(mineKey, mine); await store.set("farms/" + id, farm);
     return G.json(200, { cheers: farm.cheers, pc });
   }

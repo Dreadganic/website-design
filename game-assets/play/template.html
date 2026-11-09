@@ -1191,7 +1191,7 @@ function specCheck() {
   const p = specProg(), t = specTier();
   if (p > (sp.seen || 0) && p < specGoal(t)) floats.push({ x: 96, y: 58, text: d.name + ' ' + p + ' / ' + specGoal(t), t: 0 });   /* each step shows */
   sp.seen = p; if (p < specGoal(t)) return;
-  sp.tier = t + 1; sp.done = sp.tier >= 3; sp.stars[sp.cur] = Math.min(9, (sp.stars[sp.cur] || 0) + 1); const first = !S.sitems.title['sp:' + sp.cur]; S.sitems.title['sp:' + sp.cur] = true; SFX.play('achieve');
+  sp.tier = t + 1; sp.done = sp.tier >= 3; BEACON.ev('focus_tier', { key: sp.cur, m: sp.tier, min: Math.round(S.minutesTotal - (S.runMin0 || 0)), p: S.prestige }); sp.stars[sp.cur] = Math.min(9, (sp.stars[sp.cur] || 0) + 1); const first = !S.sitems.title['sp:' + sp.cur]; S.sitems.title['sp:' + sp.cur] = true; SFX.play('achieve');
   bursts.push({ x: 96, y: 60, vx: 0, vy: -10, t: 0, c: '#F2C04A' }); floats.push({ x: 96, y: 52, text: '★ ' + d.name + ' tier ' + sp.tier + (sp.done ? ' · all three this run' : ' · next ' + specGoal(sp.tier)), t: 0 });
   if (first) later(d.title, 'Your first ' + d.name + ' star', '<h2>' + d.title + '</h2>' + img(d.pic, 52) + '<p class="note">' + d.name + ' tier 1 reached: <b>' + d.title + '</b> is yours to wear (Looks › Title). Each run has three tiers, sized to your prestige, and every tier is a star.</p><button class="btn green" data-act="close">Lovely</button>');
 }
@@ -1642,6 +1642,7 @@ function roasteryTick() {
     if (r.dev && !r.dropped) { const d = devP(r); if (d >= 0.85 && !r.sc) { r.sc = true; SFX.play('crack'); }   /* second crack: you hear it */
       if (d >= 1) r.dropped = 'burnt'; else if (scene() !== 'roast' && d >= DEV[r.profile][0]) r.dropped = 'auto'; else continue; }   /* the Roaster's development: wait for the drop; off the Roast screen it drops itself */
     if (!r.dev && roastP(r) < 1) continue;
+    if (!r.auto) BEACON.ev('roast_done', { key: r.profile, t: r.dropped ? 'drop' : r.crack === 1 ? 'crack' : r.crack === 2 ? 'miss' : 'none', m: r.dropped === r.profile ? 3 : r.dropped === 'burnt' ? 0 : r.dropped === 'auto' ? 2 : r.dropped ? 1 : 0 });
     const onT = r.dropped === r.profile, burnt = r.dropped === 'burnt'; if (r.dropped && !onT && !burnt && DEV[r.dropped]) r.profile = r.dropped; if (onT && S.spec) S.spec.drops = (S.spec.drops || 0) + 1;
     const [v, m] = r.key.split('.'), best = bestRoast(v, m) === r.profile;
     const q = Math.max(20, Math.min(100, Math.round(r.cup - 40 + (best ? 15 : -5) + (r.crack === 1 ? 15 : 0) + (repLevel() >= 6 ? 5 : 0) + (onT ? 20 : 0) - (burnt ? 15 : 0))));
@@ -6721,7 +6722,7 @@ function deliver(i, id, quiet, haggle, staff) {
   { const tm = tradeMult(c); if (tm > 1) earn({ coins: Math.round(pay.coins * (tm - 1) * (staff || 1)) }); }   /* the Trader's bid on top */
   const npay = pay.points * (l.carry || 0); earn(staff ? { coins: Math.round(pay.coins * staff), points: pay.points, noXp: npay } : Object.assign({ noXp: npay }, pay)); if (l.cupped) earn({ coins: Math.round(pay.coins * (CUP_PAY - 1)) }); if (l.micro) earn({ coins: pay.coins }); if (rule('hina')) earn({ coins: Math.round(pay.coins * 0.1) });   /* buyers pay extra for hand-cupped coffee */
   if (done) {
-    S.contracts = S.contracts.filter((x) => x !== c); S.nextContract = Math.min(S.nextContract, S.minutesTotal + 10); S.stats.contracts = (S.stats.contracts || 0) + 1; SFX.play('contract'); if (specOn('trade') && c.t0 !== undefined && !c.fut && tradeMult(c) >= 1.2) S.spec.won = (S.spec.won || 0) + 1;
+    S.contracts = S.contracts.filter((x) => x !== c); S.nextContract = Math.min(S.nextContract, S.minutesTotal + 10); S.stats.contracts = (S.stats.contracts || 0) + 1; SFX.play('contract'); if (specOn('trade') && c.t0 !== undefined && !c.fut && tradeMult(c) >= 1.2) S.spec.won = (S.spec.won || 0) + 1; BEACON.ev('contract_done', { key: (S.spec && S.spec.cur) || 'none', t: c.fut ? 'future' : c.t0 !== undefined ? 'bid' : staff ? 'agent' : 'plain', m: Math.round((tradeMult(c) - 1) * 100), p: S.prestige });
     star('contract'); task('contract', 1); if (c.event) star('drop'); if (c.cranes && !c.hm) { earn({ cranes: c.cranes }); SFX.play('crane'); } if (c.boat && !haggle) task('boat', 1);
     if (c.event && S.event) { S.event.done += 1; if (S.event.done >= 3) { earn({ cranes: 10 }); S.badges.push({ event: eventDrop() ? eventDrop().name : 'Drop event', label: 'Drop', rank: 99 }); setTimeout(() => later('Drop event complete!', 'The event badge and 10 cranes are yours', '<h2>Drop event complete!</h2><p class="note">All three event contracts are delivered. The event badge is on your profile, and 10 cranes are yours.</p><button class="btn green" data-act="close">Brilliant</button>'), 600); } }
     if (quiet || (S.stats.contracts > 1 && !c.boat && !c.event)) { toast('Contract for ' + c.buyer + ' complete: +' + fmt(c.coins) + ' coins, +' + fmt(c.points) + ' know-how in all'); return; }
@@ -6837,14 +6838,14 @@ function prestige() {
   if (level() < prestigeNeed()) return;
   if (ctOpen()) ctClose('', true);   /* the counter closes with no penalty */
   S.prestige += 1; S.season.prestige += 1; star('prestige'); if (S.pwalk) S.pwalk = 3;
-  BEACON.ev(S.prestige === 1 ? "first_prestige" : "prestige", { p: S.prestige, min: Math.round(S.minutesTotal) });
+  BEACON.ev(S.prestige === 1 ? "first_prestige" : "prestige", { p: S.prestige, min: Math.round(S.minutesTotal), key: S.spec && S.spec.cur || "", m: S.spec ? S.spec.tier || 0 : 0 }); S.runMin0 = S.minutesTotal;
   const t = tierOf(S.prestige);
   S.look.crest = t; delete S.crestPick;   /* the new crest goes on straight away */
   if (SKINS.some((sk, i) => !S.skins[i] && skinOpen(i))) S.skinPicks += 1;   /* and the player picks one new outfit */
   const sp0 = S.spec && SPECS[S.spec.cur], recap = { focus: sp0 ? sp0.name : '', tiers: sp0 ? specTier() : 0, best: S.runBest || 0, days: S.runT0 ? (Date.now() - S.runT0) / 864e5 : 0 }; S.runBest = 0; S.runT0 = Date.now();
   const kept = bankKnowhow();
   S.xp = 0; carryOver();
-  if (S.prestige >= SPEC_P) specSet(S.specNext && SPECS[S.specNext] ? S.specNext : (S.spec && S.spec.cur) || 'grow', true); delete S.specNext; S.specOpen = false;
+  if (S.prestige >= SPEC_P) { const pk = S.specNext && SPECS[S.specNext]; specSet(pk ? S.specNext : (S.spec && S.spec.cur) || 'grow', true); BEACON.ev('focus_set', { key: S.spec.cur, t: pk ? 'pick' : 'default', p: S.prestige }); } delete S.specNext; S.specOpen = false;
   S.dormant = {};   /* farms no longer sleep through a prestige */
   setTimeout(() => checkSamples(), 300);
   if (S.prestige === KONA_P && !S.kona) setTimeout(() => showModal(coachCard('Kona Ridge', 'The trader\'s boat reaches a new island now: Kona Ridge, where coffee ferments in tanks with fruit. Tap the farm arrow past Osaka to sail there.')), 600);
@@ -6907,6 +6908,7 @@ function awayKgH() {   /* kg an hour while you're away, at the usual away pace (
   return kg;
 }
 function closeUp() {
+  BEACON.ev('closeup_open', { h: Math.min(24, Math.round(Math.max(0, cap() - stored()) / Math.max(1, awayKgH()) * 10) / 10), m: S.lots.filter((l) => !l.cupped).length, t: S.staff.foreman ? 'foreman' : 'none', p: S.prestige });
   const kh = awayKgH(), room = Math.max(0, cap() - stored()), full = kh > 0 ? room / kh : 99, capH = awayCap();
   const tips = [];
   if (!S.staff.foreman) tips.push('A <b>foreman</b> (Farm › Staff) keeps the mill running while you sleep, so storage never stops the pickers.');
@@ -7749,7 +7751,7 @@ function renderPanel() {
     h += '<h3>Farm visits</h3>' + help('visits', 'Tap Visit on a farmer, or enter a farm code.', 'Tap Visit on a farmer or type their farm code to see their farm. One Cheers a day per farm; your first earns a season star.') +
       (API && NET.status === 'online' ? (S.farmCode ? '<p class="note">Your farm code: <b class="code">' + S.farmCode + '</b> · ♥ ' + fmt(S.farmCheers || 0) + ' Cheers <button type="button" class="linkbtn" data-act="visit:' + S.farmCode + '">see how it looks</button></p>' : '<p class="note">Your farm code arrives in a moment.</p>') +
         '<p class="note">Show visitors: <select data-showloc="1" aria-label="Farm visitors see first">' + LOCS.filter((l) => S.farms[l].unlocked).map((l) => '<option value="' + l + '"' + ((S.showLoc || S.loc) === l ? ' selected' : '') + '>' + fname(l) + '</option>').join('') + '</select></p>' +
-        '<div class="seg"><input id="visitIn" maxlength="7" placeholder="Farm code" aria-label="Farm code to visit" autocapitalize="characters"><button type="button" data-act="visitcode">Visit</button></div>' : '<p class="note">Farm visits work when you play online at bejucoffee.com.</p>');
+        ((S.recentCheers || []).length ? '<p class="note"><b>Recent visitors</b></p><div class="chips">' + S.recentCheers.slice().reverse().filter((x) => x.code).map((x) => '<button type="button" class="chip" data-act="visitcode:' + x.code + '">' + x.name + '</button>').join('') + '</div>' : '') + '<div class="seg"><input id="visitIn" maxlength="7" placeholder="Farm code" aria-label="Farm code to visit" autocapitalize="characters"><button type="button" data-act="visitcode">Visit</button></div>' : '<p class="note">Farm visits work when you play online at bejucoffee.com.</p>');
     h += nameField();
     } else {
     h += '<div class="pnext">' + plate('P' + S.prestige, tierOf(S.prestige)) + '<span>→</span>' + plate('P' + (S.prestige + 1), tierOf(S.prestige + 1)) + '</div>';
@@ -7999,7 +8001,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'helpinfo') { if (helpFull[v]) showModal('<p class="note" style="font-size:15px">' + helpFull[v] + '</p><button class="btn green" data-act="close">Got it</button>'); }
   else if (a === 'buyersopen') S.buyersOpen = !S.buyersOpen;
   else if (a === 'visit') visitFarm(v);
-  else if (a === 'visitcode') visitFarm(($('visitIn') || {}).value);
+  else if (a === 'visitcode') visitFarm(v || ($('visitIn') || {}).value, v ? 'friend' : 'code');
   else if (a === 'visitloc') { NET.visitLoc = v; showVisit(); }
   else if (a === 'cheers') cheersFarm(v, b.dataset.act.split(':')[2]);   /* the code and the postcard key hold no colons */
   else if (a === 'perksopen') S.perksOpen = !S.perksOpen;
@@ -8059,7 +8061,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'coopnew') showModal('<h2>Start a co-op</h2><p class="note">Name it after your farms, a place or a coffee. Up to 8 farmers can join with its invite code.</p><input id="coopName" maxlength="24" placeholder="Las Nubes" style="width:100%;font:inherit;padding:8px;border:2px solid var(--edge);border-radius:8px"><button class="btn green" data-act="coopmake">Start it</button><button class="btn" data-act="close">Cancel</button>');
   else if (a === 'coopmake') { const n = ($('coopName') || {}).value || ''; closeModal(); coopAct({ act: 'create', name: n }); }
   else if (a === 'coopcode') showModal('<h2>Join with a code</h2><p class="note">Ask a co-op member for their six-letter invite code.</p><input id="coopCode" maxlength="6" placeholder="ABC234" style="width:100%;font:inherit;padding:8px;border:2px solid var(--edge);border-radius:8px;text-transform:uppercase"><button class="btn green" data-act="coopjoin">Join</button><button class="btn" data-act="close">Cancel</button>');
-  else if (a === 'coopjoin') { const c = (($('coopCode') || {}).value || '').toUpperCase().trim(); closeModal(); coopAct({ act: 'join', code: c }); if (c) BEACON.ev("coop_join"); }
+  else if (a === 'coopjoin') { const c = (($('coopCode') || {}).value || '').toUpperCase().trim(); closeModal(); coopAct({ act: 'join', code: c }); }
   else if (a === 'coopleaveask') showModal('<h2>Leave ' + (NET.coop ? NET.coop.name : 'the co-op') + '?</h2><p class="note">Your share of this week\'s order stays with them. You can join another co-op straight away.</p><button class="btn" data-act="coop:leave">Leave</button><button class="btn green" data-act="close">Stay</button>');
   else if (a === 'shopwait') { closeModal(); S.shopTab = v; setTab('shop'); }
   else if (a === 'pwalkend') { closeModal(); S.pwalk = 0; S.pwalkDone = true; }
@@ -8115,6 +8117,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'task') { const tk = S.tasks[+v]; if (tk.have >= tk.goal && !tk.done) { tk.done = true; const rr = tk.practice ? tk.reward : taskReward(tk.reward); const got = rule('shogatsu') && rr.coins ? { coins: rr.coins * 2 } : rr; earn(got); unRate(got); if (!tk.practice) star('task'); guideStep('task'); toast('Task complete!'); } }
   else if (a === 'weekly') { S.weekly.claimed = true; S.cranes += WEEKLY_CRANES; star('weekly'); showModal('<h2>Order delivered!</h2><p class="note">Beju\'s farms delivered ' + fmt(S.weekly.target) + ' kg of washed coffee to the roastery together. +' + WEEKLY_CRANES + ' cranes and ' + STAR_PER.weekly + ' season stars.</p><button class="btn green" data-act="close">Hooray</button>'); }
   else if (a === 'specopen') S.specOpen = true;
+  else if (a === 'cheerback') { if (/^[A-Z2-9]{6}$/.test(v || '')) cheersFarm(v); b.disabled = true; return; }
   else if (a === 'closeup') { closeUp(); return; }
   else if (a === 'focusgo') { S.rankSub = 'prestige'; setTab('ranks'); }
   else if (a === 'reserve') { if (specOn('trade')) { S.spec.reserve = Math.max(0, Math.min(0.4, +v || 0)); SFX.play('click'); } }
@@ -8122,7 +8125,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'future') { const c = S.contracts.find((x) => String(x.id) === v); if (c && specOn('trade') && tradeOpen(c)) { c.fut = true; c.fdue = S.minutesTotal + (c.due - S.minutesTotal) * 0.5; SFX.play('stamp'); tapNote('Future signed: +30% if filled in ' + Math.max(1, Math.round((c.fdue - S.minutesTotal) / 60)) + ' h'); } }
   else if (a === 'seal') { if (specOn('mill')) { S.spec.seal = Math.max(0, Math.min(3, +v || 0)); SFX.play('click'); } }
   else if (a === 'comp') { const [bi, k] = v.split('.'); if (specOn('grow') && (COMPS[k] || k === 'none')) { f.comp = f.comp || []; f.comp[+bi] = k === 'none' ? '' : k; SFX.play('click'); } }
-  else if (a === 'specpick') { if (SPECS[v] && specOk(v) && !(S.spec && S.spec.swap) && S.prestige >= SPEC_P) { const had = S.spec && S.spec.cur; specSet(v, !had); if (had) S.spec.swap = true; S.specOpen = false; closeModal(); toast('Focus: ' + SPECS[v].name); } }
+  else if (a === 'specpick') { if (SPECS[v] && specOk(v) && !(S.spec && S.spec.swap) && S.prestige >= SPEC_P) { const had = S.spec && S.spec.cur; specSet(v, !had); if (had) S.spec.swap = true; BEACON.ev('focus_set', { key: v, t: had ? 'swap' : 'pick', p: S.prestige }); S.specOpen = false; closeModal(); toast('Focus: ' + SPECS[v].name); } }
   else if (a === 'prestigeAsk') {
     const asleep = [];
     showModal('<h2>Prestige ' + (S.prestige + 1) + '?</h2><p class="note"><b>You keep</b> coins, cranes, every upgrade, building, manager, variety, process, decoration, hat, outfit and background.</p><p class="note"><b>You lose</b> your level' + (asleep.length ? ', and ' + asleep.map((l) => ART.locations[l].name.split(',')[0] + ' (until level ' + wakeLevel(l, S.prestige + 1) + ')').join(', ') + (asleep.length > 1 ? ' go' : ' goes') + ' dormant until you level back up' : '') + '. Cherries, lots and coffee from this run still sell for coins and know-how, but don\'t count toward levels.</p><p class="note">You gain ' + (S.prestige + 1 < TIERS.length ? 'the ' + TIERS[S.prestige + 1] + ' crest (nameplate and border)' : 'a star on your name') + (SKINS.some((sk, i) => !S.skins[i]) ? ', you pick one new outfit' : '') + (perkAt(S.prestige + 1) ? ', the <b>' + perkAt(S.prestige + 1).name + '</b> perk (' + perkAt(S.prestige + 1).text + (PERK_LV[perkAt(S.prestige + 1).id] ? ' From level ' + PERK_LV[perkAt(S.prestige + 1).id] + '.' : '') + ')' : '') + (BUILD_CAPS[S.prestige + 1] ? ', room to build every building up to level ' + BUILD_CAPS[S.prestige + 1] : '') + ', and you jump above everyone on prestige ' + S.prestige + '.</p>' + (S.prestige + 1 >= SPEC_P ? '<h3>Your focus for the next run</h3>' + specPicker('specnext', S.specNext || (S.spec && S.spec.cur) || 'grow') : '') + btn('Prestige now', '', 'prestige', true, 'green') + '<button class="btn" data-act="close">Not yet</button>');
@@ -8565,6 +8568,8 @@ async function coopAct(body) {
   const r = await api('game-coop', 'POST', body).catch(() => null);
   const err = { bad_name: 'Pick a name of 3 to 24 letters', no_coop: 'No co-op has that code', coop_full: 'That co-op is full', too_soon: 'One sticker every 20 seconds', already_today: 'You\'ve helped them today', mate_has_enough: 'They\'ve had all their help today', not_reached: 'Not reached yet', did_not_help: 'Add some coffee to the order first', already_claimed: 'Already claimed', did_not_play: 'You didn\'t play in last week\'s Derby' };
   if (!r || r.status !== 200) { toast((r && err[r.data.error]) || 'The co-op can\'t be reached right now'); return; }
+  if (['create', 'join', 'find'].includes(body.act)) BEACON.ev('coop_join', { t: body.act === 'join' ? 'code' : body.act, p: S.prestige });
+  if (body.act === 'claim') BEACON.ev('coop_claim', { m: r.data.tier || 0, p: S.prestige });
   if (body.act === 'claim') { earn({ cranes: r.data.cranes }); if (r.data.full) star('weekly'); SFX.play('crane'); toast('Co-op order: +' + r.data.cranes + ' crane' + (r.data.cranes === 1 ? '' : 's')); coopSync(true); return; }
   if (body.act === 'derbyclaim') { const l = NET.coop.derby && NET.coop.derby.last; earn({ cranes: r.data.cranes }); if (l) S.badges.push({ event: 'Co-op Derby', label: l.rank === 1 ? 'Derby winner' : 'Derby ' + l.rank + ordinal(l.rank), rank: l.rank }); SFX.play('crane'); toast('Co-op Derby: a badge and +' + r.data.cranes + ' crane' + (r.data.cranes === 1 ? '' : 's')); coopSync(true); return; }
   if (body.act === 'help') { SFX.play('pop'); star('help'); toast('Help sent: their drying lots go 10% faster'); }
@@ -8712,9 +8717,13 @@ async function visitSync(force) {
   if (!force && (sig === NET.farmSig || Date.now() - (NET.farmAt || 0) < 10 * 60000)) return;
   NET.farmAt = Date.now();
   const r = await api('game-visit', 'PUT', { farm: snap }).catch(() => null);
-  if (r && r.status === 200) { NET.farmSig = sig; S.farmCode = r.data.code; S.farmCheers = r.data.cheers; submitScore(); }
+  if (r && r.status === 200) { const was = S.farmCheers; NET.farmSig = sig; S.farmCode = r.data.code; S.farmCheers = r.data.cheers; submitScore();
+    if (Array.isArray(r.data.recent)) S.recentCheers = r.data.recent.slice(-8);
+    if (was !== undefined && r.data.cheers > was) { const n = r.data.cheers - was, who = (S.recentCheers || []).slice(-n).reverse(); BEACON.ev('cheer_recv', { m: n });
+      later(n + ' Cheer' + (n > 1 ? 's' : '') + ' on your farm', who.length ? who.map((x) => x.name).slice(0, 3).join(', ') + ' stopped by' : 'Farmers stopped by', '<h2>' + n + ' Cheer' + (n > 1 ? 's' : '') + ' on your farm</h2><p class="note">' + (who.length ? 'From ' + who.map((x) => '<b>' + x.name + '</b>').join(', ') + '. Visit them back, or cheer back from here.' : 'Farmers have been visiting.') + '</p>' + who.filter((x) => x.code).map((x) => '<div class="seg"><button type="button" class="btn" data-act="visitcode:' + x.code + '">Visit ' + x.name + '</button><button type="button" class="btn green" data-act="cheerback:' + x.code + '">Cheer back</button></div>').join('') + '<button class="btn" data-act="close">Lovely</button>'); } }
 }
-async function visitFarm(code) {
+async function visitFarm(code, how) {
+  BEACON.ev('visit_open', { t: how || 'board', p: S.prestige });
   code = String(code || '').toUpperCase().replace(/[^A-Z2-9]/g, '');
   if (code.length !== 6) { SFX.play('nope'); toast('A farm code has 6 letters and numbers'); return; }
   if (!API || NET.status !== 'online') { toast('Farm visits work when you play online'); return; }
@@ -8829,7 +8838,10 @@ window.addEventListener("pagehide", () => {   /* session length rides the real e
   BEACON.flush(true);
 });
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('/farm/sw.js').catch(() => {});   /* installs the game and keeps it playable offline (sw.js, manifest in the build wrapper) */
+let visT = Date.now(), hidT = 0;   /* phone sessions: a lock or an app switch pauses, coming back after 5 minutes resumes */
 document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { hidT = Date.now(); const len = Math.round((hidT - visT) / 1000); if (len > 20) BEACON.ev('session_pause', { len, p: S.prestige, lvl: level() }); BEACON.flush(true); }
+  else { if (hidT && Date.now() - hidT > 300000) BEACON.ev('session_resume', { gap: Date.now() - hidT, p: S.prestige, lvl: level() }); visT = Date.now(); }
   if (document.hidden) {
     save(); cloudSync(true);
     /* the tab title becomes the return promise: what the farm does while you're away */

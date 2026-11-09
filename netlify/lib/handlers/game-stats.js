@@ -30,7 +30,7 @@ exports.handler = async (event) => {
   for (const e of events) counts[e.e] = (counts[e.e] || 0) + 1;
 
   /* sessions: one per (fid, sid); length from session_end */
-  const starts = events.filter((e) => e.e === "session_start");
+  const starts = events.filter((e) => e.e === "session_start" || e.e === "session_resume");   /* a phone coming back to an open tab counts as a session too */
   const ends = events.filter((e) => e.e === "session_end").map((e) => e.len).filter((n) => n > 0);
 
   /* retention: first-seen day per fid, then who came back exactly d days later */
@@ -76,7 +76,10 @@ exports.handler = async (event) => {
   return G.json(200, {
     days, from: new Date(from).toISOString(), to: new Date(now).toISOString(),
     players, events: events.length, counts,
-    sessions: { started: counts.session_start || 0, ended: ends.length, medianLenSec: median(ends) },
+    sessions: { started: counts.session_start || 0, resumed: counts.session_resume || 0, ended: ends.length, medianLenSec: median(ends), medianPhoneLenSec: median(events.filter((e) => e.e === "session_pause").map((e) => e.len || 0)) },
+    focus: (() => { const set = events.filter((e) => e.e === "focus_set"), tiers = events.filter((e) => e.e === "focus_tier"), by = {}; set.forEach((e) => { const k = e.key || "?"; by[k] = by[k] || { set: 0, defaulted: 0, tiers: 0 }; by[k].set++; if (e.t === "default") by[k].defaulted++; }); tiers.forEach((e) => { const k = e.key || "?"; (by[k] = by[k] || { set: 0, defaulted: 0, tiers: 0 }).tiers++; }); return by; })(),
+    social: { cheersRecv: events.filter((e) => e.e === "cheer_recv").reduce((a, e) => a + (e.m || 0), 0), visits: counts.visit_open || 0, coopJoins: counts.coop_join || 0, coopClaims: counts.coop_claim || 0 },
+    closeups: counts.closeup_open || 0, contracts: counts.contract_done || 0, roasts: counts.roast_done || 0,
     retention: ret,
     bm: { opened: counts.bm_open || 0, visits: counts.bm_visit || 0, medianGapMin: median(bmGaps), cleanShare: bmClean + bmBlind ? Math.round((1000 * bmClean) / (bmClean + bmBlind)) / 10 : null, trays: counts.bm_grade || 0, ships: bmShips },
     route, isles,

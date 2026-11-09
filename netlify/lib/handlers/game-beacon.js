@@ -14,7 +14,8 @@ const FIELDS = {   /* field: [type, cap] — unknown or oversized fields are dro
 };
 NAMES.push("bm_open", "bm_visit", "bm_pick", "bm_grade", "bm_ship");   /* Blue Mountain: arrivals, gaps between visits, clean and blind picks, trays, barrels */
 NAMES.push("route_find", "route_board", "route_voyage");
-NAMES.push("isle_open", "isle_run");   /* the newer islands: first arrivals, and each run (a nursery shift, a storm, a trail) with its score */   /* the Island Route: cowries found, harbour board projects, voyages sailed and home */
+NAMES.push("isle_open", "isle_run");
+NAMES.push("session_resume", "session_pause", "focus_set", "focus_tier", "closeup_open", "visit_open", "cheer_recv", "coop_claim", "contract_done", "roast_done");   /* phone sessions (resume/pause), and the behaviours the 9 Nov audits asked to measure */   /* the newer islands: first arrivals, and each run (a nursery shift, a storm, a trail) with its score */   /* the Island Route: cowries found, harbour board projects, voyages sailed and home */
 
 exports.handler = async (event) => {
   const deps = exports.__deps;
