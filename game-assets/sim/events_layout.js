@@ -1,6 +1,6 @@
 /* Random events on every phone size: once the game brings an event into view (the guide's Go, then its own scroll), nothing
    you have to tap sits under the HUD, the corner buttons or the guide bar. Every spot an event can use is tried: each field
-   for the pigs, each rack the nest can hang under, Karen and her replies. Usual and rare.
+   for the pigs, each rack the nest can hang under, Mrs. Okada and her replies. Usual and rare.
    node events_layout.js <test.html from mktest.py> [shots dir] */
 const { chromium } = require(process.env.PW_MODULE || '/opt/node-tools/node_modules/playwright');
 const fs = require('fs'), path = require('path');
@@ -21,7 +21,7 @@ const SIZES = [[320, 568], [360, 640], [375, 667], [390, 844], [414, 896], [430,
     for (const rare of [false, true]) {
       for (let bed = 0; bed < 4; bed++) spots.push(['pigs', rare, { bed }, 'pigs field ' + (bed + 1)]);
       for (let i = 0; i < 20; i++) spots.push(['hornets', rare, { rack: i }, 'nest under rack ' + (i + 1)]);   /* rows 2-5, and the top row for a mill with fewer than 5 racks */
-      spots.push(['karen', rare, {}, 'Karen']);
+      spots.push(['karen', rare, {}, 'Mrs. Okada']);
       for (let bed = 0; bed < 4; bed++) spots.push(['rust', rare, { bed }, 'rust field ' + (bed + 1)]);
       spots.push(['monkeys', rare, {}, 'monkey route']);
       spots.push(['crows', rare, {}, 'scarecrow']); for (let bed = 0; bed < 4; bed++) spots.push(['crows', rare, { bed }, 'crows field ' + (bed + 1)]);

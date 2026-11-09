@@ -1140,7 +1140,7 @@ const tradeReady = (c) => c.t0 === undefined || c.fut || !tradeOpen(c) || tradeM
 function tradeTick() {
   if (!specOn('trade')) return;
   S.contracts.forEach((c) => { if (c.t0 === undefined || c.closed) return;
-    if (c.fut ? S.minutesTotal > c.fdue && c.have < c.kg - 0.01 : S.minutesTotal >= c.leave) { c.closed = true; floats.push({ x: 96, y: 70, text: c.buyer.split(',')[0] + (c.fut ? ': future missed, plain price now' : ': bidding closed'), t: 0 }); } });
+    if (c.fut ? S.minutesTotal > c.fdue && c.have < c.kg - 0.01 : S.minutesTotal >= c.leave) { c.closed = true; if (c.fut) mwRun(mwSt(), false); floats.push({ x: 96, y: 70, text: c.buyer.split(',')[0] + (c.fut ? ': future missed, plain price now' : ': bidding closed'), t: 0 }); } });
 }
 /* the Roaster calls the drop: under the Roaster a perfect crack doesn't end the roast. The beans develop and you tap Drop: light (10 to
    30%), medium (30 to 60%), dark (60 to 85%); second crack starts at 85% (a sound), still dark until 90%, and past that it scorches.
@@ -1176,14 +1176,38 @@ const SPECS = {
 };
 const specOn = (k) => !!(S.spec && S.spec.cur === k);
 const specOk = (k) => !SPECS[k].ok || SPECS[k].ok();
-const specProg = () => { const sp = S.spec, d = sp && SPECS[sp.cur]; return d ? Math.max(0, d.stat() - (sp.base || 0)) : 0; };
+const specProg = () => { const sp = S.spec, d = sp && SPECS[sp.cur]; if (!d) return 0; const f = mwTier(Math.min(2, specTier())); return f ? Math.min(f.goal(), f.prog(mwSt())) : Math.max(0, d.stat() - (sp.base || 0)); };
 const wanderPairs = () => { let n = 0; Object.keys(VAR_HOME).forEach((v) => { if (S.vars[v]) LOCS.forEach((l) => { if (l !== 'osaka' && S.farms[l].unlocked && !isNative(l, v)) n++; }); }); return n; };   /* the terroir trials there are to run */
-const specGoal = (t) => { const d = S.spec && SPECS[S.spec.cur]; if (!d) return 1; const g = Math.max(1, Math.round(d.n0 * SPEC_TIERS[t] * specScale())); return S.spec.cur === 'wander' ? Math.min(g, Math.max(t + 1, Math.round(wanderPairs() * (t + 1) / 3))) : g; };   /* the Wanderer's goals never ask for more trials than there are */
+const specGoal = (t) => { const d = S.spec && SPECS[S.spec.cur]; if (!d) return 1; const f = mwTier(t); if (f) return f.goal(); const g = Math.max(1, Math.round(d.n0 * SPEC_TIERS[t] * specScale())); return S.spec.cur === 'wander' ? Math.min(g, Math.max(t + 1, Math.round(wanderPairs() * (t + 1) / 3))) : g; };   /* the Wanderer's goals never ask for more trials than there are */
 const specTier = () => (S.spec && S.spec.tier) || 0;   /* tiers reached this run, 0 to 3 */
+/* masterwork: from prestige 7 the tiers past the first stop asking for more of the same. Tier 2 is a feat of precision and tier 3 a
+   masterwork: the same feats at every prestige, counted from when the focus is set. Tier 1 stays the count sized to the run, and the
+   masterwork brings a second title */
+const MW_P = 7, MW_NAMES = ['', 'Precision', 'Masterwork'];
+const MW_TITLE = { grow: 'Shade architect', mill: 'Tank sage', roast: 'Roast virtuoso', trade: 'Top-bid broker', wander: 'Terroir cartographer' };
+const mwOn = () => S.prestige >= MW_P;
+const mwSt = () => (S.spec ? (S.spec.mw = S.spec.mw || {}) : {});
+const mwRun = (m, ok) => { m.run = ok ? (m.run || 0) + 1 : 0; m.best = Math.max(m.best || 0, m.run); };   /* a best run in a row */
+const trialFarms = () => LOCS.filter((l) => l !== 'osaka' && S.farms[l].unlocked && Object.keys(VAR_HOME).some((v) => S.vars[v] && !isNative(l, v)));
+const oneCoffeeTrials = () => { let best = 1; Object.keys(VAR_HOME).forEach((v) => { if (S.vars[v]) best = Math.max(best, trialFarms().filter((l) => !isNative(l, v)).length); }); return Math.min(4, best); };   /* the most one coffee can run, to the +2 top */
+const MW = {
+  grow: [{ unit: 'lots sold of a coffee shaded on every field it grows on (the full +2 cup)', short: 'fully shaded lots', goal: () => 3, prog: (m) => m.full || 0 },
+    { unit: 'lots sold of a coffee grown on 3 farms or more, every field of it shaded', short: 'shaded estate lots', goal: () => 3, prog: (m) => m.full3 || 0 }],
+  mill: [{ unit: 'three-shift lots in a row, none sour (your best run)', short: 'clean three-shift lots in a row', goal: () => 8, prog: (m) => m.best || 0 },
+    { unit: 'coffee-and-method pairs sealed clean at 90+ this run', short: 'pairs sealed at 90+', goal: () => 5, prog: (m) => Object.keys(m.pairs || {}).length }],
+  roast: [{ unit: 'profiles landed in their window: light, medium and dark', short: 'profiles landed', goal: () => 3, prog: (m) => Object.keys(m.prof || {}).length },
+    { unit: 'drops in a row in the window (your best run; drops made for you neither count nor break it)', short: 'drops in a row', goal: () => 10, prog: (m) => m.best || 0 }],
+  trade: [{ unit: 'futures filled in time, in a row (your best run)', short: 'futures in a row', goal: () => 3, prog: (m) => m.best || 0 },
+    { unit: 'three-buyer contracts filled at the top bid, +40%', short: 'top bids', goal: () => 3, prog: (m) => m.top || 0 }],
+  wander: [{ unit: 'trials of one coffee (+0.5 cup each, to +2)', short: 'trials of one coffee', goal: () => oneCoffeeTrials(), prog: () => Math.round(2 * Math.max(0, ...Object.values((S.spec && S.spec.terroir) || {}))) },
+    { unit: 'farms with a terroir trial', short: 'farms with a trial', goal: () => Math.max(1, trialFarms().length), prog: () => { const tri = (S.spec && S.spec.tri) || {}; return trialFarms().filter((l) => Object.keys(tri).some((k) => tri[k] === true && k.endsWith('@' + l))).length; } }]
+};
+const mwTier = (t) => (mwOn() && t >= 1 && t <= 2 && S.spec && MW[S.spec.cur] ? MW[S.spec.cur][t - 1] : null);
+const specUnit = (t) => { const f = mwTier(t), d = S.spec && SPECS[S.spec.cur]; return f ? f.unit : d ? d.unit : ''; };
 function specSet(k, fresh) {   /* a new focus: its goal counts from now */
   if (!SPECS[k] || !specOk(k)) return;
   S.spec = S.spec || { stars: {} }; S.spec.stars = S.spec.stars || {};
-  S.spec.cur = k; S.spec.base = SPECS[k].stat(); S.spec.tier = 0; S.spec.done = false; S.spec.seen = 0; if (fresh) { S.spec.swap = false; S.spec.tri = {}; S.spec.terroir = {}; }
+  S.spec.cur = k; S.spec.base = SPECS[k].stat(); S.spec.tier = 0; S.spec.done = false; S.spec.seen = 0; S.spec.mw = {}; if (fresh) { S.spec.swap = false; S.spec.tri = {}; S.spec.terroir = {}; }
   if (k === 'grow') LOCS.forEach((l) => { const f = S.farms[l]; f.comp = f.comp || []; for (let b = 0; b < 4; b++) if (!f.comp[b]) f.comp[b] = 'legume'; });   /* bare fields start with legumes */
   if (k === 'mill' && S.spec.seal === undefined) S.spec.seal = 1;   /* the tanks start at one shift */
 }
@@ -1193,9 +1217,13 @@ function specCheck() {
   const p = specProg(), t = specTier(); if (p > 0) sp.fresh = false;
   if (p > (sp.seen || 0) && p < specGoal(t)) floats.push({ x: 96, y: 58, text: d.name + ' ' + p + ' / ' + specGoal(t), t: 0 });   /* each step shows */
   sp.seen = p; if (p < specGoal(t)) return;
-  sp.tier = t + 1; sp.done = sp.tier >= 3; BEACON.ev('focus_tier', { key: sp.cur, m: sp.tier, min: Math.round(S.minutesTotal - (S.runMin0 || 0)), p: S.prestige }); sp.stars[sp.cur] = Math.min(9, (sp.stars[sp.cur] || 0) + 1); const first = !S.sitems.title['sp:' + sp.cur]; S.sitems.title['sp:' + sp.cur] = true; SFX.play('achieve');
-  bursts.push({ x: 96, y: 60, vx: 0, vy: -10, t: 0, c: '#F2C04A' }); floats.push({ x: 96, y: 52, text: '★ ' + d.name + ' tier ' + sp.tier + (sp.done ? ' · all three this run' : ' · next ' + specGoal(sp.tier)), t: 0 });
-  if (first) later(d.title, 'Your first ' + d.name + ' star', '<h2>' + d.title + '</h2>' + img(d.pic, 52) + '<p class="note">' + d.name + ' tier 1 reached: <b>' + d.title + '</b> is yours to wear (Looks › Title). Each run has three tiers, sized to your prestige, and every tier is a star.</p><button class="btn green" data-act="close">Lovely</button>');
+  const f = mwTier(t);
+  sp.tier = t + 1; sp.done = sp.tier >= 3; BEACON.ev('focus_tier', { key: sp.cur, m: sp.tier, t: f ? 'feat' : 'count', min: Math.round(S.minutesTotal - (S.runMin0 || 0)), p: S.prestige }); sp.stars[sp.cur] = Math.min(9, (sp.stars[sp.cur] || 0) + 1); const first = !S.sitems.title['sp:' + sp.cur]; S.sitems.title['sp:' + sp.cur] = true; SFX.play('achieve');
+  const nx = mwTier(sp.tier);
+  bursts.push({ x: 96, y: 60, vx: 0, vy: -10, t: 0, c: '#F2C04A' }); floats.push({ x: 96, y: 52, text: '★ ' + d.name + (f ? ' ' + MW_NAMES[t].toLowerCase() : ' tier ' + sp.tier) + (sp.done ? ' · all three this run' : nx ? ' · next: ' + MW_NAMES[sp.tier].toLowerCase() : ' · next ' + specGoal(sp.tier)), t: 0 });
+  sp.seen = sp.done ? 0 : specProg();
+  if (f && sp.done && !S.sitems.title['mw:' + sp.cur]) { S.sitems.title['mw:' + sp.cur] = true; SFX.play('fanfare'); later(MW_TITLE[sp.cur], d.name + ' masterwork', '<h2>Masterwork: ' + MW_TITLE[sp.cur] + '</h2>' + img(d.pic, 52) + '<p class="note">' + d.name + ' tier 3, the masterwork: ' + MW[sp.cur][1].unit + '. <b>' + MW_TITLE[sp.cur] + '</b> is yours to wear (Looks › Title).</p><button class="btn green" data-act="close">Wonderful</button>'); }
+  else if (first) later(d.title, 'Your first ' + d.name + ' star', '<h2>' + d.title + '</h2>' + img(d.pic, 52) + '<p class="note">' + d.name + ' tier 1 reached: <b>' + d.title + '</b> is yours to wear (Looks › Title). Each run has three tiers, sized to your prestige, and every tier is a star.' + (mwOn() ? ' Tiers 2 and 3 are feats: precision, then a masterwork.' : ' From prestige ' + MW_P + ', tiers 2 and 3 become feats of skill.') + '</p><button class="btn green" data-act="close">Lovely</button>');
 }
 const specStars = (k) => (S.spec && S.spec.stars && S.spec.stars[k]) || 0;
 function specPicker(act, sel) {   /* the five focuses as rows to pick from */
@@ -1207,15 +1235,17 @@ function focusFirst(k) { const g = FOCUS_GO[k]; if (!g) return; showModal('<h2>F
 function focusAct() { const k = S.spec && S.spec.cur; closeModal(); if (!k) { S.rankSub = 'prestige'; setTab('ranks'); return; } if (k === 'grow' || k === 'wander') { S.farmSub = 'fields'; setTab('farm'); } else if (k === 'roast') setTab('roast'); else setTab('mill'); }
 function specChip() {   /* the focus on the map: one pinned goal */
   const sp = S.spec, d = sp && SPECS[sp.cur]; if (S.prestige >= SPEC_P && !d) return 'Pick a focus'; if (!d || S.prestige < SPEC_P) return '';
-  return sp.done ? d.name + ' ★★★' : d.name + ' ' + Math.min(specProg(), specGoal(specTier())) + '/' + specGoal(specTier());
+  const f = mwTier(specTier());
+  return sp.done ? d.name + ' ★★★' : d.name + (f ? ' ' + MW_NAMES[specTier()].toLowerCase() : '') + ' ' + Math.min(specProg(), specGoal(specTier())) + '/' + specGoal(specTier());
 }
 function specCard() {   /* the Focus card above the prestige button */
   if (S.prestige < SPEC_P) return '<p class="note"><b>Focus</b> · from prestige ' + SPEC_P + ' each run has a focus: Grower, Miller, Roaster, Trader or Wanderer, each changing how one part of the farm plays.</p>';
   const sp = S.spec, d = sp && SPECS[sp.cur];
   if (!d) return '<h3>Choose your focus</h3><p class="note">It changes how one part of the farm plays for this run, with goals and a title. You can change it once a run.</p>' + specPicker('specpick', '');
-  const t = specTier(), n = specGoal(Math.min(2, t)), got = Math.min(n, specProg());
-  let h = '<h3>Focus: ' + d.name + (specStars(sp.cur) ? ' <span style="color:var(--gold,#C89A2A)">★' + specStars(sp.cur) + '</span>' : '') + '</h3>' + row(img(d.pic, 30), d.bonus, sp.done ? 'All three tiers this run' : 'Tier ' + (t + 1) + ' of 3: ' + got + ' / ' + n + ' ' + d.unit, '');
+  const t = specTier(), n = specGoal(Math.min(2, t)), got = Math.min(n, specProg()), f = mwTier(Math.min(2, t));
+  let h = '<h3>Focus: ' + d.name + (specStars(sp.cur) ? ' <span style="color:var(--gold,#C89A2A)">★' + specStars(sp.cur) + '</span>' : '') + '</h3>' + row(img(d.pic, 30), d.bonus, sp.done ? 'All three tiers this run' + (f ? ', masterwork included' : '') : 'Tier ' + (t + 1) + ' of 3' + (f ? ', ' + MW_NAMES[t].toLowerCase() : '') + ': ' + got + ' / ' + n + ' ' + specUnit(t), '');
   h += '<div class="bar"><i style="width:' + Math.round((sp.done ? 1 : got / n) * 100) + '%"></i></div>';
+  if (!sp.done) h += '<p class="note">' + (!mwOn() ? 'From prestige ' + MW_P + ', tiers 2 and 3 become feats of skill: precision, then a masterwork.' : t === 0 ? 'Then tier 2, precision: ' + MW[sp.cur][0].unit + '. Tier 3, masterwork: ' + MW[sp.cur][1].unit + ', and the ' + MW_TITLE[sp.cur] + ' title.' : t === 1 ? 'Then tier 3, masterwork: ' + MW[sp.cur][1].unit + ', and the ' + MW_TITLE[sp.cur] + ' title.' : 'The masterwork brings the ' + MW_TITLE[sp.cur] + ' title.') + '</p>';
   h += sp.swap ? '<p class="note">You changed focus this run already. Pick again at your next prestige.</p>' : S.specOpen ? '<p class="note">Change once this run. The new goals count from now.</p>' + specPicker('specpick', sp.cur) : '<button type="button" class="linkbtn" data-act="specopen">Change focus (once a run)</button>';
   return h;
 }
@@ -1320,6 +1350,7 @@ const titleText = (k) => { if (!k) return ''; const [a, b] = k.split(':');
   if (a === 'nbt') { const t = NB_TOTALS.find((x) => x[1] === b); return t ? t[2] : ''; }
   if (a === 'rr') return b === 'crack' ? 'Crack master' : 'Master roaster';
   if (a === 'sp' && SPECS[b]) return SPECS[b].title + (specStars(b) > 1 ? ' ★' + specStars(b) : '');
+  if (a === 'mw' && MW_TITLE[b]) return MW_TITLE[b];
   if (a === 'ev') return b === 'steady' ? 'Steady hands' : b === 'trouble' ? 'Troubleshooter' : '';
   if (a === 'ct') return b === 'nbr' ? 'Neighbourhood roaster' : b === 'conf' ? 'Counter confidant' : '';
   if (a === 'kona') return b === 'master' ? 'Fermentation master' : '';
@@ -1448,7 +1479,7 @@ const RAPRON = { plain: { name: 'Charcoal' }, denim: { name: 'Denim', c: ['#6A8A
 const SHOP_F = 112;   /* how much lower the shop front sits since the café went in (H - 240) */
 const RPROP = { plants: { name: 'Hanging plants', at: [156, 208 + SHOP_F] }, record: { name: 'Record player', at: [152, 131] }, neon: { name: 'Neon COFFEE sign', at: [120, 213 + SHOP_F] }, booth: { name: 'Velvet booth', at: [56, 152] },
   maneki: { name: 'Maneki-neko', at: [113, 129] }, cat: { name: 'Shop cat', at: [145, 103] }, siphon: { name: 'Siphon bar', at: [132, 124] },
-  evbell: { name: 'Manager\'s bell', at: [123, 132] }, evreview: { name: 'Five-star review', at: [128, 104] } };   /* keepsakes from Karen: no shop charm, they're not for sale */
+  evbell: { name: 'Manager\'s bell', at: [123, 132] }, evreview: { name: 'Five-star review', at: [128, 104] } };   /* keepsakes from Mrs. Okada: no shop charm, they're not for sale */
 const RCOS = [   /* every item that isn't a default or a season item; src says how to earn it, and coins or cranes how to buy it.
      An item with a reputation level is a reward: it stays locked until that level and then comes free, so it has no price */
   { id: 'fin:copper', src: { rep: 5 } }, { id: 'fin:showa', src: { rep: 9 } }, { id: 'fin:sakura', src: { coins: 1.2e6 } }, { id: 'fin:beju', src: { rep: 14 } },
@@ -1650,7 +1681,7 @@ function roasteryTick() {
       if (d >= 1) r.dropped = 'burnt'; else if (scene() !== 'roast' && d >= DEV[r.profile][0]) r.dropped = 'auto'; else continue; }   /* the Roaster's development: wait for the drop; off the Roast screen it drops itself */
     if (!r.dev && roastP(r) < 1) continue;
     if (!r.auto) BEACON.ev('roast_done', { key: r.profile, t: r.dropped ? 'drop' : r.crack === 1 ? 'crack' : r.crack === 2 ? 'miss' : 'none', m: r.dropped === r.profile ? 3 : r.dropped === 'burnt' ? 0 : r.dropped === 'auto' ? 2 : r.dropped ? 1 : 0 });
-    const onT = r.dropped === r.profile, burnt = r.dropped === 'burnt'; if (r.dropped && !onT && !burnt && DEV[r.dropped]) r.profile = r.dropped; if (onT && S.spec) S.spec.drops = (S.spec.drops || 0) + 1;
+    const onT = r.dropped === r.profile, burnt = r.dropped === 'burnt'; if (r.dropped && !onT && !burnt && DEV[r.dropped]) r.profile = r.dropped; if (onT && S.spec) S.spec.drops = (S.spec.drops || 0) + 1; if (specOn('roast') && r.dropped && r.dropped !== 'auto') { const m = mwSt(); if (onT) { m.prof = m.prof || {}; m.prof[r.profile] = 1; } mwRun(m, onT); }   /* masterwork: the profiles landed and the run in a row (drops made for you don't count) */
     const [v, m] = r.key.split('.'), best = bestRoast(v, m) === r.profile;
     const q = Math.max(20, Math.min(100, Math.round(r.cup - 40 + (best ? 15 : -5) + (r.crack === 1 ? 15 : 0) + (repLevel() >= 6 ? 5 : 0) + (onT ? 20 : 0) - (burnt ? 15 : 0))));
     const sr = seasonRoast(), seasonal = sr && sr.known && r.profile === sr.profile && (!sr.method || r.key.split('.')[1] === sr.method);
@@ -1721,7 +1752,7 @@ function counterPanel() {
   if (s) {
     h += '<h3>At the counter</h3>';
     h += s.q.length ? s.q.map((c, i) => row(ctAv(c), (c.reg ? '★ ' : '') + c.who + ' · ' + ROASTS[c.profile].name.toLowerCase() + ' ×' + (c.n - c.got), (c.key ? beanName(c.key) : 'any coffee') + ' · ' + (c.kind === 'pre' ? 'pre-order' : c.reg ? 'regular' : 'walk-in') + (i >= CT_QUEUE.length ? ' · in line' : '') + '<span class="bar" style="display:block"><i style="width:' + Math.round(Math.max(0, c.pat / c.patMax) * 100) + '%;background:' + (c.pat / c.patMax > 0.5 ? '#6CB86A' : c.pat / c.patMax > 0.25 ? '#F2A040' : '#E84A3A') + '"></i></span>', i < CT_QUEUE.length ? ctAction(c, true) : '')).join('') : '<p class="note">Nobody waiting just now. Pre-orders arrive in the first two minutes, walk-ins every minute or so.</p>';
-    if (revOn('karen')) h += '<p class="rule"><b>Karen is holding up the queue.</b> Settle her on the map before you can serve anyone.</p>';
+    if (revOn('karen')) h += '<p class="rule"><b>Mrs. Okada is holding up the queue.</b> Hear her out on the map before you can serve anyone.</p>';
   }
   const board = (C.pre || []).filter((p) => p.state === 'board');
   if (board.length) {
@@ -1771,7 +1802,7 @@ const FARM_LEVEL = { huila: 3, gedeo: 5, toba: 7, turrialba: 9 };   /* the lowes
 /* each farm reopens at a share of the XP the run needs for the next prestige, so reopening stays a string of milestones through the run at every prestige, not a minute's work */
 const FARM_WAKE = { huila: 0.02, gedeo: 0.05, toba: 0.10, turrialba: 0.18 };
 const wakeLevel = (l, p) => { const need = PRESTIGE_LEVEL + 8 * p, x = FARM_WAKE[l] * XP_AT(need); let lv = 1; while (x >= XP_AT(lv + 1)) lv++; return Math.max(FARM_LEVEL[l], lv); };
-const TIERS = ['Seedling', 'Bronze Bean', 'Silver Leaf', 'Gold Cherry', 'Jade Highland', 'Sakura', 'Obsidian Ember', 'Golden Crane', 'Inferno', 'Heaven', 'Cosmos'];   /* a crest for every prestige up to 10; past it, a star a prestige */
+const TIERS = ['Seedling', 'Bronze Bean', 'Silver Leaf', 'Gold Cherry', 'Jade Highland', 'Sakura', 'Obsidian Ember', 'Golden Crane', 'Inferno Roast', 'Heaven\'s Cup', 'Cosmos Cherry'];   /* a crest for every prestige up to 10; past it, a star a prestige */
 const PLATES = ['seed', 'bronze', 'silver', 'gold', 'jade', 'sakura', 'ember', 'crane', 'inferno', 'heaven', 'cosmos'];
 const SKINS = [
   { name: 'Picker', from: 'the farm', shirt: ['#7890E0', '#4860C0', '#304090'], hat: ['#F4DE9C', '#D8B868', '#A88440'], pants: ['#5A6A86', '#3E4A64'] },
@@ -1782,7 +1813,7 @@ const SKINS = [
   { name: 'Rōnin roaster', from: 'Osaka', shirt: ['#3A4A8A', '#2A346A', '#1A2248'], hat: ['#C8A870', '#8A6A3A', '#5A4220'], pants: ['#2A2A3A', '#1A1A28'], aura: 'petal' },
   { name: 'Ember roaster', from: 'the roastery', shirt: ['#2A2228', '#1A1418', '#E8602A'], hat: ['#3A2E2A', '#E8602A', '#F2C04A'], pants: ['#1A1418', '#0E0A0C'], aura: 'ember' },
   { name: 'Crane master', from: 'Beju', shirt: ['#FFFFFF', '#E8E2D0', '#E8B830'], hat: ['#F2D060', '#E8B830', '#A87818'], pants: ['#F4ECDC', '#C8B890'], aura: 'gold' },
-  { name: 'Hellfire roaster', from: 'the inferno', shirt: ['#3A0A0A', '#1E0404', '#FF6A1A'], hat: ['#1A0606', '#C81E0A', '#FFB020'], pants: ['#1E0606', '#0E0202'], aura: 'hellfire' },
+  { name: 'Inferno roaster', from: 'past second crack', shirt: ['#3A0A0A', '#1E0404', '#FF6A1A'], hat: ['#1A0606', '#C81E0A', '#FFB020'], pants: ['#1E0606', '#0E0202'], aura: 'hellfire' },
   { name: 'Seraph', from: 'the heavens', shirt: ['#FFFFFF', '#EEF2FA', '#F2C04A'], hat: ['#FFF4C0', '#F2D060', '#FFFFFF'], pants: ['#F8F4EA', '#D8D0BC'], aura: 'feather' },
   { name: 'Cosmic roaster', from: 'beyond the stars', shirt: ['#1A1030', '#0E0820', '#F2C04A'], hat: ['#F0D8FF', '#C08AF0', '#7EE0F0'], pants: ['#140C24', '#0A0614'], aura: 'cosmos' }
 ];
@@ -2057,7 +2088,7 @@ const whaleOpen = () => ORIGINS.every((l) => S.stamps[l]);
 const phatOwn = (k) => !!PHATS[k] && S.prestige >= PHATS[k].p;
 /* picker crews from prestige 8: pickers and the farm shiba in the crest's colours, wearing its hat; your highest crew unless you pick another or Classic */
 const CREWS = {
-  p8: { name: 'Demons', shirt: ['#3A0A0A', '#1E0404', '#FF6A1A'], swap: { '#F8D2B0': '#E0503A', '#E2A882': '#A82A18' }, dog: { '#E89048': '#8A1A10', '#C86C30': '#5A0A04', '#FFF4E4': '#2A1A18', '#F8B070': '#E8401A' } },
+  p8: { name: 'Ember imps', shirt: ['#3A0A0A', '#1E0404', '#FF6A1A'], swap: { '#F8D2B0': '#E0503A', '#E2A882': '#A82A18' }, dog: { '#E89048': '#8A1A10', '#C86C30': '#5A0A04', '#FFF4E4': '#2A1A18', '#F8B070': '#E8401A' } },
   p9: { name: 'Angels', shirt: ['#FFFFFF', '#EEF2FA', '#F2C04A'], swap: { '#F8D2B0': '#FFE8D8', '#E2A882': '#F0C8A8' }, dog: { '#E89048': '#FFFFFF', '#C86C30': '#E8E2D0', '#FFF4E4': '#FFF8E0', '#F8B070': '#F2D060' } },
   p10: { name: 'Celestial colossi', shirt: ['#2A1650', '#1A0E38', '#7EE0F0'], swap: { '#F8D2B0': '#A8C8F8', '#E2A882': '#7A8AE0' }, dog: { '#E89048': '#9A7AE8CC', '#C86C30': '#5A3AA8CC', '#FFF4E4': '#D8F0FFCC', '#F8B070': '#7EE0F0' } }
 };
@@ -2194,7 +2225,7 @@ function drawBarn(t, x, y, tm) {
 const REM_AT = { rack: 1 / 3, roast: 2 / 3 };
 const remTop = (k) => { const t = tierOf(S.prestige); if (t < 7 || !REM_AT[k]) return t; return level() >= Math.ceil(prestigeNeed() * REM_AT[k]) ? t : t - 1; };
 const remLevel = (k) => Math.ceil(prestigeNeed() * REM_AT[k]);
-const REM_NAME = { rack: { 7: 'Lacquer', 8: 'Lava', 9: 'Cloud', 10: 'Rift' }, roast: { 7: 'Pagoda', 8: 'Hellmaw', 9: 'Seraph', 10: 'Rift engine' } };
+const REM_NAME = { rack: { 7: 'Lacquer', 8: 'Lava', 9: 'Cloud', 10: 'Rift' }, roast: { 7: 'Pagoda', 8: 'Ember Maw', 9: 'Seraph', 10: 'Rift engine' } };
 function remCheck() {   /* a moment when the racks or roasters of the new tier arrive */
   S.remSeen = S.remSeen || {}; if (S.remSeen.p !== S.prestige) S.remSeen = { p: S.prestige };   /* a new prestige (or a save from before): start from where it stands */
   ['rack', 'roast'].forEach((k) => { const t = remTop(k); if (S.remSeen[k] === undefined) { S.remSeen[k] = t; return; } if (t > S.remSeen[k] && t >= 7) { S.remSeen[k] = t;
@@ -2691,20 +2722,20 @@ function tick(dt) {
   for (let i = bursts.length - 1; i >= 0; i--) if (bursts[i].t > 0.6) bursts.splice(i, 1);
 }
 /* ---------- random events: now and then trouble turns up while you play: wild pigs in a field, hornets nesting in the mill,
-   a Karen at the roastery counter. Each costs a little income until you stop it with a few taps, and pays only in cosmetics:
+   Mrs. Okada, a particular regular, at the roastery counter. Each costs a little income until you stop it with a few taps, and pays only in cosmetics:
    the fifth stop of an event brings its keepsake, and its rare variant (1 in 20) a rare one. Events wait while you're away,
    never start during the lessons or over a window, and give up after 10 minutes of play. Their sounds are in event-sfx.js */
 const REV_FIRST = 180, REV_GAP = 300, REV_ROLL = 60, REV_CHANCE = 0.3, REV_MAX = 600, REV_RARE = 1 / 20, REV_COS = 5, REV_SHARE = 0.12;   /* seconds of play: the first roll comes 1 minute into a session, whenever the last event was; after that 5 or more between events (about 8 on average) */
 const REV_BEDS = [[10, 110, 80, 42], [104, 110, 80, 42], [10, 158, 80, 42], [104, 158, 80, 42]];   /* each field's patch of ground, in shrub order */
 const PIG_OFF = [[6, 26], [32, 10], [56, 28], [60, 2], [8, 4], [34, 30]];   /* where the pigs root about in a field */
 const KAREN_Q = [   /* her complaint, the reply that settles her, and two that don't */
-  ['This was meant to be LIGHT!', 'Swap it for a light roast', 'That is a light roast', 'Here\'s 10% off'],
-  ['This bag is STALE!', 'Here\'s a fresh bag, on us', 'It was roasted last week', 'Coffee keeps for months'],
-  ['I waited FOREVER!', 'Sorry! Yours is next', 'We\'re very busy today', 'It\'s only been a minute'],
-  ['It tastes BURNT!', 'Try our medium roast instead', 'That\'s how dark tastes', 'Add some milk to it']
+  ['This was meant to be light, dear.', 'Swap it for a light roast', 'That is a light roast', 'Here\'s 10% off'],
+  ['This bag tastes stale to me.', 'Here\'s a fresh bag, on us', 'It was roasted last week', 'Coffee keeps for months'],
+  ['I\'ve been waiting quite a while.', 'Sorry! Yours is next', 'We\'re very busy today', 'It\'s only been a minute'],
+  ['It tastes burnt. I know burnt.', 'Try our medium roast instead', 'That\'s how dark tastes', 'Add some milk to it']
 ], KAREN_HARD = [   /* from prestige 3 */
   ['Too sour! And too bitter!', 'Let me pick a balanced one', 'It can\'t be both', 'Try the other bag then'],
-  ['The label said FRUITY!', 'Try our natural process', 'It is fruity', 'Labels can be wrong']
+  ['The label said fruity. Where is the fruit?', 'Try our natural process', 'It is fruity', 'Labels can be wrong']
 ];
 const karenQ = (E) => KAREN_Q.concat(KAREN_HARD)[E.q] || KAREN_Q[0];
 /* keepsakes: where each one goes and how it shows or hides */
@@ -2717,7 +2748,7 @@ const REV_COSM = {
   review: { name: 'Five-star review', pic: 'rp_evreview', where: 'framed on the roastery wall', own: () => !!S.rcos.own['prop:evreview'], give() { S.rcos.own['prop:evreview'] = true; }, on: () => !S.rcos.hide['prop:evreview'], flip() { S.rcos.hide['prop:evreview'] = !S.rcos.hide['prop:evreview']; } }
 };
 let revSess = 0, revSessEv = false, revRollT = 0, revH = null, revHere = null, revShown = '', catching = false, revNoDryLots = new Set(), revChips = [];
-const revGone = [];   /* what leaves the map once an event ends: bolting pigs, scattering hornets, Karen on her way out */
+const revGone = [];   /* what leaves the map once an event ends: bolting pigs, scattering hornets, Mrs. Okada on her way out */
 const revOn = (id) => { const E = (S.rev || {}).cur; return !!E && E.id === id && !catching; };   /* in force: its harm applies, except while catching up after time away */
 const revNoDry = (l) => !catching && (revNoDryLots.has(l) || revStorm('mill'));
 const revFarms = () => LOCS.filter((l) => l !== 'osaka' && S.farms[l].unlocked && !S.dormant[l] && S.farms[l].shrubs.length >= 8);
@@ -2820,7 +2851,7 @@ const REVS = {
     leave(E) { E.swarm.forEach((ri) => { const r = rackAt(ri); for (let i = 0; i < 4; i++) { const a = Math.random() * 6.28; revGone.push({ map: 'mill', spr: E.rare ? 'ev_bee_' : 'ev_hornet_', anim: true, x: r.x + 20, y: r.y + 4, vx: Math.cos(a) * 60, vy: Math.sin(a) * 40 - 20, t: 0, life: 2.5 }); } }); },
     done: 'smoked out!', gone: () => 'The hornets moved on from the mill by themselves'
   },
-  karen: { name: 'Karen at the counter', short: 'Karen', map: 'roast', cos: 'bell', rareCos: 'review', ok: () => roasteryOpen(),
+  karen: { name: 'Mrs. Okada at the counter', short: 'Mrs. Okada', map: 'roast', cos: 'bell', rareCos: 'review', ok: () => roasteryOpen(),
     start(E) {
       E.q = Math.floor(Math.random() * (KAREN_Q.length + (S.prestige >= 3 ? KAREN_HARD.length : 0))); E.order = [1, 2, 3].sort(() => Math.random() - 0.5); E.open = false; E.loud = 0;
       IN.roast.guests.forEach((g) => { g.seat = undefined; g.state = 'out'; g.path = [{ x: DOOR.x, y: g.y }, { x: DOOR.x, y: DOOR.y }]; });   /* the other customers make for the door */
@@ -2828,7 +2859,7 @@ const REVS = {
     valid: () => roasteryOpen(), here: () => scene() === 'roast',
     box: (E) => (E.open ? [92, 154, 88, 76] : E.rare ? [120, 155, 20, 25] : [122, 156, 16, 24]),   /* with her replies, once they're up */
     face: (E) => (E.rare ? [120, 155, 20, 25] : [122, 156, 16, 24]),
-    warn: (E) => (E.rare ? 'A Karen in her Sunday best (and her dog) is' : 'A Karen is') + ' complaining at the roastery counter! Bags sell for less until she\'s happy',
+    warn: (E) => { const n = ((S.rev.log.karen || {}).n || 0); return (E.rare ? 'Mrs. Okada, in her Sunday best (with Mochi the dog), is' : 'Mrs. Okada is') + (n >= 8 ? ' back with notes, fondly,' : n >= 3 ? ' back, and particular as ever,' : '') + ' at the roastery counter. Bags sell for less until she\'s happy'; },   /* a fussy regular: from complaints to a fan, the more often you hear her out */
     how: (E) => (E.open ? (E.loud > 0 ? 'She\'s shouting! Pick the reply that settles her' : 'Pick the reply that settles her') : 'Tap her to hear her out'),
     tick(E, d) { if (E.loud > 0) E.loud = Math.max(0, E.loud - d); },
     draw(E, time) { const bob = Math.floor(time * 3) % 2 ? 0 : -1, sh = E.loud > 0 ? Math.round(Math.sin(time * 40)) : 0; if (E.rare) fx.drawImage(sprite('ev_karen_hat'), 120 + sh, 155 + bob); else fx.drawImage(sprite('ev_karen'), 122 + sh, 156 + bob); },
@@ -2853,7 +2884,7 @@ const REVS = {
       return false;
     },
     leave(E) { revGone.push({ map: 'roast', spr: E.rare ? 'ev_karen_hat' : 'ev_karen', x: E.rare ? 120 : 122, y: E.rare ? 155 : 156, vx: -5, vy: 36, t: 0, life: 6 }); },
-    done: 'all smiles!', gone: () => 'Karen gave up and stormed out of the roastery'
+    done: 'all smiles!', gone: () => 'Mrs. Okada sighed and went home. She\'ll be back'
   }
 };
 /* the other seven: leaf rust, monkeys and crows on the farms, rats in the mill, a power cut and a roaster fire in the roastery, and the
@@ -3203,7 +3234,7 @@ function revDecor(sc, time) {   /* the keepsakes on each map */
 function revSfx(name, n) { if (revH) revH.hit(name, n); }
 function revStart(id, opt) {   /* a random event now; opt.rare forces the rare variant or the usual one (the Test tab) */
   const R = S.rev; if (R.cur) return false;
-  if (!id) { const ids = Object.keys(REVS).filter((k) => !REVS[k].special && REVS[k].ok() && !(ctOpen() && REVS[k].map === 'roast')); id = REVS.typhoon.ok() && !ctOpen() && Math.random() < 0.15 ? 'typhoon' : ids[Math.floor(Math.random() * ids.length)]; if (!id) return false; }   /* while the counter is open, the roastery's events and the typhoon wait (Karen has her own roll there) */   /* the typhoon takes a regular event's place, at most once a season */
+  if (!id) { const ids = Object.keys(REVS).filter((k) => !REVS[k].special && REVS[k].ok() && !(ctOpen() && REVS[k].map === 'roast')); id = REVS.typhoon.ok() && !ctOpen() && Math.random() < 0.15 ? 'typhoon' : ids[Math.floor(Math.random() * ids.length)]; if (!id) return false; }   /* while the counter is open, the roastery's events and the typhoon wait (Mrs. Okada has her own roll there) */   /* the typhoon takes a regular event's place, at most once a season */
   const D = REVS[id]; if (!D || !(D.ok() || (opt && opt.force && D.special))) return false;   /* force: the Test tab's typhoon, out of season */
   const rare = opt && opt.rare !== undefined ? !!opt.rare : Math.random() < REV_RARE * (R.boost > Date.now() ? 2 : 1);
   const E = { id, rare, t: 0, cost: 0, at: Date.now() }; D.start(E); R.cur = E; R.seen = true; revSessEv = true;
@@ -3215,7 +3246,7 @@ function revEnd(stopped) {   /* stopped by you, or let go: it gave up after 10 m
   R.cur = null; R.since = 0; revRollT = REV_ROLL; revChips = []; revNoDryLots = new Set();
   if (revH) { if (stopped) revH.clear(); else revH.leave(); revH = null; } revHere = null;
   const D = REVS[E.id];
-  if (E.counter && ctOpen()) { const C = S.counter, r0 = C.rating; C.rating = Math.round((stopped ? Math.min(5, C.rating + CT_SERVE) : Math.max(1, C.rating - CT_WALKOUT)) * 100) / 100; if (!stopped) C.sess.out += 1; ctStarSfx(r0); }   /* Karen at the counter: settled counts as a customer served, stormed off as a walk-out */
+  if (E.counter && ctOpen()) { const C = S.counter, r0 = C.rating; C.rating = Math.round((stopped ? Math.min(5, C.rating + CT_SERVE) : Math.max(1, C.rating - CT_WALKOUT)) * 100) / 100; if (!stopped) C.sess.out += 1; ctStarSfx(r0); }   /* Mrs. Okada at the counter: settled counts as a customer served, stormed off as a walk-out */
   if (stopped) revReward(E); else { if (D.leave) D.leave(E); R.streak = 0; toast(D.gone(E)); }
   if (stopped && D.leave && E.id !== 'pigs') D.leave(E);
 }
@@ -3703,7 +3734,9 @@ function millRoute(o, to) {
 const rackFoot = (i) => { const r = rackAt(i); return { x: r.x + 10 + rnd() * 20, y: r.y + 24 }; };
 function millSold(i, text) {   /* a sold lot leaves its rack on someone's shoulder, bound for the truck */
   if (S.lots[i]) S.runBest = Math.max(S.runBest || 0, lotCup(S.lots[i]));
-  { const l = S.lots[i]; if (l && specOn('grow') && compCup(l.v) > 0 && lotCup(l) >= 90) S.spec.g90 = (S.spec.g90 || 0) + 1; if (l && specOn('mill') && l.seal) { const bk = (S.spec.book = S.spec.book || {}), key = l.v + '.' + l.method; if (!l.sour && (bk[key] === undefined || lotCup(l) > bk[key])) bk[key] = Math.round(lotCup(l) * 10) / 10; } if (l && specOn('mill') && l.seal && !l.sour && lotCup(l) >= 90) S.spec.a92 = (S.spec.a92 || 0) + 1; }
+  { const l = S.lots[i]; if (l && specOn('grow') && compCup(l.v) > 0 && lotCup(l) >= 90) S.spec.g90 = (S.spec.g90 || 0) + 1; if (l && specOn('mill') && l.seal) { const bk = (S.spec.book = S.spec.book || {}), key = l.v + '.' + l.method; if (!l.sour && (bk[key] === undefined || lotCup(l) > bk[key])) bk[key] = Math.round(lotCup(l) * 10) / 10; } if (l && specOn('mill') && l.seal && !l.sour && lotCup(l) >= 90) S.spec.a92 = (S.spec.a92 || 0) + 1;
+    if (l && specOn('mill') && l.seal) { const m = mwSt(); mwRun(m, l.seal === 3 && !l.sour); if (!l.sour && lotCup(l) >= 90) { m.pairs = m.pairs || {}; m.pairs[l.v + '.' + l.method] = 1; } }   /* masterwork: a clean three-shift run, and the pairs sealed */
+    if (l && specOn('grow') && compCup(l.v) >= 2 - 1e-9) { const m = mwSt(); m.full = (m.full || 0) + 1; if (LOCS.filter((x) => S.farms[x].unlocked && S.farms[x].beds.slice(0, S.farms[x].field ? 4 : 3).includes(l.v)).length >= 3) m.full3 = (m.full3 || 0) + 1; } }   /* masterwork: a coffee shaded on every field it grows on */
   const k = lotSlot.get(S.lots[i]); if (scene() !== 'mill' || k === undefined || k >= RACK_SHOWN) return;
   const r = rackAt(k), c = Object.assign(walker(r.x + 20, r.y + 24, { shirt: ART.shirts[(k + 3) % ART.shirts.length], hat: ART.hats[S.hat] }), { hand: true });
   floats.push({ x: r.x + 20, y: r.y + 2, text, t: 0 });
@@ -3838,7 +3871,7 @@ const CT = () => S.counter;
 const ctSess = () => (S.counter && S.counter.sess) || null;
 const ctOpen = () => !!ctSess();
 const ctWait = () => Math.max(0, (CT().next || 0) - Date.now());
-const ctBlockEv = () => { const E = (S.rev || {}).cur; return !!E && (revMap(E) === 'roast' || E.id === 'typhoon'); };   /* the power cut, the fire, Karen and the typhoon keep it shut */
+const ctBlockEv = () => { const E = (S.rev || {}).cur; return !!E && (revMap(E) === 'roast' || E.id === 'typhoon'); };   /* the power cut, the fire, Mrs. Okada and the typhoon keep it shut */
 const ctCanOpen = () => ctOn() && !ctOpen() && !ctWait() && !ctBlockEv() && S.guide >= GUIDE.length && ((S.counter.pre || []).length > 0 || ctPool().length > 0);   /* with something to sell */
 /* T1.2: a quick serve serves one walk-in from the shelf without a session — for short visits. One an hour, its own clock,
    independent of the session's 30-minute gap; pays walk-in rate and moves the rating like any served customer. */
@@ -3946,7 +3979,7 @@ function ctLeave(c, happy) {   /* off they go: a served customer sometimes sits 
 function ctStarSfx(r0) { const a = Math.floor(r0), b = Math.floor(CT().rating); if (b > a) shopSfx('starup'); else if (b < a) shopSfx('stardown'); }
 function ctServe(id, near) {   /* serve what's on the shelf: matching bags first; a wrong roast of the right coffee is taken at ×0.6 */
   const s = ctSess(), C = CT(), c = s && s.q.find((x) => x.id === id); if (!c) return false;
-  if (revOn('karen')) { SFX.play('nope'); tapNote('Settle Karen first', 'Karen is holding up the queue. Settle her first'); return false; }
+  if (revOn('karen')) { SFX.play('nope'); tapNote('Hear Mrs. Okada out first', 'Mrs. Okada is holding up the queue. Hear her out first'); return false; }
   if (s.q.indexOf(c) >= CT_QUEUE.length) { SFX.play('nope'); tapNote('Still in line', 'They\'re still in line. Serve the counter first'); return false; }
   const R = S.roastery; let n = 0, coins = 0, rep = 0, wrong = false;
   while (c.got < c.n) {
@@ -4002,7 +4035,7 @@ function counterTick(dt) {   /* real seconds of play, from the loop: a session's
   s.t += dt;
   while (s.arr.length && s.t >= s.arr[0]) { s.arr.shift(); const p = C.pre.find((x) => x.state === 'board'); if (p && ctArrive(Object.assign({}, p))) p.state = 'queue'; else if (p) { s.arr.push(s.t + 10); break; } }   /* a full queue: they come back a little later */
   if (s.t < CT_LEN - 20 && (s.walkT -= dt) <= 0) { s.walkT = (C.rating >= 4 ? 40 : 45) + rnd() * (C.rating >= 4 ? 10 : 15); ctWalkIn(); }
-  if (!S.rev.cur && !s.karen && (s.karenT -= dt) <= 0) { s.karenT = 60; if (rnd() < CT_KAREN && revStart('karen')) { s.karen = true; S.rev.cur.counter = true; } }   /* Karen comes more often during service: her own roll each minute, once a session */
+  if (!S.rev.cur && !s.karen && (s.karenT -= dt) <= 0) { s.karenT = 60; if (rnd() < CT_KAREN && revStart('karen')) { s.karen = true; S.rev.cur.counter = true; } }   /* Mrs. Okada comes more often during service: her own roll each minute, once a session */
   s.q.slice().forEach((c, i) => { if (!C.sess) return; c.pat -= dt; if (c.pat <= 0) ctWalkOut(c); else if (i < 3 && c.pat < 20 && !c.hurried) { c.hurried = true; shopSfx('hurry'); } });
   if (!C.sess) return;
   if (!s.last && s.t >= CT_LEN - 60) { s.last = true; shopSfx('lastcall'); toast('Last orders: a minute left at the counter'); }
@@ -6410,7 +6443,7 @@ function musicPage() {
   return h;
 }
 const NEWS = [   /* newest first; the card shows what arrived since you last saw it */
-  { v: '2026-11-09', title: 'Every farm awake, and a focus for each run', items: ['Farms no longer sleep after a prestige, for everyone. Old friends (prestige 4) now makes pickers 10% faster on every farm with a manager', 'From prestige 3, pick a focus for each run: Grower, Miller, Roaster, Trader or Wanderer. Each changes how one part of the farm plays, with three goals, a star for each and a title. You can change once a run: the new focus starts its goals again, and stars you\'ve won stay', 'The islands share one clock: Réunion trays, Bali storms and Galápagos tracks come every 4 hours and wait for you, so two visits a day find full work. If you sailed every half hour you\'ll get fewer runs; each pays as before, and every island starts full today', 'Season: 12 stars a tier instead of 15, so you may have tiers to claim now. Stars from days you miss carry over for up to three days. On equal stars, this season\'s know-how now decides, not who got there first', 'Co-ops: the Derby runs every week and counts your five best members (+10% when everyone plays), plus help, care packages and cheers. Co-op projects build a washing station, a shade grove or a cupping lab. And you can see who cheered your farm, and cheer them back', 'Coming back: Welcome back shows what you earned and what\'s waiting. Random events wait 3 minutes after you return, come once in a short visit, and stay on the farm, mill and roastery', 'Each prestige shows your run: time, best cup and focus stars. From prestige 7, a new tier\'s racks arrive a third of the way through the run and its roasters two thirds'] },
+  { v: '2026-11-09', title: 'Every farm awake, and a focus for each run', items: ['Farms no longer sleep after a prestige, for everyone. Old friends (prestige 4) now makes pickers 10% faster on every farm with a manager', 'From prestige 3, pick a focus for each run: Grower, Miller, Roaster, Trader or Wanderer. Each changes how one part of the farm plays, with three goals, a star for each and a title. You can change once a run: the new focus starts its goals again, and stars you\'ve won stay. From prestige 7, tiers 2 and 3 become feats: precision, then a masterwork with a title of its own', 'The islands share one clock: Réunion trays, Bali storms and Galápagos tracks come every 4 hours and wait for you, so two visits a day find full work. If you sailed every half hour you\'ll get fewer runs; each pays as before, and every island starts full today', 'Season: 12 stars a tier instead of 15, so you may have tiers to claim now. Stars from days you miss carry over for up to three days. On equal stars, this season\'s know-how now decides, not who got there first', 'Co-ops: the Derby runs every week and counts your five best members (+10% when everyone plays), plus help, care packages and cheers. Co-op projects build a washing station, a shade grove or a cupping lab. And you can see who cheered your farm, and cheer them back', 'Coming back: Welcome back shows what you earned and what\'s waiting. Random events wait 3 minutes after you return, come once in a short visit, and stay on the farm, mill and roastery', 'Mrs. Okada now keeps the Counter on its toes: a particular regular who warms to you the more you hear her out', 'Each prestige shows your run: time, best cup and focus stars. From prestige 7, a new tier\'s racks arrive a third of the way through the run and its roasters two thirds'] },
   { v: '2026-11-07', title: 'A steadier week', items: ['Prestiges 8, 9 and 10 each unlock something new, the climb past prestige 6 is gentler, and three new crests wait there', 'Coffee picks best at home: ×1.3 cherries on its native farm and ×0.85 elsewhere, so each farm has its own best coffee. The replant window marks it', 'More farm, less screen: hearts, level and store show when they matter; tap your coins to see everything. Settings › Screen switches back to Classic', 'The +500 know-how boost has gone from the Shop: cranes are for looks'] },
   { v: '2026-11-06', title: 'Faces, and fairer pay', items: ['Everyone you meet has a face of their own: the islanders, the estate managers, the Counter regulars and Rosa stroll, work and speak up on their maps; tap one to chat', 'Réunion\'s shed restocks a tray of seedlings every 30 minutes and keeps three, like Bali\'s barometer', 'Know-how no longer snowballs: island rewards and regulars\' requests stop raising the rate they\'re paid from', 'Welcome back shows the coins and know-how earned while you were away, and a cleared fourth field picks too', 'Shorter numbers in the top bar, and long notices come in short pieces', 'With a foreman, your pickers and mill keep going gently through the night', 'A new coffee plants straight from its unlock window; Rosa talks in the lesson bar', 'Settings start with your own options, now with haptics and a way to delete your online farm'] },
   { v: '2026-11-04', title: 'Your collection and your music', items: ['A collection log in Looks › Collection: everything you\'ve found in one place, with a rank as it grows', 'Music in Looks › Music: each place\'s song as you hear it, a jukebox to play any of them anywhere, and a setting for how often music plays', 'The daily check-in is now a calendar that never resets: miss a day and it simply waits for you', 'The odds of each rare find are shown where you find it, with how close you are to a sure one', 'And this card, whenever something new arrives. Find it again in Settings'] },
@@ -6737,7 +6770,7 @@ function deliver(i, id, quiet, haggle, staff) {
   { const tm = tradeMult(c); if (tm > 1) earn({ coins: Math.round(pay.coins * (tm - 1) * (staff || 1)) }); }   /* the Trader's bid on top */
   const npay = pay.points * (l.carry || 0); earn(staff ? { coins: Math.round(pay.coins * staff), points: pay.points, noXp: npay } : Object.assign({ noXp: npay }, pay)); if (l.cupped) earn({ coins: Math.round(pay.coins * (CUP_PAY - 1)) }); if (l.micro) earn({ coins: pay.coins }); if (rule('hina')) earn({ coins: Math.round(pay.coins * 0.1) });   /* buyers pay extra for hand-cupped coffee */
   if (done) {
-    S.contracts = S.contracts.filter((x) => x !== c); S.nextContract = Math.min(S.nextContract, S.minutesTotal + 10); S.stats.contracts = (S.stats.contracts || 0) + 1; SFX.play('contract'); if (specOn('trade') && c.t0 !== undefined && !c.fut && tradeMult(c) >= 1.2) S.spec.won = (S.spec.won || 0) + 1; BEACON.ev('contract_done', { key: (S.spec && S.spec.cur) || 'none', t: c.fut ? 'future' : c.t0 !== undefined ? 'bid' : staff ? 'agent' : 'plain', m: Math.round((tradeMult(c) - 1) * 100), p: S.prestige });
+    S.contracts = S.contracts.filter((x) => x !== c); S.nextContract = Math.min(S.nextContract, S.minutesTotal + 10); S.stats.contracts = (S.stats.contracts || 0) + 1; SFX.play('contract'); if (specOn('trade') && c.t0 !== undefined && !c.fut && tradeMult(c) >= 1.2) S.spec.won = (S.spec.won || 0) + 1; if (specOn('trade') && c.t0 !== undefined) { const m = mwSt(); if (c.fut) mwRun(m, S.minutesTotal <= c.fdue); else if (c.bidN === 3 && tradeMult(c) >= 1.4 - 1e-9) m.top = (m.top || 0) + 1; } BEACON.ev('contract_done', { key: (S.spec && S.spec.cur) || 'none', t: c.fut ? 'future' : c.t0 !== undefined ? 'bid' : staff ? 'agent' : 'plain', m: Math.round((tradeMult(c) - 1) * 100), p: S.prestige });
     star('contract'); task('contract', 1); if (c.event) star('drop'); if (c.cranes && !c.hm) { earn({ cranes: c.cranes }); SFX.play('crane'); } if (c.boat && !haggle) task('boat', 1);
     if (c.event && S.event) { S.event.done += 1; if (S.event.done >= 3) { earn({ cranes: 10 }); S.badges.push({ event: eventDrop() ? eventDrop().name : 'Drop event', label: 'Drop', rank: 99 }); setTimeout(() => later('Drop event complete!', 'The event badge and 10 cranes are yours', '<h2>Drop event complete!</h2><p class="note">All three event contracts are delivered. The event badge is on your profile, and 10 cranes are yours.</p><button class="btn green" data-act="close">Brilliant</button>'), 600); } }
     if (quiet || (S.stats.contracts > 1 && !c.boat && !c.event)) { toast('Contract for ' + c.buyer + ' complete: +' + fmt(c.coins) + ' coins, +' + fmt(c.points) + ' know-how in all'); return; }
@@ -6930,7 +6963,7 @@ function closeUp() {
   if (!S.staff.foreman) tips.push('A <b>foreman</b> (Farm › Staff) keeps the mill running while you sleep, so storage never stops the pickers.');
   else if (full < Math.min(capH, 8)) tips.push('Storage fills in about <b>' + (Math.round(full * 10) / 10) + ' h</b>. A bigger store (Farm › Upgrades, ' + fmtShort(UP.storage.cost(S.lv.storage)) + ' coins) keeps them picking longer.');
   if (S.lots.some((l) => !l.cupped)) tips.push('Cup the lots on the racks before you go: staff never cup, and cupped lots pay +' + Math.round((CUP_PAY - 1) * 100) + '%.');
-  const sp = S.spec && SPECS[S.spec.cur]; if (sp) tips.push('Focus: ' + specChip() + (S.spec.cur === 'mill' ? ' · your foreman seals lots at ' + SEAL_NAMES[sealLv()].toLowerCase() : S.spec.cur === 'trade' ? ' · your agent waits for +' + Math.round(tradeReserve() * 100) + '% bids' : S.spec.cur === 'grow' ? ' · companions count while you\'re away' : ''));
+  const sp = S.spec && SPECS[S.spec.cur]; if (sp) tips.push('Focus: ' + specChip() + (S.spec.cur === 'mill' ? ' · your foreman seals lots at ' + SEAL_NAMES[sealLv()].toLowerCase() : S.spec.cur === 'trade' ? ' · your agent waits for ' + (tradeReserve() >= 0.4 ? 'the top bid' : '+' + Math.round(tradeReserve() * 100) + '% bids') : S.spec.cur === 'grow' ? ' · companions count while you\'re away' : ''));
   showModal('<h2>Close up for the night</h2><div class="stats"><div><small>Pickers an hour</small><b>' + fmt(Math.round(kh)) + ' kg</b></div><div><small>Room in store</small><b>' + fmt(Math.round(room)) + ' kg</b></div><div><small>Work while away</small><b>' + capH + ' h</b></div></div>' +
     '<p class="note">' + (S.staff.foreman ? 'Your foreman mills through the night and keeps the store from filling, at a slower night pace after the first hour.' : full >= capH ? 'Storage holds the full ' + capH + ' hours.' : 'Storage fills in about ' + (Math.round(full * 10) / 10) + ' h, then the pickers rest.') + '</p>' + (tips.length ? '<p class="note">' + tips.join('<br>') + '</p>' : '') + '<div class="seg">' + (S.lots.some((l) => !l.cupped) ? (hasPerk('cupall') ? '<button type="button" class="btn gold" data-act="cupallnight">Cup all</button>' : '<button type="button" class="btn gold" data-act="tab:mill">Cup in the Mill</button>') : '') + (!S.staff.foreman && foremanOK() ? '<button type="button" class="btn" data-act="gofarmsub:staff">Hire a foreman</button>' : full < Math.min(capH, 8) ? '<button type="button" class="btn" data-act="gofarmsub:upgrades">Bigger storage</button>' : '') + '</div><button class="btn green" data-act="close">Good night</button>');
 }
@@ -7520,7 +7553,7 @@ function renderPanel() {
       h += '<button type="button" class="buyline" data-act="buyersopen">' + img('board', 22) + '<span><b>Your agent is filling ' + on.length + ' contract' + (on.length === 1 ? '' : 's') + '</b><small>' + had + ' under way · ' + fmt(pay) + ' coins still to pay · tap to see them</small></span></button>';
       const boats = S.contracts.filter((c) => c.boat); if (boats.length) h += '<div class="ccards">' + boats.map(contractCard).join('') + '</div>';
     } else if (buyersOn()) h += '<h3>Buyers waiting · ' + S.contracts.length + (S.staff.agent ? ' <button type="button" class="linkbtn" data-act="buyersopen">fold</button>' : '') + '</h3>' + help('buyers', 'Contracts pay about twice the roastery. Swipe to see them all.', 'Contracts pay about twice the roastery, as each delivery arrives. Swipe to see them all; lots that fit are tagged.') + '<div class="ccards">' + (S.contracts.length ? S.contracts.map(contractCard).join('') : '<p class="note">No buyers right now. New ones arrive shortly.</p>') + '</div>';
-    if (buyersOn() && specOn('trade')) h += '<div class="seg">' + [[0, 'Deliver at once'], [0.1, '+10%'], [0.2, '+20%'], [0.3, '+30%']].map(([x, n]) => '<button type="button" class="' + (Math.abs(tradeReserve() - x) < 1e-6 ? 'blue' : '') + '" data-act="reserve:' + x + '">' + n + '</button>').join('') + '</div><p class="note">Trader: ' + (S.staff.agent ? 'your agent waits for this bid before delivering (or delivers as the rivals drop out).' : 'deliver when the bid suits you.') + ' Bids climb early in a contract\'s life, then the rivals drop out.</p>';
+    if (buyersOn() && specOn('trade')) h += '<div class="seg">' + [[0, 'At once'], [0.1, '+10%'], [0.2, '+20%'], [0.3, '+30%'], [0.4, 'Top bid']].map(([x, n]) => '<button type="button" class="' + (Math.abs(tradeReserve() - x) < 1e-6 ? 'blue' : '') + '" data-act="reserve:' + x + '">' + n + '</button>').join('') + '</div><p class="note">Trader: ' + (S.staff.agent ? 'your agent waits for this bid before delivering (or delivers as the rivals drop out).' : 'deliver when the bid suits you.') + ' Bids climb early in a contract\'s life, then the rivals drop out. Top bid waits for the most the buyers will go: +25% with two, +40% with three.</p>';
     h += requestCard();
     if (specOn('mill')) { const bk = (S.spec && S.spec.book) || {}, best = Object.keys(bk).sort((a, b) => bk[b] - bk[a]).slice(0, 3); h += '<h3>Sealed tanks</h3><div class="seg">' + SEAL_NAMES.map((n, L) => '<button type="button" class="' + (sealLv() === L ? 'blue' : '') + '" data-act="seal:' + L + '">' + n + '</button>').join('') + '</div><p class="note">New lots ferment sealed first' + (sealLv() ? ': ' + SEAL_NAMES[sealLv()] + ', about +' + (1.2 * sealLv()).toFixed(1) + ' cup (give or take ' + (1.3 * sealLv()).toFixed(1) + '), +' + Math.round(15 * sealLv()) + '% drying time' : ' (off)') + '. Your foreman uses it too.' + (best.length ? ' Tank book: ' + best.map((k) => { const [v, m] = k.split('.'); return ART.varieties[v] + ' ' + METHODS[m].name.toLowerCase() + ' ' + bk[k]; }).join(', ') + '.' : '') + '</p>'; }
     h += '<h3>Drying racks ' + S.lots.length + ' / ' + racks() + ' · ' + fmt(rackCap()) + ' kg each</h3>';
@@ -7933,6 +7966,7 @@ function renderPanel() {
     h += '<h3>Kona Ridge</h3><div class="seg"><button type="button" data-act="konatest:open">' + (konaOpen() ? 'Go to Kona Ridge' : 'Open Kona Ridge early') + '</button><button type="button" data-act="konatest:shells">+5 cowries</button><button type="button" data-act="konatest:lv">+1 island level</button><button type="button" data-act="konatest:stock">+ash, compost, fruit, cherries</button></div>';
     h += '<h3>Random events</h3><div class="seg">' + Object.keys(REVS).map((k) => '<button type="button" data-act="revtest:' + k + '">' + REVS[k].name + '</button>' + (REVS[k].rareCos ? '<button type="button" data-act="revtest:' + k + '.rare">' + REVS[k].name + ' (rare)</button>' : '')).join('') + '</div>';
     h += '<h3>Prestige (test)</h3><div class="seg">' + [0, 3, 5, 7, 8, 9, 10].map((n) => '<button type="button" data-act="setp:' + n + '" aria-pressed="' + (S.prestige === n) + '">P' + n + '</button>').join('') + '</div><p class="note">Sets your prestige straight away to try its crest, outfit, hat, crew and farm effects. Pick the outfit in Looks.</p>';
+    if (S.spec && SPECS[S.spec.cur]) h += '<h3>Focus (test)</h3><div class="seg">' + [[0, 'Tier 1'], [1, 'Tier 2'], [2, 'Tier 3']].map(([n, tl]) => '<button type="button" data-act="spectest:' + n + '" aria-pressed="' + (!S.spec.done && specTier() === n) + '">' + tl + '</button>').join('') + '</div><p class="note">Jumps your ' + SPECS[S.spec.cur].name + ' focus to that tier. From P7, tiers 2 and 3 are the precision and masterwork feats.</p>';
     h += '<h3>Time</h3><div class="seg"><button type="button" data-act="away:1">Away 1 h</button><button type="button" data-act="away:4">Away 4 h</button><button type="button" data-act="away:12">Away 12 h</button><button type="button" data-act="day">Next day</button></div>';
     h += '<h3>Game speed</h3><div class="seg">' + [1, 3, 10].map((x) => '<button type="button" data-act="speed:' + x + '" aria-pressed="' + (S.speed === x) + '">×' + x + '</button>').join('') + '</div>';
     h += '<h3>Weather</h3><div class="seg">' + ['auto', 'harvest', 'rainy', 'spring', 'summer', 'autumn', 'winter'].map((x) => '<button type="button" data-act="season:' + x + '" aria-pressed="' + (S.seasonPick === x) + '">' + x + '</button>').join('') + '</div><p class="note">Harvest and rainy apply to the coffee farms; spring to winter apply to Osaka.</p>';
@@ -7985,6 +8019,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'haptics') { S.haptics = v === '1'; buzz('pop'); }
   else if (a === 'hudmode') { S.hud = v; refreshHud(); }
   else if (a === 'tierfx') S.tierFx = v === '0' ? false : Math.min(+v, tierOf(S.prestige));
+  else if (a === 'spectest' && TEST_TOOLS) { if (S.spec && SPECS[S.spec.cur]) { S.spec.tier = Math.max(0, Math.min(2, +v)); S.spec.done = false; S.spec.seen = specProg(); } }
   else if (a === 'setp' && TEST_TOOLS) { S.prestige = +v; S.look.crest = tierOf(S.prestige); for (let i = 0; i <= Math.min(+v, SKINS.length - 1); i++) S.skins[i] = true; if (+v >= 7) S.look.skin = Math.min(+v, SKINS.length - 1); if (PHATS['p' + v]) S.look.hat = 'p' + v; checkTabs(); toast('Prestige ' + v + ' for testing'); }
   else if (a === 'crew') { if (v === 'none' || phatOwn(v)) S.crew = v; }
   else if (a === 'tscale') { S.textScale = +v || 1; refreshHud(); }

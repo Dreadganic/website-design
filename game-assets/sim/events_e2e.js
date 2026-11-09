@@ -93,10 +93,10 @@ const ok = (c, msg) => { console.log((c ? 'PASS ' : 'FAIL ') + msg); if (!c) pro
   const l3 = await p.evaluate(() => window.__T.S.lots[0].left); await p.waitForTimeout(800);
   ok(await p.evaluate((l3) => window.__T.S.lots[0].left < l3, l3), 'the rack dries again');
 
-  // Karen: bags sell for less, she has to be heard out, a wrong reply makes it worse, the right one settles her
+  // Mrs. Okada: bags sell for less, she has to be heard out, a wrong reply makes it worse, the right one settles her
   await p.evaluate(() => { const T = window.__T; T.S.rev.cur = null; T.revStart('karen', { rare: false }); T.setTab('roast', true); });
   await p.waitForTimeout(700); await clean();
-  ok(await p.evaluate(() => window.__T.revBagMult() === 0.65), 'Karen: bags sell for 35% less while she\'s at the counter');
+  ok(await p.evaluate(() => window.__T.revBagMult() === 0.65), 'Mrs. Okada: bags sell for 35% less while she\'s at the counter');
   await shot('karen');
   await tapMap(130, 168); await p.waitForTimeout(300);
   ok(await p.evaluate(() => window.__T.S.rev.cur.open && window.__T.revChips.length === 3), 'tap her and three replies appear');
@@ -108,20 +108,20 @@ const ok = (c, msg) => { console.log((c ? 'PASS ' : 'FAIL ') + msg); if (!c) pro
   await tapMap(right[0], right[1]); await p.waitForTimeout(300);
   ok(!(await E()) && await p.evaluate(() => window.__T.revBagMult() === 1), 'the right reply settles her, and prices are back');
 
-  // keepsakes: the fifth stop of an event, and the first rare one; Karen's props never add shop charm
+  // keepsakes: the fifth stop of an event, and the first rare one; Mrs. Okada's props never add shop charm
   const charm0 = await p.evaluate(() => window.__T.S.rcos && Object.keys(window.__T.S.rcos.own).length);
   await p.evaluate(() => { const T = window.__T; const run = (id, rare) => { T.S.rev.cur = null; T.revStart(id, { rare }); T.revEnd(true); };
     for (let i = 0; i < 4; i++) run('pigs', false); run('pigs', true); for (let i = 0; i < 4; i++) run('hornets', false); run('hornets', true); for (let i = 0; i < 3; i++) run('karen', false); run('karen', true); });
   const own = await p.evaluate(() => { const S = window.__T.S; return { vane: S.decor.ev_vane, gold: S.decor.ev_vanegold, hat: S.hats.ev_bee, worn: S.hat, lamp: S.rev.show.hivelamp, bell: !!S.rcos.own['prop:evbell'], review: !!S.rcos.own['prop:evreview'], streak: S.rev.streak, boost: S.rev.boost > Date.now() }; });
   ok(own.vane === true && own.gold === true, 'pig raids: the iron weathervane on the fifth stop, the gold one from the truffle pig');
   ok(own.hat === true && own.worn === 'ev_bee' && own.lamp === true, 'hornets: beekeeper hats (worn straight away) and the honeycomb lantern');
-  ok(own.bell && own.review, 'Karen: the manager\'s bell and the five-star review');
+  ok(own.bell && own.review, 'Mrs. Okada: the manager\'s bell and the five-star review');
   ok(own.streak >= 10 && own.boost, 'ten stopped in a row: rare events twice as likely for an hour');
   ok(await p.evaluate((n) => { const T = window.__T; return Object.keys(T.S.rcos.own).filter((k) => !k.startsWith('prop:ev')).length === n - 0 || true; }, charm0), 'shop charm leaves the keepsakes out');
   ok(await p.evaluate(() => { const T = window.__T; const before = T.bagPrice({ coins: 100, q: 80, profile: 'medium' }, 'konbini'); delete T.S.rcos.own['prop:evbell']; const after = T.bagPrice({ coins: 100, q: 80, profile: 'medium' }, 'konbini'); T.S.rcos.own['prop:evbell'] = true; return before === after; }), 'owning the bell doesn\'t change bag prices');
   await p.evaluate(() => { window.__T.S.rankSub = 'records'; window.__T.setTab('ranks'); }); await p.waitForTimeout(600);
   const rec = await p.evaluate(() => document.getElementById('panel').innerText);
-  ok(/Random events/.test(rec) && /Pig raid/.test(rec) && /Karen/.test(rec), 'Ranks › Records lists the events and their keepsakes');
+  ok(/Random events/.test(rec) && /Pig raid/.test(rec) && /Mrs\. Okada/.test(rec), 'Ranks › Records lists the events and their keepsakes');
   await shot('records');
   await p.evaluate(() => document.querySelector('[data-act="revshow:vanegold"]').click()); await p.waitForTimeout(200);
   ok(await p.evaluate(() => window.__T.S.decor.ev_vanegold === false), 'a keepsake chip shows or hides it');

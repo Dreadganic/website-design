@@ -290,8 +290,8 @@ spr('trap', {'O': O, 'w': '#C8A060', 'W': '#A07838', 'm': '#B8B8B8', 'y': '#F8D0
  '.OOOOOOO..'])
 
 # ---- Karen at the counter: a walker (16x24) with a bob, in the game's guest style
-KAR = {'O': O, 'h': '#F8E08C', 'H': '#E0BC5C', 'k': '#B88E38', 's': '#F8D2B0', 'S': '#E2A882', 'e': '#2E1E18', 'm': '#C8485A',
-       'c': '#E888B0', 'C': '#C8608C', 'D': '#98406A', 'p': '#5A6A86', 'P': '#3E4A64', 'b': '#2E1E18', 'g': '#F2C04A', 'a': SH}
+KAR = {'O': O, 'h': '#E8E6E0', 'H': '#C4C0B8', 'k': '#94908A', 's': '#F8D2B0', 'S': '#E2A882', 'e': '#2E1E18', 'm': '#B8606A',   # Mrs. Okada: silver hair,
+       'c': '#8CB89C', 'C': '#6A967C', 'D': '#4A7460', 'p': '#5A6A86', 'P': '#3E4A64', 'b': '#2E1E18', 'g': '#C8925A', 'a': SH}   # a sage cardigan, her good handbag
 spr('karen', KAR, [
  '................',
  '.....OOOOOOO....',
@@ -685,7 +685,7 @@ spr('rat_king_1', KING, KING_TOP + [
  '...OrRO..OrRO.OrRO.Opp',
  '...OOOO..OOOO.OOOO....',
  '.....aaaaaaaaaaaaaa...'])
-KH = {'O': O, 'h': '#F8E08C', 'H': '#E0BC5C', 'k': '#B88E38', 's': '#F8D2B0', 'S': '#E2A882', 'm': '#C8485A', 'v': '#B898E8', 'V': '#8060C0', 'r': '#F2C04A',
+KH = {'O': O, 'h': '#E8E6E0', 'H': '#C4C0B8', 'k': '#94908A', 's': '#F8D2B0', 'S': '#E2A882', 'm': '#C8485A', 'v': '#B898E8', 'V': '#8060C0', 'r': '#F2C04A',
       'g': '#2E1E18', 'w': '#FFFFFF', 'c': '#6AA8D8', 'C': '#4A88B8', 'D': '#305898', 'p': '#F4F0E4', 'P': '#D8D0BC', 'b': '#2E1E18', 'B': '#C8402E', 'd': '#FFF4E4', 'n': '#2E1E18', 'a': SH}
 spr('karen_hat', KH, [
  '.......OOOOOO.......',

@@ -198,6 +198,7 @@ test("seasons: season cosmetics pass, made-up ones do not", () => {
   const nb = G.cleanLook({ title: "nb:geisha", charm: "qgrader" }, 0);
   assert.deepEqual([nb.title, nb.charm], ["nb:geisha", "qgrader"], "cupping notebook titles and the Q grader charm pass");
   assert.equal(G.cleanLook({ title: "nbt:emperor" }, 0).title, "", "made-up notebook titles do not");
+  assert.deepEqual(["sp:roast", "mw:trade", "mw:king"].map((t) => G.cleanLook({ title: t }, 0).title), ["sp:roast", "mw:trade", ""], "focus and masterwork titles pass, made-up ones do not");
 });
 
 test("roastery cosmetics: finishes, the crack master charm and title pass; made-up ones do not", () => {

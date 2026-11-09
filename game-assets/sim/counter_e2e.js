@@ -1,6 +1,6 @@
 /* The roastery counter end to end, in the real game: unlocking, the board, opening by the sign, serving with real taps on the map, a wrong
    roast, walk-outs and closing early, the tally and the 30-minute wait, Sell all keeping the board's bags, the head roaster and foreman,
-   events during service (Karen more often, the rest waiting), the pause while away, prestige, regulars, tasks and stars, and the Ranks
+   events during service (Mrs. Okada more often, the rest waiting), the pause while away, prestige, regulars, tasks and stars, and the Ranks
    and Looks changes that came with it (the counter board, rows without prestige numbers, the crest always the highest).
    node counter_e2e.js <test.html from mktest.py> [shots dir] */
 const { chromium } = require(process.env.PW_MODULE || '/opt/node-tools/node_modules/playwright');
@@ -61,7 +61,7 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
   ok(await E(() => window.__T.ctOpen()), 'the sign opens the counter');
   ok(await E(() => window.__T.S.counter.pre.every((p) => p.state === 'board')), 'pre-orders wait to arrive');
 
-  /* events during service: the roastery's wait, Karen has her own roll */
+  /* events during service: the roastery's wait, Mrs. Okada has her own roll */
   const evs = await E(() => { const T = window.__T, seen = new Set(); for (let i = 0; i < 300; i++) { T.S.rev.cur = null; if (T.revStart()) seen.add(T.S.rev.cur.id); } T.S.rev.cur = null; return [...seen]; });
   ok(!evs.some((k) => ['karen', 'power', 'fire', 'typhoon'].includes(k)), 'no roastery event or typhoon from the usual roll while open: ' + evs.join(','));
 
@@ -93,15 +93,15 @@ let pass = 0, fail = 0; const ok = (c, m) => { if (c) pass++; else { fail++; con
   ok((await E(() => window.__T.S.counter.sess.served)) === s1 + 1, 'a second tap gives the wrong roast');
   const wpay = await E(() => window.__T.S.coins) - c0; ok(wpay > 0, 'and it still pays: ' + wpay);
 
-  /* Karen: blocks serving, settled counts as served */
+  /* Mrs. Okada: blocks serving, settled counts as served */
   await E(() => { const T = window.__T; T.S.rev.cur = null; T.revStart('karen', { rare: false }); T.S.rev.cur.counter = true; });
   const kq = await E(() => window.__T.S.counter.sess.q.length);
-  const ks = await E(() => window.__T.ctServe(window.__T.S.counter.sess.q[0].id)); ok(!ks, 'nobody is served while Karen holds up the queue');
+  const ks = await E(() => window.__T.ctServe(window.__T.S.counter.sess.q[0].id)); ok(!ks, 'nobody is served while Mrs. Okada holds up the queue');
   const r0 = await E(() => window.__T.S.counter.rating); await E(() => window.__T.revEnd(true));
-  ok(Math.abs((await E(() => window.__T.S.counter.rating)) - r0 - 0.03) < 1e-6, 'settling Karen counts as a customer served');
-  /* Karen's roll: once a session, 15% a minute */
+  ok(Math.abs((await E(() => window.__T.S.counter.rating)) - r0 - 0.03) < 1e-6, 'settling Mrs. Okada counts as a customer served');
+  /* Mrs. Okada's roll: once a session, 15% a minute */
   const kr = await E(() => { const T = window.__T, s = T.S.counter.sess; let n = 0; for (let k = 0; k < 200; k++) { s.karen = false; s.karenT = 0; T.S.rev.cur = null; T.counterTick(0.01); if (T.S.rev.cur && T.S.rev.cur.id === 'karen') { n++; T.S.rev.cur = null; } } s.karen = true; return n; });
-  ok(kr > 10 && kr < 60, 'Karen\'s own roll comes about 15% of minutes: ' + kr + '/200');
+  ok(kr > 10 && kr < 60, 'Mrs. Okada\'s own roll comes about 15% of minutes: ' + kr + '/200');
 
   /* the pause: catching up after time away doesn't move the session */
   const t0 = await E(() => window.__T.S.counter.sess.t); await E(() => { window.__T.away(0.5); }); await clean();

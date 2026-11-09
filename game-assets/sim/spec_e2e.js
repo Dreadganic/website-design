@@ -46,6 +46,42 @@ const ok = (c, m) => { if (c) { pass++; console.log('PASS ' + m); } else { fail+
   ok(rd[0] === true, 'Roaster: a perfect crack starts development instead of ending the roast'); ok(rd[1] === true, 'Roaster: Drop too soon does nothing');
   ok(rd[2] === true, 'Roaster: dropping in the window bags it and counts'); ok(rd[3] === true, 'Roaster: at second crack Drop still lands dark, as the prompt says');
   ok(rd[4] === true, 'Roaster: off the Roast screen it drops itself in the window');
+  /* masterwork: from prestige 7, tiers 2 and 3 are feats */
+  const mw = await E(() => { const T = window.__T, S = T.S, R = S.roastery, o = {}; for (let i = 0; i < 12; i++) T.closeModal();
+    S.prestige = 6; T.specSet('roast', true); o.below = !T.mwTier(1) && /From prestige 7/.test(T.specCard());
+    S.prestige = 7; T.specSet('roast', true); o.tier1 = T.specGoal(0) === 24 && !T.mwTier(0);
+    S.spec.drops = (S.spec.base || 0) + 24; T.specCheck(); o.t1 = S.spec.tier === 1 && T.specGoal(1) === 3 && /light, medium and dark/.test(T.specUnit(1)) && /precision 0\/3/.test(T.specChip()) && /Tier 2 of 3, precision/.test(T.specCard());
+    T.setTab('roast', true); const mk = (p) => ({ key: 'caturra.washed', profile: p, kg: 10, coins: 100, pts: 10, cup: 85, start: Date.now() - 7600, dur: 10000, crack: 0, cw: 0.16 });
+    const drop = (p, x) => { R.roasters.length = 0; R.roasters.push(mk(p)); T.act('crack:0'); const r = R.roasters[0]; if (!r || !r.dev) return false; r.dev = Date.now() - r.devDur * x; T.act('drop:0'); return true; };
+    o.drops = drop('light', 0.2) && drop('medium', 0.45); T.specCheck(); o.part = S.spec.tier === 1 && T.specProg() === 2;
+    drop('dark', 0.7); T.specCheck(); o.t2 = S.spec.tier === 2 && T.specGoal(2) === 10 && /masterwork/.test(T.specChip()) && T.specProg() === 3;
+    drop('medium', 0.2); o.miss = T.mwSt().run === 0 && T.mwSt().best === 3;   /* landed light when aiming medium: the run breaks */
+    drop('medium', 0.45); R.roasters.push(mk('medium')); T.act('crack:0'); const ra = R.roasters[0]; ra.dev = Date.now() - ra.devDur * 0.35; T.setTab('farm', true); T.roasteryTick(); T.setTab('roast', true);
+    o.auto = T.mwSt().run === 1;   /* a drop made for you neither counts nor breaks it */
+    for (let i = 0; i < 9; i++) drop('medium', 0.45); T.specCheck();
+    o.t3 = S.spec.tier === 3 && S.spec.done && !!S.sitems.title['mw:roast'] && T.titleText('mw:roast') === 'Roast virtuoso' && /masterwork included/.test(T.specCard());
+    T.specSet('mill', true); const lot = (seal, sour, ferm, v, m) => { S.lots.push({ v: v || 'caturra', method: m || 'washed', kg: 10, left: 0, seal, sour, ferm }); T.millSold(S.lots.length - 1, 'x'); S.lots.pop(); };
+    const F = T.MW.mill; for (let i = 0; i < 4; i++) lot(3, false, 1); lot(3, true, -4); lot(3, false, 1); lot(2, false, 1);
+    o.mill = F[0].prog(T.mwSt()) === 4 && T.mwSt().run === 0; lot(3, false, 12); lot(3, false, 12, 'caturra', 'natural'); lot(1, false, 12);
+    o.pairs = F[1].prog(T.mwSt()) === 2 && F[1].goal() === 5;
+    T.specSet('grow', true); const v = S.farms[S.loc].beds[0]; T.LOCS.forEach((l) => { const f = S.farms[l]; if (!f.unlocked) return; f.comp = f.comp || []; f.beds.forEach((x, b) => { if (x === v) f.comp[b] = 'shade'; }); });
+    o.full = Math.abs(T.compCup(v) - 2) < 1e-9; S.lots.push({ v, method: 'washed', kg: 10, left: 0 }); T.millSold(S.lots.length - 1, 'x'); S.lots.pop(); o.full = o.full && T.MW.grow[0].prog(T.mwSt()) === 1;
+    T.specSet('trade', true); T.act('reserve:0.4'); const c3 = T.newContract(); c3.bidN = 3; c3.t0 -= c3.span * 0.35; o.wait = !T.tradeReady(c3); c3.t0 -= c3.span * 0.06; o.wait = o.wait && T.tradeReady(c3);
+    const fill = (c) => { c.kg = 1; c.have = 0; c.minCup = 0; c.v = null; c.method = null; S.contracts.push(c); S.lots.push({ v: 'caturra', method: 'washed', kg: 10, left: 0 }); T.deliver(S.lots.length - 1, c.id, true); };
+    c3.leave = S.minutesTotal + 999; fill(c3); o.top = T.mwSt().top === 1;
+    const fut = () => { const c = T.newContract(); S.contracts.push(c); T.act('future:' + c.id); return c; };
+    fill(fut()); fill(fut()); const miss = fut(); miss.fdue = S.minutesTotal - 1; T.tradeTick(); o.futRun = T.mwSt().best === 2 && T.mwSt().run === 0; S.contracts.length = 0;
+    T.specSet('wander', true); S.spec.terroir = { geisha: 1.5 }; o.wander = T.MW.wander[0].prog() === 3 && T.MW.wander[0].goal() <= 4 && T.MW.wander[1].goal() === Math.max(1, T.trialFarms().length);
+    S.prestige = 3; return o; });
+  ok(mw.below, 'masterwork: below prestige 7 the tiers stay counts, and the card says what\'s coming'); ok(mw.tier1, 'masterwork: tier 1 is still the count sized to the run');
+  ok(mw.t1, 'masterwork: tier 2 asks for precision (Roaster: land light, medium and dark), on the chip and card');
+  ok(mw.drops && mw.part, 'Roaster precision counts profiles landed'); ok(mw.t2, 'Roaster: three profiles reach tier 2, the masterwork asks 10 in a row');
+  ok(mw.miss, 'Roaster masterwork: a drop outside the window breaks the run'); ok(mw.auto, 'Roaster masterwork: a drop made for you neither counts nor breaks it');
+  ok(mw.t3, 'Roaster masterwork: 10 in a row is tier 3 and the Roast virtuoso title');
+  ok(mw.mill, 'Miller precision: clean three-shift lots in a row; a sour or shorter seal breaks the run'); ok(mw.pairs, 'Miller masterwork: coffee-and-method pairs sealed at 90+');
+  ok(mw.full, 'Grower precision: a coffee shaded on every field it grows on counts its lots');
+  ok(mw.wait, 'Trader: Top bid waits for the buyers\' best (+40% with three)'); ok(mw.top, 'Trader masterwork: a three-buyer contract filled at +40% counts');
+  ok(mw.futRun, 'Trader precision: futures filled in a row; a missed one breaks the run'); ok(mw.wander, 'Wanderer: trials of one coffee, and goals capped by what the farms allow');
   const pr = await E(() => { const T = window.__T, S = T.S; for (let i = 0; i < 12; i++) T.closeModal(); T.laterQ && (T.laterQ.length = 0); delete S.spec; S.prestige = 2; S.xp = T.XP_AT(T.prestigeNeed() + 1);
     T.act('prestigeAsk'); const m = document.getElementById('modal'); const noPick = !/Your focus for the next run/.test(m.innerHTML);
     S.dormant = { toba: 40 }; T.act('prestige'); for (let i = 0; i < 12; i++) T.closeModal();
