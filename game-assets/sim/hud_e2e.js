@@ -15,16 +15,21 @@ const SEL = ['.top', '#hearts', '#hudLevel', '.hud-r .clock', '#hudCoins', '#hud
   const open = async (w, h, o = {}) => {
     const g = await b.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 1, hasTouch: true, ...o }); g.on('pageerror', (e) => errs.push(e.stack.slice(0, 400)));
     await g.goto('file://' + file); await g.waitForTimeout(800);
-    await g.evaluate(() => { const T = window.__T, S = T.S; S.name = S.nameOk = 'Tess'; S.guide = T.GUIDE.length; S.prestige = 7; S.pwalkDone = true; S.practiceTip = true; S.specTip = true; S.coins = 5e7; S.cranes = 545;
+    await g.evaluate(() => { const T = window.__T, S = T.S; S.name = S.nameOk = 'Tess'; S.guide = T.GUIDE.length; S.prestige = 7; S.pwalkDone = true; S.practiceTip = true; S.specTip = true; T.specSet('grow', true); S.spec.fresh = false; S.coins = 5e7; S.cranes = 545;
       Object.keys(S.tabs).forEach((k) => { S.tabs[k] = true; }); S.xp = (T.XP_AT(40) + T.XP_AT(41)) / 2; S.hearts = T.maxHearts(); Object.keys(S.cherries).forEach((k) => { S.cherries[k] = 0; });
       for (let i = 0; i < 9; i++) T.closeModal(); document.getElementById('modal').hidden = true; document.getElementById('toast').hidden = true; T.refreshHud(); T.renderPanel(); });
     await g.waitForTimeout(200);
     await g.evaluate(() => { const T = window.__T; for (let i = 0; i < 9; i++) T.closeModal(); document.getElementById('modal').hidden = true; document.getElementById('toast').hidden = true; T.hudQuiet(); T.refreshHud(); });
     return g;
   };
-  const cover = (g) => g.evaluate((sel) => { const W = innerWidth, H = innerHeight, grid = new Uint8Array(W * H);
-    sel.concat(['#gearTop']).forEach((s) => { const e = document.querySelector(s); if (!e || e.hidden || e.offsetParent === null) return; const q = e.getBoundingClientRect();
-      for (let y = Math.max(0, Math.floor(q.top)); y < Math.min(H, q.bottom); y++) for (let x = Math.max(0, Math.floor(q.left)); x < Math.min(W, q.right); x++) grid[y * W + x] = 1; });
+  /* the cover: the list measured at 19.5%, plus anything else drawn over the map (so a new feature can't slip past the budget) */
+  const cover = (g) => g.evaluate((sel) => { const W = innerWidth, H = innerHeight, grid = new Uint8Array(W * H), cv = document.querySelector('canvas'), cr = cv.getBoundingClientRect();
+    const mark = (q) => { for (let y = Math.max(0, Math.floor(q.top)); y < Math.min(H, q.bottom); y++) for (let x = Math.max(0, Math.floor(q.left)); x < Math.min(W, q.right); x++) grid[y * W + x] = 1; };
+    sel.concat(['#gearTop']).forEach((s) => { const e = document.querySelector(s); if (!e || e.hidden || e.offsetParent === null) return; mark(e.getBoundingClientRect()); });
+    const pos = (e) => ['absolute', 'fixed'].includes(getComputedStyle(e).position);
+    document.querySelectorAll('body *').forEach((e) => { if (e.tagName === 'CANVAS' || e.contains(cv) || !pos(e) || e.hidden) return; const cs = getComputedStyle(e); if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity < 0.05 || (e.offsetParent === null && cs.position !== 'fixed')) return;
+      for (let p = e.parentElement; p && p !== document.body; p = p.parentElement) if (pos(p) && !p.contains(cv)) return;   /* only the outermost layer */
+      const q = e.getBoundingClientRect(); if (q.width < 4 || q.height < 4 || q.right <= cr.left || q.left >= cr.right || q.bottom <= cr.top || q.top >= cr.bottom) return; mark(q); });
     let n = 0; for (const v of grid) n += v; return Math.round(n / (W * H) * 1000) / 10; }, SEL);
 
   /* 1. small phones: nothing off screen, no page scrolling */
@@ -70,8 +75,9 @@ const SEL = ['.top', '#hearts', '#hudLevel', '.hud-r .clock', '#hudCoins', '#hud
   /* 2. the quiet farm covers at most 12% of a 390 x 844 phone; Classic is the 19.5% it was */
   {
     const g = await open(390, 844);
-    const quiet = await g.evaluate(() => { const a = document.getElementById('app'); return ['sh-hearts', 'sh-lv', 'sh-store'].filter((c) => a.classList.contains(c)); });
-    ok(quiet.length === 0, 'a quiet farm shows no hearts, level or store: ' + quiet.join(', '));
+    const quiet = await g.evaluate(() => { const a = document.getElementById('app'); return ['sh-hearts', 'sh-lv', 'sh-store', 'sh-focus'].filter((c) => a.classList.contains(c)); });
+    ok(quiet.length === 0, 'a quiet farm shows no hearts, level, store or focus goal: ' + quiet.join(', '));
+    ok(await g.evaluate(() => !document.getElementById('hudFocus').offsetParent), 'the focus goal stays off a quiet farm');
     const n = await cover(g);
     ok(n <= 12, 'the quiet farm is covered ' + n + '% (at most 12%)');
     if (shots) await g.screenshot({ path: shots + '/hud_quiet.png' });
@@ -150,6 +156,20 @@ const SEL = ['.top', '#hearts', '#hudLevel', '.hud-r .clock', '#hudCoins', '#hud
     await g.waitForTimeout(6400);
     ok(await g.evaluate(() => { window.__T.refreshHud(); return !document.getElementById('hudLevel').offsetParent && !document.getElementById('hudCranes').offsetParent; }), 'left alone, the purse closes after 6 s');
     if (shots) { await g.evaluate(() => document.getElementById('hudCoins').click()); await g.waitForTimeout(150); await g.screenshot({ path: shots + '/hud_purse.png' }); await g.evaluate(() => { window.__T.refreshHud(); }); }
+
+    /* the focus goal: off a quiet screen, up for 6 s when it moves, in the purse, while a focus waits to be picked, and kept up by Always show */
+    const fo = await g.evaluate(() => { const T = window.__T, S = T.S, on = () => !!document.getElementById('hudFocus').offsetParent; T.peekUntil = 0; T.hudFocusAt = 0; T.refreshHud(); const quiet = on();
+      document.getElementById('hudCoins').click(); const purse = on(); T.act('sheetmin'); T.peekUntil = 0;
+      T.hudFocusAt = 0; T.refreshHud(); const shut = on();
+      S.spec.g90 = (S.spec.base || 0) + 1; T.specCheck(); T.refreshHud(); const moved = on() && /Grower 1\//.test(document.getElementById('hudFocus').textContent);
+      T.hudFocusAt = Date.now() - 6100; T.refreshHud(); const gone = on();
+      const sp = S.spec; S.spec = Object.assign({}, sp, { cur: null }); T.refreshHud(); const pick = on() && /Pick a focus/.test(document.getElementById('hudFocus').textContent); S.spec = sp;
+      T.act('hudshow:focus'); T.refreshHud(); const always = on(); T.act('hudshow:focus'); T.refreshHud(); const off = on();
+      return { quiet, purse, shut, moved, gone, pick, always, off }; });
+    ok(!fo.quiet && fo.purse, 'the focus goal is off a quiet screen and in the purse: ' + JSON.stringify(fo));
+    ok(!fo.shut && fo.moved && !fo.gone, 'a step towards the focus goal shows it for 6 s');
+    ok(fo.pick, 'with no focus picked, "Pick a focus" stays up');
+    ok(fo.always && !fo.off, 'Settings › Always show › Focus goal keeps it up');
 
     /* the moment card: a window the game would open by itself waits at the bottom of the map, one at a time, and opens on a tap */
     const mc = await g.evaluate(async () => { const T = window.__T, S = T.S; T.setTab('farm'); T.act('sheetmin'); for (let i = 0; i < 5 && !document.getElementById('guide').hidden; i++) { const gb = document.querySelector('#guide button'); if (!gb) break; gb.click(); T.refreshHud(); } T.laterQ.length = 0; T.toastQ.length = 0; document.getElementById('toast').hidden = true; document.getElementById('app').classList.remove('notice'); T.refreshHud();
