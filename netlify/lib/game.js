@@ -106,6 +106,13 @@ function checkScore(prev, next, now, fresh) {
     if (steps === 1 && prev.level < prestigeNeed(prev.prestige) && dt < RULES.minPrestigeGapSec) return "prestige_without_level";   /* the level could have been reached since the last row */
   } else if (n.points > prev.points + RULES.xpPerSecond * dt + RULES.xpBurst) return "too_fast";
   if (sameSeason && n.seasonP > prev.seasonP + (n.prestige - prev.prestige)) return "season_jump";
+  /* totals, not just steps: the allowance per score added up when scores came every 15 seconds, so everything is also held to what the
+     time since the row's anchors allows (the season's first score, and the row's first score ever) */
+  const sSince = sameSeason ? Math.max(0, (now - (prev.s0At || prev.at)) / 1000) : 0, lSince = Math.max(0, (now - (prev.p0At || prev.at)) / 1000);
+  if (n.seasonStars > RULES.starsPerDay * (sSince / 86400 + 1) + RULES.starsBurst + RULES.starsPerPrestige * n.seasonP) return "too_many_stars";
+  if (n.seasonKh > RULES.xpPerSecond * sSince + RULES.xpBurst * 4) return "too_fast";
+  if (n.points > (prev.p0Pts !== undefined ? prev.p0Pts : prev.points) + RULES.xpPerSecond * lSince + RULES.xpBurst * 4) return "too_fast";
+  if (n.prestige > (prev.p0Pr !== undefined ? prev.p0Pr : prev.prestige) + 5 + 3 * lSince / 86400) return "prestige_jump";
   const khBase = sameSeason ? prev.seasonKh || 0 : 0;   /* know-how earned this month can only grow as fast as play allows */
   if (n.seasonKh > khBase + RULES.xpPerSecond * dt + RULES.xpBurst) return "too_fast";
   const starBase = sameSeason ? prev.seasonStars || 0 : 0;   /* season stars are capped per real day in the game */

@@ -153,6 +153,16 @@ test("seasons: stars can only grow as fast as the daily caps allow", async () =>
   assert.equal((await call(score, "POST", s(150), a)).status, 200, "five days of capped play");
 });
 
+test("scores: small steps every 15 seconds can't add up past what the time allows", async () => {
+  const a = await newPlayer();
+  const s = (st) => ({ name: "Stepper", prestige: 0, seasonP: 0, seasonKh: 0, seasonStars: st, level: 1, points: 0 });
+  assert.equal((await call(score, "POST", s(10), a)).status, 200);
+  let st = 10, refused = "";
+  for (let i = 0; i < 40 && !refused; i++) { clock += 16000; st += 45; const r = await call(score, "POST", s(st), a); if (r.status !== 200) refused = r.body.error; }
+  assert.equal(refused, "too_many_stars", "45 stars every 16 seconds is stopped within minutes");
+  assert.ok(st < 200, "before it gets far: " + st);
+});
+
 test("seasons: the first request of a new season saves the final board, and final ranks come from it", async () => {
   clock = Date.parse("2026-11-29T03:00:00Z");
   const a = await newPlayer(), b = await newPlayer();
