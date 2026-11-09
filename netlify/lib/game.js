@@ -198,7 +198,7 @@ function trophyRank(t) {   /* lower is grander: the shelf and the board show the
   return t.k === "coe" ? (r === 1 ? 0 : 3) : t.k === "season" ? (r === 1 ? 1 : r <= 3 ? 4 : 7) : t.k === "derby" ? (r === 1 ? 2 : 6) : t.k === "rookie" ? (r === 1 ? 5 : 8) : t.k === "harvest" ? 9 : 10;
 }
 const trophyId = (t) => t.k + ":" + (t.w || t.s || t.d || "1");
-const publicTrophies = (list) => (list || []).slice().sort((a, b) => trophyRank(a) - trophyRank(b) || (b.at || 0) - (a.at || 0)).slice(0, 24).map((t) => ({ id: t.id, k: t.k, r: t.r || 0, w: t.w || "", s: t.s || "", d: t.d || "" }));
+const publicTrophies = (list) => (list || []).slice().sort((a, b) => trophyRank(a) - trophyRank(b) || (b.at || 0) - (a.at || 0)).slice(0, 24).map((t) => ({ id: t.id, k: t.k, r: t.r || 0, w: t.w || "", s: t.s || "", d: t.d || "", p: t.p || "" }));
 async function addTrophy(store, me, t, now) {   /* once per trophy; saves the player and refreshes their score row */
   const id = trophyId(t);
   me.trophies = me.trophies || [];

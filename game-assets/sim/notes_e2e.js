@@ -17,6 +17,7 @@ const ok = (c, msg) => { console.log((c ? 'PASS ' : 'FAIL ') + msg); if (!c) pro
     route.fulfill({ status: r.statusCode, headers: { 'content-type': 'application/json' }, body: r.body }); });
   await p.addInitScript(() => { try { localStorage.clear(); } catch (e) {} });
   await p.goto('file://' + path.resolve(process.argv[2])); await p.waitForTimeout(1500);
+  await p.evaluate(() => { window.__T.S.stats.lotsSold = Math.max(1, window.__T.S.stats.lotsSold || 0); window.__T.closeModal(); const b = document.createElement('button'); b.dataset.act = 'close'; document.body.appendChild(b); b.click(); b.remove(); }); await p.waitForSelector('#nameAsk');   /* the name comes after the first sale */
   await p.fill('#nameAsk', 'Notes'); await p.press('#nameAsk', 'Enter'); await p.waitForTimeout(800);
   const clean = () => p.evaluate(() => { const T = window.__T; for (let i = 0; i < 12; i++) T.closeModal(); document.getElementById('modal').hidden = true; document.getElementById('toast').hidden = true; T.S.nav = null; T.S.navSeen = new Proxy({}, { get: () => true }); });
   const toast = () => p.evaluate(() => document.getElementById('toast').innerText);

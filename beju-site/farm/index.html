@@ -2213,6 +2213,7 @@ const monthName = (d) => (/^\d{4}-\d{2}$/.test(d || '') ? new Date(d + '-01T00:0
 function trophyInfo(t) {   /* the picture and the words for a trophy */
   const r = t.r || 0, tier = r === 1 ? '' : r === 2 ? 'silver' : r === 3 ? 'bronze' : 'green', sw = (k) => (k ? { swap: Object.assign({}, TSWAP[k]) } : null);
   if (t.k === 'coe') return { spr: 'tro_cup', opt: sw(r === 1 ? '' : 'silver'), name: r === 1 ? 'Cup of Excellence winner' : 'Cup of Excellence top 10%', when: t.w ? 'Week of ' + dayName(t.w) : '' };
+  if (t.k === 'coopproj') return { spr: 'tro_pennant', opt: sw('green'), name: 'Co-op built: ' + ({ wetmill: 'Washing station', grove: 'Shade grove', lab: 'Cupping lab' }[t.p] || 'a project'), when: t.w ? 'Week of ' + dayName(t.w) : '' };
   if (t.k === 'derby') return { spr: 'tro_pennant', opt: sw(tier), name: r === 1 ? 'Co-op Derby winner' : 'Co-op Derby ' + r + ordinal(r), when: t.w ? 'Week of ' + dayName(t.w) : '' };
   if (t.k === 'season' || t.k === 'rookie') { const o = sw(tier) || { swap: {} }; if (t.k === 'rookie') Object.assign(o.swap, { '#D8302C': '#4A8AB8', '#2D6A46': '#F8F4EC' }); return { spr: 'tro_medal', opt: o, name: (t.k === 'rookie' ? 'Rookie ' : 'Season ') + BADGE(r).toLowerCase(), when: /^\d{4}-\d{2}$/.test(t.s || '') ? seasonName(t.s) : '' }; }
   if (t.k === 'harvest') return { spr: 'tro_basket', opt: null, name: 'Harvest Day goal', when: monthName(t.d) };
@@ -9324,7 +9325,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'navend') navFinish();
   else if (a === 'hvclaim') harvestClaim();
   else if (a === 'coe') coeStep(v);
-  else if (a === 'coop') coopAct(v === 'find' ? { act: 'find' } : v === 'leave' ? { act: 'leave' } : v === 'derbyclaim' ? { act: 'derbyclaim' } : v.startsWith('sticker.') ? { act: 'sticker', id: v.slice(8) } : v.startsWith('help.') ? { act: 'help', i: +v.slice(5) } : v === 'claim' ? { act: 'claim' } : null);   /* one claim pays every tier reached */
+  else if (a === 'coop') coopAct(v === 'find' ? { act: 'find' } : v === 'leave' ? { act: 'leave' } : v === 'derbyclaim' ? { act: 'derbyclaim' } : v.startsWith('sticker.') ? { act: 'sticker', id: v.slice(8) } : v.startsWith('banner.') ? { act: 'banner', id: v.slice(7) } : v.startsWith('kick.') ? { act: 'kick', i: +v.slice(5) } : v.startsWith('reportm.') ? { act: 'report', i: +v.slice(8) } : v === 'report' ? { act: 'report' } : v.startsWith('help.') ? { act: 'help', i: +v.slice(5) } : v === 'claim' ? { act: 'claim' } : null);   /* one claim pays every tier reached */
   else if (a === 'carepick') carePick(+v);
   else if (a === 'caresend') { const [, i2, k2, p2, c2] = b.dataset.act.split(':'); closeModal(); coopAct({ act: 'care', i: +i2, key: k2, profile: p2, cup: +c2 / 10 }); }
   else if (a === 'dailysub') S.dailySub = v;
@@ -9390,6 +9391,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'task') { const tk = S.tasks[+v]; if (tk.have >= tk.goal && !tk.done) { tk.done = true; const rr = tk.practice ? tk.reward : taskReward(tk.reward); const got = rule('shogatsu') && rr.coins ? { coins: rr.coins * 2 } : rr; earn(got); unRate(got); if (!tk.practice) star('task'); guideStep('task'); toast('Task complete!'); } }
   else if (a === 'weekly') { S.weekly.claimed = true; S.cranes += WEEKLY_CRANES; star('weekly'); showModal('<h2>Order delivered!</h2><p class="note">Beju\'s farms delivered ' + fmt(S.weekly.target) + ' kg of washed coffee to the roastery together. +' + WEEKLY_CRANES + ' cranes and ' + STAR_PER.weekly + ' season stars.</p><button class="btn green" data-act="close">Hooray</button>'); }
   else if (a === 'specopen') S.specOpen = true;
+  else if (a === 'bannerpick') S.bannerOpen = !S.bannerOpen;
   else if (a === 'cheerback') { if (/^[A-Z2-9]{6}$/.test(v || '')) cheersFarm(v); b.disabled = true; return; }
   else if (a === 'closeup') { closeUp(); return; }
   else if (a === 'focusgo' || a === 'focusact') { focusAct(); return; }
@@ -9829,7 +9831,7 @@ async function coopSync(force) {
   const now = Date.now(), dc = S.dw ? JSON.stringify(S.dw.c) : '';
   if (NET.coop && S.cw && (S.cw.kg > S.cw.sent + 0.5 || (S.dw && dc !== S.dw.sent)) && (force || now - coopPostAt > 120e3)) {
     coopPostAt = now; coopAt = now;
-    const r = await api('game-coop', 'POST', { act: 'sync', week: S.cw.wk, kg: Math.floor(S.cw.kg), est: coopEst(), derby: S.dw ? S.dw.c : null }).catch(() => null);
+    const r = await api('game-coop', 'POST', { act: 'sync', week: S.cw.wk, kg: Math.floor(S.cw.kg), est: coopEst(), derby: S.dw ? S.dw.c : null, focus: (S.spec && S.spec.cur) || '' }).catch(() => null);
     if (r && r.status === 200) { if (S.dw) S.dw.sent = dc; coopTake(r.data.coop); }
     return;
   }
@@ -9845,6 +9847,9 @@ async function coopAct(body) {
   if (body.act === 'claim') BEACON.ev('coop_claim', { m: r.data.tier || 0, p: S.prestige });
   if (body.act === 'claim') { earn({ cranes: r.data.cranes }); if (r.data.full) star('weekly'); SFX.play('crane'); toast('Co-op order: +' + r.data.cranes + ' crane' + (r.data.cranes === 1 ? '' : 's')); coopSync(true); return; }
   if (body.act === 'derbyclaim') { const l = NET.coop.derby && NET.coop.derby.last; earn({ cranes: r.data.cranes }); if (l) S.badges.push({ event: 'Co-op Derby', label: l.rank === 1 ? 'Derby winner' : 'Derby ' + l.rank + ordinal(l.rank), rank: l.rank }); SFX.play('crane'); toast('Co-op Derby: a badge and +' + r.data.cranes + ' crane' + (r.data.cranes === 1 ? '' : 's')); coopSync(true); return; }
+  if (body.act === 'kick') toast(r.data.kicked ? 'They have left the co-op' : 'Your vote counts: ' + r.data.votes + ' of ' + r.data.need + ' needed');
+  if (body.act === 'report') toast('Reported. Thank you: someone will look at it');
+  if (body.act === 'banner') S.bannerOpen = false;
   if (body.act === 'help') { SFX.play('pop'); star('help'); toast('Help sent: their drying lots go 10% faster'); }
   if (body.act === 'care') { SFX.play('pop'); if (r.data.star) star('care'); BEACON.ev('care_send', { p: S.prestige, lvl: level() }); toast('Care package on its way to ' + r.data.to + (r.data.star ? ' · +1 season star' : '')); }
   if (body.act === 'sticker') SFX.play('pop');
@@ -9877,32 +9882,45 @@ function carePick(i) {   /* T2.3: choose which of your roasts to mail a co-op ma
   const m8 = (NET.coop.members[i] || {}).name || 'your mate';
   showModal('<h2>Care package for ' + m8 + '</h2><p class="note">One bag from your shelf travels with your name and its cup score. It arrives at their next check-in, and you both earn a season star (once a day).</p>' + Object.values(seen).map((r2) => row(img('green_sack', 26), beanName(r2.key) + ' · ' + ROASTS[r2.profile].name.toLowerCase(), (r2.n > 1 ? r2.n + ' on the shelf · ' : '') + 'cup ' + (r2.cup ? r2.cup.toFixed(1) : '?'), btn('Send', '', 'caresend:' + i + ':' + r2.key + ':' + r2.profile + ':' + Math.round(r2.cup * 10), true, 'green'))).join('') + '<button class="btn" data-act="close">Cancel</button>');
 }
+const BANNER_GLYPH = { bean: '◉', cherry: '●', leaf: '❦', crane: '✧', mountain: '▲', wave: '≈', sun: '☀', moon: '☾' };
+function coopProject(P) {   /* the co-op project: three weekly stages of slots filled by normal play; your focus doubles one kind of slot */
+  if (!P) return '';
+  const fk = S.spec && S.spec.cur && P.focusSlot ? P.focusSlot[S.spec.cur] : '';
+  let h = '<h3>Co-op project: ' + P.name + '</h3><p class="note">Stage ' + Math.min(3, P.stage + (P.waiting ? 0 : 1)) + ' of 3' + (P.waiting ? (P.stage >= 3 ? ' · built! The next project starts next week.' : ' · done for this week; the next stage opens next week.') : ' · filled by what everyone already does. It never fails or runs out.') + '</p>';
+  if (!P.waiting) h += (P.slots || []).map((sl) => '<p class="note" style="margin:4px 0 0">' + sl.name + (sl.k === fk ? ' <b>· your focus counts ×2</b>' : '') + ' · ' + fmt(sl.have) + ' / ' + fmt(sl.need) + '</p><div class="bar"><i style="width:' + Math.min(100, Math.round(sl.have / sl.need * 100)) + '%"></i></div>').join('');
+  if ((P.builders || []).length) h += '<p class="note">Builders: ' + P.builders.slice(0, 8).map((b) => (b.you ? '<b>' + b.name + '</b>' : b.name)).join(', ') + '</p>';
+  if ((P.built || []).length) h += '<p class="note">Built together: ' + P.built.map((b) => b.name).join(', ') + '. Each builder has its trophy.</p>';
+  return h;
+}
 function coopCard() {   /* the Daily tab's co-op section */
   if (!coopOK() || NET.status !== 'online' || !NET.coopSeen) return '<p class="note">Co-ops work when you play online at bejucoffee.com.</p>';
   const c = NET.coop;
   if (!c) return '<h2 id="coopH">Cooperative</h2><p class="note">Join up to 7 other farmers: fill a weekly order together, send stickers and help each other\'s lots dry.</p><div class="seg">' + btn('Find a co-op', 'near your prestige', 'coop:find', true, 'green') + btn('Start one', '', 'coopnew', true, 'blue') + btn('Join with a code', '', 'coopcode', true) + '</div>';
   const o = c.order, days = Math.max(1, Math.ceil((o.ends - Date.now()) / 864e5)), mine = c.members.find((m) => m.you) || { share: 0 }, pname = (METHODS[o.process] || { name: o.process }).name.toLowerCase();
-  let h = '<h2 id="coopH">' + c.name + '</h2><p class="note">Invite code <b>' + c.code + '</b> · ' + c.members.length + ' of 8 farmers</p>';
+  let h = '<h2 id="coopH">' + (BANNER_GLYPH[c.banner] ? '<span class="banner">' + BANNER_GLYPH[c.banner] + '</span> ' : '') + c.name + '</h2><p class="note">Invite code <b>' + c.code + '</b> · ' + c.members.length + ' of 8 farmers · <button type="button" class="linkbtn" data-act="bannerpick">' + (c.banner ? 'change banner' : 'pick a banner') + '</button> · <button type="button" class="linkbtn" data-act="coop:report">report the name</button></p>' + (S.bannerOpen ? '<div class="seg">' + Object.keys(BANNER_GLYPH).map((k) => '<button type="button" class="' + (c.banner === k ? 'blue' : '') + '" data-act="coop:banner.' + k + '">' + BANNER_GLYPH[k] + '</button>').join('') + '</div>' : '');
   h += '<h3>Weekly co-op order</h3><p class="note">Deliver ' + fmt(o.target) + ' kg of ' + pname + ' green coffee together. Your ' + pname + ' lots count when you sell or deliver them. Ends in ' + days + ' day' + (days === 1 ? '' : 's') + '.</p>' + help('coopsize', 'Sized to take the week.', 'Sized to take the week: about an hour of play a day from every farmer, going by what each farm sells now, and a little more from each in a bigger co-op.');
   h += '<div class="bar"><i style="width:' + Math.min(100, Math.round(o.total / o.target * 100)) + '%"></i></div><p class="note">' + fmt(o.total) + ' / ' + fmt(o.target) + ' kg · you: ' + fmt(Math.max(mine.share, S.cw ? S.cw.kg : 0)) + ' kg</p>';
   const ready = o.tiers.filter((t, i) => o.total >= t.at && !o.claimed.includes(i)), gain = ready.reduce((a, t) => a + t.cranes, 0);
   h += '<div class="tiers">' + o.tiers.map((t, i) => '<span class="chip' + (o.claimed.includes(i) ? ' got' : '') + '">' + [25, 50, 75, 100][i] + '% · ' + t.cranes + ' crane' + (t.cranes === 1 ? '' : 's') + (o.claimed.includes(i) ? ' ✓' : '') + '</span>').join('') + '</div>';
   if (gain && mine.share > 0) h += btn('Claim', gain + ' crane' + (gain === 1 ? '' : 's'), 'coop:claim', true, 'green');
-  h += '<h3>Members</h3>' + c.members.map((m, i) => row(avatar(m.look, 30), m.you ? m.name + ' (you)' : m.name, (m.away ? 'Away for a week or more · ' : 'Prestige ' + m.prestige + ' · ') + fmt(m.share) + ' kg this week', m.you ? '' : '<div class="seg" style="flex-direction:column;gap:4px">' + btn(m.helped ? 'Helped' : 'Help', m.helped ? 'today' : 'dry their lots', 'coop:help.' + i, !m.helped, 'blue') + btn(c.care.sent ? 'Sent' : 'Send a bag', c.care.sent ? 'one a day' : 'a care package', 'carepick:' + i, !c.care.sent, '') + (m.code ? '<button type="button" class="visit-btn" data-act="visit:' + m.code + '">Visit</button>' : '') + '</div>')).join('');
+  h += '<h3>Members</h3>' + c.members.map((m, i) => row(avatar(m.look, 30), m.you ? m.name + ' (you)' : m.name, (m.away ? 'Away for a week or more · ' : 'Prestige ' + m.prestige + ' · ') + fmt(m.share) + ' kg this week', m.you ? '' : '<div class="seg" style="flex-direction:column;gap:4px">' + btn(m.helped ? 'Helped' : 'Help', m.helped ? 'today' : 'dry their lots', 'coop:help.' + i, !m.helped, 'blue') + btn(c.care.sent ? 'Sent' : 'Send a bag', c.care.sent ? 'one a day' : 'a care package', 'carepick:' + i, !c.care.sent, '') + (m.code ? '<button type="button" class="visit-btn" data-act="visit:' + m.code + '">Visit</button>' : '') + '<small><button type="button" class="linkbtn" data-act="coop:kick.' + i + '">vote out' + ((c.kicks || {})[i] ? ' (' + c.kicks[i] + ')' : '') + '</button> · <button type="button" class="linkbtn" data-act="coop:reportm.' + i + '">report name</button></small></div>')).join('');
   if (S.hideStickers) h += '<p class="note">Stickers are hidden. Show them again in Settings.</p>';
   else {
     const keys = S.stickersAll ? Object.keys(STICKERS) : ['hello', 'thanks', 'nice', 'onit', 'golden', 'night'];
     h += '<h3>Stickers <button type="button" class="linkbtn" data-act="stickersall">' + (S.stickersAll ? 'fewer' : 'more') + '</button></h3><div class="stickers">' + keys.map((k) => '<button type="button" class="btn" data-act="coop:sticker.' + k + '"><img src="' + url(STICKERS[k][1]) + '" alt="">' + STICKERS[k][0] + '</button>').join('') + '</div>';
   }
   if (c.feed.length && !S.hideStickers) h += '<div class="feed">' + c.feed.slice(-3).reverse().map((f) => '<span><img src="' + url((STICKERS[f.s] || STICKERS.hello)[1]) + '" alt=""><b>' + f.name + '</b> ' + (STICKERS[f.s] || STICKERS.hello)[0] + ' <small>' + agoText(f.at) + '</small></span>').join('') + '</div>';
+  h += coopProject(c.project);
   const d = c.derby;
   if (d && d.last && d.last.canClaim) h += row(img('i_trophy', 30), 'Last week\'s Co-op Derby', 'Place ' + d.last.rank + ' of ' + d.last.of + (d.last.to > d.last.league ? ', up a league' : d.last.to < d.last.league ? ', down a league' : ''), btn('Claim', d.last.cranes + ' cranes', 'coop:derbyclaim', true, 'green'));
   if (d && d.on) {
     const dl = Math.max(1, Math.ceil((d.ends - Date.now()) / 864e5));
     h += '<h3>Co-op Derby' + (d.leagues ? ' · ' + d.leagueName + ' league' : '') + '</h3><p class="note">Place ' + d.rank + ' of ' + d.group.length + '. ' + (d.leagues ? 'The top 3 move up a league and the bottom 3 move down' : 'Places are settled') + ' when the week ends, in ' + dl + ' day' + (dl === 1 ? '' : 's') + '. Your normal play scores:</p>';
-    h += '<table class="dtab">' + d.board.map((t) => '<tr><td>' + t.name + '</td><td>' + t.pts + ' pt' + (t.pts > 1 ? 's' : '') + ' each</td><td>you: ' + fmt(t.mine) + ' / ' + fmt(t.cap) + '</td></tr>').join('') + '</table>';
+    if (d.rival) h += '<p class="note"><b>Your rival:</b> ' + (BANNER_GLYPH[d.rival.banner] || '') + ' ' + d.rival.name + (d.rival.house ? ' (a house co-op)' : '') + ', ' + fmt(d.rival.gap) + ' pts to pass them.</p>';
+    h += '<p class="note">Your co-op scores its best ' + (d.best || 5) + ' farmers. ' + (d.scored >= d.members ? '<b>Full table:</b> everyone has scored, +10%.' : d.scored + ' of ' + d.members + ' have scored: when everyone scores, +10%.') + '</p>';
+    h += '<table class="dtab">' + d.board.map((t) => '<tr><td>' + t.name + (t.id === 'neigh' ? '<small> · help, care, cheer other farms</small>' : '') + ((d.mvp || {})[t.id] ? '<small> · best: ' + d.mvp[t.id] + '</small>' : '') + '</td><td>' + t.pts + ' pt' + (t.pts > 1 ? 's' : '') + ' each</td><td>you: ' + fmt(t.mine) + ' / ' + fmt(t.cap) + '</td></tr>').join('') + '</table>';
     const shown = S.derbyAll ? d.group : d.group.filter((g) => g.rank <= 3 || g.you);
-    h += '<table class="dtab">' + shown.map((g) => '<tr class="' + (g.you ? 'you' : '') + '"><td>' + g.rank + '</td><td>' + g.name + '</td><td>' + fmt(g.pts) + ' pts</td></tr>').join('') + '</table>' + (d.group.length > shown.length || S.derbyAll ? '<button type="button" class="linkbtn" data-act="derbyall">' + (S.derbyAll ? 'show less' : 'see all ' + d.group.length) + '</button>' : '');
+    h += '<table class="dtab">' + shown.map((g) => '<tr class="' + (g.you ? 'you' : '') + '"><td>' + g.rank + '</td><td>' + (BANNER_GLYPH[g.banner] || '') + ' ' + g.name + (g.house ? ' <small>(house)</small>' : '') + '</td><td>' + fmt(g.pts) + ' pts</td></tr>').join('') + '</table>' + (d.group.length > shown.length || S.derbyAll ? '<button type="button" class="linkbtn" data-act="derbyall">' + (S.derbyAll ? 'show less' : 'see all ' + d.group.length) + '</button>' : '');
   } else if (d) h += '<p class="note">' + (d.joinsNext ? 'Your co-op joins the Co-op Derby next week.' : 'The Co-op Derby, a weekly race between co-ops, starts once ' + d.need + ' co-ops of two or more are playing (now ' + d.have + ').') + '</p>';
   h += '<button type="button" class="linkbtn" data-act="coopleaveask">Leave the co-op</button>';
   return h;

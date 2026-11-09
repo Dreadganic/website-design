@@ -14,6 +14,7 @@
 const G = require("../game");
 const C = require("../community");
 const D = require("../derby");
+const P = require("../projects");
 
 const CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 const newCode = () => Array.from({ length: 6 }, () => CODE_CHARS[require("crypto").randomInt(CODE_CHARS.length)]).join("");
@@ -84,7 +85,8 @@ async function view(store, coop, me, now) {
     members: coop.members.map((m, i) => ({ you: m === me.id, name: rows[i].name || "Farmer", look: rows[i].look || {}, prestige: rows[i].prestige || 0, level: rows[i].level || 1, share: Math.round(w.shares[m] || 0), away: m !== me.id && awayFor(coop, m, rows[i], now) >= C.COOP_AWAY_DAYS * C.DAY, helped: help.pairs.includes(me.id + ">" + m), code: rows[i].code || "" })),
     order: { week: wk, ends: C.weekStart(wk) + 7 * C.DAY, process: w.process, target: w.target, total: Math.round(total), tiers: C.COOP_TIERS.map(([f, cr]) => ({ at: Math.round(w.target * f), cranes: cr })), claimed: w.claimed[me.id] || [] },
     feed: feed.items.slice(-12), helpsIn: help.inbox[me.id] || 0, care,
-    derby: await D.derbyView(store, coop, me, now)
+    derby: await D.derbyView(store, coop, me, now),
+    project: (() => { if (P.ensure(coop, wk)) store.set("coops/" + coop.id, coop); const nm = {}; coop.members.forEach((m, i) => { nm[m] = rows[i].name || "Farmer"; }); return P.view(coop, me, nm); })()
   };
 }
 async function joinCoop(store, me, coop, now) {
@@ -147,6 +149,9 @@ exports.handler = async (event) => {
       if (ok > 0) { w.shares[me.id] = had + ok; w.at[me.id] = now; await store.set("coops/" + coop.id + "/week/" + wk, w); }
       const idx = await index(store); if (idx[coop.id] && now - (idx[coop.id].act || 0) > 3600e3) { idx[coop.id].act = now; await store.set("coopidx", idx); }   /* this co-op is alive */
       await D.derbyAdd(store, coop, me, b.derby, now);
+      P.ensure(coop, wk); const pr = P.add(coop, me.id, b.derby, typeof b.focus === "string" ? b.focus : "", wk, now);   /* the co-op project, from the same counts */
+      if (pr.changed) await store.set("coops/" + coop.id, coop);
+      if (pr.done) for (const pid of coop.members) { const pl = pid === me.id ? me : await store.get("players/" + pid); if (pl) await G.addTrophy(store, pl, { k: "coopproj", p: pr.done, w: wk }, now); }   /* every member when it's built gets the trophy */
     }
     return G.json(200, { coop: await view(store, coop, me, now) });
   }

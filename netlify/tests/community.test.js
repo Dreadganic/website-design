@@ -358,3 +358,28 @@ test("co-ops: banner, kick by majority, reports", async () => {
   assert.equal((await call(coop, "GET", undefined, ps[3])).body.coop, null, "the kicked farmer is out");
   assert.equal((await call(coop, "POST", { act: "report", i: 1 }, ps[0])).body.ok, true);
 });
+
+test("co-op projects: slots fill from normal play, a matching focus counts double, a stage a week, a trophy when built", async () => {
+  const P = require("../lib/projects");
+  const a = await newPlayer("Pa"), b = await newPlayer("Pb");
+  const made = (await call(coop, "POST", { act: "create", name: "Builders" }, a)).body.coop;
+  await call(coop, "POST", { act: "join", code: made.code }, b);
+  let v = (await call(coop, "GET", undefined, a)).body.coop;
+  assert.equal(v.project.kind, "wetmill"); assert.equal(v.project.stage, 0); assert.equal(v.project.slots.length, 3);
+  const s0 = v.project.slots[0], wk = v.derby.week;
+  v = (await call(coop, "POST", { act: "sync", week: wk, kg: 0, derby: { [s0.k]: 10 }, focus: "" }, a)).body.coop;
+  assert.equal(v.project.slots[0].have, 10);
+  const doubler = Object.keys(P.FOCUS_SLOT).find((f) => P.FOCUS_SLOT[f] === s0.k);
+  v = (await call(coop, "POST", { act: "sync", week: wk, kg: 0, derby: { [s0.k]: 10 }, focus: doubler }, b)).body.coop;
+  assert.equal(v.project.slots[0].have, 30, "a matching focus counts double");
+  const full = {}; v.project.slots.forEach((s) => { full[s.k] = s.need; });
+  v = (await call(coop, "POST", { act: "sync", week: wk, kg: 0, derby: full }, a)).body.coop;
+  assert.equal(v.project.waiting, true, "a finished stage waits for next week"); assert.equal(v.project.stage, 1);
+  for (let st = 1; st < 3; st++) {
+    clock += 7 * C.DAY; v = (await call(coop, "GET", undefined, a)).body.coop; const wk2 = v.derby.week, f2 = {}; v.project.slots.forEach((s) => { f2[s.k] = s.need; });
+    v = (await call(coop, "POST", { act: "sync", week: wk2, kg: 0, derby: f2 }, a)).body.coop;
+  }
+  assert.equal(v.project.built.length, 1, "built after three stages"); assert.equal(v.project.built[0].name, "Washing station");
+  let got = 0; for (const k of await store.list("players/")) { const p = await store.get(k); if (p && (p.trophies || []).some((t) => t.k === "coopproj")) got++; }
+  assert.equal(got, 2, "every member gets the trophy");
+});
