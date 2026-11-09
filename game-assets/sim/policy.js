@@ -130,6 +130,12 @@ window.BOT = (function () {
       closeAll(); log('PRESTIGE ' + S.prestige + ' (dormant: ' + Object.keys(S.dormant).join(',') + ')');
     }
   }
+  function smart() {   /* SMART=1: play the focus's mechanic, not just its defaults */
+    if (!B.cfg.smart) return; const S = G.S, sp = S.spec; if (!sp) return;
+    if (sp.cur === 'mill' && sp.seal !== 3) act('seal:3');
+    if (sp.cur === 'trade') { if (sp.reserve !== 0.3) act('reserve:0.3'); S.contracts.forEach((c) => { if (c.t0 !== undefined && !c.fut && !c.closed && rnd() < 0.3) act('future:' + c.id); }); }
+    if (sp.cur === 'grow') G.LOCS.forEach((l) => { const f = S.farms[l]; if (f.unlocked && f.comp && f.comp[0] !== 'shade') { f.comp[0] = 'shade'; f.comp[1] = 'flower'; } });
+  }
   function dropRoasts() {   /* the Roaster focus: drop in the window when one is developing */
     const R = G.S.roastery; if (!R || !G.devP) return; R.roasters.forEach((r, i) => { if (r.dev && !r.dropped) { const d = G.devP(r), w = { light: [0, 0.3], medium: [0.3, 0.6], dark: [0.6, 0.85] }[r.profile]; if (d >= (w[0] + w[1]) / 2 || d > 0.8) act('drop:' + i); } });
   }
@@ -171,7 +177,7 @@ window.BOT = (function () {
     if (g.ev === 'plant' && S.vars.catuai) { const home = S.loc; act('go:mogiana'); act('plant:1.catuai'); act('go:' + home); }
     if (g.ev === 'var' && !S.vars.catuai) act('var:catuai');
   }
-  function decide() { closeAll(); lessons(); if (!G.GUIDE || G.S.guide >= G.GUIDE.length) G.checkIn(); G.checkTabs();   /* the game holds the first check-in until the lessons are done */ tap(); active(); mill(); estate(); roast(); dropRoasts(); knowhow(); coins(); prestige(); closeAll(); cycleEnd(); }
+  function decide() { closeAll(); lessons(); if (!G.GUIDE || G.S.guide >= G.GUIDE.length) G.checkIn(); G.checkTabs();   /* the game holds the first check-in until the lessons are done */ tap(); active(); mill(); estate(); roast(); dropRoasts(); smart(); knowhow(); coins(); prestige(); closeAll(); cycleEnd(); }
   function snap() {
     const S = G.S;
     B.snaps.push({ t: Math.round(B.t), lv: G.level(), xp: Math.round(S.xp), p: S.prestige, coins: Math.round(S.coins), kh: Math.round(S.points), cranes: S.cranes, farms: G.LOCS.filter(live).length, workers: G.totalWorkers(), lots: S.stats.lotsSold, sold: Math.round(S.stats.sold), picked: Math.round(S.stats.picked), busy: S.lots.filter((l) => l.left > 0).length, rcap: G.rackCap ? G.rackCap() : 0, rkg: Math.round(S.lots.reduce((a, l) => a + l.kg, 0)), inc: window.__inc ? JSON.parse(JSON.stringify(window.__inc)) : undefined, rep: S.roastery ? Math.round(S.roastery.rep || 0) : 0, stars: S.season ? S.season.stars : 0, dry: S.lots.length ? Math.round(S.lots.reduce((a, l) => a + (l.total || 0), 0) / S.lots.length) : 0, contracts: S.stats.contracts || 0, cap: G.cap(), racks: G.racks(), stored: Math.round(G.stored()), day: S.day });

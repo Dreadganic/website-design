@@ -9,38 +9,46 @@ const ok = (c, m) => { if (c) { pass++; console.log('PASS ' + m); } else { fail+
   const r = await E(() => { const T = window.__T, S = T.S, o = {};
     S.prestige = 2; delete S.spec; T.act('specpick:grow'); o.early = !S.spec;   /* not before prestige 3 */
     S.prestige = 3; T.act('specpick:wander');
-    o.wander = T.nativeKg2('huila', 'geisha') === 1 && T.nativeKg2('turrialba', 'geisha') === 1.3;
+    o.native = T.nativeKg2('huila', 'geisha') === 0.85;   /* the away rule stays */
+    const hu = S.farms.huila; hu.unlocked = true; T.terroirAdd(hu, 'geisha', 310); o.trial = S.spec.trials === 1 && T.terroirCup('geisha') === 0.5 && T.terroirCup('caturra') === 0;
     o.oneSwap = !S.spec.swap; T.act('specpick:grow'); o.swap = T.specOn('grow') && S.spec.swap; T.act('specpick:mill'); o.locked = T.specOn('grow');
-    /* Grower: shade on every field of one coffee gives it +2 cup; wildflowers bring golden bushes sooner */
     const f = S.farms[S.loc], v = f.beds[0]; f.comp = []; f.beds.forEach((x, b) => { if (x === v) f.comp[b] = 'shade'; });
-    const others = T.LOCS ? 0 : 0; o.shade = T.compCup(v) > 0; f.comp = ['flower', 'flower']; o.flower = T.compGold() < 1;
-    /* Miller */
-    S.spec.swap = false; T.act('specpick:mill'); T.act('seal:2'); o.seal = S.spec.seal === 2;
-    o.sour = T.sealPay({ seal: 2, ferm: -4, sour: true }) === 0.5 && T.sealPay({ seal: 2, ferm: 3 }) > 1.29;
-    /* Trader */
-    S.spec.swap = false; T.act('specpick:trade'); const c = T.newContract(); o.bid = c.t0 !== undefined && c.bidN >= 2 && T.tradeMult(c) === 1;
-    c.t0 -= 120; o.rise = T.tradeMult(c) > 1.19; c.t0 -= 600; o.cap = T.tradeMult(c) <= 1.4;
-    S.contracts.push(c); c.leave = S.minutesTotal - 1; T.tradeTick(); o.leave = !S.contracts.includes(c);
-    const c2 = T.newContract(); S.contracts.push(c2); T.act('future:' + c2.id); o.fut = c2.fut && T.tradeMult(c2) === 1.4; c2.due = S.minutesTotal - 1; T.tradeTick(); o.cold = S.spec.cold > S.minutesTotal;
-    S.spec.won = (S.spec.won || 0); const w0 = S.spec.won; S.spec.won = w0 + 10; T.specCheck(); o.goal = S.spec.done && S.spec.stars.trade === 1 && !!S.sitems.title['sp:trade'] && T.titleText('sp:trade') === 'Master trader';
-    T.specSet('trade', true); S.spec.won += 10; T.specCheck(); o.star2 = S.spec.stars.trade === 2 && /★★/.test(T.titleText('sp:trade'));
-    S.dormant = { toba: 30 }; T.specSet('wander', true); o.wake = !Object.keys(S.dormant).length;
+    o.shade = T.compCup(v) > 0 && T.compAway(f) < 1; f.comp = ['flower', 'flower', 'legume', 'legume']; o.flower = T.compGold() < 1 && T.compAway(f) > 1;
+    S.spec.swap = false; T.act('specpick:mill'); T.act('seal:3'); o.seal = S.spec.seal === 3;
+    let sours = 0, two = false, last = false; for (let i = 0; i < 4000; i++) { const x = T.sealRoll(3); if (x.sour) { sours++; if (last) two = true; } last = !!x.sour; }
+    o.odds = sours > 100 && sours < 320 && !two;
+    S.contracts.length = 0; o.skip = !T.sealSkip('caturra', 'washed'); S.contracts.push({ id: 1, buyer: 'X', v: 'caturra', method: 'washed', kg: 10, have: 0, minCup: 80, coins: 100, points: 10, due: S.minutesTotal + 999 }); o.skip = o.skip && T.sealSkip('caturra', 'washed'); S.contracts.length = 0;
+    o.sour = T.sealPay({ seal: 2, ferm: -3, sour: true }) === 0.5 && T.sealPay({ seal: 2, ferm: 3 }) > 1.29;
+    S.spec.swap = false; T.act('specpick:trade'); const c = T.newContract(); o.bid = c.t0 !== undefined && c.bidN >= 2 && T.tradeMult(c) === 1 && c.span > 0;
+    S.spec.reserve = 0.2; o.hold = !T.tradeReady(c); c.t0 -= c.span * 0.4; o.rise = Math.abs(T.tradeMult(c) - 1 - (c.bidN === 3 ? 0.4 : 0.25)) < 1e-6 && T.tradeReady(c);
+    S.contracts.push(c); c.leave = S.minutesTotal - 1; T.tradeTick(); o.close = S.contracts.includes(c) && T.tradeMult(c) === 1;
+    const c2 = T.newContract(); S.contracts.push(c2); T.act('future:' + c2.id); o.fut = c2.fut && T.tradeMult(c2) === 1.3; c2.fdue = S.minutesTotal - 1; T.tradeTick(); o.missed = T.tradeMult(c2) === 1 && S.contracts.includes(c2) && !(S.spec.cold > S.minutesTotal);
+    S.contracts.length = 0;
+    T.specSet('trade', true); const g0 = T.specGoal(0); S.prestige = 7; o.scale = T.specGoal(0) === g0 * 3; S.prestige = 3;
+    S.spec.won = (S.spec.base || 0) + g0; T.specCheck(); o.tier = S.spec.tier === 1 && S.spec.stars.trade >= 1 && !!S.sitems.title['sp:trade'] && T.titleText('sp:trade').startsWith('Master trader') && /Trader/.test(T.specChip());
     return o; });
-  ok(r.early, 'no focus before prestige 3'); ok(r.wander, 'Wanderer: coffee picks full weight away from home, ×1.3 still only at home');
+  ok(r.early, 'no focus before prestige 3'); ok(r.native, 'Wanderer keeps the away rule (×0.85)'); ok(r.trial, 'Wanderer: 300 kg of a coffee on a new farm is a terroir trial, +0.5 cup');
   ok(r.oneSwap, 'first pick is not a swap'); ok(r.swap, 'changing focus marks the swap'); ok(r.locked, 'only one change a run');
-  ok(r.shade, 'Grower: banana shade raises that coffee\'s cup'); ok(r.flower, 'Grower: wildflowers bring golden bushes sooner');
-  ok(r.seal, 'Miller: the sealed-tank setting'); ok(r.sour, 'Miller: a sour batch pays half, a good one +10% a point');
-  ok(r.bid, 'Trader: contracts draw 2 or 3 bidders'); ok(r.rise, 'Trader: the bid climbs while it stays open'); ok(r.cap, 'Trader: the bid stops at its cap');
-  ok(r.leave, 'Trader: the buyers leave when their patience runs out'); ok(r.fut, 'Trader: a future is +40% fixed'); ok(r.cold, 'Trader: a missed future leaves buyers cold');
-  ok(r.goal, 'goal reached gives the title and a star'); ok(r.star2, 'reaching it again adds a star'); ok(r.wake, 'Wanderer wakes dormant farms');
+  ok(r.shade, 'Grower: shade raises that coffee\'s cup and slows the farm while away'); ok(r.flower, 'Grower: wildflowers bring golden bushes sooner, legumes speed the away pace');
+  ok(r.seal, 'Miller: the sealed-tank setting'); ok(r.odds, 'Miller: about 5% sour at three shifts, never two in a row'); ok(r.skip, 'Miller: a lot a contract waits for is never sealed'); ok(r.sour, 'Miller: sour pays half, a good batch +10% a point');
+  ok(r.bid, 'Trader: contracts draw 2 or 3 bidders'); ok(r.hold, 'Trader: the agent waits for the bid you set'); ok(r.rise, 'Trader: the bid reaches its cap by 40% of the contract\'s time');
+  ok(r.close, 'Trader: when the rivals drop out the contract stays, at the plain price'); ok(r.fut, 'Trader: a future is +30%'); ok(r.missed, 'Trader: a missed future only loses its premium');
+  ok(r.scale, 'goals scale with prestige (×3 at prestige 7)'); ok(r.tier, 'a tier gives a star and the title; the HUD chip shows the focus');
   const rd = await E(() => { const T = window.__T, S = T.S, R = S.roastery; S.spec.swap = false; T.act('specpick:roast'); if (!T.specOn('roast')) return ['not open'];
-    R.roasters.length = 0; R.roasters.push({ key: 'caturra.washed', profile: 'medium', kg: 10, coins: 100, pts: 10, cup: 85, start: Date.now() - 7600, dur: 10000, crack: 0, cw: 0.16 });
-    T.act('crack:0'); const r0 = R.roasters[0], dev = !!(r0 && r0.dev); r0.dev = Date.now() - r0.devDur * 0.45; const nb = R.bags.length; T.act('drop:0');
-    const bag = R.bags[R.bags.length - 1]; return [dev, R.bags.length === nb + 1 && bag.profile === 'medium' && (S.spec.drops || 0) >= 1]; });
-  ok(rd[0] === true, 'Roaster: a perfect crack starts development instead of ending the roast'); ok(rd[1] === true, 'Roaster: dropping in the window bags it and counts toward the goal');
-  const pr = await E(() => { const T = window.__T, S = T.S; for (let i = 0; i < 12; i++) T.closeModal(); T.laterQ && (T.laterQ.length = 0); delete S.spec; S.prestige = 2; S.xp = T.XP_AT(T.prestigeNeed() + 1); T.act('prestigeAsk'); const m = document.getElementById('modal'); const has = /Your focus for the next run/.test(m.innerHTML); T.act('specnext:wander'); const still = !m.hidden && /Your focus/.test(m.innerHTML); T.act('prestige'); return [has, still, S.prestige === 3 && T.specOn('wander') && !Object.keys(S.dormant).length]; });
-  ok(pr[0], 'the prestige window offers a focus at prestige 3'); ok(pr[1], 'picking keeps the window open'); ok(pr[2], 'prestige sets the focus; a Wanderer keeps every farm awake');
-  const card = await E(() => { const T = window.__T; T.setTab('ranks'); T.act('ranksub:prestige'); return /Focus: Wanderer/.test(document.body.innerHTML); });
+    T.setTab('roast'); const mk = () => ({ key: 'caturra.washed', profile: 'medium', kg: 10, coins: 100, pts: 10, cup: 85, start: Date.now() - 7600, dur: 10000, crack: 0, cw: 0.16 });
+    R.roasters.length = 0; R.roasters.push(mk()); T.act('crack:0'); const r0 = R.roasters[0], dev = !!(r0 && r0.dev);
+    T.act('drop:0'); const early = !r0.dropped;
+    r0.dev = Date.now() - r0.devDur * 0.45; const nb = R.bags.length, d0 = S.spec.drops || 0; T.act('drop:0'); const bag = R.bags[R.bags.length - 1];
+    const inWin = R.bags.length === nb + 1 && bag.profile === 'medium' && (S.spec.drops || 0) === d0 + 1;
+    R.roasters.push(mk()); T.act('crack:0'); const r1 = R.roasters[0]; r1.dev = Date.now() - r1.devDur * 0.87; const zone = T.devZone(0.87); T.act('drop:0'); const late = R.bags[R.bags.length - 1].profile === 'dark' && zone === 'dark';
+    R.roasters.push(mk()); T.act('crack:0'); const r2 = R.roasters[0]; r2.dev = Date.now() - r2.devDur * 0.35; T.setTab('farm'); T.roasteryTick(); const auto = !R.roasters.length && R.bags[R.bags.length - 1].profile === 'medium';
+    return [dev, early, inWin, late, auto]; });
+  ok(rd[0] === true, 'Roaster: a perfect crack starts development instead of ending the roast'); ok(rd[1] === true, 'Roaster: Drop too soon does nothing');
+  ok(rd[2] === true, 'Roaster: dropping in the window bags it and counts'); ok(rd[3] === true, 'Roaster: at second crack Drop still lands dark, as the prompt says');
+  ok(rd[4] === true, 'Roaster: off the Roast screen it drops itself in the window');
+  const pr = await E(() => { const T = window.__T, S = T.S; for (let i = 0; i < 12; i++) T.closeModal(); T.laterQ && (T.laterQ.length = 0); delete S.spec; S.prestige = 2; S.xp = T.XP_AT(T.prestigeNeed() + 1); T.act('prestigeAsk'); const m = document.getElementById('modal'); const has = /Your focus for the next run/.test(m.innerHTML); T.act('specnext:wander'); const still = !m.hidden && /Your focus/.test(m.innerHTML); S.dormant = { toba: 40 }; T.act('prestige'); return [has, still, S.prestige === 3 && T.specOn('wander') && !Object.keys(S.dormant).length]; });
+  ok(pr[0], 'the prestige window offers a focus at prestige 3'); ok(pr[1], 'picking keeps the window open'); ok(pr[2], 'prestige sets the focus, and no farm goes dormant');
+  const card = await E(() => { const T = window.__T; T.setTab('ranks'); T.act('ranksub:prestige'); return /Focus: Wanderer/.test(document.body.innerHTML) && !document.getElementById('hudFocus').hidden; });
   ok(card, 'the Focus card shows in Ranks › Prestige');
   ok(!errs.length, 'no page errors ' + errs.join(' | '));
   console.log(pass + ' passed, ' + fail + ' failed'); await b.close(); process.exit(fail ? 1 : 0); })();

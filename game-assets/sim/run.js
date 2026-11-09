@@ -14,7 +14,7 @@ const mode = process.argv[2] || 'active', target = +(process.argv[3] || 5), out 
   });
   await p.goto('file://' + __dirname + '/' + html); await p.waitForTimeout(400);
   await p.addScriptTag({ path: __dirname + '/policy.js' });
-  await p.evaluate((m) => { BOT.cfg.mode = m.mode; BOT.cfg.maxBuild = m.maxBuild; BOT.cfg.active = !!m.active; BOT.cfg.spec = m.spec; BOT.G.S.sfx = false; BOT.G.S.music = false; }, { mode, maxBuild, active: process.argv[7] === 'active', spec: process.env.SPEC || '' });
+  await p.evaluate((m) => { BOT.cfg.mode = m.mode; BOT.cfg.maxBuild = m.maxBuild; BOT.cfg.active = !!m.active; BOT.cfg.spec = m.spec; BOT.cfg.smart = m.smart; BOT.G.S.sfx = false; BOT.G.S.music = false; }, { mode, maxBuild, active: process.argv[7] === 'active', spec: process.env.SPEC || '', smart: !!process.env.SMART });
   const t0 = Date.now(); let hours = 0;
   while (true) {
     let r;
@@ -22,7 +22,8 @@ const mode = process.argv[2] || 'active', target = +(process.argv[3] || 5), out 
     else { r = await p.evaluate(() => BOT.run(600)); await p.evaluate(() => BOT.away(7.8)); }   /* casual: three 10-minute sessions a day */
     hours = r.t / 3600;
     process.stdout.write(`\r${mode} played ${hours.toFixed(2)} h  lv ${r.lv}  prestige ${r.p}   `);
-    if (r.p >= target || hours > 60 || errs.length > 5) break;
+    if (r.p >= target || hours > (+process.env.MAXH || 60) || errs.length > 5) break;
+    if (process.env.PLOG) fs.appendFileSync(process.env.PLOG, hours.toFixed(2) + ' ' + r.lv + ' ' + r.p + '\n');
   }
   const data = await p.evaluate(() => ({ events: BOT.events, snaps: BOT.snaps, buys: BOT.buys.length, gaps: BOT.gaps, awayH: BOT.awayH || 0, final: JSON.parse(JSON.stringify(BOT.G.S, (k, v) => (k === 'target' || k === 'claim' || k === 'path') ? undefined : v)) }));
   data.errs = errs; data.realSec = (Date.now() - t0) / 1000; data.mode = mode;
