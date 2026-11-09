@@ -45,11 +45,13 @@ const SEL = ['.top', '#hearts', '#hudLevel', '.hud-r .clock', '#hudCoins', '#hud
       /* 3. tap targets: 44 px, or a 44 px hit area around a small pill */
       const small = await g.evaluate(() => [...document.querySelectorAll('.top button, #tabs button, .pill.go')].filter((e) => e.offsetParent && !e.hidden).map((e) => {
         const q = e.getBoundingClientRect(), cx = q.left + q.width / 2, cy = q.top + q.height / 2;
-        if (e.matches('#tabs .tab') && q.height >= 44 && q.width >= 36) return null;   /* eight tabs on a 360 px phone are 38 wide: the tab bar is not being changed (design doc, Layout zones) */
         if (q.width >= 44 && q.height >= 44) return null;
         const hits = [[cx, cy - 21], [cx, cy + 21], [q.left + 2, cy], [q.right - 2, cy]].every(([x, y]) => { const t = document.elementFromPoint(x, y); return t && (t === e || e.contains(t)); });
         return hits && q.width >= 40 ? null : (e.id || e.className) + ' ' + Math.round(q.width) + 'x' + Math.round(q.height) + ' [' + [[cx, cy - 21], [cx, cy + 21], [q.left + 2, cy], [q.right - 2, cy]].map(([x, y]) => { const t = document.elementFromPoint(x, y); return t ? t.id || t.className : '-'; }).join(',') + ']'; }).filter(Boolean));
       ok(small.length === 0, 'everything tappable on the HUD is 44 px to tap: ' + small.join('; '));
+      const tw = await g.evaluate(() => { const T = window.__T; T.setTab('farm', true); T.act('sheetmin'); return 0; }) || await g.evaluate(() => [...document.querySelectorAll('#tabs .tab')].filter((e) => e.offsetParent).map((e) => Math.round(e.getBoundingClientRect().width)));
+      ok(tw.length === 8 && Math.min(...tw) >= 44, 'all eight tabs are at least 44 px wide on a 360 px phone: ' + tw.join(','));
+      ok(await g.evaluate(() => { const q = document.getElementById('tabs').getBoundingClientRect(); return q.left >= 2 && q.right <= innerWidth - 2; }), 'the tab bar runs edge to edge and stays on screen');
       /* 4. text: 11 px on the HUD, 10 px on tabs, 4.5 to 1 against white and black under any see-through background */
       await g.evaluate(() => { const S = window.__T.S; S.hearts = 2; S.xp = window.__T.XP_AT(41) - 1; window.__T.refreshHud(); });
       const text = await g.evaluate(() => {

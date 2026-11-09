@@ -520,6 +520,10 @@ canvas.hint { transform: none !important; }
 .tapfloat { font-size: calc(13px * var(--ts)); }
 .h2.big #panel, .h2.big #modalCard { zoom: var(--ts); }
 .h2 .tab.locked { color: #4E3E26; }
+.h2 #tabs.tabs { margin-left: -12px; margin-right: -12px; gap: 0; }   /* the new HUD's tab bar runs edge to edge, tabs side by side: eight tabs are 44 px wide on a 360 px phone */
+.h2 #tabs .tab { border-radius: 0; border-left-width: 1.5px; border-right-width: 1.5px; height: 44px; }   /* 44 tall, so the wider bar covers no more of the farm */
+.h2 #tabs .tab:first-child { border-radius: 8px 0 0 8px; border-left-width: 3px; }
+.h2 #tabs .tab:last-child { border-radius: 0 8px 8px 0; border-right-width: 3px; }
 @media (max-width: 400px) { .h2 .tab { font-size: 10px; letter-spacing: -0.05em; } }
 @media (max-width: 370px) { .h2 .tab { font-size: 10px; letter-spacing: -0.07em; padding: 0; } .h2 .tab .lock { font-size: 8px; } }
 .turn { display: none; }
