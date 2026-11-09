@@ -10,7 +10,7 @@
 const G = require("../game");
 
 const rankSort = (key) => (a, b) => b[key] - a[key] || b.level - a.level || b.points - a.points;
-const seasonSort = (a, b) => (b.seasonStars || 0) - (a.seasonStars || 0) || (a.starsAt || Infinity) - (b.starsAt || Infinity) || (b.seasonKh || 0) - (a.seasonKh || 0);
+const seasonSort = (a, b) => (b.seasonStars || 0) - (a.seasonStars || 0) || (b.seasonKh || 0) - (a.seasonKh || 0);   /* stars, then know-how earned this season: play, not the time of day */
 const ROWS_MS = 30e3, SNAP_MS = 3600e3, SNAP = G.BOARD_SNAP, rowCache = new Map(), LIVE = {};   /* keyed by store, so tests with their own stores never share rows */
 async function allRows(store, ck, now, fresh) {   /* fresh: past the cache and the snapshot, for the final board */
   const c = rowCache.get(ck);
@@ -32,6 +32,7 @@ async function boardFor(store, mode, season, ck, now, fresh) {
   return live.sort(mode === "all" ? rankSort("prestige") : seasonSort);
 }
 const pinOf = (r) => { const p = r.look && r.look.pin; return p ? (r.trophies || []).find((t) => t.id === p) || null : null; };   /* the one trophy a player shows beside their name */
+const tieRank = (list, i, mode) => { if (mode === "all" || mode === "counter") return i + 1; const st = list[i].seasonStars || 0, kh = list[i].seasonKh || 0; let j = i; while (j > 0 && (list[j - 1].seasonStars || 0) === st && (list[j - 1].seasonKh || 0) === kh) j--; return j + 1; };   /* equal stars, equal rank: joint #3 */
 const publicRow = (r, i) => ({ pin: pinOf(r), rank: i + 1, name: r.name, prestige: r.prestige, seasonP: r.seasonP, seasonKh: r.seasonKh || 0, seasonStars: r.seasonStars || 0, level: r.level, points: r.points, look: r.look, rookie: !!r.firstSeason && r.firstSeason === r.season, crate: r.crate || 0, cserved: r.cseason === r.season ? r.cserved || 0 : 0, code: r.code || "" });   /* code: for visiting their farm */
 
 async function closeSeason(store, season, now, ck) {   /* save last season's final standings once, while every row still holds them */
@@ -55,7 +56,7 @@ exports.handler = async (event) => {
       const rookies = done.rows.filter((r) => r.firstSeason === q.season), rk = me ? rookies.findIndex((r) => r.id === me.id) : -1;   /* first-season players also get a rookie rank */
       if (mine > -1 && mine < 10) await G.addTrophy(store, me, { k: "season", s: q.season, r: mine + 1 }, now);   /* a top 10 finish goes on the trophy shelf */
       if (rk > -1 && rk < 10) await G.addTrophy(store, me, { k: "rookie", s: q.season, r: rk + 1 }, now);
-      return G.json(200, { season: q.season, mode: "final", players: done.rows.length, top: done.rows.slice(0, 50).map(publicRow), me: mine > -1 ? Object.assign(publicRow(done.rows[mine], mine), { rookieRank: rk > -1 ? rk + 1 : null }) : null }, { "Cache-Control": me ? "private, no-store" : "public, max-age=300", Vary: "Authorization", "Netlify-Vary": "header=Authorization" });
+      return G.json(200, { season: q.season, mode: "final", players: done.rows.length, top: done.rows.slice(0, 50).map((r, i) => Object.assign(publicRow(r, i), { rank: tieRank(done.rows, i, "season") })), me: mine > -1 ? Object.assign(publicRow(done.rows[mine], mine), { rank: tieRank(done.rows, mine, "season") }, { rookieRank: rk > -1 ? rk + 1 : null }) : null }, { "Cache-Control": me ? "private, no-store" : "public, max-age=300", Vary: "Authorization", "Netlify-Vary": "header=Authorization" });
     }
     const mode = q.mode === "all" ? "all" : q.mode === "rookie" ? "rookie" : q.mode === "counter" ? "counter" : "season";
     const me = await G.authed(event, store);
@@ -64,7 +65,8 @@ exports.handler = async (event) => {
       const own = await store.get("scores/" + me.id);
       if (own) { keepRow(ck, own); list = await boardFor(store, mode, season, ck, now); mine = list.findIndex((r) => r.id === me.id); }
     }
-    return G.json(200, { season, mode, players: list.length, top: list.slice(0, 50).map(publicRow), me: mine > -1 ? Object.assign(publicRow(list[mine], mine), { trophies: list[mine].trophies || [] }) : null }, { "Cache-Control": me ? "private, no-store" : "public, max-age=30", Vary: "Authorization", "Netlify-Vary": "header=Authorization" });
+    const pr = (r, i) => Object.assign(publicRow(r, i), { rank: tieRank(list, i, mode) });
+    return G.json(200, { season, mode, players: list.length, top: list.slice(0, 50).map(pr), near: mine > -1 ? list.slice(Math.max(0, mine - 3), mine + 4).map((r, k) => pr(r, Math.max(0, mine - 3) + k)) : [], me: mine > -1 ? Object.assign(pr(list[mine], mine), { trophies: list[mine].trophies || [] }) : null }, { "Cache-Control": me ? "private, no-store" : "public, max-age=30", Vary: "Authorization", "Netlify-Vary": "header=Authorization" });
   }
   if (event.httpMethod !== "POST") return G.json(405, { error: "method_not_allowed" });
   const me = await G.authed(event, store);

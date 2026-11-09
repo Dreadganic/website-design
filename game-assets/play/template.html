@@ -162,7 +162,7 @@ button.dchip { cursor: pointer; }
 .rslot .bar { position: relative; } .rslot .cz { position: absolute; left: 70%; top: 0; bottom: 0; background: rgba(242,192,74,0.55); border-left: 1px solid #A87818; border-right: 1px solid #A87818; }   /* the first-crack window */
 .rslot b { font-size: 13px; } .rslot small { font-family: var(--body); font-size: 11px; font-weight: 700; color: var(--muted); }
 .rslot.idle span { font-family: var(--body); font-size: 12px; font-weight: 700; color: var(--muted); }
-.rslot.crack { border-color: #E8602A; background: #FFF0E0; animation: crackpulse 0.5s infinite alternate; }
+.rslot.crack { border-color: #E8602A; background: #FFF0E0; animation: crackpulse 0.5s infinite alternate; position: sticky; top: 0; z-index: 3; }   /* a crack or a drop window stays in view while you scroll */
 @keyframes crackpulse { to { box-shadow: 0 0 0 3px #F2C04A; } }
 @media (prefers-reduced-motion: reduce) { .rslot.crack { animation: none; } }
 /* notices show inside the farm-name banner, between its arrows, so they never cover the map or a menu */
@@ -1188,7 +1188,7 @@ function specSet(k, fresh) {   /* a new focus: its goal counts from now */
 function specSold() {}
 function specCheck() {
   const sp = S.spec, d = sp && SPECS[sp.cur]; if (!d || sp.done) return;
-  const p = specProg(), t = specTier();
+  const p = specProg(), t = specTier(); if (p > 0) sp.fresh = false;
   if (p > (sp.seen || 0) && p < specGoal(t)) floats.push({ x: 96, y: 58, text: d.name + ' ' + p + ' / ' + specGoal(t), t: 0 });   /* each step shows */
   sp.seen = p; if (p < specGoal(t)) return;
   sp.tier = t + 1; sp.done = sp.tier >= 3; BEACON.ev('focus_tier', { key: sp.cur, m: sp.tier, min: Math.round(S.minutesTotal - (S.runMin0 || 0)), p: S.prestige }); sp.stars[sp.cur] = Math.min(9, (sp.stars[sp.cur] || 0) + 1); const first = !S.sitems.title['sp:' + sp.cur]; S.sitems.title['sp:' + sp.cur] = true; SFX.play('achieve');
@@ -1200,8 +1200,11 @@ function specPicker(act, sel) {   /* the five focuses as rows to pick from */
   return Object.keys(SPECS).map((k) => { const d = SPECS[k], ok = specOk(k);
     return row(img(d.pic, 30), d.name + ' · ' + d.verb.toLowerCase() + (specStars(k) ? ' ★' + specStars(k) : ''), d.bonus + (ok ? '' : ' Opens with the roastery.'), sel === k ? btn('Chosen', '', 'noop', false, 'blue') : btn('Choose', '', ok ? act + ':' + k : 'noop', ok)); }).join('');
 }
+const FOCUS_GO = { grow: ['Set your plantings', 'In Farm › Fields, give each field banana shade, legumes or wildflowers. Shade raises that coffee\'s cup; one shaded field is a good start.', 'focusact'], mill: ['Set your tanks', 'In the Mill, choose how long new lots stay sealed. One shift is safe; three is a gamble.', 'focusact'], roast: ['Catch a crack, then call the drop', 'Start a roast, tap Crack at first crack, then Drop when the bar is in your profile\'s window.', 'focusact'], trade: ['Set your bid', 'In the Mill\'s buyers list, choose the bid your agent waits for, or sign a future.', 'focusact'], wander: ['Plant away from home', 'Replant a field with a coffee that isn\'t this farm\'s own. 300 kg picked there is a terroir trial.', 'focusact'] };
+function focusFirst(k) { const g = FOCUS_GO[k]; if (!g) return; showModal('<h2>First move: ' + g[0] + '</h2>' + img(SPECS[k].pic, 48) + '<p class="note">' + g[1] + '</p><button class="btn green" data-act="focusact">Take me there</button><button class="btn" data-act="close">Later</button>'); }
+function focusAct() { const k = S.spec && S.spec.cur; closeModal(); if (!k) { S.rankSub = 'prestige'; setTab('ranks'); return; } if (k === 'grow' || k === 'wander') { S.farmSub = 'fields'; setTab('farm'); } else if (k === 'roast') setTab('roast'); else setTab('mill'); }
 function specChip() {   /* the focus on the map: one pinned goal */
-  const sp = S.spec, d = sp && SPECS[sp.cur]; if (!d || S.prestige < SPEC_P) return '';
+  const sp = S.spec, d = sp && SPECS[sp.cur]; if (S.prestige >= SPEC_P && !d) return 'Pick a focus'; if (!d || S.prestige < SPEC_P) return '';
   return sp.done ? d.name + ' ★★★' : d.name + ' ' + Math.min(specProg(), specGoal(specTier())) + '/' + specGoal(specTier());
 }
 function specCard() {   /* the Focus card above the prestige button */
@@ -1246,21 +1249,23 @@ const PERK_LV = { replantall: 4 };   /* a perk that switches on a few levels int
 const hasPerk = (id) => Object.keys(PERKS).some((p) => (PERKS[p].id === id || PERKS[p].also === id) && (S.prestige > +p || (S.prestige === +p && level() >= (PERK_LV[id] || 1))));
 const perkAt = (p) => PERKS[p] || null;
 const prestigeNeed = () => PRESTIGE_LEVEL + 8 * S.prestige;   /* 10, 18, 26, 34 ... and each level past 10 costs 1.22x the last */
-const BADGE = (rank) => (rank === 1 ? 'Champion' : rank <= 3 ? 'Top 3' : rank <= 10 ? 'Top 10' : 'Farmer');
+const BADGE = (rank, n) => (rank === 1 ? 'Champion' : rank <= 3 ? 'Top 3' : rank <= 10 ? 'Top 10' : n >= 20 && rank / n <= 0.01 ? 'Top 1%' : n >= 20 && rank / n <= 0.05 ? 'Top 5%' : n >= 20 && rank / n <= 0.1 ? 'Top 10%' : n >= 8 && rank / n <= 0.25 ? 'Top quarter' : n >= 4 && rank / n <= 0.5 ? 'Top half' : 'Farmer');   /* below the top 10, a percentile badge */
 /* season stars come from things done on a real day, each with a daily cap, so an hour a day earns nearly as much as six */
 const STAR_PER = { help: 1, cheers: 1, care: 1, sroast: 2, checkin: 2, task: 2, golden: 1, cup: 1, contract: 1, roast: 1, counter: 1, weekly: 15, drop: 5, prestige: 10 };
 const STAR_CAP = { help: 1, cheers: 1, care: 1, sroast: 1, checkin: 2, task: 6, golden: 5, cup: 3, contract: 3, roast: 3, counter: 3 };
 const STAR_WHAT = { help: 'Help a co-op mate', cheers: 'Cheers for a farm', care: 'Send a care package', sroast: 'Roast the season\'s coffee', checkin: 'Daily check-in', task: 'Daily tasks', golden: 'Golden bushes', cup: 'Lots cupped by hand', contract: 'Supply contracts', roast: 'Roasts', counter: 'Counter sessions with no walk-outs' };
-const TRACK_TIERS = 30, TIER_STARS = 15;
+const TRACK_TIERS = 30, TIER_STARS = 12;   /* a 15 to 20 minute daily player finishes around day 20 to 24 */
+const REST_DAY = 19, REST_MAX = 57;
 const tierAt = (st) => Math.min(TRACK_TIERS, Math.floor(st / TIER_STARS));
 const newSeason = () => ({ key: seasonKey(), prestige: 0, kh: 0, stars: 0, claimed: {}, caps: {}, capDay: '' });
 const starCap = (kind) => STAR_CAP[kind] * (kind === 'cup' && rule('tsukimi') ? 2 : 1);
 function star(kind) {
   const ss = S.season, day = dayKey(gameDate());
   if (kind === 'prestige' && ss.prestige > 1) return;   /* only the season's first prestige pays stars, so a newcomer's run of quick early prestiges can't outrank a veteran */
-  if (ss.capDay !== day) { ss.capDay = day; ss.caps = {}; }
+  if (ss.capDay !== day) { if (ss.capDay) { const used = Object.values(ss.caps || {}).reduce((a, x) => a + x, 0), gone = Math.max(0, Math.round((Date.now() - (ss.capT || Date.now())) / 864e5) - 1); ss.rest = Math.min(REST_MAX, (ss.rest || 0) + Math.max(0, REST_DAY - used) + REST_DAY * gone); }   /* rested stars: a missed day's caps carry over, up to three days */
+    ss.capDay = day; ss.caps = {}; ss.capT = Date.now(); }
   let add = STAR_PER[kind] * (kind === 'cup' && rule('tsukimi') ? 2 : 1);
-  if (STAR_CAP[kind]) { add = Math.min(add, starCap(kind) - (ss.caps[kind] || 0)); if (add <= 0) return; ss.caps[kind] = (ss.caps[kind] || 0) + add; }
+  if (STAR_CAP[kind]) { const room = starCap(kind) - (ss.caps[kind] || 0); if (room <= 0) { if (!(ss.rest > 0) || kind === 'prestige') return; add = Math.min(add, ss.rest); ss.rest -= add; } else { add = Math.min(add, room); ss.caps[kind] = (ss.caps[kind] || 0) + add; } }   /* past today's cap, rested stars from missed days */
   const before = tierAt(ss.stars); ss.stars += add; ss.starsAt = Date.now();   /* ties on the season board go to whoever got there first */
   if (!S.starTip && S.tabs.ranks) { S.starTip = true; toast('+' + add + ' season star' + (add > 1 ? 's' : '') + '! Stars fill the season track in Ranks › Season'); }
   if (tierAt(ss.stars) > before) {
@@ -1847,13 +1852,13 @@ function seasonTick() {   /* a new season closes the old one: unclaimed track ti
   for (let n = 1; n <= reached; n++) { const r = grantTier(old, n, true); if (r && r.cosmetic) got.push(r.label); }
   const done = reached >= TRACK_TIERS, played = ss.stars > 0 || (ss.kh || 0) > 0;
   S.season = newSeason();
-  const finish = (rank, rookieRank) => {
+  const finish = (rank, rookieRank, players) => {
     if (!played && (!rank || rank > 10)) return;
     if (!rank) {   /* the server couldn't say where you finished: no guessed badge */
       later(seasonName(old) + ' season over', ss.stars + ' season stars, track tier ' + reached, '<h2>' + seasonName(old) + ' season over</h2><p class="note">You finished with <b>' + ss.stars + ' season stars</b> (track tier ' + reached + ' of ' + TRACK_TIERS + '). Your final place couldn\'t be checked with the leaderboard, so no place badge this time.</p>' + (got.length ? '<p class="note">Track rewards you hadn\'t claimed are now yours: ' + got.join(', ') + '.</p>' : '') + '<button class="btn green" data-act="close">Start the ' + theme().name + ' season</button>');
       save(); return;
     }
-    S.badges.push({ key: old, rank, label: BADGE(rank), theme: t.id, gold: done });
+    S.badges.push({ key: old, rank, label: BADGE(rank, players || 0), theme: t.id, gold: done });
     if (wasRookie && rookieRank && rookieRank <= 10) S.badges.push({ key: old, rank: rookieRank, label: 'Rookie ' + BADGE(rookieRank), theme: t.id, gold: done });   /* the best newcomers get their own badge */
     const nt = theme();
     later(seasonName(old) + ' season over', '#' + rank + ' with ' + ss.stars + ' season stars', '<h2>' + seasonName(old) + ' season over</h2><p class="note">You finished <b>#' + rank + '</b> with <b>' + ss.stars + ' season stars</b> (track tier ' + reached + ' of ' + TRACK_TIERS + ') and ' + fmt(ss.kh || 0) + ' know-how this season. Your <b>' + BADGE(rank) + '</b> badge' + (wasRookie && (rookieRank || 99) <= 10 ? ' and a <b>Rookie ' + BADGE(rookieRank) + '</b> badge for finishing #' + rookieRank + ' among first-season farmers' : '') + (done ? ', framed in gold for finishing the track,' : '') + ' is on your profile.</p>' +
@@ -1861,7 +1866,7 @@ function seasonTick() {   /* a new season closes the old one: unclaimed track ti
       '<p class="note">The <b>' + nt.name + '</b> season starts now with a fresh board and track. ' + nt.rule + ' Your farm, prestige, level and looks stay as they are.</p><button class="btn green" data-act="close">Start the ' + nt.name + ' season</button>');
     save();
   };
-  if (API && NET.acct) api('game-score?mode=final&season=' + old).then((r) => (r && r.status === 200 && r.data.me ? finish(r.data.me.rank, r.data.me.rookieRank) : finish(local, localRookie))).catch(() => finish(local, localRookie));
+  if (API && NET.acct) api('game-score?mode=final&season=' + old).then((r) => (r && r.status === 200 && r.data.me ? finish(r.data.me.rank, r.data.me.rookieRank, r.data.players) : finish(local, localRookie))).catch(() => finish(local, localRookie));
   else finish(local, localRookie);
 }
 /* drop events: each real product launch becomes a week in the game. On the live app the list comes from the server and a push notification announces it */
@@ -3230,11 +3235,12 @@ function revTick(dt) {   /* real seconds of play, from the loop: an event's cloc
   const R = S.rev, E = R.cur; revSess += dt;
   if (E) {
     const D = REVS[E.id]; if (!D || !D.valid(E)) { R.cur = null; if (revH) { revH.stop(); revH = null; } return; }   /* its farm went to sleep at a prestige */
-    E.t += dt; E.cost += Math.max(0, rateC) / 60 * REV_SHARE * dt; if (D.tick) D.tick(E, dt);
+    const onMap = revMap(E) === scene() && (revMap(E) !== 'farm' || !E.loc || E.loc === S.loc);   /* the bleed waits while you're elsewhere */
+    E.t += dt; if (onMap) E.cost += Math.max(0, rateC) / 60 * REV_SHARE * dt; if (D.tick) D.tick(E, dt);
     if (E.t >= REV_MAX) revEnd(false);
   } else {
     R.since += dt;
-    if (revSess >= REV_FIRST && (!revSessEv || (revSess >= 900 && R.since >= REV_GAP)) && (revRollT -= dt) <= 0) {   /* 3 minutes' grace after a return, and one event in a session under 15 minutes */   /* a new session doesn't wait out the gap */
+    if (['farm', 'mill', 'roast'].includes(scene()) && revSess >= REV_FIRST && (!revSessEv || (revSess >= 900 && R.since >= REV_GAP)) && (revRollT -= dt) <= 0) {   /* 3 minutes' grace after a return, and one event in a session under 15 minutes */   /* a new session doesn't wait out the gap */
       if (S.guide < GUIDE.length || S.pwalk || !$('modal').hidden || !$('pcer').hidden) revRollT = 0;   /* blocked: the roll waits until it's clear */
       else { revRollT = REV_ROLL; if (Math.random() < REV_CHANCE) revStart(); }
     }
@@ -4101,6 +4107,7 @@ function drawMill(time) {
     fx.drawImage(lotTile(l.method, lotStage(l)), r.x + 2, r.y + 2);
     if (l.method === 'washed' && l.left > 0 && Math.floor(time * 2 + i) % 5 === 0) { fx.fillStyle = '#FFFFFF'; fx.fillRect(r.x + 8 + (i * 7) % 22, r.y + 4, 2, 1); }
     if (l.cupped) { fx.fillStyle = '#3E2A1C'; fx.fillRect(r.x + 32, r.y - 3, 6, 5); fx.fillStyle = '#F8F4EC'; fx.fillRect(r.x + 33, r.y - 2, 4, 3); fx.fillStyle = '#6A3C1C'; fx.fillRect(r.x + 34, r.y - 2, 2, 1); }
+    else { fx.globalAlpha = calm ? 0.8 : 0.55 + 0.35 * Math.abs(Math.sin(time * 2 + r.x)); fx.fillStyle = '#3E2A1C'; fx.fillRect(r.x + 32, r.y - 3, 6, 5); fx.fillStyle = '#F2C04A'; fx.fillRect(r.x + 33, r.y - 2, 4, 3); fx.globalAlpha = 1; }   /* not cupped yet: an empty gold cup, gently pulsing */
     if (reqLot(l)) { fx.fillStyle = '#F2C04A'; fx.fillRect(r.x + 2, r.y - 3, 3, 1); fx.fillRect(r.x + 3, r.y - 4, 1, 3); }
     if (l.left <= 0 && Math.floor(time * 3 + i) % 4 === 0) fx.drawImage(sprite('sparkle'), r.x + 16, r.y - 2);
     if (l.left > 0) { fx.fillStyle = 'rgba(30,20,12,0.55)'; fx.fillRect(r.x + 4, r.y + 13, 32, 2); fx.fillStyle = '#F2C04A'; fx.fillRect(r.x + 4, r.y + 13, Math.round(32 * (1 - l.left / l.total)), 2); }
@@ -5380,7 +5387,7 @@ const hbInfo = () => { const R = S.route; return R ? { lv: routeFound(), badge: 
 const ISLE_IDS = ['re', 'ba', 'ga'];
 const ISLE_INFO = {
   re: { name: 'Réunion', where: 'Réunion · the Pointu nursery', voy: 'reunion', p: 6, cost: 6, pic: 'bush_pointu_ripe', board: 'Settle the Pointu nursery', open: 'Réunion opens: Tante Lise\'s nursery of Bourbon Pointu, past Kona on the arrows', perk: 'Tante Lise\'s Pointu nursery: shifts you get better at, and Bourbon Pointu for your farms. Sail there, then open it from the harbour board.' },
-  ba: { name: 'Bali', where: 'Bali · the Kintamani co-op', voy: 'bali', p: 6, cost: 9, pic: 'ba_i_storm', board: 'Join the Kintamani co-op', open: 'Bali opens: Wayan\'s co-op on Mount Batur, where a storm blows in off the lake every 40 minutes, past Réunion on the arrows', perk: 'Wayan\'s co-op on Mount Batur: storms to weather for draws from the co-op pool, and a fifth roastery bin at level 15. Sail there, then open it from the harbour board.' },
+  ba: { name: 'Bali', where: 'Bali · the Kintamani co-op', voy: 'bali', p: 6, cost: 9, pic: 'ba_i_storm', board: 'Join the Kintamani co-op', open: 'Bali opens: Wayan\'s co-op on Mount Batur, where a storm blows in off the lake every 4 hours, past Réunion on the arrows', perk: 'Wayan\'s co-op on Mount Batur: storms to weather for draws from the co-op pool, and a fifth roastery bin at level 15. Sail there, then open it from the harbour board.' },
   ga: { name: 'Galápagos', where: 'Galápagos · the highlands', voy: 'galapagos', p: 7, cost: 12, pic: 'ga_i_guide', board: 'Join Dr. Inés\'s field camp', open: 'Galápagos opens: Dr. Inés\'s camp in the San Cristóbal highlands, past Bali on the arrows', perk: 'Dr. Inés\'s field camp: camera traps, tortoise trails and a field guide of 46 entries, every page you complete giving something back for good. Sail there, then open it from the harbour board.' }
 };
 const isleOpen = (id) => !!(S.route && S.route.bd['isle_' + id]) || !!(S[id] && S[id].test);
@@ -5443,7 +5450,7 @@ const reOutfit = () => [6, 14, 22, 28].filter((l) => S.re.lv >= l).length;   /* 
 const reBonus = (c) => (c >= 50 ? 10 : 0) + (c >= 75 ? 25 : 0) + (c >= 100 ? 50 : 0);
 const reNextBonus = (c) => [50, 75, 100].find((n) => c < n);
 function reFresh() { return { lv: 1, xp: 0, seen: false, sh: null, can: 12, best: 0, shifts: 0, picked: 0, trays: 1, trayAt: Date.now() }; }
-const RE_TRAY = 30 * 60e3, RE_TRAYS = 3;   /* the shed restocks a tray of seedlings every 30 minutes and holds three, like Bali's barometer: a shift pays about 20 minutes of income, so it can't be repeated back to back */
+const RE_TRAY = 4 * 3600e3, RE_TRAYS = 4;   /* one rhythm for the islands (9 Nov): a tray every 4 hours, four kept, so twice a day finds work and nothing is wasted overnight */   /* the shed restocks a tray of seedlings every 30 minutes and holds three, like Bali's barometer: a shift pays about 20 minutes of income, so it can't be repeated back to back */
 const reNextMs = () => Math.max(0, RE_TRAY - (Date.now() - S.re.trayAt));
 function reBank() {
   const R = S.re, now = Date.now();
@@ -5609,10 +5616,10 @@ function rePanel() {
   if (sub === 'nursery') {
     const nx = Object.keys(ISLE_UNLOCKS.re).map(Number).find((l) => l > R.lv);
     h += '<p class="note"><b>Next:</b> ' + (nx ? 'level ' + nx + ' brings ' + ISLE_UNLOCKS.re[nx] : 'every nursery tool is yours') + '</p>';
-    h += help('re', 'Plant a batch of Pointu seedlings, mist each one once in every growth stage, and pick them for a score.', 'Take a batch of seedlings at the shed (' + reBatch() + ' at your level), and tap beds to plant them. Each seedling grows through three stages of ' + Math.round(reStageMs() / 1000) + ' seconds; mist it once in each stage, or it wilts when the stage turns. A drop over a bed means it\'s dry. The can holds ' + reCanMax() + ' mists; tap the cistern to refill it. A grown plant gives 5 cherries. A shift scores 1 point a cherry, +10 at 50 cherries, +25 more at 75 and +50 more at 100, so bigger batches pay much more. It pays nursery xp, coins and know-how (about a minute of your farm\'s income for every 10 points), and a lot of Bourbon Pointu for the Osaka bins. The shed restocks a tray of seedlings every 30 minutes and holds three, so a few shifts wait for you after a day away. A shift waits while you\'re away.');
+    h += help('re', 'Plant a batch of Pointu seedlings, mist each one once in every growth stage, and pick them for a score.', 'Take a batch of seedlings at the shed (' + reBatch() + ' at your level), and tap beds to plant them. Each seedling grows through three stages of ' + Math.round(reStageMs() / 1000) + ' seconds; mist it once in each stage, or it wilts when the stage turns. A drop over a bed means it\'s dry. The can holds ' + reCanMax() + ' mists; tap the cistern to refill it. A grown plant gives 5 cherries. A shift scores 1 point a cherry, +10 at 50 cherries, +25 more at 75 and +50 more at 100, so bigger batches pay much more. It pays nursery xp, coins and know-how (about a minute of your farm\'s income for every 10 points), and a lot of Bourbon Pointu for the Osaka bins. The shed restocks a tray of seedlings every 4 hours and holds three, so a few shifts wait for you after a day away. A shift waits while you\'re away.');
     if (sh) h += '<h3>This shift</h3>' + row(img('re_i_seed', 28), sh.n + ' seedlings', (sh.left ? sh.left + ' still to plant · ' : '') + sh.cherries + ' cherries picked' + (reNextBonus(sh.cherries) ? ' · next bonus at ' + reNextBonus(sh.cherries) : ''), btn('End shift', 'picks what\'s fruiting', 're_end', true, 'gold'));
     else { const tr = reTrays(); h += '<div class="seg">' + btn('Start a shift', tr ? reBatch() + ' seedlings' : 'next in ' + voyLeft(reNextMs()), 're_start', tr > 0, 'green') + '</div>'; }
-    h += row(img('re_i_seed', 28), 'The shed', reTrays() + ' of ' + RE_TRAYS + ' seedling trays' + (S.re.trays < RE_TRAYS ? ' · the next in ' + voyLeft(reNextMs()) : '') + ' · a tray every 30 minutes, kept while you\'re away', '');
+    h += row(img('re_i_seed', 28), 'The shed', reTrays() + ' of ' + RE_TRAYS + ' seedling trays' + (S.re.trays < RE_TRAYS ? ' · the next in ' + voyLeft(reNextMs()) : '') + ' · a tray every 4 hours, kept while you\'re away', '');
     h += row(img('re_can', 28), 'The can', R.can + ' / ' + reCanMax() + ' mists · refill at the cistern', '');
     h += '<p class="note">From your farms: your compost heaps (' + sumBuild('compost') + ' levels) make seedlings grow ' + Math.round(25 * Math.min(1, sumBuild('compost') / 24)) + '% faster.' + (R.lv >= 10 ? ' Back home, a field you replant starts half grown.' : '') + (S.vars.pointu ? ' Bourbon Pointu grows on your farms.' : '') + '</p>';
   } else {
@@ -5638,7 +5645,7 @@ const reHud = () => { const R = S.re, sh = R && R.sh; return ['Réunion · Point
 const reStatus = () => { const R = S.re; if (!R) return ['', false]; return R.sh ? ['a shift waiting: ' + R.sh.cherries + ' cherries so far', true] : reTrays() ? [R.trays + ' tray' + (R.trays > 1 ? 's' : '') + ' of seedlings', R.trays >= RE_TRAYS] : ['the next tray in ' + voyLeft(reNextMs()), false]; };
 ISLE_FN.re = { fresh: reFresh, tick: reTick, draw: drawReunion, click: reClick, hint: reHint, panel: rePanel, act: reAct, intro: reIntro, hud: reHud, status: reStatus, track: 'reunion' };
 /* ---------- Bali: the Monsoon, at Wayan's co-op in Kintamani on the slopes of Mount Batur, where coffee grows among orange trees
-   and dries on raised bamboo beds. The barometer banks a storm every 40 minutes (three at most, four from level 10), and a storm
+   and dries on raised bamboo beds. The barometer banks a storm every 4 hours, and a storm
    waits for you. In a storm the sky fills by itself in four minutes while the barn fills with what you bring in: pick cherries into
    your basket, spread them on a raised bed, turn them as they dry (each turn makes them worth a quarter more), bag the dry coffee
    and carry it into the barn. A gust comes with a few seconds' warning: hold the cover rope or the wettest bed blows over. Leaks
@@ -5649,7 +5656,7 @@ ISLE_FN.re = { fresh: reFresh, tick: reTick, draw: drawReunion, click: reClick, 
 const BA_BUSH = (i) => ({ x: 15 + (i % 3) * 62 + (Math.floor(i / 3) % 2) * 18, y: 90 + Math.floor(i / 3) * 32 }), BA_BUSHES = 12;   /* x: the bush's middle; y: the terrace it stands on */
 const BA_BED = (j) => ({ x: 8 + j * 46, y: 204 }), BA_BED_W = 38, BA_BED_H = 22, BA_BED_KG = 8;
 const BA_ROPE = { x: 96, y: 240 }, BA_BARN = { x: 28, y: 278, w: 136, h: 32 }, BA_ROOF = { x: 24, y: 256, w: 144, h: 22 }, BA_LEAKS = [{ x: 56, y: 268 }, { x: 96, y: 266 }, { x: 136, y: 268 }], BA_WAYAN = { x: 178, y: 300 };
-const BA_STORM = 240e3, BA_CHARGE = 40 * 60e3, BA_REGROW = 12e3;   /* the sky fills in 4 minutes; a storm banks every 40; a picked bush ripens again in 12 s */
+const BA_STORM = 240e3, BA_CHARGE = 4 * 3600e3, BA_REGROW = 12e3;   /* the sky fills in 4 minutes; a storm banks every 40; a picked bush ripens again in 12 s */
 const BA_FIT = [['hat', 'Bamboo hat'], ['cape', 'Palm-leaf rain cape'], ['sarong', 'Batik sarong'], ['boots', 'Rain boots']];
 const WAYAN_LOOK = { shirt: ['#F4F0E4', '#D8D0BC', '#B8A060'], hat: ['#F4F0E4', '#D8D0BC', '#C8402C'] };
 ISLE_UNLOCKS.ba = { 5: 'a longer warning before each gust (4 seconds)', 10: 'the barometer banks up to four storms', 15: 'a fifth roastery bin in Osaka: the co-op\'s bamboo bin', 20: 'the break lasts 30 seconds', 25: 'a better thatch: leaks spoil half as fast', 30: 'the "Rain-tamer" title' };
@@ -5681,7 +5688,7 @@ const baOutfit = () => BA_FIT.filter(([k]) => S.ba.fit[k]).length;   /* +2.5% st
 function baFresh() { return { lv: 1, xp: 0, seen: false, st: null, charge: 1, chargeAt: Date.now(), tools: {}, fit: {}, draws: 0, storms: 0, rained: 0, streak: 0, best: 0, glints: 0 }; }
 const baHere = () => scene() === 'ba' && !document.hidden;
 const baNextMs = () => Math.max(0, BA_CHARGE - (Date.now() - S.ba.chargeAt));
-function baBank() {   /* the barometer: a storm every 40 minutes, banked while you're away */
+function baBank() {   /* the barometer: a storm every 4 hours, banked while you're away */
   const B = S.ba, now = Date.now(), max = baMax();
   if (B.charge >= max) { B.chargeAt = now; return; }
   const n = Math.floor((now - B.chargeAt) / BA_CHARGE); if (n <= 0) return;
@@ -5966,7 +5973,7 @@ function baPanel() {
   if (sub === 'storm') {
     const nx = Object.keys(ISLE_UNLOCKS.ba).map(Number).find((l) => l > B.lv);
     h += '<p class="note"><b>Next:</b> ' + (nx ? 'level ' + nx + ' brings ' + ISLE_UNLOCKS.ba[nx] : 'the co-op has taught you everything') + '</p>';
-    h += help('ba', 'Weather a storm: get the coffee into the barn before the sky fills, then tap the glinting cherries.', 'The barometer banks a storm every 40 minutes, up to ' + baMax() + ', and each waits for you: tap the barn to start one. The storm bar fills by itself in four minutes; the barn fills with what you bring in. Pick cherries into your basket (' + baBasket() + ' kg), tap a raised bed to spread them (8 kg a bed), and turn the bed when it shows TURN: each turn makes it worth a quarter more, up to three. When it\'s dry (' + Math.round(baDryMs() / 1000) + ' s), bag it and carry it into the barn: a full bed is worth 4, or 7 turned three times. A gust comes with ' + Math.round(baWarnMs() / 1000) + ' seconds\' warning: tap the rope post to hold the cover, or the wettest bed blows over. Patch leaks in the roof before they spoil the barn. Fill the barn (' + baTarget() + ' at your level) and the rain finally falls: for ' + Math.round(baBreakMs() / 1000) + ' seconds, tap the glinting cherries. Score: 1 a barn point, 3 a gust held, 2 a leak patched, 3 a glint; rained off, half. A storm pays monsoon xp (half the score) and 3 to 6 draws from Wayan\'s co-op pool: coins, know-how and Kintamani coffee for the Osaka bins scaled to your farm, supplies for Kona, storm tools, and now and then something rare. A storm waits while you\'re away.');
+    h += help('ba', 'Weather a storm: get the coffee into the barn before the sky fills, then tap the glinting cherries.', 'The barometer banks a storm every 4 hours, up to ' + baMax() + ', and each waits for you: tap the barn to start one. The storm bar fills by itself in four minutes; the barn fills with what you bring in. Pick cherries into your basket (' + baBasket() + ' kg), tap a raised bed to spread them (8 kg a bed), and turn the bed when it shows TURN: each turn makes it worth a quarter more, up to three. When it\'s dry (' + Math.round(baDryMs() / 1000) + ' s), bag it and carry it into the barn: a full bed is worth 4, or 7 turned three times. A gust comes with ' + Math.round(baWarnMs() / 1000) + ' seconds\' warning: tap the rope post to hold the cover, or the wettest bed blows over. Patch leaks in the roof before they spoil the barn. Fill the barn (' + baTarget() + ' at your level) and the rain finally falls: for ' + Math.round(baBreakMs() / 1000) + ' seconds, tap the glinting cherries. Score: 1 a barn point, 3 a gust held, 2 a leak patched, 3 a glint; rained off, half. A storm pays monsoon xp (half the score) and 3 to 6 draws from Wayan\'s co-op pool: coins, know-how and Kintamani coffee for the Osaka bins scaled to your farm, supplies for Kona, storm tools, and now and then something rare. A storm waits while you\'re away.');
     if (st) h += '<h3>This storm</h3>' + row(img('ba_i_storm', 28), st.brk ? 'The rain falls' : 'Barn ' + Math.floor(st.barn) + ' / ' + st.target, st.brk ? st.brk.taps + ' glinting cherries so far' : 'storm ' + Math.floor(st.t / BA_STORM * 100) + '% · ' + st.held + ' gust' + (st.held === 1 ? '' : 's') + ' held · ' + st.patched + ' leak' + (st.patched === 1 ? '' : 's') + ' patched', st.brk ? '' : btn('Give up', 'rained off: half', 'ba_end', true, 'gold'));
     else h += '<div class="seg">' + btn('Start a storm', B.charge ? B.charge + ' banked' : 'the next in ' + voyLeft(baNextMs()), 'ba_start', B.charge > 0, 'green') + '</div>';
     h += row(img('ba_i_storm', 28), 'The barometer', B.charge + ' of ' + baMax() + ' storms banked' + (B.charge < baMax() ? ' · the next in ' + voyLeft(baNextMs()) : ''), '');
@@ -6083,14 +6090,14 @@ function gaOwls() { return !!(S.ga && gaPageDone('bird')); }   /* the birds and 
 function gaShade() { return S.ga && gaPageDone('plant') ? 1.1 : 1; }   /* the plants page: shade trees count 10% more */
 const gaTrapN = () => (S.ga.lv >= 20 ? 8 : S.ga.lv >= 10 ? 6 : 4);
 const gaDevMs = () => (S.ga.lv >= 25 ? 40 : 50) * 60e3;
-const gaTrackMs = () => (S.ga.lv >= 5 ? 25 : 30) * 60e3;
+const gaTrackMs = () => (S.ga.lv >= 5 ? 3.5 : 4) * 3600e3;   /* fresh tracks every 4 hours, four kept */
 const gaPool = () => Math.min(GA_POOL_MAX, S.ga.pool + (Date.now() - S.ga.poolAt) / 3600e3 * 2);   /* shade-grown San Cristóbal on the patio: 2 kg an hour, up to 30 */
 const gaFound = (pg) => GA_GUIDE.filter((e) => (!pg || e[1] === pg) && S.ga.got[e[0]]).length;
 const gaLeft = (t) => (t.at ? Math.max(0, gaDevMs() - (Date.now() - t.at)) : -1);   /* -1 not set, 0 a photo waiting, else ms to go */
 function gaFresh() { return { lv: 1, xp: 0, seen: false, got: {}, dry: {}, traps: Array.from({ length: 8 }, () => ({ at: 0 })), tracks: 1, tracksAt: Date.now(), tr: null, pool: 8, poolAt: Date.now(), photos: 0, trails: 0, cold: 0, shipped: 0 }; }
 const gaHere = () => scene() === 'ga' && !document.hidden;
 const gaNextMs = () => Math.max(0, gaTrackMs() - (Date.now() - S.ga.tracksAt));
-function gaBank() {   /* fresh tracks: one every 30 minutes (25 from level 5), up to four, waiting while you're away */
+function gaBank() {   /* fresh tracks: one every 4 hours (3½ from level 5), up to four, waiting while you're away */
   const G = S.ga, now = Date.now();
   if (G.tracks >= GA_TRACK_MAX) { G.tracksAt = now; return; }
   const n = Math.floor((now - G.tracksAt) / gaTrackMs()); if (n <= 0) return;
@@ -6845,7 +6852,8 @@ function prestige() {
   const sp0 = S.spec && SPECS[S.spec.cur], recap = { focus: sp0 ? sp0.name : '', tiers: sp0 ? specTier() : 0, best: S.runBest || 0, days: S.runT0 ? (Date.now() - S.runT0) / 864e5 : 0 }; S.runBest = 0; S.runT0 = Date.now();
   const kept = bankKnowhow();
   S.xp = 0; carryOver();
-  if (S.prestige >= SPEC_P) { const pk = S.specNext && SPECS[S.specNext]; specSet(pk ? S.specNext : (S.spec && S.spec.cur) || 'grow', true); BEACON.ev('focus_set', { key: S.spec.cur, t: pk ? 'pick' : 'default', p: S.prestige }); } delete S.specNext; S.specOpen = false;
+  if (S.prestige >= SPEC_P) { const last = S.spec && S.spec.cur; if (last) { specSet(last, true); BEACON.ev('focus_set', { key: last, t: 'kept', p: S.prestige }); } else { S.spec = S.spec || { stars: {} }; S.spec.cur = null; S.spec.tier = 0; S.spec.done = false; S.spec.swap = false; }
+    S.spec.fresh = true; setTimeout(() => later('Your focus for this run', last ? SPECS[last].name + ' carries on, or pick another' : 'Pick one to begin', '<h2>Your focus for this run</h2><p class="note">' + (last ? 'You kept <b>' + SPECS[last].name + '</b>. Pick another now and it doesn\'t use up your one change.' : 'Each focus changes how one part of the farm plays this run, with three goals and a title.') + '</p>' + specPicker('specpick', last || '')), 900); } delete S.specNext; S.specOpen = false;
   S.dormant = {};   /* farms no longer sleep through a prestige */
   setTimeout(() => checkSamples(), 300);
   if (S.prestige === KONA_P && !S.kona) setTimeout(() => showModal(coachCard('Kona Ridge', 'The trader\'s boat reaches a new island now: Kona Ridge, where coffee ferments in tanks with fruit. Tap the farm arrow past Osaka to sail there.')), 600);
@@ -6916,7 +6924,7 @@ function closeUp() {
   if (S.lots.some((l) => !l.cupped)) tips.push('Cup the lots on the racks before you go: staff never cup, and cupped lots pay +' + Math.round((CUP_PAY - 1) * 100) + '%.');
   const sp = S.spec && SPECS[S.spec.cur]; if (sp) tips.push('Focus: ' + specChip() + (S.spec.cur === 'mill' ? ' · your foreman seals lots at ' + SEAL_NAMES[sealLv()].toLowerCase() : S.spec.cur === 'trade' ? ' · your agent waits for +' + Math.round(tradeReserve() * 100) + '% bids' : S.spec.cur === 'grow' ? ' · companions count while you\'re away' : ''));
   showModal('<h2>Close up for the night</h2><div class="stats"><div><small>Pickers an hour</small><b>' + fmt(Math.round(kh)) + ' kg</b></div><div><small>Room in store</small><b>' + fmt(Math.round(room)) + ' kg</b></div><div><small>Work while away</small><b>' + capH + ' h</b></div></div>' +
-    '<p class="note">' + (S.staff.foreman ? 'Your foreman mills through the night and keeps the store from filling, at a slower night pace after the first hour.' : full >= capH ? 'Storage holds the full ' + capH + ' hours.' : 'Storage fills in about ' + (Math.round(full * 10) / 10) + ' h, then the pickers rest.') + '</p>' + (tips.length ? '<p class="note">' + tips.join('<br>') + '</p>' : '') + '<button class="btn green" data-act="close">Good night</button>');
+    '<p class="note">' + (S.staff.foreman ? 'Your foreman mills through the night and keeps the store from filling, at a slower night pace after the first hour.' : full >= capH ? 'Storage holds the full ' + capH + ' hours.' : 'Storage fills in about ' + (Math.round(full * 10) / 10) + ' h, then the pickers rest.') + '</p>' + (tips.length ? '<p class="note">' + tips.join('<br>') + '</p>' : '') + '<div class="seg">' + (S.lots.some((l) => !l.cupped) ? (hasPerk('cupall') ? '<button type="button" class="btn gold" data-act="cupallnight">Cup all</button>' : '<button type="button" class="btn gold" data-act="tab:mill">Cup in the Mill</button>') : '') + (!S.staff.foreman && foremanOK() ? '<button type="button" class="btn" data-act="gofarmsub:staff">Hire a foreman</button>' : full < Math.min(capH, 8) ? '<button type="button" class="btn" data-act="gofarmsub:upgrades">Bigger storage</button>' : '') + '</div><button class="btn green" data-act="close">Good night</button>');
 }
 function awayReady() {   /* one strip of what's waiting, which doubles as the route */
   const R = S.roastery || {}, c = [];
@@ -6924,7 +6932,10 @@ function awayReady() {   /* one strip of what's waiting, which doubles as the ro
   const dry = S.lots.filter((l) => l.left <= 0).length; if (dry) c.push(dry + ' dry lot' + (dry > 1 ? 's' : ''));
   const ct = S.contracts.filter((x) => !x.event && x.have < x.kg).length; if (ct) c.push(ct + ' buyer' + (ct > 1 ? 's' : '') + ' waiting');
   if (S.spec && SPECS[S.spec.cur]) c.push(specChip());
-  return c.length ? '<div class="chips">' + c.map((x) => '<span class="chip">' + x + '</span>').join('') + '</div>' : '';
+  const isles = [hbOpen() && 'hb', bmOpen() && 'bm', konaOpen() && 'kona', ...ISLE_IDS.filter(isleOpen)].filter(Boolean), nm = (id) => (ISLE_INFO[id] ? ISLE_INFO[id].name : id === 'hb' ? 'Harbour' : id === 'bm' ? 'Blue Mountain' : 'Kona');
+  const call = isles.map((id) => [id, placeStatus(id)]).filter(([, st]) => st[1]);
+  const isl = call.map(([id, st]) => '<button type="button" class="chip" data-act="goplace:' + id + '">' + nm(id) + ': ' + st[0] + '</button>').join('');
+  return c.length || isl ? '<div class="chips">' + c.map((x) => '<span class="chip">' + x + '</span>').join('') + isl + '</div>' : '';
 }
 function away(hours) {
   BEACON.ev("away_collect", { h: Math.min(24, Math.round(hours * 10) / 10) });
@@ -7392,7 +7403,7 @@ function contractCard(c) {
   const what = (c.method ? METHODS[c.method].name.toLowerCase() + ' ' : '') + (c.v ? ART.varieties[c.v] : 'any coffee'), hrs = Math.max(0, (c.due - S.minutesTotal) / 60);
   const when = c.event ? 'until the drop ends' : (hrs >= 1 ? Math.floor(hrs) + ' h' : Math.ceil(hrs * 60) + ' min') + ' left';
   const bh = (m) => { const x = Math.max(0, (m - S.minutesTotal) / 60); return x >= 1 ? Math.floor(x) + ' h' : Math.ceil(x * 60) + ' min'; };
-  const bidRow = c.t0 === undefined ? '' : '<small class="bid">' + (c.fut ? (S.minutesTotal <= c.fdue ? 'Future: +30% if filled within ' + bh(c.fdue) : 'Future missed: plain price') : tradeOpen(c) ? c.bidN + ' buyers bidding · now +' + Math.round((tradeMult(c) - 1) * 100) + '% (up to +' + Math.round(bidCap(c) * 100) + '%) · rivals drop out in ' + bh(c.leave) + ' · <button type="button" class="linkbtn" data-act="future:' + c.id + '">sign a future +30%</button>' : 'Bidding closed: plain price') + '</small>';
+  const bidRow = c.t0 === undefined ? '' : '<small class="bid">' + (c.fut ? (S.minutesTotal <= c.fdue ? 'Future: +30% if filled within ' + bh(c.fdue) : 'Future missed: plain price') : tradeOpen(c) ? (tradeMult(c) >= 1 + bidCap(c) - 1e-9 ? '<b>Deliver now</b>: top bid +' + Math.round(bidCap(c) * 100) + '% until ' + bh(c.leave) + ' from now' : '<b>Wait</b>: +' + Math.round(bidCap(c) * 100) + '% in ' + bh(c.t0 + c.span * 0.4) + ' (now +' + Math.round((tradeMult(c) - 1) * 100) + '%)') + ' · <button type="button" class="linkbtn" data-act="future:' + c.id + '">future +30%</button>' : 'Bidding closed: plain price') + '</small>';
   return '<div class="ccard' + (c.event ? ' ev' : '') + (c.boat ? ' boat' : '') + '">' + img(c.v ? 'bush_' + c.v + '_ripe' : 'board', 28) + '<div class="cc-t"><b>' + c.buyer.split(',')[0] + '</b><span>' + fmt(c.kg) + ' kg ' + what + ' · cup ' + c.minCup.toFixed(1) + '+</span><span class="bar"><i style="width:' + Math.round(c.have / c.kg * 100) + '%"></i></span>' + bidRow + (c.have > 0 || c.boat ? '<small>' + fmt(Math.floor(c.have)) + ' / ' + fmt(c.kg) + ' kg · <b>' + fmt(Math.max(0, Math.ceil(c.kg - c.have))) + ' kg to go</b></small>' : '') + '<small>' + icon('i_coin') + fmt(c.coins) + ' · ' + icon('i_points') + fmt(c.points) + (c.cranes ? ' · +' + c.cranes + ' cranes' : '') + ' · ' + when + '</small></div>' + (c.event ? '' : '<button type="button" class="cc-x" data-act="skip:' + c.id + '" aria-label="Skip this contract">✕</button>') + '</div>';
 }
 /* what a lot of this variety and process would earn: the best matching contract or the roastery */
@@ -7729,6 +7740,7 @@ function renderPanel() {
     h += '<p class="rule"><b>' + th.name + ' season rule:</b> ' + th.rule + '</p>';
     h += reached < TRACK_TIERS ? '<div class="bar"><i style="width:' + Math.round(into / TIER_STARS * 100) + '%"></i></div><p class="note">' + into + ' / ' + TIER_STARS + ' stars to tier ' + (reached + 1) + '.</p>' : '<p class="note"><b>Track complete!</b> Stars you earn now still count on the season board.</p>';
     if (sdot) h += btn('Claim all', 'tiers you have reached', 'tierall', true, 'green');
+    h += (S.season.rest > 0 ? '<p class="note"><b>' + S.season.rest + ' rested stars</b> from days you missed: they pay out once a daily cap is full.</p>' : '');
     h += '<h3>Stars today</h3><div class="stats">' + Object.keys(STAR_WHAT).filter((k) => (k !== 'help' && k !== 'cheers' && k !== 'care' || (API && NET.status === 'online')) && (k !== 'roast' && k !== 'sroast' || roasteryOpen()) && (k !== 'counter' || ctOn())).map((k) => '<div><small>' + STAR_WHAT[k] + '</small><b>' + (today[k] || 0) + ' / ' + starCap(k) + '</b></div>').join('') + '</div>';
     h += help('stars', 'Daily caps reset each real day.', 'Also: weekly order ' + STAR_PER.weekly + ' stars, each drop event contract ' + STAR_PER.drop + ', your first prestige this season ' + STAR_PER.prestige + '. The daily caps reset each real day, so playing a little every day beats one long session.');
     const lo = S.trackOpen ? 1 : Math.max(1, Math.min(reached, ...Array.from({ length: reached }, (_, i) => i + 1).filter((n) => !ss.claimed[n]), reached + 1) - 1), hi = S.trackOpen ? TRACK_TIERS : Math.min(TRACK_TIERS, Math.max(lo + 5, reached + 3), Math.max(...[5, 10, 15, 18, 20, 25, 30].filter((x) => x > reached).slice(0, 1).concat([0])));   /* the tiers around you and the next cosmetic; the rest behind a tap */
@@ -7748,6 +7760,7 @@ function renderPanel() {
     }).join('') + '</div>');
     if (mode !== 'hall' && NET.scoreError && NET.scoreError !== 'bad_name') h += '<p class="note">Your row is a little behind: the board takes each prestige at most every 15 minutes and know-how as fast as play allows, so it catches up on its own in a few minutes.</p>';   /* a refused score shows, instead of a silently stale row */
     if (mode !== 'hall') h += '<p class="note">' + (NET.status === 'online' && NET.board[mode] ? 'Live leaderboard · ' + NET.board[mode].players + ' farmer' + (NET.board[mode].players === 1 ? '' : 's') : API ? (NET.status === 'online' ? 'Loading the live leaderboard…' : 'The live leaderboard shows real farmers once the game is online. Until then it\'s just you.') : 'Practice board: made-up farmers for this offline copy. The live leaderboard of real farmers is on bejucoffee.com.') + '</p>';
+    { const B = NET.status === 'online' && NET.board[mode], near = B && B.near, me = B && B.me; if ((mode === 'season' || mode === 'rookie') && me && near && near.length && me.rank > 3) { const ab = near.filter((x) => x.rank < me.rank).slice(-1)[0]; h += '<p class="note"><b>Around you</b>' + (ab ? ' · ' + Math.max(1, (ab.seasonStars || 0) - (me.seasonStars || 0)) + ' star' + ((ab.seasonStars || 0) - (me.seasonStars || 0) === 1 ? '' : 's') + ' to pass ' + ab.name : '') + '</p><div class="chips">' + near.map((x) => '<span class="chip' + (x.name === me.name && x.rank === me.rank ? ' gold' : '') + '">#' + x.rank + ' ' + x.name + ' · ' + (x.seasonStars || 0) + '★</span>').join('') + '</div>'; } }
     h += '<h3>Farm visits</h3>' + help('visits', 'Tap Visit on a farmer, or enter a farm code.', 'Tap Visit on a farmer or type their farm code to see their farm. One Cheers a day per farm; your first earns a season star.') +
       (API && NET.status === 'online' ? (S.farmCode ? '<p class="note">Your farm code: <b class="code">' + S.farmCode + '</b> · ♥ ' + fmt(S.farmCheers || 0) + ' Cheers <button type="button" class="linkbtn" data-act="visit:' + S.farmCode + '">see how it looks</button></p>' : '<p class="note">Your farm code arrives in a moment.</p>') +
         '<p class="note">Show visitors: <select data-showloc="1" aria-label="Farm visitors see first">' + LOCS.filter((l) => S.farms[l].unlocked).map((l) => '<option value="' + l + '"' + ((S.showLoc || S.loc) === l ? ' selected' : '') + '>' + fname(l) + '</option>').join('') + '</select></p>' +
@@ -7947,7 +7960,8 @@ document.addEventListener('click', (e) => {
     if (BUY[a] && spent) SFX.play(BUY[a]); else if (a === 'decor' && decorOwned) SFX.play('tick'); else if (ALWAYS[a]) SFX.play(ALWAYS[a]);
   }, 0);
   if (a === 'hire') { if (f.workers.length < maxPickers(f) && spend('coins', hireCost())) { addWorker(f); guideStep('hire'); } }   /* the new picker walks onto the farm */
-  else if (a === 'tab') setTab(v);
+  else if (a === 'tab') { closeModal(); setTab(v); }
+  else if (a === 'gofarmsub') { closeModal(); S.farmSub = v; setTab('farm'); }
   else if (a.startsWith('k_')) konaAct(a, v);
   else if (a.startsWith('bm_')) bmAct(a, v);
   else if (a.startsWith('hb_')) hbAct(a, v);
@@ -7970,6 +7984,7 @@ document.addEventListener('click', (e) => {
   else if (a === 'snd') { if (v === 'sfx') { S.sfx = !S.sfx; syncSound(); if (S.sfx) SFX.play('tick'); } else { S.music = !S.music; syncSound(); syncMusic(); } }
   else if (a === 'millview') S.millView = v;
   else if (a === 'cupall') cupAll();
+  else if (a === 'cupallnight') { cupAll(); closeUp(); return; }
   else if (a === 'reqfill') {
     const r = S.request, i = r ? S.lots.findIndex((l) => reqLot(l) && l.cupped && l.left <= 0) : -1;
     if (i > -1) { const sent = S.lots.splice(i, 1)[0]; earn({ coins: r.coins, points: r.points, noXp: r.points * (sent.carry || 0) }); unRate(r);   /* priced from your income rate, so it mustn't raise it */ S.stats.lotsSold += 1; task('sell', 1); hvAdd('lots', sent.v, sent.method); coopAdd(sent.method, sent.kg * 0.2); S.stats.requests = (S.stats.requests || 0) + 1; S.request = null; S.reqNext = Date.now() + 900000; SFX.play('contract'); showModal('<h2>Sent to ' + r.who.split(' at ')[0] + '</h2>' + img('bush_' + r.v + '_ripe', 48) + '<p class="note">"Perfect, exactly what I hoped for." +' + fmt(r.coins) + ' coins and +' + fmt(r.points) + ' know-how. ' + r.who.split(' at ')[0] + ' will be back with another request soon.</p><button class="btn green" data-act="close">Lovely</button>'); nbAdd(r.v, r.m, 2); }
@@ -8119,16 +8134,16 @@ document.addEventListener('click', (e) => {
   else if (a === 'specopen') S.specOpen = true;
   else if (a === 'cheerback') { if (/^[A-Z2-9]{6}$/.test(v || '')) cheersFarm(v); b.disabled = true; return; }
   else if (a === 'closeup') { closeUp(); return; }
-  else if (a === 'focusgo') { S.rankSub = 'prestige'; setTab('ranks'); }
+  else if (a === 'focusgo' || a === 'focusact') { focusAct(); return; }
   else if (a === 'reserve') { if (specOn('trade')) { S.spec.reserve = Math.max(0, Math.min(0.4, +v || 0)); SFX.play('click'); } }
   else if (a === 'drop') { const r = S.roastery.roasters[+v]; if (r && r.dev && !r.dropped && devZone(devP(r)) === 'early') { tapNote('Too soon: let it develop'); } else if (r && r.dev && !r.dropped) { r.dropped = devZone(devP(r)); SFX.play(r.dropped === r.profile ? 'achieve' : r.dropped === 'burnt' ? 'nope' : 'drop'); tapNote(r.dropped === r.profile ? 'Dropped in the window: +20 quality' : r.dropped === 'burnt' ? 'Scorched past second crack' : 'Dropped ' + r.dropped + ', not ' + r.profile); roasteryTick(); } }
   else if (a === 'future') { const c = S.contracts.find((x) => String(x.id) === v); if (c && specOn('trade') && tradeOpen(c)) { c.fut = true; c.fdue = S.minutesTotal + (c.due - S.minutesTotal) * 0.5; SFX.play('stamp'); tapNote('Future signed: +30% if filled in ' + Math.max(1, Math.round((c.fdue - S.minutesTotal) / 60)) + ' h'); } }
   else if (a === 'seal') { if (specOn('mill')) { S.spec.seal = Math.max(0, Math.min(3, +v || 0)); SFX.play('click'); } }
   else if (a === 'comp') { const [bi, k] = v.split('.'); if (specOn('grow') && (COMPS[k] || k === 'none')) { f.comp = f.comp || []; f.comp[+bi] = k === 'none' ? '' : k; SFX.play('click'); } }
-  else if (a === 'specpick') { if (SPECS[v] && specOk(v) && !(S.spec && S.spec.swap) && S.prestige >= SPEC_P) { const had = S.spec && S.spec.cur; specSet(v, !had); if (had) S.spec.swap = true; BEACON.ev('focus_set', { key: v, t: had ? 'swap' : 'pick', p: S.prestige }); S.specOpen = false; closeModal(); toast('Focus: ' + SPECS[v].name); } }
+  else if (a === 'specpick') { if (SPECS[v] && specOk(v) && !(S.spec && S.spec.swap) && S.prestige >= SPEC_P) { const had = S.spec && S.spec.cur && !S.spec.fresh; specSet(v, !had); if (had) S.spec.swap = true; S.spec.fresh = false; BEACON.ev('focus_set', { key: v, t: had ? 'swap' : 'pick', p: S.prestige }); S.specOpen = false; closeModal(); focusFirst(v); } }
   else if (a === 'prestigeAsk') {
     const asleep = [];
-    showModal('<h2>Prestige ' + (S.prestige + 1) + '?</h2><p class="note"><b>You keep</b> coins, cranes, every upgrade, building, manager, variety, process, decoration, hat, outfit and background.</p><p class="note"><b>You lose</b> your level' + (asleep.length ? ', and ' + asleep.map((l) => ART.locations[l].name.split(',')[0] + ' (until level ' + wakeLevel(l, S.prestige + 1) + ')').join(', ') + (asleep.length > 1 ? ' go' : ' goes') + ' dormant until you level back up' : '') + '. Cherries, lots and coffee from this run still sell for coins and know-how, but don\'t count toward levels.</p><p class="note">You gain ' + (S.prestige + 1 < TIERS.length ? 'the ' + TIERS[S.prestige + 1] + ' crest (nameplate and border)' : 'a star on your name') + (SKINS.some((sk, i) => !S.skins[i]) ? ', you pick one new outfit' : '') + (perkAt(S.prestige + 1) ? ', the <b>' + perkAt(S.prestige + 1).name + '</b> perk (' + perkAt(S.prestige + 1).text + (PERK_LV[perkAt(S.prestige + 1).id] ? ' From level ' + PERK_LV[perkAt(S.prestige + 1).id] + '.' : '') + ')' : '') + (BUILD_CAPS[S.prestige + 1] ? ', room to build every building up to level ' + BUILD_CAPS[S.prestige + 1] : '') + ', and you jump above everyone on prestige ' + S.prestige + '.</p>' + (S.prestige + 1 >= SPEC_P ? '<h3>Your focus for the next run</h3>' + specPicker('specnext', S.specNext || (S.spec && S.spec.cur) || 'grow') : '') + btn('Prestige now', '', 'prestige', true, 'green') + '<button class="btn" data-act="close">Not yet</button>');
+    showModal('<h2>Prestige ' + (S.prestige + 1) + '?</h2><p class="note"><b>You keep</b> coins, cranes, every upgrade, building, manager, variety, process, decoration, hat, outfit and background.</p><p class="note"><b>You lose</b> your level' + (asleep.length ? ', and ' + asleep.map((l) => ART.locations[l].name.split(',')[0] + ' (until level ' + wakeLevel(l, S.prestige + 1) + ')').join(', ') + (asleep.length > 1 ? ' go' : ' goes') + ' dormant until you level back up' : '') + '. Cherries, lots and coffee from this run still sell for coins and know-how, but don\'t count toward levels.</p><p class="note">You gain ' + (S.prestige + 1 < TIERS.length ? 'the ' + TIERS[S.prestige + 1] + ' crest (nameplate and border)' : 'a star on your name') + (SKINS.some((sk, i) => !S.skins[i]) ? ', you pick one new outfit' : '') + (perkAt(S.prestige + 1) ? ', the <b>' + perkAt(S.prestige + 1).name + '</b> perk (' + perkAt(S.prestige + 1).text + (PERK_LV[perkAt(S.prestige + 1).id] ? ' From level ' + PERK_LV[perkAt(S.prestige + 1).id] + '.' : '') + ')' : '') + (BUILD_CAPS[S.prestige + 1] ? ', room to build every building up to level ' + BUILD_CAPS[S.prestige + 1] : '') + ', and you jump above everyone on prestige ' + S.prestige + '.</p>' + btn('Prestige now', '', 'prestige', true, 'green') + '<button class="btn" data-act="close">Not yet</button>');
     return;
   }
   else if (a === 'prestige') { $('modal').hidden = true; const allB = board('all'), rb = allB.findIndex((x) => x.you) + 1; prestige(); const allA = board('all'), ra = allA.findIndex((x) => x.you) + 1; prestigeCeremony(rb, ra, allA.length); setTimeout(() => { NET.lastScore = ''; submitScore(); cloudSync(true); }, 500); }

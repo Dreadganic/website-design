@@ -125,7 +125,7 @@ window.BOT = (function () {
     const S = G.S;
     if (G.level() >= G.prestigeNeed() && H()) { B.readyAt = B.readyAt || B.t; if (B.t - B.readyAt < 600) return; }   /* thinks it over for ten minutes */
     if (G.level() >= G.prestigeNeed() && (!B.cfg.maxP || S.prestige < B.cfg.maxP)) { B.readyAt = 0;
-      knowhow(); act('prestigeAsk'); if (B.cfg.spec && B.cfg.spec !== 'off') act('specnext:' + B.cfg.spec); act('prestige'); if (B.cfg.spec === 'off') delete S.spec; closeAll();
+      knowhow(); act('prestigeAsk'); act('prestige'); closeAll(); if (B.cfg.spec && B.cfg.spec !== 'off' && G.S.prestige >= 3) act('specpick:' + B.cfg.spec); closeAll();
       const sk = [0, 1, 2, 3, 4, 5, 6, 7].find((i) => !S.skins[i]); if (S.skinPicks && sk !== undefined) act('pickskin:' + sk);
       closeAll(); log('PRESTIGE ' + S.prestige + ' (dormant: ' + Object.keys(S.dormant).join(',') + ')');
     }

@@ -118,14 +118,15 @@ test("claims: a paid order grants cranes and coffees once", async () => {
   assert.equal((await call(claim, "POST", { session_id: "nope" }, a)).status, 400);
 });
 
-test("scores: prestige needs 8 more levels each time, and the season board ranks season stars, then who got there first", async () => {
+test("scores: prestige needs 8 more levels each time, and the season board ranks season stars, then this season's know-how", async () => {
   assert.deepEqual([0, 1, 2, 3].map(G.prestigeNeed), [10, 18, 26, 34]);
   assert.ok(G.XP_AT(11) > G.XP_AT(10) && Math.abs(G.XP_AT(28) / G.XP_AT(27) - 1.22) < 0.01, "once the early easing ends, levels grow 1.22x");
   const a = await newPlayer(), b = await newPlayer();
   const s = (kh, pts, st) => ({ name: "Farmer", prestige: 0, seasonP: 0, seasonKh: kh, seasonStars: st || 0, level: G.levelFor(pts), points: pts });
   await call(score, "POST", s(5000, 5000), a); clock += 1000; await call(score, "POST", s(9000, 2000), b);
   const board = await call(score, "GET", undefined, a, { mode: "season" });
-  assert.equal(board.body.top[0].seasonKh, 5000, "with equal stars, whoever reached the total first leads, however much know-how the other has");
+  assert.equal(board.body.top[0].seasonKh, 9000, "with equal stars, more know-how this season leads (not the time of day)");
+  assert.deepEqual(board.body.top.map((r) => r.rank), [1, 2], "different know-how: different ranks");
   const c = await newPlayer(); await call(score, "POST", { name: "Farmer", prestige: 1, seasonP: 1, seasonKh: 100, seasonStars: 12, level: 1, points: 0 }, c);
   const top = (await call(score, "GET", undefined, a, { mode: "season" })).body.top[0];
   assert.equal(top.seasonStars, 12, "season stars beat any amount of know-how"); assert.equal(top.seasonP, 1);
