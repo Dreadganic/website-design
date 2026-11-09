@@ -1,4 +1,4 @@
-/* Names end-to-end: the first time the game opens it asks for a name, and no two farmers can hold the same one.
+/* Names end-to-end: after the first sale the game asks for a name, and no two farmers can hold the same one.
    node names_e2e.js <test.html> [shots dir]   (the real Netlify functions behind http://localhost, as in online_e2e.js) */
 const { chromium } = require(process.env.PW_MODULE || '/opt/node-tools/node_modules/playwright');
 const http = require('http'), fs = require('fs'), path = require('path');
@@ -30,14 +30,17 @@ const ok = (c, msg) => { console.log((c ? 'PASS ' : 'FAIL ') + msg); if (!c) pro
   const nameWin = async (p) => { for (let i = 0; i < 5 && await p.evaluate(() => !document.getElementById('nameAsk') && !document.getElementById('modal').hidden); i++) { await p.evaluate(() => window.__T.closeModal()); await p.waitForTimeout(150); } return modal(p); };   /* a window already open (Rosa's lesson) goes first */
   const holder = async (name) => ((await store.get('names/' + G.nameKey(name))) || {}).id;
 
-  // a new farmer: the game opens on the name window, and won't take a stand-in name
+  // a new farmer plays first: no name window until the first lot is sold, then it asks and won't take a stand-in name
   const A = await dev();
   let m = await modal(A);
-  ok(/Welcome to Beju Farm/.test(m) && /No two farmers share a name/.test(m), 'a new farm opens on the name window, before Rosa\'s first lesson');
+  ok(!/first lot is sold/.test(m), 'a new farm opens on the farm, not a name form');
+  await A.evaluate(() => { const S = window.__T.S; S.stats.lotsSold = 1; window.__T.closeModal(); document.getElementById('modal').hidden = true; const b = document.createElement('button'); b.dataset.act = 'close'; document.body.appendChild(b); b.click(); b.remove(); });
+  await A.waitForTimeout(700); m = await modal(A);
+  ok(/first lot is sold/.test(m) && /No two farmers share a name/.test(m), 'after the first sale it asks what to write on the sacks');
   ok(await A.evaluate(() => document.activeElement && document.activeElement.id === 'nameAsk'), 'the name box has the focus');
   await A.screenshot({ path: path.join(shots, 'name-window.png') });
   await A.keyboard.press('Escape'); await A.waitForTimeout(200);
-  ok(/Welcome to Beju Farm/.test(await modal(A)), 'Escape doesn\'t skip it');
+  ok(/first lot is sold/.test(await modal(A)), 'Escape doesn\'t skip it');
   await type(A, '#nameAsk', 'You');
   ok(/could be anyone/.test(await modal(A)), '"You" is refused, in the window');
   await type(A, '#nameAsk', 'Player 7');
@@ -48,7 +51,7 @@ const ok = (c, msg) => { console.log((c ? 'PASS ' : 'FAIL ') + msg); if (!c) pro
   ok(await holder('Mika') === idA, 'the server holds Mika for this farm');
   ok(await A.evaluate(() => window.__T.S.name === 'Mika' && window.__T.S.nameOk === 'Mika'), 'the farm is called Mika');
   await A.waitForTimeout(800);
-  ok(/Rosa/i.test(await modal(A)), 'then Rosa\'s first lesson starts, though a drop is on: ' + (await modal(A)).slice(0, 40));
+  ok(await A.evaluate(() => window.__T.S.guideSaid === 0), 'Rosa\'s first lesson came first, before any name, though a drop is on');
   ok(await A.evaluate(() => !window.__T.S.event), 'the drop waits until the lessons are done');
   await A.evaluate(() => { const T = window.__T; T.S.guide = T.GUIDE.length; for (let i = 0; i < 6; i++) T.closeModal(); }); await A.waitForTimeout(1200);
   await A.evaluate(() => { const T = window.__T, i = T.laterQ.findIndex((x) => /^New drop/.test(x.title)); if (i < 0) return; T.laterQ.unshift(T.laterQ.splice(i, 1)[0]); T.laterShow(); document.querySelector('#moment [data-act="later:open"]').click(); });   /* in the new HUD the drop waits as a card: open it */
@@ -103,8 +106,9 @@ const ok = (c, msg) => { console.log((c ? 'PASS ' : 'FAIL ') + msg); if (!c) pro
 
   // the offline copy asks too, without the online note
   const D = await dev('file://' + file);
-  m = await modal(D);
-  ok(/Welcome to Beju Farm/.test(m) && !/No two farmers/.test(m), 'the offline copy asks for a name');
+  await D.evaluate(() => { const S = window.__T.S; S.stats.lotsSold = 1; window.__T.closeModal(); const b = document.createElement('button'); b.dataset.act = 'close'; document.body.appendChild(b); b.click(); b.remove(); });
+  await D.waitForTimeout(700); m = await modal(D);
+  ok(/first lot is sold/.test(m) && !/No two farmers/.test(m), 'the offline copy asks for a name after the first sale');
   await type(D, '#nameAsk', 'Sora');
   ok(await gone(D) && await D.evaluate(() => window.__T.S.name) === 'Sora', 'and keeps it');
 

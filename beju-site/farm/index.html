@@ -3574,7 +3574,7 @@ function newFarm(loc) {
 const COACH = { name: 'Rosa', look: { shirt: ['#E8603A', '#C0402C', '#8A2A20'], hat: ['#F4DE9C', '#D8B868', '#A88440'] } };
 const GUIDE = [
   { ch: 'First harvest', text: 'Tap 5 ripe bushes', goal: 5, ev: 'pick', target: 'cv:farm:@ripe, .tab[data-tab="farm"]', reward: { coins: 40 }, react: 'Nice picking!',
-    say: 'Welcome to your farm! I\'m Rosa. Ripe bushes sparkle red. Tap them to pick.' },
+    say: 'Welcome to your farm! I\'m Rosa. Beju\'s roastery in Osaka is waiting on this farm\'s first lot. Ripe bushes sparkle red: tap them to pick.' },
   { ch: 'First harvest', text: 'Open the Mill', ev: 'tab:mill', target: '.tab[data-tab="mill"]', reward: { coins: 20 }, react: 'This is the Mill.',
     say: 'Your cherries are in the store. The Mill turns them into coffee.' },
   { ch: 'First harvest', text: 'Tap an empty rack to start a lot', ev: 'lot', target: 'cv:mill:@free, .tab[data-tab="mill"]', reward: { points: 50 }, react: 'Your first lot is drying.',
@@ -8511,7 +8511,7 @@ function guideBar() {
   if (S.guide >= GUIDE.length || guideWaiting()) { el.hidden = true; arrow.hidden = true; return; }
   const g = GUIDE[S.guide]; el.hidden = false;
   setHTML(el, '<span class="gstep">' + g.ch + ' · ' + (S.guide + 1) + '/' + GUIDE.length + '</span><span class="gtext">' + g.text + (g.goal > 1 ? ' (' + (S.guideN || 0) + '/' + g.goal + ')' : '') + '</span><button type="button" class="gskip" data-act="guideNext" aria-label="Skip this step">›</button><button type="button" class="gskip" data-act="guideSkip">Skip all</button>' + (g.say && !guideOpens(S.guide) ? '<span class="gsay"><img src="' + url(ART.sprites.npc_pt_rosa_idle ? 'npc_pt_rosa_' + sayMood(g.say) : 'worker_down_0', ART.sprites.npc_pt_rosa_idle ? undefined : COACH.look) + '" alt="Rosa">' + g.say + '</span>' : ''));
-  if (g.say && guideOpens(S.guide) && S.guideSaid !== S.guide && $('modal').hidden && !needsName()) { S.guideSaid = S.guide; showModal(coachCard(g.ch, g.say)); }   /* a card only as a chapter starts; the rest of her lines ride in the bar */
+  if (g.say && guideOpens(S.guide) && S.guideSaid !== S.guide && $('modal').hidden && !NET.asking) { S.guideSaid = S.guide; showModal(coachCard(g.ch, g.say)); }   /* a card only as a chapter starts; the rest of her lines ride in the bar */
   const tt = navTarget(g.target), t = tt && tt.el;
   if (t && t !== cv) { t.classList.add('hint'); showTarget(t, 'guide' + S.guide + '.' + tt.i); }
   if (t === cv && S.guideSeenAt !== S.guide && $('modal').hidden) { S.guideSeenAt = S.guide; const r = $('stage').getBoundingClientRect(); if (r.top < 0 || r.bottom > innerHeight) $('stage').scrollIntoView({ block: 'start', behavior: calm ? 'auto' : 'smooth' }); }   /* lessons on the map bring the map back on screen */
@@ -8745,7 +8745,7 @@ function renderPanel() {
         const waiting = (id) => { const sm = sampleOf(id); return !sm || ['earned', 'pending', 'reserved'].includes(sampleState(sm)); };   /* a sample earned but not yet sent */
         if (S.loc === 'mogiana' && f.rewarded) { if (waiting('welcome')) h += '<p class="note">✓ Welcome harvest done. Your free 100 g ' + L.reward + ' sample is waiting in Shop › Real coffee.</p>'; }
         else if (lad && got && S.loc !== 'mogiana') { if (waiting(lad.id)) h += '<p class="note">✓ ' + L.name.split(',')[0] + ' sample earned. It\'s waiting in Shop › Real coffee.</p>'; }
-        else if (S.loc === 'mogiana' && S.stats.lotsSold > 0) h += '<div><div style="display:flex;justify-content:space-between;align-items:baseline"><h3>Welcome harvest ' + fmt(f.harvested) + ' / 1,000 kg</h3><span class="note">' + (f.rewarded ? 'Sample earned' : 'Free 100 g') + '</span></div><div class="bar"><i style="width:' + Math.round(f.harvested / f.goal * 100) + '%"></i></div><p class="note">' + (f.rewarded ? 'Your free 100 g ' + L.reward + ' sample is in Shop › Real coffee.' : 'Bring in 1,000 kg for a free 100 g ' + L.reward + ' sample from Beju.') + '</p></div>';
+        else if (S.loc === 'mogiana') h += '<div><div style="display:flex;justify-content:space-between;align-items:baseline"><h3>Welcome harvest ' + fmt(f.harvested) + ' / 1,000 kg</h3><span class="note">' + (f.rewarded ? 'Sample earned' : 'Free 100 g') + '</span></div><div class="bar"><i style="width:' + Math.round(f.harvested / f.goal * 100) + '%"></i></div><p class="note">' + (f.rewarded ? 'Your free 100 g ' + L.reward + ' sample is in Shop › Real coffee.' : 'Bring in 1,000 kg for a free 100 g ' + L.reward + ' sample from Beju.') + '</p></div>';
         else if (lad) h += '<div><div style="display:flex;justify-content:space-between;align-items:baseline"><h3>' + L.name.split(',')[0] + ' sample</h3><span class="note">' + (got ? 'Earned' : 'Prestige ' + S.prestige + ' / ' + lad.prestige) + '</span></div><div class="bar"><i style="width:' + Math.min(100, Math.round(S.prestige / lad.prestige * 100)) + '%"></i></div><p class="note">' + (got ? 'Your free 100 g ' + L.reward + ' sample is in Shop › Real coffee.' : 'Reach prestige ' + lad.prestige + ' for a free 100 g ' + L.reward + ' sample from this origin.') + '</p></div>';
       } else h += '<p class="note">The Osaka roastery garden: rare varieties all year round, through four Japanese seasons.</p>';
       const pFull = f.workers.length >= maxPickers(f), roomy = (f.build.housing || 0) < buildMax() && S.tabs.upgrades;   /* full: housing makes room */
@@ -9206,7 +9206,7 @@ document.addEventListener('click', (e) => {
   let [a, v] = b.dataset.act.split(':');
   if (a === 'specnext') { if (SPECS[v] && specOk(v)) S.specNext = v; a = 'prestigeAsk'; }   /* pick the next run's focus, then redraw the prestige window */
   const f = S.farms[S.loc];
-  if (a === 'close') { SFX.play('close'); closeModal(); return; }
+  if (a === 'close') { SFX.play('close'); closeModal(); if (needsName() && S.stats.lotsSold > 0 && !NET.asking) setTimeout(() => { if ($('modal').hidden) askName(); }, 400); return; }
   if (a === 'later') { const it = laterQ.shift(); SFX.play(v === 'open' ? 'page' : 'close'); if (v === 'open' && it) showModal(it.html); laterShow(); return; }
   if (a === 'pcer') { SFX.play('page'); $('pcer').hidden = true; if (S.pwalk === 3) { dropPrestigeCard(); setTab('looks'); setTimeout(() => showModal(coachCard('Looks', 'Every prestige lets you pick one new outfit. Tap one to keep it.')), 300); } return; }
   if (!TEST_TOOLS && ['add', 'order', 'away', 'day', 'speed', 'season', 'revtest', 'konatest', 'bmtest'].includes(a)) return;   /* no cheats in the public game */
@@ -9650,7 +9650,7 @@ function nameCheck(s) {   /* the leaderboard's rules for names (cleanName, nameK
 function needsName() { return !nameCheck(S.name)[0]; }   /* a new farm is called You until its farmer picks a name (Rosa's lessons wait for it) */
 function askName(why) {   /* every farmer picks a name of their own: the first time the game opens, and again if theirs was taken */
   if (NET.asking) return; NET.asking = true;
-  showModal('<h2>' + (why ? 'Choose a new name' : 'Welcome to Beju Farm!') + '</h2><p class="note">' + (why || 'What should other farmers call you? Your name goes on the leaderboard, on your farm when friends visit, and in your co-op.') + '</p>' +
+  showModal('<h2>' + (why ? 'Choose a new name' : 'Your first lot is sold!') + '</h2><p class="note">' + (why || 'What should we write on the sacks? Your name goes on your coffee, on the leaderboard, on your farm when friends visit, and in your co-op.') + '</p>' +
     '<input id="nameAsk" class="codein" maxlength="16" autocomplete="nickname" autocapitalize="words" spellcheck="false" placeholder="Your name" aria-label="Your farmer name">' +
     '<p class="note" id="nameWhy" role="status">' + (API ? 'No two farmers share a name. ' : '') + 'You can change it later in Settings.</p><button class="btn green" data-act="nameset">' + (why ? 'Save my name' : 'Start farming') + '</button>');
 }
@@ -9674,7 +9674,7 @@ async function setName(raw, ask) {   /* ask: from the name window, which stays o
   submitScore(); renderPanel();
 }
 async function nameSync() {   /* online: a farm named offline, or before names were kept, claims its name; one whose name went to someone else picks another */
-  if (needsName()) { askName(); return; }
+  if (needsName()) { if (S.stats.lotsSold > 0) askName(); return; }
   if (S.nameOk === S.name || NET.naming) return;
   NET.nameAt = Date.now(); NET.naming = true;
   const r = await api('game-name', 'POST', { name: S.name }).catch(() => null);
@@ -10103,7 +10103,7 @@ function loop(t) {
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
-if (needsName()) askName();
+if (needsName() && S.stats.lotsSold > 0) askName();   /* a new farmer plays first: the name comes after the first sale */
 online();
 BEACON.ev("session_start", { p: S.prestige, lvl: level(), gap: Math.min(2592000000, Date.now() - (S.last || Date.now())) });
 window.addEventListener("pagehide", () => {   /* session length rides the real exit only — tab switches and phone locks send nothing */

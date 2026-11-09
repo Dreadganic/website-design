@@ -84,7 +84,7 @@ const SEL = ['.top', '#hearts', '#hudLevel', '.hud-r .clock', '#hudCoins', '#hud
 
     /* what shows when */
     const shown = (g2) => g2.evaluate(() => ({ hearts: !!document.getElementById('hearts').offsetParent, lv: !!document.getElementById('hudLevel').offsetParent, store: !!document.getElementById('hudStore').offsetParent }));
-    const at = await g.evaluate(() => { const T = window.__T, S = T.S; T.setTab('farm'); document.getElementById('sheet').hidden = true; S.hearts = T.maxHearts(); const f = S.farms[S.loc];
+    const at = await g.evaluate(() => { const T = window.__T, S = T.S; for (let i = 0; i < 9; i++) T.closeModal(); document.getElementById('modal').hidden = true; T.setTab('farm'); document.getElementById('sheet').hidden = true; S.hearts = T.maxHearts(); const f = S.farms[S.loc];
       f.shrubs.forEach((s) => { if (s) { s.p = 1; s.claim = null; } });
       const cv = document.getElementById('cv'), q = cv.getBoundingClientRect(), st = document.getElementById('stage').getBoundingClientRect(), k = q.width / cv.width * 2;
       const s = f.shrubs.find((x) => { if (!x) return false; const y = q.top + (x.y + 6) * k; return y > st.top + 80 && y < st.bottom - 60; });
