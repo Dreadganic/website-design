@@ -14,13 +14,13 @@
     "pinkwhiskey": {
       "name": "Colombia Pink Whiskey",
       "jp": "コロンビア ピンクウイスキー",
-      "price": 4500,
+      "price": 3600,
       "weight": "200 g"
     },
     "rumbarrel": {
       "name": "Colombia Rum Barrel",
       "jp": "コロンビア ラムバレル",
-      "price": 4500,
+      "price": 3600,
       "weight": "200 g"
     },
     "yirgacheffe": {

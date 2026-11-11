@@ -32,7 +32,7 @@ test("block-bots: scanners, probes and scrapers are turned away", async () => {
 test("block-bots: it skips the files a page loads, but still covers pages, images, the game and unknown paths", async () => {
   const { config } = await load();
   const skipped = (p) => config.excludedPath.some((x) => matches(x, p));
-  ["/assets/app.0486c5db5e.js", "/assets/site.0b8d9f5bad.css", "/favicon.ico", "/config.js", "/farm/sw.js", "/farm/manifest.webmanifest", "/.netlify/functions/game-save"].forEach((p) => assert.ok(skipped(p), "skipped: " + p));
+  ["/assets/app.31daa853e4.js", "/assets/site.0b8d9f5bad.css", "/favicon.ico", "/config.js", "/farm/sw.js", "/farm/manifest.webmanifest", "/.netlify/functions/game-save"].forEach((p) => assert.ok(skipped(p), "skipped: " + p));
   ["/", "/shop/", "/ja/shop/casablanca/", "/farm/", "/images/bags/casablanca-front.jpg", "/wp-login.php", "/.env", "/robots.txt"].forEach((p) => assert.ok(!skipped(p), "still covered: " + p));
   const html = siteFiles().filter((f) => f.endsWith(".html")), assetRefs = new Set();
   html.forEach((f) => (fs.readFileSync(path.join(ROOT, f), "utf8").match(/(?:src|href)="\/[^"#?]+/g) || []).forEach((m) => assetRefs.add(m.replace(/^(?:src|href)="/, ""))));
