@@ -13,10 +13,10 @@
       notes: ["Red apple", "Dark rum", "Citrus fruit"],
       story: "Three lots from three regions of the Colombian Andes: a whiskey-barrel natural from Huila, a rum-barrel washed coffee from Caldas, and a clean Excelso from Cundinamarca for the house blend.",
       lots: [
-        { id: "monteblanco", farm: "Finca Monteblanco", region: "Pitalito, Huila", place: "Aguanegra village, Pitalito, Huila", lat: 1.85, lon: -76.05, altitude: "1,650 m", altM: 1650,
+        { id: "monteblanco", farm: "La Loma", region: "Pitalito, Huila", place: "Aguanegra village, Pitalito, Huila", lat: 1.85, lon: -76.05, altitude: "1,650 m", altM: 1650,
           variety: "Pink Bourbon and Caturra", process: "Natural, whiskey barrel", drying: "Sun and mechanical drying", harvest: "October to November, fly crop March to May", months: [3, 4, 5, 10, 11],
           facts: [["Grade", "Excelso"], ["Farm", "Estate, 59 ha"]], notes: ["Red apple", "Rose", "Barrel sweetness"],
-          story: "An estate in Aguanegra village, above Pitalito in southern Huila. Pink Bourbon and Caturra cherries are dried whole as a natural and finished in whiskey barrels, which gives the cup its sweet, boozy depth." },
+          story: "A farm in Aguanegra village, above Pitalito in southern Huila, run by Rodrigo Sánchez of Finca Monteblanco. Pink Bourbon and Caturra cherries are dried whole as a natural and finished in whiskey barrels, which gives the cup its sweet, boozy depth." },
         { id: "laloma", farm: "La Loma", region: "Caldas", place: "Caldas", lat: 5.05, lon: -75.55, label: "left", altitude: "1,700–1,900 m", altM: 1800,
           variety: "Castillo", process: "Washed, rum barrel", drying: "Sun dried", harvest: "September to November", months: [9, 10, 11],
           facts: [["Farm", "Smallholder, 13.5 ha"], ["Production", "About 60 tonnes a year"]], notes: ["Dark rum", "Brown sugar", "Cacao"],
@@ -46,9 +46,9 @@
       ] },
     indonesia: { id: "indonesia", country: "Indonesia", jp: "インドネシア", lots: [
         { id: "shimaren", farm: "Shimaren Farm", region: "Karo, North Sumatra", place: "Merek, Karo, North Sumatra", lat: 2.92, lon: 98.52, altitude: "1,200–1,400 m", altM: 1300,
-          variety: "Catimor", process: "Semi-washed, strawberry infused fermentation", drying: "Raised African beds", harvest: "October to February", months: [10, 11, 12, 1, 2],
+          variety: "Catimor", process: "Strawberry co-ferment", drying: "Raised African beds", harvest: "October to February", months: [10, 11, 12, 1, 2],
           facts: [["Grade", "G1"], ["Growing", "No pesticides or chemical fertilisers"]], notes: ["Strawberry", "Red berries", "Sweet finish"],
-          story: "Shimaren Farm sits on a cool, fertile plateau on the northwest shore of Lake Toba, about three hours by car from Medan. It grows without pesticides or chemical fertilisers and ferments this lot with strawberries for a fresh, jammy sweetness." }
+          story: "Shimaren Farm sits on a cool, fertile plateau on the northwest shore of Lake Toba, about three hours by car from Medan. It grows without pesticides or chemical fertilisers and co-ferments this lot with strawberry for a fresh, jammy sweetness." }
       ] }
   };
   /* single-lot countries take their details straight from the lot */
@@ -63,10 +63,10 @@
   /* blend: share per country; lots: which lot from that country goes in (prices for the newer coffees are placeholders) */
   var PRODUCTS = [
     { id: "casablanca", name: "Casablanca Blend", jp: "カサブランカ ブレンド", price: 3000, weight: "250 g", roast: "Medium roast", blend: { brazil: 50, colombia: 30, costarica: 20 }, lots: { brazil: "terrapreta", colombia: "cundinamarca", costarica: "aquiares" }, notes: ["Cocoa", "Hazelnut", "Citrus fruit"], blurb: "Our house blend. Brazilian body and sweetness, Colombian citrus and a nutty, cocoa finish from Costa Rica.", tone: "var(--accent)", bag: { body: "#2A211B", label: "#EDE6D8", ink: "#1F1A15", mark: "#2D6A46" } },
-    { id: "pinkwhiskey", name: "Colombia Pink Whiskey", jp: "コロンビア ピンクウイスキー", price: 3600, weight: "200 g", roast: "Medium roast", blend: { colombia: 100 }, lots: { colombia: "monteblanco" }, notes: ["Red apple", "Rose", "Barrel sweetness"], blurb: "Pink Bourbon and Caturra from Finca Monteblanco in Huila, a natural finished in whiskey barrels for a sweet, wine-like cup.", tone: "var(--c-colombia)", bag: { body: "#B8506A", label: "#F1E7DA", ink: "#1F1A15", mark: "#B8506A" } },
+    { id: "pinkwhiskey", name: "Colombia Pink Whiskey", jp: "コロンビア ピンクウイスキー", price: 3600, weight: "200 g", roast: "Medium roast", blend: { colombia: 100 }, lots: { colombia: "monteblanco" }, notes: ["Red apple", "Rose", "Barrel sweetness"], blurb: "Pink Bourbon and Caturra from La Loma in Huila, a natural finished in whiskey barrels for a sweet, wine-like cup.", tone: "var(--c-colombia)", bag: { body: "#B8506A", label: "#F1E7DA", ink: "#1F1A15", mark: "#B8506A" } },
     { id: "rumbarrel", name: "Colombia Rum Barrel", jp: "コロンビア ラムバレル", price: 3600, weight: "200 g", roast: "Medium roast", blend: { colombia: 100 }, lots: { colombia: "laloma" }, notes: ["Dark rum", "Brown sugar", "Cacao"], blurb: "A washed Castillo from La Loma in Caldas, aged in rum barrels for a warm, molasses-sweet cup.", tone: "var(--c-rum)", bag: { body: "#5B3A26", label: "#EFE4D2", ink: "#1F1A15", mark: "#B9793F" } },
     { id: "yirgacheffe", name: "Ethiopia Yirgacheffe", jp: "エチオピア イルガチェフェ", price: 2800, weight: "200 g", roast: "Medium roast", blend: { ethiopia: 100 }, lots: { ethiopia: "worka" }, notes: ["Jasmine", "Bergamot", "Lemon"], blurb: "A washed G1 from Worka village, grown above 2,100 m. Clean, floral and bright.", tone: "var(--c-ethiopia)", bag: { body: "#4E3B78", label: "#EEE8F2", ink: "#1F1A15", mark: "#6A4C9C" } },
-    { id: "strawberry", name: "Sumatra Strawberry", jp: "スマトラ ストロベリー", price: 3200, weight: "200 g", roast: "Medium roast", blend: { indonesia: 100 }, lots: { indonesia: "shimaren" }, notes: ["Strawberry", "Red berries", "Sweet finish"], blurb: "A Catimor from Shimaren Farm by Lake Toba, fermented with strawberries for a fresh, jammy sweetness.", tone: "var(--c-indonesia)", bag: { body: "#C4475A", label: "#F3E9E4", ink: "#1F1A15", mark: "#17788A" } }
+    { id: "strawberry", name: "Sumatra Strawberry", jp: "スマトラ ストロベリー", price: 3200, weight: "200 g", roast: "Medium roast", blend: { indonesia: 100 }, lots: { indonesia: "shimaren" }, notes: ["Strawberry", "Red berries", "Sweet finish"], blurb: "A Catimor from Shimaren Farm by Lake Toba, co-fermented with strawberry for a fresh, jammy sweetness.", tone: "var(--c-indonesia)", bag: { body: "#C4475A", label: "#F3E9E4", ink: "#1F1A15", mark: "#17788A" } }
   ];
   function lotFor(p, oid) { var lid = p.lots && p.lots[oid]; return lid ? lotById(lid) : ORIGINS[oid].lots[0]; }
   /* ---------- Language (English / 日本語) ---------- */
@@ -155,11 +155,11 @@
     "Huila, Caldas and Cundinamarca": "ウイラ県・カルダス県・クンディナマルカ県", "Mogiana": "モジアナ", "Mogiana, São Paulo and Minas Gerais": "モジアナ地域(サンパウロ州・ミナスジェライス州)",
     "Yirgacheffe, Gedeo": "イルガチェフェ(ゲデオ地区)", "Worka village, Gedeo zone": "ゲデオ地区ワルカ村", "Turrialba, Cartago": "カルタゴ州トゥリアルバ", "Aquiares, Turrialba, Cartago": "カルタゴ州トゥリアルバ、アキアレス",
     "Karo, North Sumatra": "北スマトラ州カロ県", "Merek, Karo, North Sumatra": "北スマトラ州カロ県メラク",
-    "Finca Monteblanco": "モンテブランコ農園", "La Loma": "ラ・ロマ農園", "Cundinamarca Excelso": "クンディナマルカ エクセルソ", "Fazenda Terra Preta": "テラプレタ農園", "Worka village": "ワルカ村", "Aquiares Estate": "アキアレス農園", "Shimaren Farm": "シマレン農園",
+    "La Loma": "ラ・ロマ農園", "Cundinamarca Excelso": "クンディナマルカ エクセルソ", "Fazenda Terra Preta": "テラプレタ農園", "Worka village": "ワルカ村", "Aquiares Estate": "アキアレス農園", "Shimaren Farm": "シマレン農園",
     "Pink Bourbon, Caturra and Castillo": "ピンクブルボン、カトゥーラ、カスティージョ", "Pink Bourbon and Caturra": "ピンクブルボン、カトゥーラ", "Castillo": "カスティージョ", "Castillo, Colombia and Caturra": "カスティージョ、コロンビア、カトゥーラ",
     "Mundo Novo, Caturra, IPR and Yellow Bourbon": "ムンドノーボ、カトゥーラ、IPR、イエローブルボン", "Ethiopian heirloom": "エチオピア在来種", "Caturra, Catuaí and Catimor": "カトゥーラ、カトゥアイ、カティモール", "Catimor": "カティモール",
     "Natural and washed, some barrel-aged": "ナチュラル・ウォッシュド(一部樽熟成)", "Natural, whiskey barrel": "ナチュラル、ウイスキー樽", "Washed, rum barrel": "ウォッシュド、ラム樽", "Natural": "ナチュラル", "Washed": "ウォッシュド",
-    "Semi-washed, strawberry infused fermentation": "セミウォッシュド、ストロベリー・インフューズド発酵",
+    "Strawberry co-ferment": "ストロベリー コファーメント",
     "Sun and mechanical drying": "天日と機械乾燥の併用", "Sun dried": "天日乾燥", "Sun dried on raised beds": "アフリカンベッドで天日乾燥", "Raised African beds": "アフリカンベッド",
     "Main crop September to December, fly crop March to July": "メイン9月〜12月、ミタカ3月〜7月", "October to November, fly crop March to May": "メイン10月〜11月、ミタカ3月〜5月", "September to November": "9月〜11月",
     "October to December, fly crop May to July": "メイン10月〜12月、ミタカ5月〜7月", "May to August": "5月〜8月", "October to January": "10月〜1月", "October to March": "10月〜3月", "October to February": "10月〜2月",
@@ -173,16 +173,16 @@
     "Colombia Rum Barrel": "コロンビア ラムバレル", "Ethiopia Yirgacheffe": "エチオピア イルガチェフェ", "Sumatra Strawberry": "スマトラ ストロベリー",
     "Medium roast": "中煎り",
     "Our house blend. Brazilian body and sweetness, Colombian citrus and a nutty, cocoa finish from Costa Rica.": "ベージュのハウスブレンド。ブラジルのコクと甘み、コロンビアの柑橘、コスタリカのナッツとココアの余韻。",
-    "Pink Bourbon and Caturra from Finca Monteblanco in Huila, a natural finished in whiskey barrels for a sweet, wine-like cup.": "ウイラ県モンテブランコ農園のピンクブルボンとカトゥーラ。ウイスキー樽で仕上げたナチュラルで、甘くワインのような味わい。",
+    "Pink Bourbon and Caturra from La Loma in Huila, a natural finished in whiskey barrels for a sweet, wine-like cup.": "ウイラ県ラ・ロマ農園のピンクブルボンとカトゥーラ。ウイスキー樽で仕上げたナチュラルで、甘くワインのような味わい。",
     "A washed Castillo from La Loma in Caldas, aged in rum barrels for a warm, molasses-sweet cup.": "カルダス県ラ・ロマ農園のウォッシュド・カスティージョ。ラム樽で熟成させた、黒蜜のように甘くあたたかな味わい。",
     "A washed G1 from Worka village, grown above 2,100 m. Clean, floral and bright.": "標高2,100 m以上のワルカ村で育ったウォッシュドG1。クリーンで華やか、明るい味わい。",
-    "A Catimor from Shimaren Farm by Lake Toba, fermented with strawberries for a fresh, jammy sweetness.": "トバ湖畔シマレン農園のカティモール。いちごと発酵させた、みずみずしくジャムのような甘さ。",
+    "A Catimor from Shimaren Farm by Lake Toba, co-fermented with strawberry for a fresh, jammy sweetness.": "トバ湖畔シマレン農園のカティモール。いちごと発酵させた、みずみずしくジャムのような甘さ。",
     "One house blend and four single origins. Each one links back to its farm on the map.": "ハウスブレンド1種とシングルオリジン4種。それぞれ農園をマップでたどれます。",
     "House blend": "ハウスブレンド", "Legal notice (特定商取引法)": "特定商取引法に基づく表記", "Order by message below": "下のメッセージから注文できます", "Single origins": "シングルオリジン", "Every single origin is roasted to a medium that keeps the fruit and sweetness of the farm.": "シングルオリジンはすべて、農園の果実味と甘さが残る中煎りで焙煎しています。"
   };
   var JA_STORY = {
     colombia: "コロンビア・アンデスの3つの産地から3つのロット。ウイラ県のウイスキー樽ナチュラル、カルダス県のラム樽ウォッシュド、そしてハウスブレンドに使うクンディナマルカ県のクリーンなエクセルソです。",
-    monteblanco: "ウイラ県南部、ピタリートの上手にあるアグアネグラ村のエステート。ピンクブルボンとカトゥーラを果実ごと乾燥させるナチュラルで仕上げ、ウイスキー樽で寝かせることで、甘く豊かな深みが生まれます。",
+    monteblanco: "ウイラ県南部、ピタリートの上手にあるアグアネグラ村の農園で、モンテブランコ農園のオーナーでもあるロドリゴ・サンチェス氏が営んでいます。ピンクブルボンとカトゥーラを果実ごと乾燥させるナチュラルで仕上げ、ウイスキー樽で寝かせることで、甘く豊かな深みが生まれます。",
     laloma: "カルダス県のコーヒー地帯の高地にある、家族経営の小さな農園。カスティージョをウォッシュド精製・天日乾燥し、ラム樽で熟成させた、黒蜜のように甘くあたたかな味わいです。",
     cundinamarca: "ボゴタを囲むクンディナマルカ県の丘陵地で育った地域ロットのエクセルソ。クリーンで明るく、カサブランカ ブレンドに柑橘の軽やかさを添えます。",
     terrapreta: "まろやかな甘さで知られるブラジル・モジアナ地域の大規模農園。ナチュラル精製で毎年安定した味わいを保ち、ブレンドのボディを支えます。",
@@ -1534,8 +1534,8 @@
     },
     pinkwhiskey: {
       roast: 3, flavour: { sweet: 4, acid: 3, body: 3 },
-      story: ["Pink Bourbon and Caturra from Finca Monteblanco, an estate in Aguanegra village above Pitalito, Huila. The cherries are dried whole as a natural and finished in whiskey barrels, which gives the cup red apple, rose and a soft, barrel-like sweetness. We roast it to a medium that keeps the fruit bright. Best as black filter coffee.",
-              "ウイラ県ピタリート近郊、アグアネグラ村のモンテブランコ農園が育てたピンクブルボンとカトゥーラ。果実ごと乾燥させるナチュラル精製のあとウイスキー樽で仕上げることで、赤りんごやバラ、樽のようなやわらかい甘みが生まれます。果実味が明るく残る中煎りに仕上げました。ブラックのハンドドリップがおすすめです。"],
+      story: ["Pink Bourbon and Caturra from La Loma, a farm in Aguanegra village above Pitalito, Huila, run by Rodrigo Sánchez of Finca Monteblanco. The cherries are dried whole as a natural and finished in whiskey barrels, which gives the cup red apple, rose and a soft, barrel-like sweetness. We roast it to a medium that keeps the fruit bright. Best as black filter coffee.",
+              "ウイラ県ピタリート近郊、アグアネグラ村のラ・ロマ農園が育てたピンクブルボンとカトゥーラ。農園を営むのは、モンテブランコ農園のオーナーでもあるロドリゴ・サンチェス氏です。果実ごと乾燥させるナチュラル精製のあとウイスキー樽で仕上げることで、赤りんごやバラ、樽のようなやわらかい甘みが生まれます。果実味が明るく残る中煎りに仕上げました。ブラックのハンドドリップがおすすめです。"],
       bestFor: ["Black filter coffee, AeroPress and slow weekend brews", "ブラックのハンドドリップ、エアロプレス、ゆっくり淹れる週末に"],
       pairs: [["Berry tart", "ベリータルト"], ["Dark chocolate", "ダークチョコレート"], ["Fresh fruit", "季節のフルーツ"], ["Yogurt and granola", "ヨーグルトとグラノーラ"]],
       recipes: [
@@ -1577,8 +1577,8 @@
     },
     strawberry: {
       roast: 3, flavour: { sweet: 5, acid: 3, body: 3 },
-      story: ["A Catimor from Shimaren Farm, on a cool plateau by the northwest shore of Lake Toba in North Sumatra. The farm grows without pesticides or chemical fertilisers. This lot is semi-washed with a strawberry infused fermentation and dried on raised beds, so the cup tastes of fresh strawberry with a jammy, sweet finish.",
-              "北スマトラ州、トバ湖北西岸の冷涼な高原にあるシマレン農園のカティモール。農薬や化学肥料を使わずに栽培しています。このロットはセミウォッシュドにストロベリーを加えたインフューズド発酵を行い、アフリカンベッドで乾燥。みずみずしいいちごと、ジャムのような甘い余韻が楽しめます。"],
+      story: ["A Catimor from Shimaren Farm, on a cool plateau by the northwest shore of Lake Toba in North Sumatra. The farm grows without pesticides or chemical fertilisers. This lot is co-fermented with strawberry and dried on raised beds, so the cup tastes of fresh strawberry with a jammy, sweet finish.",
+              "北スマトラ州、トバ湖北西岸の冷涼な高原にあるシマレン農園のカティモール。農薬や化学肥料を使わずに栽培しています。このロットはストロベリーと一緒に発酵させるコファーメントで仕上げ、アフリカンベッドで乾燥。みずみずしいいちごと、ジャムのような甘い余韻が楽しめます。"],
       bestFor: ["Filter coffee, iced coffee and something special", "ハンドドリップ、アイスコーヒー、特別な一杯に"],
       pairs: [["Strawberry shortcake", "いちごのショートケーキ"], ["Vanilla ice cream", "バニラアイス"], ["White chocolate", "ホワイトチョコレート"], ["Yogurt and granola", "ヨーグルトとグラノーラ"]],
       recipes: [
@@ -1760,14 +1760,14 @@
           ["h", "Washed"], ["p", "The fruit is removed before drying, and the seeds ferment in water before being washed clean. Washed coffees taste clean and bright with clear acidity. Our Ethiopia Yirgacheffe is washed, as are the Colombian and Costa Rican coffees in the Casablanca Blend."],
           ["h", "Natural"], ["p", "The whole cherry dries in the sun for several weeks with the seed inside. The fruit adds sweetness and body: chocolate, ripe fruit and a heavier cup. The Brazil from Fazenda Terra Preta in our Casablanca Blend is natural, and so is Colombia Pink Whiskey."],
           ["h", "Honey"], ["p", "Some of the sticky fruit layer, the mucilage, stays on the seed while it dries. The cup sits between washed and natural, with rounded sweetness and gentle acidity. It is common in Costa Rica."],
-          ["h", "Semi-washed"], ["p", "A traditional Indonesian method: the fruit is removed, and the parchment comes off while the seed is still damp. Our Sumatra Strawberry from Shimaren Farm is semi-washed."],
-          ["h", "Barrels and infused fermentation"], ["p", "Some producers add a final step to create new flavours. Colombia Pink Whiskey is finished in whiskey barrels and Colombia Rum Barrel is aged in rum barrels, while Sumatra Strawberry is fermented with strawberries."],
+          ["h", "Semi-washed"], ["p", "A traditional Indonesian method: the fruit is removed, and the parchment comes off while the seed is still damp."],
+          ["h", "Barrels and infused fermentation"], ["p", "Some producers add a final step to create new flavours. Colombia Pink Whiskey is finished in whiskey barrels and Colombia Rum Barrel is aged in rum barrels, while Sumatra Strawberry is co-fermented with strawberry."],
           ["tip", "Every origin on our map shows how its coffee is processed."]],
         ja: [["p", "コーヒー豆は「コーヒーチェリー」という果実の種です。収穫後、農園は果肉を取り除いて種を乾燥させます。その方法「精製」は、品種や標高と同じくらい味を左右します。"],
           ["h", "ウォッシュド"], ["p", "乾燥前に果肉を取り除き、種を水中で発酵させてから洗い流します。クリーンで明るく、酸味がはっきりした味わいに。ベージュのエチオピア イルガチェフェや、カサブランカ ブレンドのコロンビアとコスタリカはウォッシュドです。"],
           ["h", "ナチュラル"], ["p", "種が入ったままの果実を、数週間かけて天日で乾燥させます。果実の甘みとボディが加わり、チョコレートや熟した果実のような、しっかりした味わいに。カサブランカ ブレンドのブラジル(テラプレタ農園)と、コロンビア ピンクウイスキーはナチュラルです。"],
           ["h", "ハニー"], ["p", "ミューシレージと呼ばれる粘りのある果肉の一部を残したまま乾燥させます。ウォッシュドとナチュラルの中間で、まろやかな甘みとやさしい酸味。コスタリカでよく見られる方法です。"],
-          ["h", "セミウォッシュド(スマトラ式)"], ["p", "果肉を取り除き、種がまだ湿っているうちに殻(パーチメント)を外す、インドネシアの伝統的な方法。ベージュのスマトラ ストロベリー(シマレン農園)はセミウォッシュドです。"],
+          ["h", "セミウォッシュド(スマトラ式)"], ["p", "果肉を取り除き、種がまだ湿っているうちに殻(パーチメント)を外す、インドネシアの伝統的な方法。"],
           ["h", "樽熟成とインフューズド発酵"], ["p", "最後にひと工程を加えて新しい風味を生み出す生産者もいます。コロンビア ピンクウイスキーはウイスキー樽で、コロンビア ラムバレルはラム樽で仕上げ、スマトラ ストロベリーはいちごと一緒に発酵させています。"],
           ["tip", "産地マップでは、すべての産地の精製方法を確認できます。"]]
       } }
