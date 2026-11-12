@@ -36,7 +36,7 @@ const ok = (c, msg) => { console.log((c ? 'PASS ' : 'FAIL ') + msg); if (!c) pro
   await A.evaluate(() => window.__T.act('method:rum'));
   ok(await A.evaluate(() => window.__T.S.methods.rum), 'Rum barrel unlocks with know-how');
   m = await modal(A);
-  ok(/Rum barrel unlocked/.test(m) && /This one is real/.test(m) && /Colombia Rum Barrel/.test(m) && /La Loma/.test(m) && /¥4,500/.test(m), 'its card names the real bag: ' + m.slice(0, 120));
+  ok(/Rum barrel unlocked/.test(m) && /This one is real/.test(m) && /Colombia Rum Barrel/.test(m) && /La Loma/.test(m) && /¥3,600/.test(m), 'its card names the real bag: ' + m.slice(0, 120));
   const href = await A.evaluate(() => (document.querySelector('#modalCard a[data-bag]') || {}).href);
   ok(href === 'https://bejucoffee.com/shop/rumbarrel/', 'the card links the bag page: ' + href);
   let e = await last(A); ok(e && e.e === 'bag_card' && e.key === 'rumbarrel', 'bag_card is counted for rumbarrel');
