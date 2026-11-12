@@ -135,6 +135,36 @@ Until the end of 30 November 2026 (Japan time) a farm's first leaderboard score 
 - `stripe-webhook` now also handles `checkout.session.expired`, `checkout.session.async_payment_failed` and `invoice.paid`. In Stripe (Developers > Webhooks), add those three events to the existing endpoint so samples are released and renewals earn cranes.
 - Launch steps: `launch/README.md`.
 
+## Merchandise through Printful (backend, dormant until set up)
+
+Made-to-order merchandise (a T-shirt, a mug) can be sold in the same Stripe checkout as coffee. When such an order is paid, `stripe-webhook` sends the merchandise lines to Printful as one order, addressed to the customer; Printful prints in Japan and ships. Coffee lines are untouched. **Nothing is for sale yet** (`netlify/lib/catalog.json` has no merchandise and the shop pages don't show any), and **nothing calls Printful until `PRINTFUL_API_KEY` is set**.
+
+| Name | Value |
+| --- | --- |
+| `PRINTFUL_API_KEY` | A Printful **private token** (developers.printful.com › Your tokens) with the `orders` scope, made for the one store. Unset = everything below is off. Tokens expire: note the date and replace it in time. |
+| `PRINTFUL_CONFIRM` | Leave unset while testing: every order is created as a **draft**, which Printful neither prints nor charges for until you confirm it in the Printful dashboard. Set to `on` (exactly) to submit orders for printing automatically. |
+| `PRINTFUL_WEBHOOK_SECRET` | A long random string. Turns on `/.netlify/functions/printful-webhook`, which receives "parcel shipped" from Printful; requests without the secret are refused. |
+| `PRINTFUL_STORE_ID` | *(Only for an account-level token.)* The store's id, sent as `X-PF-Store-Id`. A token made for one store doesn't need it. |
+
+- **A merchandise product** is a catalogue entry with a `fulfil` block: `"tee": { "name": "…", "jp": "…", "price": 0000, "fulfil": { "by": "printful", "variants": { "M": 14036, "L": 14037 }, "files": [{ "type": "front", "url": "https://…/artwork.png" }] } }`. `variants` maps the option the customer picks to a Printful catalogue variant id (from `https://api.printful.com/products/<id>`; pick variants available in the `JP` region); `files` are the print files, which Printful downloads from that address. Adding one is a product change like any other: catalogue, shop script, pages and the game template together.
+- **The order's id at Printful** (`external_id`) is made from the Stripe Checkout session id, so a webhook Stripe sends twice can't order twice.
+- **The order email** (`ORDER_NOTIFY_URL`) gains a `merchandise` line: the Printful order number and status, or `NOT SENT TO PRINTFUL` with the reason (the subject says so too). The coffee part of the order goes ahead either way. To try a failed one again, resend the event from Stripe (Developers › Webhooks › the event › Resend), or place the order by hand in Printful. Without `ORDER_NOTIFY_URL` a failure is only in the function log.
+- **Shipping notices:** in Printful, set the webhook address to `https://YOUR-SITE/.netlify/functions/printful-webhook?key=<PRINTFUL_WEBHOOK_SECRET>` with the event `package_shipped` (API: `POST /webhooks`; a store has one webhook address). Each parcel's carrier, tracking number and link are recorded and emailed to you through `ORDER_NOTIFY_URL`. The website can't email customers itself, so either turn on Printful's own shipping emails to customers or forward the link.
+
+### Testing with draft orders
+1. Create the Printful account and a store, make a private token, and set `PRINTFUL_API_KEY` for **Deploy Previews only** (leave `PRINTFUL_CONFIRM` unset), next to the Stripe **test** keys.
+2. On a branch, add a test merchandise product to `catalog.json` and open a Deploy Preview (free). The shop front can't add it to the cart yet, so start a checkout by hand: `curl -X POST https://PREVIEW/.netlify/functions/create-checkout -H 'Content-Type: application/json' -d '{"lang":"en","lines":[{"pid":"tee","option":"M","freq":"once","qty":1}]}'`, open the `url` it returns and pay with `4242 4242 4242 4242` and a Japanese address.
+3. Check: a **draft** order appears in Printful with the right variant, quantity, artwork and address; the order email has the `merchandise` line; resending the Stripe event makes no second draft. Delete the draft afterwards.
+4. Use Printful's webhook simulator to send `package_shipped` to the preview's `printful-webhook` address and check the email arrives; a wrong `key` must answer 403.
+
+### Launch checklist
+- [ ] Artwork chosen and print files hosted at a public address; products, variants (sizes, colours) and retail prices agreed.
+- [ ] Delivery charge for merchandise decided: today it falls under the coffee rule (¥600, free from ¥5,000 across the whole cart), while Printful bills its own shipping per order.
+- [ ] Shop front built: product cards, a size picker that sends `option` with the cart line, no grind or subscription choice for merchandise, and delivery-time wording (made to order, ships separately from coffee).
+- [ ] Legal notice and privacy page updated: made-to-order returns, and Printful named as receiving the customer's name, address, phone and email.
+- [ ] A billing method added in Printful, and one real order confirmed by hand from a draft and received.
+- [ ] `PRINTFUL_API_KEY`, `PRINTFUL_WEBHOOK_SECRET` set for production and the webhook registered in Printful; then, when you are happy with drafts, `PRINTFUL_CONFIRM` = `on`.
+
 ## Running the game day to day
 
 - **Logs.** Every game function that fails writes one JSON line to the function log (Netlify › Logs › Functions): the function, the method, the status, how long it took and the error. Slow calls (over 3 seconds) are logged too.

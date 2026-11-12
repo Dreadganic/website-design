@@ -1,4 +1,4 @@
-/* POST /.netlify/functions/create-checkout  { lines: [{pid, grind, freq, qty}], lang }  ->  { url }
+/* POST /.netlify/functions/create-checkout  { lines: [{pid, grind, freq, qty}], lang }  ->  { url }   (a merchandise line: {pid, option, freq: "once", qty})
    Creates a Stripe Checkout page for the cart and returns its address. */
 const { stripe } = require("../stripe");
 const { checkCart, sessionParams } = require("../order");
@@ -32,7 +32,7 @@ exports.handler = async (event) => {
   let body;
   try { body = JSON.parse(event.isBase64Encoded ? Buffer.from(event.body || "", "base64").toString("utf8") : event.body || "{}"); }
   catch (e) { return json(400, { error: "bad_json" }); }
-  const cart = checkCart(body.lines);
+  const cart = checkCart(body.lines, deps && deps.catalog);
   if (cart.error) return json(400, cart);
   const site = process.env.SITE_URL || process.env.URL || "https://www.bejucoffee.com";
   const lang = body.lang === "ja" ? "ja" : "en", params = sessionParams(cart, { lang, site });

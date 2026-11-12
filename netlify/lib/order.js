@@ -8,16 +8,26 @@ const RHYTHM = { "2w": { interval: "week", interval_count: 2, en: "every 2 weeks
 
 function unitPrice(p, freq) { return freq === "once" ? p.price : Math.round(p.price * (1 - CATALOG.subscriptionDiscount)); }
 
-/* Validates the cart; returns { error } or { lines, interval, subtotalOnce, subtotalPerDelivery }. */
-function checkCart(raw) {
+/* Validates the cart; returns { error } or { lines, interval, subtotalOnce, subtotalPerDelivery }.
+   A product with a "fulfil" block is made-to-order merchandise (see printful.js): it has no grind and can't be a subscription, and its line
+   carries "option" (a size, say), which must be one of the product's variants; a product with a single variant needs none. */
+function checkCart(raw, catalog) {
+  const products = (catalog || CATALOG).products;
   if (!Array.isArray(raw) || !raw.length) return { error: "empty", message: "Your cart is empty." };
   if (raw.length > 20) return { error: "too_many", message: "Too many items in one order." };
   const lines = [];
   for (const l of raw) {
-    const p = CATALOG.products[l && l.pid];
+    const p = l && Object.prototype.hasOwnProperty.call(products, l.pid) ? products[l.pid] : null;
     if (!p) return { error: "unknown_product", message: "A coffee in your cart is no longer available." };
     const qty = Math.floor(Number(l.qty));
     if (!(qty >= 1 && qty <= 20)) return { error: "bad_qty", message: "Please choose between 1 and 20 bags." };
+    if (p.fulfil) {
+      const keys = Object.keys(p.fulfil.variants || {}), option = l.option === undefined || l.option === null || l.option === "" ? (keys.length === 1 ? keys[0] : "") : String(l.option);
+      if (keys.indexOf(option) < 0) return { error: "bad_option", message: "Please choose a size." };
+      if (l.freq !== "once") return { error: "bad_freq", message: "Merchandise can't be part of a subscription." };
+      lines.push({ pid: l.pid, p, qty, option, freq: "once", unit: p.price });
+      continue;
+    }
     if (GRINDS.indexOf(l.grind) < 0) return { error: "bad_grind", message: "Please choose a grind." };
     if (["once", "2w", "1m"].indexOf(l.freq) < 0) return { error: "bad_freq", message: "Please choose a delivery option." };
     lines.push({ pid: l.pid, p, qty, grind: l.grind, freq: l.freq, unit: unitPrice(p, l.freq) });
@@ -42,13 +52,17 @@ function sessionParams(cart, opts) {
   const sub = cart.rhythm ? RHYTHM[cart.rhythm] : null;
   const line_items = cart.lines.map(l => {
     const name = ja ? l.p.jp : l.p.name;
+    if (l.p.fulfil) {   /* merchandise: the chosen option goes on the Stripe line, where the paid-order webhook reads it */
+      const label = (l.p.fulfil.label && l.p.fulfil.label[ja ? "ja" : "en"]) || (ja ? "サイズ" : "Size");
+      return { price_data: { currency: "jpy", unit_amount: l.unit, product_data: { name, description: label + ": " + l.option, metadata: { pid: l.pid, option: l.option } } }, quantity: l.qty };
+    }
     const grind = ja ? GRINDS_JA[l.grind] : l.grind;
     const desc = (ja ? "挽き方: " : "Grind: ") + grind + " · " + l.p.weight + (l.freq !== "once" ? (ja ? " · 定期便 " + RHYTHM[l.freq].ja + "(" : " · Subscription " + RHYTHM[l.freq].en + " (") + Math.round(CATALOG.subscriptionDiscount * 100) + (ja ? "%オフ)" : "% off)") : "");
     const price_data = { currency: "jpy", unit_amount: l.unit, product_data: { name, description: desc, metadata: { pid: l.pid, grind: l.grind } } };
     if (l.freq !== "once") price_data.recurring = { interval: RHYTHM[l.freq].interval, interval_count: RHYTHM[l.freq].interval_count };
     return { price_data, quantity: l.qty };
   });
-  const summary = cart.lines.map(l => l.pid + "×" + l.qty + " [" + l.grind + ", " + l.freq + "]").join("; ").slice(0, 490);
+  const summary = cart.lines.map(l => l.pid + "×" + l.qty + " [" + (l.p.fulfil ? l.option : l.grind) + ", " + l.freq + "]").join("; ").slice(0, 490);
   const params = {
     line_items,
     locale: ja ? "ja" : "en",
