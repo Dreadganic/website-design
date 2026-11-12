@@ -10,3 +10,8 @@
 ## The game
 - Source: `game-assets/play/template.html`. The live copy, `beju-site/farm/index.html`, is built from it with `python3 game-assets/play/build.py beju-site/farm/index.html --site --beta`; commit both.
 - Tests: `npm test` for the server; the browser suites and the pacing bots are in `game-assets/sim/` (see its README).
+
+## Business agents
+- Six agents for running the business are defined in `.claude/agents/`: `sales-scout`, `outreach-writer`, `product-rnd`, `numbers-analyst`, `web-shop` and `brand-content`. The main session is the lead: it hands out jobs, checks each report against its sources, and records the result.
+- Facts and lead records live in a private pipeline doc, and jobs in a private tracker; each agent file gives the pipeline link. This repository is public, so customer names, prices, margins, contacts and lead lists never go into it.
+- Agents draft and research only. Sending email, ordering, quoting and publishing the site happen from the main session, after the owner agrees.
