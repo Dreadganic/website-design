@@ -17,9 +17,9 @@ Read this first. It says where the Beju Farm Unreal remake stands on 13 November
 
 - How you play: tap or walk. A tap acts at once and the farmer hurries over; a stick or keys steer directly.
 - Platforms: PC first, landscape phones after, from one project.
-- Build machine (confirmed 13 November): the owner's MacBook Pro, Apple M2 Max (38-core GPU, Metal), 32 GB memory, about 390 GB free, macOS 27. Unreal 5.8 is at `/Users/Shared/Epic Games/UE_5.8`; Blender and Xcode are installed. A local agent session runs on this machine, in this repository's clone.
+- Build machine (confirmed 13 November): the owner's MacBook Pro, Apple M2 Max (38-core GPU, Metal), 32 GB memory, about 390 GB free, macOS 27. Unreal 5.8.4 is at `~/Epic Games/UE_5.8` (the folder of the same name under `/Users/Shared` is an empty leftover); Blender and Xcode 27.2 are installed. A local agent session runs on this machine, in this repository's clone.
 - Spending (13 November): no separate money ceiling. Development stays inside the owner's Claude plan budget, so no paid extras (rented machines, bought kits, freelancers) without asking. The owner's hours are not capped.
-- Repository (13 November): the Unreal project lives in the private repository `Dreadganic/beju-farm-unreal`, created empty.
+- Repository (13 November): the Unreal project lives in the private repository `Dreadganic/beju-farm-unreal`, cloned on the owner's Mac at `~/beju/beju-farm-unreal`.
 - The tab bar and HUD decisions for the web game are separate and already built (see the HUD design document linked from earlier commits).
 
 ## What is still open (the plan's "Decisions for you")
@@ -73,6 +73,21 @@ PW_MODULE=<path to playwright> MAXH=60 node game-assets/rules/replay_bot.js /tmp
 ```
 
 On the owner's Mac, Playwright is at `/Users/jordanhipkiss/beju/pw-env/node_modules/playwright`. The active run to prestige 7 takes a few minutes.
+
+**13 November: the build loop works on the owner's Mac.** In `Dreadganic/beju-farm-unreal`, `Scripts/loop.sh` compiles a minimal C++ project, runs its three automated tests with no graphics device, runs the game twice building a scene from a text recipe (`Scenes/trial.json`: a camera, a sun and nine coloured boxes), saves a 1280 x 720 picture from the fixed camera each time and compares them. No step is done by hand and no editor is opened.
+
+| Measure | Result |
+| --- | --- |
+| Whole loop, after a small change | 56 seconds |
+| Whole loop from a fresh clone | 78 seconds |
+| Compile: first, then after a change | about 25 seconds, then about 8 |
+| Tests with no graphics device | about 20 seconds, nearly all engine start-up |
+| One picture | about 13 seconds |
+| The two pictures | 25% of pixels differ by at most 7 of 255; mean difference 0.12 |
+
+- The pictures match within a small allowance, not exactly: the engine's lighting and smoothing add fresh noise each run. The loop allows a mean difference of 0.5; a different scene scored 78. Whether exact pictures are worth having (by turning that noise off) is a question for the look test.
+- This covers the "one command builds the trial scene twice, with matching screenshots" part of the phase 0 gate, with the scene built by C++ at run time from text. The trial of scenes built by Unreal's Python into saved scene files has not been run; the run-time route may make it unnecessary.
+- **An earlier prototype exists outside both repositories**, at `~/Documents/BejuFarmHD2D` (made 12 November, not in git): about 3,100 lines of C++ that build a terraced diorama at run time with the web game's real sprites, a tilt-shift camera and touch controls, with a packaged Mac app. Nothing here uses or changes it. It is the natural starting point for the phase 1 look test; the owner has not yet said whether to bring it into the repository.
 
 ## Things worth knowing before you touch anything
 
