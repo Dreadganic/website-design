@@ -760,3 +760,21 @@ footer { padding-block: clamp(3rem, 7vw, 5.5rem) 3rem; }
 .motion .product.in:hover, .motion .pcard.in:hover, .motion .jcardlink.in:hover, .motion .crosslink.in:hover, .motion .course.in:hover { transform: translateY(-3px); transition-duration: 0.25s; transition-delay: 0ms; }
 
 .exmode .seg { grid-template-columns: repeat(2, 1fr); }
+
+/* merchandise on the shop page (made to order): front and back photos, a size picker, no grind or subscription */
+.mgrid { display: grid; gap: 1.5rem; grid-template-columns: 1fr; }
+@media (min-width: 900px) { .mgrid { grid-template-columns: 1fr 1fr; gap: 1.75rem; } }
+.mcard { display: flex; flex-direction: column; min-width: 0; background: var(--surface); border-radius: var(--radius); overflow: hidden; }
+.mc-media { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; background: var(--bg2); }
+.mc-media img { display: block; width: 100%; height: auto; aspect-ratio: 1; object-fit: cover; background: #fff; }
+.mc-body { padding: 1rem 1.1rem 1.25rem; }
+.mcard h3 { font-size: 1.3rem; line-height: 1.25; }
+.mc-price { margin-top: 0.35rem; font-size: var(--t-lg); }
+.mc-price small { color: var(--muted); font-size: var(--t-xs); }
+.mc-desc { margin-top: 0.5rem; color: var(--muted); }
+.mc-size { color: var(--muted); font-size: var(--t-xs); }
+.mcard .opts { max-width: 26rem; }
+#shopProducts > .shop-h + .sub { color: var(--muted); max-width: 46rem; }
+.mnotes { margin: 1.25rem 0 0; padding-left: 1.1rem; max-width: 46rem; color: var(--muted); font-size: var(--t-sm); display: grid; gap: 0.35rem; }
+.mnotes a { color: var(--accent); }
+.line img.bagimg[height="54"] { border-radius: var(--radius); }

@@ -68,6 +68,13 @@
     { id: "yirgacheffe", name: "Ethiopia Yirgacheffe", jp: "エチオピア イルガチェフェ", price: 2800, weight: "200 g", roast: "Medium roast", blend: { ethiopia: 100 }, lots: { ethiopia: "worka" }, notes: ["Jasmine", "Bergamot", "Lemon"], blurb: "A washed G1 from Worka village, grown above 2,100 m. Clean, floral and bright.", tone: "var(--c-ethiopia)", bag: { body: "#4E3B78", label: "#EEE8F2", ink: "#1F1A15", mark: "#6A4C9C" } },
     { id: "strawberry", name: "Sumatra Strawberry", jp: "スマトラ ストロベリー", price: 3200, weight: "200 g", roast: "Medium roast", blend: { indonesia: 100 }, lots: { indonesia: "shimaren" }, notes: ["Strawberry", "Red berries", "Sweet finish"], blurb: "A Catimor from Shimaren Farm by Lake Toba, co-fermented with strawberry for a fresh, jammy sweetness.", tone: "var(--c-indonesia)", bag: { body: "#C4475A", label: "#F3E9E4", ink: "#1F1A15", mark: "#17788A" } }
   ];
+  /* Made-to-order merchandise: printed in Japan when ordered and sent from the printer, apart from coffee. No grind and no subscription;
+     the cart line carries the size as "option". netlify/lib/catalog.json holds the same ids, prices and sizes, and charges from them. */
+  var TEE_SIZES = ["S", "M", "L", "XL", "2XL", "3XL"];
+  var MERCH = [
+    { id: "tee-natural", name: "Beju Passport Tee, Natural", jp: "ベージュ パスポートTシャツ(ナチュラル)", price: 5500, sizes: TEE_SIZES, colour: ["Crane-green print on a natural (cream) shirt.", "ナチュラル(生成り)のボディに、グリーンのプリント。"], img: { front: "/images/merch/passport-tee-natural-front.jpg?v=2121e7a7", back: "/images/merch/passport-tee-natural-back.jpg?v=3e0f749f" } },
+    { id: "tee-charcoal", name: "Beju Passport Tee, Charcoal", jp: "ベージュ パスポートTシャツ(チャコール)", price: 5500, sizes: TEE_SIZES, colour: ["Light-pink print on a charcoal (warm dark grey) shirt.", "チャコール(温かみのあるダークグレー)のボディに、ライトピンクのプリント。"], img: { front: "/images/merch/passport-tee-charcoal-front.jpg?v=724ee2fa", back: "/images/merch/passport-tee-charcoal-back.jpg?v=9c4f4beb" } }
+  ];
   function lotFor(p, oid) { var lid = p.lots && p.lots[oid]; return lid ? lotById(lid) : ORIGINS[oid].lots[0]; }
   /* ---------- Language (English / 日本語) ---------- */
   var lang = "en";
@@ -279,6 +286,9 @@
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   var yen = function (n) { return "¥" + n.toLocaleString("en-US"); };
   var prod = function (id) { return PRODUCTS.filter(function (p) { return p.id === id; })[0]; };
+  /* merch(id): a made-to-order item; item(id): anything that can be in the cart, coffee or merchandise */
+  var merch = function (id) { return MERCH.filter(function (p) { return p.id === id; })[0]; };
+  var item = function (id) { return prod(id) || merch(id); };
   function km(a, b) {
     var R = 6371, rad = Math.PI / 180;
     var dLat = (b.lat - a.lat) * rad, dLon = (b.lon - a.lon) * rad;
@@ -434,7 +444,7 @@
   /* ---------- Cart ---------- */
   var cart = [];
   try { cart = JSON.parse(localStorage.getItem("beju-cart") || "[]"); if (!Array.isArray(cart)) cart = []; } catch (e) { cart = []; }
-  cart = cart.filter(function (l) { return l && prod(l.pid) && l.qty > 0; });
+  cart = cart.filter(function (l) { return l && l.qty > 0 && (prod(l.pid) || (merch(l.pid) && merch(l.pid).sizes.indexOf(l.option) > -1 && l.freq === "once")); });
   function saveCart() { try { localStorage.setItem("beju-cart", JSON.stringify(cart)); } catch (e) {} }
   function cartCount() { return cart.reduce(function (n, l) { return n + l.qty; }, 0); }
   function linePrice(l) { return unitPrice(l.pid, l.freq) * l.qty; }
@@ -446,6 +456,14 @@
     saveCart(); renderCartCount();
     if (!quiet) toast(lang === "ja" ? tr(prod(pid).name) + " を " + qty + " 点カートに追加 · " + tr(grind) : "Added " + qty + " × " + prod(pid).name + " · " + grind, true);
   }
+  function addMerch(pid, option, qty) {
+    var m = merch(pid), found = cart.filter(function (l) { return l.pid === pid && l.option === option; })[0];
+    if (found) found.qty += qty; else cart.push({ pid: pid, option: option, freq: "once", qty: qty });
+    saveCart(); renderCartCount();
+    toast(T("Added " + qty + " × " + m.name + " · Size " + option, m.jp + " を " + qty + " 点カートに追加 · サイズ " + option), true);
+  }
+  function hasMerch() { return cart.some(function (l) { return !!merch(l.pid); }); }
+  function hasCoffee() { return cart.some(function (l) { return !merch(l.pid); }); }
   function renderCartCount() { $("#cartCount").textContent = cartCount(); }
   var toastTimer;
   function toast(msg, withCart) {
@@ -468,21 +486,24 @@
     if (lastFocus && lastFocus.focus) lastFocus.focus();
   }
   function lineHtml(l, i, editable) {
-    var p = prod(l.pid);
+    var p = prod(l.pid), m = merch(l.pid);
+    if (m) return '<div class="line"><div><img class="bagimg" src="' + m.img.front + '" width="54" height="54" alt="" loading="lazy" decoding="async"></div><div style="min-width:0"><b>' + esc(T(m.name, m.jp)) + '</b><small>' + T("Size ", "サイズ ") + esc(l.option) + " · " + T("Made to order", "受注生産") + '</small>' +
+      (editable ? '<div class="qty"><button type="button" data-act="dec" data-i="' + i + '" aria-label="Fewer">−</button><output>' + l.qty + '</output><button type="button" data-act="inc" data-i="' + i + '" aria-label="More">+</button></div><button class="rm" type="button" data-act="rm" data-i="' + i + '">Remove</button>' : '<span class="mono" style="font-size:var(--t-xs)">× ' + l.qty + '</span>') +
+      '</div><div class="mono">' + yen(linePrice(l)) + '</div></div>';
     return '<div class="line"><div>' + bagSvg(p, 54) + '</div><div style="min-width:0"><b>' + esc(p.name) + '</b><small>' + esc(p.weight) + ' · ' + esc(tr(l.grind)) + ' · ' + esc(tr(freqLabel(l.freq))) + '</small>' +
       (editable ? '<div class="qty"><button type="button" data-act="dec" data-i="' + i + '" aria-label="Fewer">−</button><output>' + l.qty + '</output><button type="button" data-act="inc" data-i="' + i + '" aria-label="More">+</button></div><button class="rm" type="button" data-act="rm" data-i="' + i + '">Remove</button>' : '<span class="mono" style="font-size:var(--t-xs)">× ' + l.qty + '</span>') +
       (editable && l.freq === "once" ? '<button class="nudge" type="button" data-act="mksub" data-i="' + i + '">' + T("Make it monthly and save " + Math.round(SUB_OFF * 100) + "%", "毎月の定期便にして " + Math.round(SUB_OFF * 100) + "% オフ") + "</button>" : "") +
       '</div><div class="mono">' + (l.freq !== "once" ? '<s class="was">' + yen(p.price * l.qty) + "</s><br>" : "") + yen(linePrice(l)) + '</div></div>';
   }
-  function optLine(l) { return lang === "ja" ? "選択: " + tr(l.grind) + " · " + tr(freqLabel(l.freq)) + " · " + l.qty + "点" : "Choose: " + l.grind + " · " + freqLabel(l.freq) + " · Qty " + l.qty; }
+  function optLine(l) { if (merch(l.pid)) return T("Choose: Size " + l.option + " · Qty " + l.qty, "選択: サイズ " + l.option + " · " + l.qty + "点"); return lang === "ja" ? "選択: " + tr(l.grind) + " · " + tr(freqLabel(l.freq)) + " · " + l.qty + "点" : "Choose: " + l.grind + " · " + freqLabel(l.freq) + " · Qty " + l.qty; }
   function payRow(l) {
-    var p = prod(l.pid), link = payLink(l.pid, l.freq);
-    return '<div class="payrow"><div style="min-width:0"><b>' + esc(p.name) + '</b><small>' + esc(optLine(l)) + '</small></div>' +
+    var p = item(l.pid), link = payLink(l.pid, l.freq);
+    return '<div class="payrow"><div style="min-width:0"><b>' + esc(merch(l.pid) ? T(p.name, p.jp) : p.name) + '</b><small>' + esc(optLine(l)) + '</small></div>' +
       (link ? '<a class="btn small primary" href="' + esc(link) + '" target="_blank" rel="noopener">Pay now</a>' : '<span class="note">Order by message below</span>') + '</div>';
   }
   function orderText() {
     var ja = lang === "ja", out = [ja ? "Beju ご注文" : "Beju order"];
-    cart.forEach(function (l) { var p = prod(l.pid); out.push("- " + tr(p.name) + " " + p.weight + " × " + l.qty + " (" + tr(l.grind) + (ja ? "、" : ", ") + tr(freqLabel(l.freq)) + ") " + yen(linePrice(l))); });
+    cart.forEach(function (l) { var p = prod(l.pid), m = merch(l.pid); if (m) { out.push("- " + T(m.name, m.jp) + " × " + l.qty + " (" + T("Size ", "サイズ ") + l.option + ") " + yen(linePrice(l))); return; } out.push("- " + tr(p.name) + " " + p.weight + " × " + l.qty + " (" + tr(l.grind) + (ja ? "、" : ", ") + tr(freqLabel(l.freq)) + ") " + yen(linePrice(l))); });
     out.push((ja ? "合計: " : "Total: ") + yen(cartTotal()) + (ja ? "(送料別)" : " (plus shipping)"));
     return out.join("\n");
   }
@@ -502,7 +523,9 @@
     } else if (dmode === "checkout") {
       var subs = cart.filter(function (l) { return l.freq !== "once"; }), rhythms = subs.map(function (l) { return l.freq; }).filter(function (x, i, a) { return a.indexOf(x) === i; });
       var onceSum = cart.filter(function (l) { return l.freq === "once"; }).reduce(function (s2, l) { return s2 + linePrice(l); }, 0), subSum = cartTotal() - onceSum;
-      var ship = subs.length ? shipFee(subSum) : shipFee(onceSum);
+      /* delivery is worked out on coffee only: merchandise is sent separately with delivery in its price (the payment function does the same sum) */
+      var coffeeOnce = cart.filter(function (l) { return l.freq === "once" && !merch(l.pid); }).reduce(function (s2, l) { return s2 + linePrice(l); }, 0), anyMerch = hasMerch(), anyCoffee = hasCoffee();
+      var ship = subs.length ? shipFee(subSum) : anyCoffee ? shipFee(coffeeOnce) : 0;
       var pay = STRIPE_ON
         ? '<section class="paybox"><h3>' + T("Pay securely", "お支払い") + '</h3><p class="note">' + T("You'll enter your delivery address and pay on Stripe's secure checkout: card, Apple Pay, Google Pay" + (subs.length ? "." : ", PayPay or konbini."), "Stripeの安全な決済ページで、お届け先の入力とお支払いを行います。カード、Apple Pay、Google Pay" + (subs.length ? "がご利用いただけます。" : "、PayPay、コンビニ払いがご利用いただけます。")) + "</p>" +
           (rhythms.length > 1 ? '<p class="note warn">' + T("Subscriptions every 2 weeks and every month need separate checkouts. Change one in your cart, or check out one at a time.", "2週間ごとと毎月の定期便は、別々にお手続きください。カートでどちらかに揃えるか、片方ずつご購入ください。") + "</p>" : "") +
@@ -515,7 +538,8 @@
         '<section class="paybox"><h3>Prefer to order by message?</h3><p class="note">Copy this summary and send it to us on Instagram.</p>' +
         '<textarea id="ordertext" readonly rows="5" aria-label="Order summary">' + esc(orderText()) + '</textarea>' +
         '<div class="payactions"><button class="btn small" type="button" data-act="copy">Copy order summary</button><a class="btn small primary" href="' + CHECKOUT.instagram + '" target="_blank" rel="noopener">Message on Instagram</a></div></section></div>' +
-        '<div class="dfoot"><div class="sumrow"><span>' + T("Coffee", "商品") + '</span><span class="mono">' + yen(cartTotal()) + '</span></div><div class="sumrow"><span>' + T(subs.length ? "Delivery (each box)" : "Delivery", subs.length ? "送料(1回あたり)" : "送料") + '</span><span class="mono">' + (ship ? yen(ship) : T("Free", "無料")) + '</span></div>' +
+        '<div class="dfoot"><div class="sumrow"><span>' + T(anyMerch ? "Items" : "Coffee", "商品") + '</span><span class="mono">' + yen(cartTotal()) + '</span></div><div class="sumrow"><span>' + T(subs.length ? "Delivery (each box)" : "Delivery", subs.length ? "送料(1回あたり)" : "送料") + '</span><span class="mono">' + (ship ? yen(ship) : anyCoffee ? T("Free", "無料") : T("Included", "商品価格に込み")) + '</span></div>' +
+        (anyMerch ? '<p class="note">' + merchShipNote() + "</p>" : "") +
         '<div class="sumrow total"><span>' + T(subs.length ? "First payment" : "Total", subs.length ? "初回のお支払い" : "合計") + '</span><span class="mono">' + yen(cartTotal() + ship) + '</span></div><p class="mono" style="font-size:var(--t-xs);color:var(--muted)">' + T("Prices include tax.", "価格はすべて税込です。") + '</p><button class="textbtn" type="button" data-act="back">Back to cart</button></div>';
     } else {
       html = head("Order preview") + '<div class="dbody"><div class="success" role="status"><b>No order was placed and nothing was charged.</b><br>This is the confirmation screen your customers will see once checkout is connected.</div>' +
@@ -526,7 +550,9 @@
     d.setAttribute("aria-label", dmode === "quick" ? T("Add to cart", "カートに入れる") : T("Your cart", "カート"));
     if (dmode === "quick") updateQuick();
   }
+  function merchShipNote() { return T("T-shirts are printed to order and sent separately from coffee, with delivery included.", "Tシャツは受注生産のため、コーヒーとは別便でお届けします(送料込み)。"); }
   function shipNote() {
+    if (hasMerch()) return (hasCoffee() ? T("Coffee: delivery anywhere in Japan " + yen(SHIPPING.fee) + ", free from " + yen(SHIPPING.freeFrom) + " of coffee. ", "コーヒー: 全国送料 " + yen(SHIPPING.fee) + "(コーヒー " + yen(SHIPPING.freeFrom) + "以上で無料)。") : "") + merchShipNote();
     return T("Delivery anywhere in Japan " + yen(SHIPPING.fee) + ", free from " + yen(SHIPPING.freeFrom) + ".", "全国送料 " + yen(SHIPPING.fee) + "(" + yen(SHIPPING.freeFrom) + "以上で無料)。");
   }
   /* Sends the cart to the payment function, which answers with Stripe's checkout address. */
@@ -535,11 +561,14 @@
     if (!PATHMODE) { msg.textContent = T("Preview only: on the live site this button opens Stripe's secure checkout.", "プレビューのため決済は行われません。公開サイトではStripeの決済ページが開きます。"); return; }
     btn.disabled = true; btn.textContent = T("Opening secure checkout…", "決済ページを開いています…"); msg.textContent = "";
     fetch("/.netlify/functions/create-checkout", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ lang: lang, lines: cart.map(function (l) { return { pid: l.pid, grind: l.grind, freq: l.freq, qty: l.qty }; }) }) })
-      .then(function (r) { return r.json().then(function (j) { if (!r.ok || !j.url) throw new Error(j.message || "error"); return j; }); })
+      body: JSON.stringify({ lang: lang, lines: cart.map(function (l) { return merch(l.pid) ? { pid: l.pid, option: l.option, freq: "once", qty: l.qty } : { pid: l.pid, grind: l.grind, freq: l.freq, qty: l.qty }; }) }) })
+      .then(function (r) { return r.json().then(function (j) { if (!r.ok || !j.url) throw Object.assign(new Error(j.message || "error"), { code: j.error }); return j; }); })
       .then(function (j) { try { sessionStorage.setItem("beju-checkout", "1"); } catch (e) {} location.href = j.url; })
       .catch(function (e) {
         btn.disabled = false; btn.textContent = T("Continue to secure payment", "決済ページへ進む");
+        /* the payment function refused a line: a T-shirt without a valid size, or a delivery choice it can't use */
+        if (e.code === "bad_option") { msg.textContent = T("Please choose a size. Remove the T-shirt from your cart, then add it again from the shop with a size selected.", "サイズをお選びください。お手数ですが、Tシャツをカートからいったん削除し、ショップでサイズを選んでから、もう一度カートに入れてください。"); return; }
+        if (e.code === "bad_freq") { msg.textContent = T("An item in your cart has a delivery choice we can't use (merchandise can't be part of a subscription). Please remove it, add it again and try once more.", "カート内の商品のお届け方法に誤りがあります(グッズは定期便にできません)。お手数ですが、該当の商品を削除してもう一度カートに入れ、再度お試しください。"); return; }
         msg.textContent = T("Sorry, checkout could not start. " + (e.message && e.message !== "error" && e.message.indexOf("fetch") < 0 ? e.message : "Please try again, or order by message below."), "決済ページを開けませんでした。もう一度お試しいただくか、下のメッセージからご注文ください。");
       });
   }
@@ -556,7 +585,7 @@
     else if (act === "rm") { cart.splice(i, 1); }
     else if (act === "checkout") { dmode = "checkout"; }
     else if (act === "back") { dmode = "cart"; }
-    else if (act === "mksub") { cart[i].freq = "1m"; }
+    else if (act === "mksub") { if (!merch(cart[i].pid)) cart[i].freq = "1m"; }
     else if (act === "pay") { startCheckout(b); return; }
     else if (act === "qadd") {
       var qf = ($('input[name="q-freq"]:checked') || {}).value || "once";
@@ -621,6 +650,26 @@
       '<div class="pc-foot"><p class="pc-price"><span class="mono">' + yen(p.price) + "</span> <small>/ " + esc(p.weight) + "</small></p>" +
       '<button class="pc-add" type="button" data-quick="' + p.id + '" aria-label="' + T("Add " + p.name + " to cart", tr(p.name) + " をカートに入れる") + '"><span aria-hidden="true">+</span></button></div></div></article>';
   }
+  /* Shop: the merchandise section, after the coffees. Each card has front and back photos, a size picker and a quantity; no grind, no subscription. */
+  function merchCard(m) {
+    var name = T(m.name, m.jp), id = m.id;
+    var pic = function (side, en, ja) { return '<img src="' + m.img[side] + '" width="1000" height="1000" alt="' + esc(name + T(", " + en, " " + ja)) + '" loading="lazy" decoding="async">'; };
+    return '<article class="mcard" id="m-' + id + '"><div class="mc-media">' + pic("front", "front", "前面") + pic("back", "back", "背面") + "</div>" +
+      '<div class="mc-body"><h3>' + esc(name) + '</h3><p class="mc-price"><span class="mono">' + yen(m.price) + "</span> <small>" + T("tax and delivery included", "税込・送料込み") + "</small></p>" +
+      '<p class="mc-desc">' + esc(L(m.colour)) + "</p>" +
+      '<div class="opts"><div class="field"><label for="' + id + '-size">' + T("Size", "サイズ") + '</label><select id="' + id + '-size"><option value="">' + T("Choose a size", "サイズを選択") + "</option>" + m.sizes.map(function (z) { return '<option value="' + z + '">' + z + "</option>"; }).join("") + "</select>" +
+      '<small class="mc-size">' + T("Japanese unisex sizing.", "日本のユニセックスサイズです。") + "</small></div>" +
+      '<div class="buyrow"><div class="qty"><button type="button" data-q="-1" aria-label="' + T("Fewer", "減らす") + '">−</button><output id="' + id + '-qty">1</output><button type="button" data-q="1" aria-label="' + T("More", "増やす") + '">+</button></div><button class="btn primary" type="button" data-add-merch="' + id + '">' + T("Add to cart", "カートに入れる") + "</button></div></div></div></article>";
+  }
+  function merchHtml() {
+    return '<h2 class="shop-h" id="merch">' + T("Merchandise", "グッズ") + '</h2><p class="sub">' +
+      T("The Beju Passport Tee. On the left chest, our crane with ベージュ コーヒー ロースターズ set vertically. Down the back, six origin stamps in a column: Mogiana in Brazil, Turrialba in Costa Rica, Huila in Colombia, Gedeo in Ethiopia, Lake Toba in Sumatra, and Osaka, with the line 産地をたどる、一杯。 Printed on a 5.6 oz heavyweight cotton shirt.",
+        "ベージュ パスポートTシャツ。左胸には、鶴のマークと縦書きの「ベージュ コーヒー ロースターズ」。背中には、モジアナ(ブラジル)、トゥリアルバ(コスタリカ)、ウイラ(コロンビア)、ゲデオ(エチオピア)、トバ湖(スマトラ)、そして大阪の6つの産地スタンプを縦に並べ、「産地をたどる、一杯。」の一文を添えました。5.6オンスのヘビーウェイトコットンを使用しています。") + "</p>" +
+      '<div class="mgrid">' + MERCH.map(merchCard).join("") + "</div>" +
+      '<ul class="mnotes"><li>' + T("Printed to order in Japan and sent separately from your coffee. Delivery is included in the price.", "ご注文をいただいてから日本国内でプリントする受注生産品です。コーヒーとは別便でお届けし、送料は商品価格に含まれています。") + "</li>" +
+      "<li>" + T("Made-to-order items can't be returned for a change of mind. If yours arrives faulty or misprinted, we'll replace it.", "受注生産のため、お客様のご都合による返品・交換はお受けできません。不良品やプリントミスがあった場合は、新しいものとお取り替えいたします。") + "</li>" +
+      "<li>" + T('To print and ship your order, your name, delivery address, phone number and email are passed to Printful, which prints and ships it. See our <a href="/privacy/">privacy page</a>.', 'プリントと発送のため、お名前・お届け先住所・電話番号・メールアドレスを、プリントと発送を行うPrintful社に提供します。詳しくは<a href="/privacy/">プライバシーについて(英語)</a>をご覧ください。') + "</li></ul>";
+  }
   var qpid = null;
   function quickHtml() {
     var p = prod(qpid);
@@ -647,7 +696,7 @@
     var blends = PRODUCTS.filter(function (p) { return Object.keys(p.blend).length > 1; }), singles = PRODUCTS.filter(function (p) { return Object.keys(p.blend).length === 1; });
     var soHead = '<h2 class="shop-h">Single origins</h2><p class="sub">Every single origin is roasted to a medium that keeps the fruit and sweetness of the farm.</p>';
     if (hp) { hp.innerHTML = '<div class="pgrid">' + blends.concat(singles).map(cardHtml).join("") + '</div><p class="linkrow" style="margin-top:1.5rem"><a href="#shop">' + T("Shop all coffee", "すべてのコーヒーを見る") + " →</a></p>"; walk(hp); }
-    if (sp) { sp.innerHTML = photoFig("range", "(max-width: 1100px) 100vw, 1100px", T("Our four single-origin coffees on a shelf: Colombia Pink Whiskey, Colombia Rum Barrel, Ethiopia Yirgacheffe and Sumatra Strawberry", "棚に並んだ4種類のシングルオリジン: コロンビア ピンクウイスキー、コロンビア ラムバレル、エチオピア イルガチェフェ、スマトラ ストロベリー"), "banner") + '<div class="pgrid">' + blends.concat(singles).map(cardHtml).join("") + "</div>"; walk(sp); }
+    if (sp) { sp.innerHTML = photoFig("range", "(max-width: 1100px) 100vw, 1100px", T("Our four single-origin coffees on a shelf: Colombia Pink Whiskey, Colombia Rum Barrel, Ethiopia Yirgacheffe and Sumatra Strawberry", "棚に並んだ4種類のシングルオリジン: コロンビア ピンクウイスキー、コロンビア ラムバレル、エチオピア イルガチェフェ、スマトラ ストロベリー"), "banner") + '<div class="pgrid">' + blends.concat(singles).map(cardHtml).join("") + "</div>" + merchHtml(); walk(sp); }
   }
   document.addEventListener("click", function (e) {
     var q = e.target.closest("[data-q]");
@@ -656,6 +705,12 @@
     if (a) {
       var id = a.getAttribute("data-add"), fr = $('input[name="' + id + '-freq"]:checked');
       addToCart(id, $("#" + id + "-grind").value, fr ? fr.value : "once", +$("#" + id + "-qty").textContent); return;
+    }
+    var am = e.target.closest("[data-add-merch]");
+    if (am) {
+      var mid = am.getAttribute("data-add-merch"), sz = $("#" + mid + "-size");
+      if (!sz.value) { toast(T("Please choose a size.", "サイズをお選びください。")); sz.focus(); return; }
+      addMerch(mid, sz.value, +$("#" + mid + "-qty").textContent); return;
     }
     var rt = e.target.closest("[data-route]");
     if (rt) { var rid = rt.getAttribute("data-route"); switchRoute(rid); requestAnimationFrame(function () { jumpToStep(rid); }); return; }
@@ -1512,7 +1567,7 @@
   var SELLER = { name: "Jordan Hipkiss (Beju Coffee Roasters / ベージュ コーヒー ロースターズ)", manager: "Jordan Hipkiss",
     address: "大阪府東大阪市東石切町4丁目9番地33", phone: "080-1880-9040", email: "hello@bejucoffee.com" };
   Object.keys(CFG.seller || {}).forEach(function (k) { if (CFG.seller[k]) SELLER[k] = CFG.seller[k]; });
-  function unitPrice(pid, freq) { var p = prod(pid); return freq && freq !== "once" ? Math.round(p.price * (1 - SUB_OFF)) : p.price; }
+  function unitPrice(pid, freq) { var p = item(pid); if (merch(pid)) return p.price; return freq && freq !== "once" ? Math.round(p.price * (1 - SUB_OFF)) : p.price; }
   var ROAST_LEVELS = [["Light", "浅煎り"], ["Light–medium", "中浅煎り"], ["Medium", "中煎り"], ["Medium–dark", "中深煎り"], ["Dark", "深煎り"]];
 
   /* Per-coffee detail (sample content: confirm recipes and pairings with the roaster) */
@@ -1827,11 +1882,11 @@
       [["Phone", "電話番号"], v("phone", "a phone number", "電話番号")],
       [["Email", "メールアドレス"], v("email", "an email address", "メールアドレス")],
       [["Prices", "販売価格"], T("As shown on each product page. All prices include consumption tax.", "各商品ページに記載の金額(税込)。")],
-      [["Other charges", "商品代金以外の必要料金"], T("Delivery " + yen(SHIPPING.fee) + " per order or subscription box, free from " + yen(SHIPPING.freeFrom) + ". Konbini payments may carry a store fee.", "送料 " + yen(SHIPPING.fee) + "(1回のご注文・定期便1回のお届けごと、" + yen(SHIPPING.freeFrom) + "以上で無料)。コンビニ払いの場合、店舗の手数料がかかる場合があります。")],
+      [["Other charges", "商品代金以外の必要料金"], T("Delivery " + yen(SHIPPING.fee) + " per order or subscription box, free from " + yen(SHIPPING.freeFrom) + ". Delivery of made-to-order merchandise (T-shirts) is included in its price. Konbini payments may carry a store fee.", "送料 " + yen(SHIPPING.fee) + "(1回のご注文・定期便1回のお届けごと、" + yen(SHIPPING.freeFrom) + "以上で無料)。受注生産のグッズ(Tシャツ)の送料は、商品価格に含まれています。コンビニ払いの場合、店舗の手数料がかかる場合があります。")],
       [["Payment methods", "お支払い方法"], T("Credit and debit cards, Apple Pay, Google Pay, PayPay and konbini (one-off orders), processed by Stripe.", "クレジットカード・デビットカード、Apple Pay、Google Pay、PayPay、コンビニ払い(単品のみ)。決済はStripeを利用しています。")],
       [["When payment is taken", "お支払い時期"], T("At checkout. Subscriptions are charged at the start of each delivery cycle. Konbini payments are due by the date on the payment slip.", "ご注文時。定期便は各お届けサイクルの開始時に決済されます。コンビニ払いは払込票に記載の期限までにお支払いください。")],
-      [["Delivery", "商品のお引き渡し時期"], T("We roast twice a week and ship within 2 days of roasting. Konbini orders ship after payment is confirmed.", "週2回焙煎し、焙煎後2日以内に発送します。コンビニ払いの場合は入金確認後の発送となります。")],
-      [["Returns", "返品・交換"], T("As our coffee is a food product, we can't accept returns for a change of mind. If an item arrives damaged or wrong, contact us within 7 days of delivery and we'll replace or refund it.", "食品のため、お客様都合による返品はお受けしておりません。破損・誤配送の場合は、到着後7日以内にご連絡ください。交換または返金いたします。")],
+      [["Delivery", "商品のお引き渡し時期"], T("We roast twice a week and ship within 2 days of roasting. Konbini orders ship after payment is confirmed. Made-to-order merchandise is printed in Japan after you order and sent separately from coffee, directly from the printer.", "週2回焙煎し、焙煎後2日以内に発送します。コンビニ払いの場合は入金確認後の発送となります。受注生産のグッズは、ご注文後に日本国内でプリントし、プリント工場からコーヒーとは別便で発送します。")],
+      [["Returns", "返品・交換"], T("As our coffee is a food product, we can't accept returns for a change of mind. If an item arrives damaged or wrong, contact us within 7 days of delivery and we'll replace or refund it. Made-to-order merchandise can't be returned for a change of mind either; if an item arrives faulty or misprinted, contact us and we'll replace it.", "食品のため、お客様都合による返品はお受けしておりません。破損・誤配送の場合は、到着後7日以内にご連絡ください。交換または返金いたします。受注生産のグッズも、お客様都合による返品・交換はお受けしておりません。不良品やプリントミスがあった場合はご連絡ください。新しいものとお取り替えいたします。")],
       [["Subscriptions", "定期便の解約"], T("Pause, skip or cancel any time before your next roast day, from your subscription page or by contacting us. There is no minimum number of deliveries.", "次回焙煎日の前であれば、定期便管理ページまたはご連絡により、いつでも一時停止・スキップ・解約できます。最低利用回数はありません。")]
     ];
     el.innerHTML = '<div class="view-head"><h1>' + T("Legal notice", "特定商取引法に基づく表記") + "</h1><p>" + T("Seller information under Japan's Act on Specified Commercial Transactions.", "特定商取引法に基づき、販売に関する情報を表示しています。") + "</p></div>" +
@@ -1850,11 +1905,13 @@
     if (!id || !PATHMODE) { $("#orderBox").innerHTML = '<p class="note">' + T("Your receipt has been emailed to you. We roast twice a week and ship within 2 days of roasting.", "領収書をメールでお送りしました。週2回焙煎し、焙煎後2日以内に発送します。") + "</p>"; return; }
     $("#orderBox").innerHTML = '<p class="note">' + T("Checking your order…", "ご注文を確認しています…") + "</p>";
     fetch("/.netlify/functions/get-order?session_id=" + encodeURIComponent(id)).then(function (r) { if (!r.ok) throw 0; return r.json(); }).then(function (o) {
+      var hadMerch = hasMerch();
       if (o.status === "complete") { cart = []; saveCart(); renderCartCount(); }
       var pending = o.status === "complete" && !o.paid;
       $("#orderBox").innerHTML = '<div class="orderbox">' +
         (pending ? '<p class="note warn">' + T("Your order is reserved. Please pay at the konbini using the slip we emailed to " + esc(o.email) + ". We'll roast and ship once payment arrives.", esc(o.email) + " 宛にお送りした払込票で、コンビニにてお支払いください。入金確認後に焙煎・発送します。") + "</p>"
                  : "<p>" + T("A receipt is on its way to " + esc(o.email) + ". We roast twice a week and ship within 2 days of roasting.", esc(o.email) + " に領収書をお送りしました。週2回焙煎し、焙煎後2日以内に発送します。") + "</p>") +
+        (hadMerch ? "<p>" + merchShipNote() + "</p>" : "") +
         '<div class="orderlines">' + o.items.map(function (it) { return '<div class="sumrow"><span>' + esc(it.qty + " × " + it.name) + '</span><span class="mono">' + yen(it.amount) + "</span></div>"; }).join("") +
         '<div class="sumrow total"><span>' + T(o.mode === "subscription" ? "Paid today" : "Total", o.mode === "subscription" ? "本日のお支払い" : "合計") + '</span><span class="mono">' + yen(o.total) + "</span></div></div>" +
         (o.mode === "subscription" ? "<p>" + T("Your subscription is active. You can pause, skip or cancel before any roast day.", "定期便が開始されました。各焙煎日の前であれば、一時停止・スキップ・解約ができます。") + (portal ? ' <a href="' + esc(portal) + '" target="_blank" rel="noopener">' + T("Manage your subscription", "定期便を管理する") + "</a>" : "") + "</p>" : "") + "</div>";
@@ -2025,7 +2082,7 @@
     var graph = [
       { "@type": "WebSite", "@id": SITE + "/#website", url: SITE + "/", name: "Beju Coffee Roasters", alternateName: "ベージュ", inLanguage: ["en", "ja"], publisher: { "@id": SITE + "/#business" } },
       { "@type": "LocalBusiness", "@id": SITE + "/#business", name: "Beju Coffee Roasters", alternateName: ["Beju", "ベージュ", "ベージュ コーヒー ロースターズ"], url: SITE + "/", image: SITE + "/og-image.png", logo: SITE + "/images/logo.png",
-        description: META.home[lang].d, email: SELLER.email, telephone: "+81-" + String(SELLER.phone || "").replace(/^0/, ""), priceRange: "¥2,800–¥3,600",
+        description: META.home[lang].d, email: SELLER.email, telephone: "+81-" + String(SELLER.phone || "").replace(/^0/, ""), priceRange: "¥2,800–¥5,500",
         address: { "@type": "PostalAddress", streetAddress: "東石切町4丁目9番地33", addressLocality: "東大阪市", addressRegion: "大阪府", addressCountry: "JP" },
         areaServed: { "@type": "Country", name: "Japan" }, knowsLanguage: ["en", "ja"], sameAs: ["https://www.instagram.com/bejucoffeeroasters/"] },
       { "@type": "WebPage", "@id": url, url: url, name: m.t, description: m.d, inLanguage: lang, isPartOf: { "@id": SITE + "/#website" }, about: { "@id": SITE + "/#business" } }
@@ -2049,6 +2106,14 @@
     if (v === "journal" && !curSub) graph.push({ "@type": "Blog", name: m.t, url: url, inLanguage: lang, blogPost: JOURNAL.map(function (a) { return { "@type": "BlogPosting", headline: L(a.title), url: SITE + urlFor("journal", lang, a.slug), datePublished: JOURNAL_DATE }; }) });
     if (v === "wholesale") COURSES.forEach(function (c) { graph.push({ "@type": "Course", name: L(c.t), description: (lang === "ja" ? c.lj : c.l).join(" / "), inLanguage: lang, provider: { "@id": SITE + "/#business" } }); });
     if (v === "shop") PRODUCTS.forEach(function (p) { graph.push(productLd(p, url)); });
+    /* merchandise: sold from the shop page itself; delivery is in the price, and no delivery time is stated */
+    if (v === "shop") MERCH.forEach(function (m) {
+      graph.push({ "@type": "Product", "@id": url + "#" + m.id, name: T(m.name, m.jp), description: L(m.colour) + " " + T("Our crane on the left chest and six origin stamps down the back. 5.6 oz heavyweight cotton, printed to order in Japan.", "左胸に鶴のマーク、背中に6つの産地スタンプ。5.6オンスのヘビーウェイトコットン。日本国内でプリントする受注生産品です。"),
+        brand: { "@type": "Brand", name: "Beju" }, image: [SITE + m.img.front.split("?")[0], SITE + m.img.back.split("?")[0]], sku: "BEJU-" + m.id.toUpperCase(), category: "Apparel & Accessories > Clothing > Shirts & Tops", material: T("Cotton", "綿"), url: url + "#m-" + m.id,
+        offers: { "@type": "Offer", price: String(m.price), priceCurrency: "JPY", availability: "https://schema.org/InStock", itemCondition: "https://schema.org/NewCondition", url: url + "#m-" + m.id, seller: { "@id": SITE + "/#business" },
+          shippingDetails: { "@type": "OfferShippingDetails", shippingRate: { "@type": "MonetaryAmount", value: 0, currency: "JPY" }, shippingDestination: { "@type": "DefinedRegion", addressCountry: "JP" } },
+          hasMerchantReturnPolicy: { "@type": "MerchantReturnPolicy", applicableCountry: "JP", returnPolicyCategory: "https://schema.org/MerchantReturnNotPermitted" } } });
+    });
     return { "@context": "https://schema.org", "@graph": graph };
   }
   function metaFor(v, sub, l) {

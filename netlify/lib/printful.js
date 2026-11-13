@@ -2,7 +2,8 @@
    without it nothing here calls Printful or touches storage. A catalogue product is merchandise when it has a "fulfil" block:
      "fulfil": { "by": "printful", "variants": { "M": 14030, "L": 14031 }, "files": [{ "type": "front", "url": "https://…/art.png" }] }
    variants maps the option the customer picks (a size, say) to a Printful catalogue variant id; a variant can also be
-   { "variant_id": 14036, "files": [...] } when it needs artwork of its own (a dark shirt). Optional: "options" (Printful item options) and
+   { "variant_id": 14036, "files": [...] } when it needs artwork of its own (a dark shirt). A file can also be one already in the Printful
+   file library, given by its id: { "type": "back", "id": 1109986784 }; files are passed to Printful as written. Optional: "options" (Printful item options) and
    "label": { "en": "Size", "ja": "サイズ" } for the option's name at checkout.
    Requests and answers follow Printful's API v1 documentation (developers.printful.com/docs: Orders API, Using Private Token, Errors). */
 const crypto = require("crypto");

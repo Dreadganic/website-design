@@ -18,7 +18,7 @@ async function farmSample(event, deps, farm, cart, params, lang) {
     if (!s || cart.subtotalOnce + cart.subtotalPerDelivery < G.SAMPLE_RULES.minOrder) return null;
     const label = (lang === "ja" ? "Beju Farmの無料サンプル100g: " : "Free 100 g Beju Farm sample: ") + s.coffee;
     params.metadata = Object.assign({}, params.metadata, { farm_player: me.id, farm_sample: s.id, farm_coffee: s.coffee, order: (params.metadata.order + " + " + label).slice(0, 490) });
-    params.custom_text = { submit: { message: lang === "ja" ? "Beju Farmで獲得した無料サンプル(" + s.coffee + " 100g)を同梱します。" : "Your free 100 g " + s.coffee + " sample from Beju Farm comes with this order." } };
+    params.custom_text = Object.assign({}, params.custom_text, { submit: { message: lang === "ja" ? "Beju Farmで獲得した無料サンプル(" + s.coffee + " 100g)を同梱します。" : "Your free 100 g " + s.coffee + " sample from Beju Farm comes with this order." } });
     return { reserve: async (session) => { s.status = "reserved"; s.session = session; s.reservedAt = now; await G.savePlayer(store, me); } };
   } catch (e) {
     console.error("farm sample", e.message);

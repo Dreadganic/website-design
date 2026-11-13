@@ -8,9 +8,11 @@ const RHYTHM = { "2w": { interval: "week", interval_count: 2, en: "every 2 weeks
 
 function unitPrice(p, freq) { return freq === "once" ? p.price : Math.round(p.price * (1 - CATALOG.subscriptionDiscount)); }
 
-/* Validates the cart; returns { error } or { lines, interval, subtotalOnce, subtotalPerDelivery }.
+/* Validates the cart; returns { error } or { lines, rhythm, subtotalOnce, subtotalPerDelivery, coffeeOnce, merch }.
    A product with a "fulfil" block is made-to-order merchandise (see printful.js): it has no grind and can't be a subscription, and its line
-   carries "option" (a size, say), which must be one of the product's variants; a product with a single variant needs none. */
+   carries "option" (a size, say), which must be one of the product's variants; a product with a single variant needs none.
+   Merchandise ships on its own from the printer with delivery in its price, so delivery is worked out on coffee alone: coffeeOnce is the
+   one-off coffee in the cart (subtotalOnce still counts everything bought once), and merch says whether any merchandise is in it. */
 function checkCart(raw, catalog) {
   const products = (catalog || CATALOG).products;
   if (!Array.isArray(raw) || !raw.length) return { error: "empty", message: "Your cart is empty." };
@@ -36,7 +38,8 @@ function checkCart(raw, catalog) {
   if (rhythms.length > 1) return { error: "mixed_rhythms", message: "Subscriptions every 2 weeks and every month need separate checkouts. Please make them match, or check out one at a time." };
   const subtotalOnce = lines.filter(l => l.freq === "once").reduce((s, l) => s + l.unit * l.qty, 0);
   const subtotalPerDelivery = lines.filter(l => l.freq !== "once").reduce((s, l) => s + l.unit * l.qty, 0);
-  return { lines, rhythm: rhythms[0] || null, subtotalOnce, subtotalPerDelivery };
+  const coffeeOnce = lines.filter(l => l.freq === "once" && !l.p.fulfil).reduce((s, l) => s + l.unit * l.qty, 0);
+  return { lines, rhythm: rhythms[0] || null, subtotalOnce, subtotalPerDelivery, coffeeOnce, merch: lines.some(l => !!l.p.fulfil) };
 }
 
 function shippingFor(amount) {
@@ -74,6 +77,10 @@ function sessionParams(cart, opts) {
     cancel_url: base + "/shop/?checkout=cancelled",
     metadata: { order: summary, lang: opts.lang || "en" }
   };
+  /* merchandise is made to order and sent separately: say so by the address form, since Stripe's delivery line can't speak for it */
+  if (cart.merch) params.custom_text = { shipping_address: { message: ja
+    ? "受注生産の商品は、ご注文後に日本国内でプリントし、コーヒーとは別便でお届けします。送料は商品価格に含まれています。"
+    : "Made-to-order items are printed in Japan after you order and sent separately from coffee. Their delivery is included in the price." } };
   if (sub) {
     /* subscription: delivery is charged with every box (free above the threshold per delivery) */
     params.mode = "subscription";
@@ -84,9 +91,13 @@ function sessionParams(cart, opts) {
   } else {
     params.mode = "payment";
     params.customer_creation = "always";
-    const fee = shippingFor(cart.subtotalOnce);
-    params.shipping_options = [{ shipping_rate_data: { type: "fixed_amount", display_name: fee ? (ja ? "宅配便(全国)" : "Delivery in Japan") : (ja ? "送料無料" : "Free delivery"),
-      fixed_amount: { amount: fee, currency: "jpy" }, delivery_estimate: { minimum: { unit: "business_day", value: 2 }, maximum: { unit: "business_day", value: 5 } } } }];
+    /* delivery is charged on the coffee only; an order of merchandise alone pays none (it is in the price) */
+    const coffee = cart.lines.some(l => !l.p.fulfil), fee = coffee ? shippingFor(cart.coffeeOnce) : 0;
+    const rate = { type: "fixed_amount", display_name: !coffee ? (ja ? "送料込み" : "Delivery included") : fee ? (ja ? "宅配便(全国)" : "Delivery in Japan") : (ja ? "送料無料" : "Free delivery"),
+      fixed_amount: { amount: fee, currency: "jpy" } };
+    /* 2 to 5 business days is the coffee's figure: with merchandise in the order no estimate is shown, rather than promise it for a printed item */
+    if (!cart.merch) rate.delivery_estimate = { minimum: { unit: "business_day", value: 2 }, maximum: { unit: "business_day", value: 5 } };
+    params.shipping_options = [{ shipping_rate_data: rate }];
     params.payment_intent_data = { metadata: { order: summary } };
   }
   return params;

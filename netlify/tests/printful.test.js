@@ -10,7 +10,7 @@ const checkout = require("../lib/handlers/create-checkout");
 const webhook = require("../lib/handlers/stripe-webhook");
 const shipped = require("../lib/handlers/printful-webhook");
 
-/* a catalogue with merchandise in it; the live catalog.json has none yet */
+/* a catalogue with stand-in merchandise (a variant with artwork of its own, a single-variant product) beside the live products */
 const catalog = JSON.parse(JSON.stringify(CATALOG));
 catalog.products.tee = { name: "Beju Tee", jp: "ベージュ Tシャツ", price: 4200, fulfil: { by: "printful", variants: { M: 14036, L: { variant_id: 14037, files: [{ type: "front", url: "https://example.test/art-large.png" }] } }, files: [{ type: "front", url: "https://example.test/art.png" }] } };
 catalog.products.mug = { name: "Beju Mug", jp: "ベージュ マグ", price: 2400, fulfil: { by: "printful", variants: { "11 oz": 1320 }, files: [{ url: "https://example.test/mug.png" }] } };
@@ -64,8 +64,97 @@ test.beforeEach(() => {
 });
 test.after(() => { for (const k of ["PRINTFUL_API_KEY", "PRINTFUL_WEBHOOK_SECRET", "PRINTFUL_CONFIRM", "PRINTFUL_STORE_ID", "ORDER_NOTIFY_URL"]) delete process.env[k]; });
 
-test("the live catalogue has no merchandise yet", () => {
-  assert.deepEqual(Object.keys(CATALOG.products).filter((k) => CATALOG.products[k].fulfil), []);
+test("the live catalogue's merchandise is the Passport Tee in two colourways: one price, six sizes, print files by Printful id", () => {
+  const merch = Object.keys(CATALOG.products).filter((k) => CATALOG.products[k].fulfil);
+  assert.deepEqual(merch, ["tee-natural", "tee-charcoal"]);
+  const sizes = ["S", "M", "L", "XL", "2XL", "3XL"];
+  assert.deepEqual(CATALOG.products["tee-natural"].fulfil.variants, { S: 14089, M: 14090, L: 14091, XL: 14092, "2XL": 14093, "3XL": 14094 });
+  assert.deepEqual(CATALOG.products["tee-charcoal"].fulfil.variants, { S: 14047, M: 14048, L: 14049, XL: 14050, "2XL": 14051, "3XL": 14052 });
+  assert.deepEqual(CATALOG.products["tee-natural"].fulfil.files, [{ type: "front", id: 1109986779 }, { type: "back", id: 1109986784 }]);
+  assert.deepEqual(CATALOG.products["tee-charcoal"].fulfil.files, [{ type: "front", id: 1109994793 }, { type: "back", id: 1109994797 }]);
+  for (const k of merch) {
+    const p = CATALOG.products[k];
+    assert.equal(p.price, 5500); assert.equal(p.fulfil.by, "printful"); assert.ok(p.name && p.jp); assert.ok(!("weight" in p));
+    assert.deepEqual(Object.keys(p.fulfil.variants), sizes, "the sizes, in the order the shop shows them");
+    for (const z of sizes) assert.equal(checkCart([{ pid: k, option: z, freq: "once", qty: 1 }]).error, undefined, k + " " + z);
+    assert.equal(checkCart([{ pid: k, freq: "once", qty: 1 }]).error, "bad_option", "a size must be chosen");
+    assert.equal(checkCart([{ pid: k, option: "XS", freq: "once", qty: 1 }]).error, "bad_option");
+    assert.equal(checkCart([{ pid: k, option: "M", freq: "1m", qty: 1 }]).error, "bad_freq");
+  }
+  assert.deepEqual(Object.keys(CATALOG.products).filter((k) => !CATALOG.products[k].fulfil), ["casablanca", "pinkwhiskey", "rumbarrel", "yirgacheffe", "strawberry"], "the coffees are as they were");
+});
+
+test("a print file given by its Printful file-library id reaches the order body as written", async () => {
+  lineItems = [li("tee-natural", 1, { option: "XL" }), li("tee-charcoal", 2, { option: "3XL" })];
+  assert.equal(await paid(), 200);
+  const sent = toPrintful(); assert.equal(sent.length, 1);
+  assert.deepEqual(JSON.parse(sent[0].body).items, [
+    { variant_id: 14092, quantity: 1, name: "Beju Passport Tee, Natural (XL)", files: [{ type: "front", id: 1109986779 }, { type: "back", id: 1109986784 }] },
+    { variant_id: 14052, quantity: 2, name: "Beju Passport Tee, Charcoal (3XL)", files: [{ type: "front", id: 1109994793 }, { type: "back", id: 1109994797 }] }]);
+  assert.ok(!/"url"/.test(sent[0].body), "no file address is made up for a library file");
+});
+
+test("delivery is worked out on coffee only: merchandise adds no fee and doesn't count toward free delivery", () => {
+  const tee = { pid: "tee-natural", option: "M", freq: "once", qty: 1 }, coffee = (pid, qty, freq) => ({ pid, grind: "Whole bean", freq: freq || "once", qty: qty || 1 });
+  const rate = (lines, lang) => sessionParams(checkCart(lines), { lang: lang || "en", site: "https://x.test" }).shipping_options[0].shipping_rate_data;
+  /* a T-shirt alone: no delivery charge, and no coffee delivery estimate */
+  let r = rate([tee]);
+  assert.equal(r.fixed_amount.amount, 0); assert.equal(r.display_name, "Delivery included"); assert.ok(!("delivery_estimate" in r));
+  assert.equal(rate([tee], "ja").display_name, "送料込み");
+  assert.equal(rate([Object.assign({}, tee, { qty: 3 }), { pid: "tee-charcoal", option: "S", freq: "once", qty: 2 }]).fixed_amount.amount, 0);
+  /* with ¥3,000 of coffee the coffee still pays ¥600, though the cart is over ¥5,000 */
+  r = rate([tee, coffee("casablanca")]);
+  assert.equal(r.fixed_amount.amount, 600); assert.equal(r.display_name, "Delivery in Japan"); assert.ok(!("delivery_estimate" in r), "2 to 5 days is not promised for a printed item");
+  assert.equal(rate([Object.assign({}, tee, { qty: 4 }), coffee("yirgacheffe")]).fixed_amount.amount, 600);
+  /* with ¥5,000 or more of coffee it is free */
+  r = rate([tee, coffee("casablanca"), coffee("yirgacheffe")]);
+  assert.equal(r.fixed_amount.amount, 0); assert.equal(r.display_name, "Free delivery");
+  /* coffee alone is as before, estimate and all */
+  r = rate([coffee("casablanca")]);
+  assert.equal(r.fixed_amount.amount, 600); assert.deepEqual(r.delivery_estimate, { minimum: { unit: "business_day", value: 2 }, maximum: { unit: "business_day", value: 5 } });
+  assert.equal(rate([coffee("casablanca", 2)]).fixed_amount.amount, 0);
+  /* the sums the cart reports */
+  const c = checkCart([tee, coffee("casablanca")]);
+  assert.equal(c.coffeeOnce, 3000); assert.equal(c.subtotalOnce, 8500); assert.equal(c.merch, true); assert.equal(checkCart([coffee("casablanca")]).merch, false);
+  /* the address form says the item comes separately, in the customer's language; a coffee order says nothing new */
+  const p = sessionParams(c, { lang: "en", site: "https://x.test" });
+  assert.match(p.custom_text.shipping_address.message, /sent separately from coffee.*delivery is included/i);
+  assert.match(sessionParams(c, { lang: "ja", site: "https://x.test" }).custom_text.shipping_address.message, /別便.*送料は商品価格に含まれています/);
+  assert.ok(!("custom_text" in sessionParams(checkCart([coffee("casablanca")]), { lang: "en", site: "https://x.test" })));
+  assert.deepEqual(p.line_items[0], { price_data: { currency: "jpy", unit_amount: 5500, product_data: { name: "Beju Passport Tee, Natural", description: "Size: M", metadata: { pid: "tee-natural", option: "M" } } }, quantity: 1 });
+  /* with a subscription: delivery follows the subscription box as before, and the T-shirt is a one-off line with no delivery of its own */
+  const s = sessionParams(checkCart([tee, coffee("casablanca", 1, "1m")]), { lang: "en", site: "https://x.test" });
+  assert.equal(s.mode, "subscription"); assert.equal(s.line_items.length, 3); assert.ok(!s.line_items[0].price_data.recurring);
+  assert.equal(s.line_items[2].price_data.unit_amount, 600); assert.equal(s.line_items[2].price_data.product_data.name, "Delivery (each box)"); assert.ok(s.custom_text.shipping_address.message);
+});
+
+test("checkout with a T-shirt: Stripe is sent no delivery charge and the made-to-order note; a line without a size is refused", async () => {
+  const r = await checkout.handler({ httpMethod: "POST", headers: {}, body: JSON.stringify({ lang: "en", lines: [{ pid: "tee-charcoal", option: "L", freq: "once", qty: 1 }] }) });
+  assert.equal(r.statusCode, 200);
+  assert.ok(sentCheckout.includes("shipping_options[0][shipping_rate_data][fixed_amount][amount]=0"), sentCheckout);
+  assert.ok(sentCheckout.includes("[display_name]=Delivery included") && !sentCheckout.includes("delivery_estimate"));
+  assert.ok(sentCheckout.includes("custom_text[shipping_address][message]=Made-to-order items are printed in Japan"));
+  assert.ok(sentCheckout.includes("[unit_amount]=5500") && sentCheckout.includes("[metadata][option]=L") && sentCheckout.includes("[metadata][pid]=tee-charcoal"));
+  const bad = await checkout.handler({ httpMethod: "POST", headers: {}, body: JSON.stringify({ lang: "en", lines: [{ pid: "tee-charcoal", freq: "once", qty: 1 }] }) });
+  assert.equal(bad.statusCode, 400); assert.equal(JSON.parse(bad.body).error, "bad_option", "the cart shows this to the customer");
+});
+
+test("the shop script and stylesheet: named by their hash, and the script sells the catalogue's merchandise at the catalogue's price and sizes", () => {
+  const fs = require("fs"), path = require("path"), dir = path.join(__dirname, "..", "..", "beju-site", "assets");
+  for (const [stem, ext] of [["app", "js"], ["site", "css"]]) {
+    const files = fs.readdirSync(dir).filter((f) => new RegExp("^" + stem + "\\.[0-9a-f]{10}\\." + ext + "$").test(f));
+    assert.equal(files.length, 1, "one " + stem + " file");
+    assert.equal(files[0], stem + "." + crypto.createHash("sha256").update(fs.readFileSync(path.join(dir, files[0]))).digest("hex").slice(0, 10) + "." + ext, "assets are cached for good: the name must be the content's hash");
+  }
+  const src = fs.readFileSync(path.join(dir, fs.readdirSync(dir).filter((f) => /^app\./.test(f))[0]), "utf8");
+  assert.ok(src.includes('var TEE_SIZES = ["S", "M", "L", "XL", "2XL", "3XL"];'));
+  for (const k of Object.keys(CATALOG.products).filter((x) => CATALOG.products[x].fulfil)) {
+    const p = CATALOG.products[k], line = src.split("\n").filter((l) => l.includes('{ id: "' + k + '"'))[0];
+    assert.ok(line, k + " is in the shop script");
+    assert.ok(line.includes('name: "' + p.name + '"') && line.includes('jp: "' + p.jp + '"') && line.includes("price: " + p.price + ",") && line.includes("sizes: TEE_SIZES"), k + " matches the catalogue");
+    for (const side of ["front", "back"]) { const m = new RegExp('"(/images/merch/[a-z-]+-' + side + '\\.jpg)\\?v=').exec(line); assert.ok(m && fs.existsSync(path.join(dir, "..", m[1])), k + " " + side + " photo exists"); }
+  }
+  assert.equal((src.match(/body: JSON\.stringify\(\{ lang: lang, lines: cart\.map\(/g) || []).length, 1, "launch/apply.py patches this call: it must appear exactly once");
 });
 
 test("dormant: with no PRINTFUL_API_KEY a paid merchandise order calls nothing new and the notice is unchanged", async () => {
