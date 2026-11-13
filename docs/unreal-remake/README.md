@@ -45,15 +45,34 @@ Unreal Engine 5.8 (5.9 is an unstable preview). Wide, lit 3D diorama scenes with
 
 ## Phase 0 progress
 
-**13 November: a session can already be replayed, without changing the game.** `game-assets/rules/replay_probe.js` plays the built page headless inside a sealed environment (seeded `Math.random`, a `Date`, `performance.now` and timers that only move when told, no network, the frame loop driven by hand). It records a session of random taps and commands, plays it again in a fresh page, and compares the whole save after every step. Three sessions (300, 3,000 and 3,000 steps; seeds 1 to 3) matched at every step with no page errors.
+**13 November: a session can already be replayed, without changing the game.** The tools are in `game-assets/rules/`:
 
-What this does and does not show:
+- `seal.js` is the sealed environment, set up in the page before any game code: seeded `Math.random`; a `Date`, `performance.now` and timers that only move when told; no frames, no network, no sound.
+- `replay_probe.js` records a session of random taps and commands, plays the same commands again in a fresh page, and compares the whole save after every step.
+- `replay_bot.js` plays the pacing bot (`game-assets/sim/policy.js`) in two fresh pages side by side and compares the save every 10 game minutes.
+
+| Run | Length | Reached | Result |
+| --- | --- | --- | --- |
+| Random taps, seeds 1 to 3 | 300, 3,000 and 3,000 steps | First farm, under 900 coins | Same save at every step |
+| Bot, active play, seed 1 | 49.8 game hours, 215,534 taps and commands | Prestige 7 | Same save at all 299 checks |
+| Bot, casual play with 7.8 hours away after each session, seed 2 | 1.5 hours played, about 70 away | Prestige 3 | Same save at all 9 checks |
+
+What this shows and does not show:
 
 - The 88 `Math.random` and 207 `Date.now` calls do not block replay: replacing the two globals from outside covers them. Item 1 below overstates the problem.
-- Coverage is the early game only. The random player used at most 36 command verbs of about 219 and never left the first farm (under 900 coins). The roastery, events, islands, time away and the online paths are untested. Next: replay the pacing bot's sessions (`game-assets/sim/policy.js`) through the same seal to reach prestige.
+- **Sound shares the game's chance.** The synths draw their noise from `Math.random`, and the browser starts an audio context in real time, so with sound on two runs drift apart within seconds. The seal removes the audio context. In the remake, sound and effects need their own random stream, apart from the rules'.
+- Coverage: the bot used 36 command verbs of about 219. It plays farms, the mill, the roastery, staff, research and prestige. Random events, the Counter, Kona, Blue Mountain, the harbour and islands, and everything online are not covered by a replay yet.
+- The bot check compares the same player twice; it does not replay a recorded command list. The bot also calls a few game functions directly (`checkIn`, `closeModal`, `away`), so a recorded-commands replay to prestige still needs those turned into commands.
 - The rules still need a browser page to run. Replay is solved for checking parity; running the rules inside Unreal (or translating them) still needs them separated from the page, which is the rules-route trial.
 
-Run it with `python3 game-assets/play/build.py /tmp/beju-farm.html`, then `PW_MODULE=<path to playwright> node game-assets/rules/replay_probe.js /tmp/beju-farm.html 3000 2`. On the owner's Mac, Playwright is at `/Users/jordanhipkiss/beju/pw-env/node_modules/playwright`.
+Run them after `python3 game-assets/play/build.py /tmp/beju-farm.html`:
+
+```
+PW_MODULE=<path to playwright> node game-assets/rules/replay_probe.js /tmp/beju-farm.html 3000 2
+PW_MODULE=<path to playwright> MAXH=60 node game-assets/rules/replay_bot.js /tmp/beju-farm.html active 7 1
+```
+
+On the owner's Mac, Playwright is at `/Users/jordanhipkiss/beju/pw-env/node_modules/playwright`. The active run to prestige 7 takes a few minutes.
 
 ## Things worth knowing before you touch anything
 
