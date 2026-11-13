@@ -17,18 +17,16 @@ Read this first. It says where the Beju Farm Unreal remake stands on 13 November
 
 - How you play: tap or walk. A tap acts at once and the farmer hurries over; a stick or keys steer directly.
 - Platforms: PC first, landscape phones after, from one project.
-- Build machine: the owner's own machine, which already has Unreal installed. Its details are not yet known.
+- Build machine (confirmed 13 November): the owner's MacBook Pro, Apple M2 Max (38-core GPU, Metal), 32 GB memory, about 390 GB free, macOS 27. Unreal 5.8 is at `/Users/Shared/Epic Games/UE_5.8`; Blender and Xcode are installed. A local agent session runs on this machine, in this repository's clone.
+- Spending (13 November): no separate money ceiling. Development stays inside the owner's Claude plan budget, so no paid extras (rented machines, bought kits, freelancers) without asking. The owner's hours are not capped.
+- Repository (13 November): the Unreal project lives in the private repository `Dreadganic/beju-farm-unreal`, created empty.
 - The tab bar and HUD decisions for the web game are separate and already built (see the HUD design document linked from earlier commits).
 
 ## What is still open (the plan's "Decisions for you")
 
-Nothing in phase 0 should start until the first three are answered:
+The three that blocked phase 0 (ceiling, machine, repository) were answered on 13 November; see above. Phase 0 has started on the branch `unreal/phase0-rules-replay`.
 
-1. A spending ceiling for phases 0 to 2, in money and in the owner's hours.
-2. The Unreal machine's details: Windows or Mac, graphics card, free disk, engine version.
-3. A new private GitHub repository for the Unreal project (this repository stays the web game's).
-
-Also open: a browser look test beside the Unreal one (recommended), the first release stopping at the roastery (recommended), the web game staying live (recommended), a fresh farm with honours carried over (recommended, needed before phase 3), free with no ads, languages at launch, Mogiana as the look-test scene, and the project's own name for the look ("HD-2D" is Square Enix's trademark).
+Still open: a browser look test beside the Unreal one (recommended), the first release stopping at the roastery (recommended), the web game staying live (recommended), a fresh farm with honours carried over (recommended, needed before phase 3), free with no ads, languages at launch, Mogiana as the look-test scene, and the project's own name for the look ("HD-2D" is Square Enix's trademark).
 
 The owner was also asked to write one sentence on what the remake must achieve that the web game cannot. The phase 2 go or no-go is judged against it.
 
@@ -44,6 +42,18 @@ Unreal Engine 5.8 (5.9 is an unstable preview). Wide, lit 3D diorama scenes with
 4. The build loop on the owner's machine: one command builds, tests with `-nullrhi`, and takes fixed-camera screenshots (these need the real graphics card; software rendering does not work).
 5. Store rules check: the server grants cranes for paid coffee subscriptions (`netlify/lib/handlers/game-grants.js`), which stores may restrict.
 6. Count the interface's screens.
+
+## Phase 0 progress
+
+**13 November: a session can already be replayed, without changing the game.** `game-assets/rules/replay_probe.js` plays the built page headless inside a sealed environment (seeded `Math.random`, a `Date`, `performance.now` and timers that only move when told, no network, the frame loop driven by hand). It records a session of random taps and commands, plays it again in a fresh page, and compares the whole save after every step. Three sessions (300, 3,000 and 3,000 steps; seeds 1 to 3) matched at every step with no page errors.
+
+What this does and does not show:
+
+- The 88 `Math.random` and 207 `Date.now` calls do not block replay: replacing the two globals from outside covers them. Item 1 below overstates the problem.
+- Coverage is the early game only. The random player used at most 36 command verbs of about 219 and never left the first farm (under 900 coins). The roastery, events, islands, time away and the online paths are untested. Next: replay the pacing bot's sessions (`game-assets/sim/policy.js`) through the same seal to reach prestige.
+- The rules still need a browser page to run. Replay is solved for checking parity; running the rules inside Unreal (or translating them) still needs them separated from the page, which is the rules-route trial.
+
+Run it with `python3 game-assets/play/build.py /tmp/beju-farm.html`, then `PW_MODULE=<path to playwright> node game-assets/rules/replay_probe.js /tmp/beju-farm.html 3000 2`. On the owner's Mac, Playwright is at `/Users/jordanhipkiss/beju/pw-env/node_modules/playwright`.
 
 ## Things worth knowing before you touch anything
 
