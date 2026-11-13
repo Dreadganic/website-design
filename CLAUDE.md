@@ -16,5 +16,7 @@
 - Facts and lead records live in a private pipeline doc, and jobs in a private tracker; each agent file gives the pipeline link. This repository is public, so customer names, prices, margins, contacts and lead lists never go into it.
 - Agents draft and research only. Sending email, ordering, quoting and publishing the site happen from the main session, after the owner agrees.
 
-## The Unreal remake (planned, not started)
-- The plan, its research and a hand-off note are in `docs/unreal-remake/`; read `docs/unreal-remake/README.md` first.
+## The Unreal remake
+- The plan, its research and a hand-off note are in `docs/unreal-remake/`; read `docs/unreal-remake/README.md` first. The game itself is in the private repository `beju-farm-unreal`.
+- Seven game agents are defined in `.claude/agents/` (`game-designer`, `game-engineer`, `game-world-builder`, `game-pixel-artist`, `game-interface-designer`, `game-story-researcher`, `game-tester`). The main session leads: it holds the one build machine, approves any paid art call, checks reports and commits.
+- Game art is generated through fal.ai with the `game-assets-enhancement` skill; the key and the script live in the private repository, never here.
