@@ -91,6 +91,8 @@ On the owner's Mac, Playwright is at `/Users/jordanhipkiss/beju/pw-env/node_modu
 
 **13 November: the owner supplied the look target.** Twelve Octopath Traveler screenshots, with notes on what to take from each, are in the private Unreal repository at `Reference/look/`. They are Square Enix's work, kept for reference only, and must not be copied into this public repository. The phase 1 look test is judged against them.
 
+**13 November: the look test has started, and asset files built by script are proven.** Three look passes on the farm scene are in the Unreal repository: a tilt-shift lens, a low sun with long sprite-shaped shadows, trees laying broken shade, one pixel size for ground and sprites, out-of-focus foreground foliage, and sprites that darken in shade. The last needed a material of our own, which `Scripts/make_assets.py` builds inside a windowless editor in 11 seconds; the loop rebuilds it whenever the script changes. That answers part of the phase 0 trial of Unreal's Python: materials work. Saved scene files have not been tried, and scenes are still built in C++ when the game starts. Still missing against the look target: 3D buildings, a backdrop, glow sources, ground detail and better trees. `Reference/look/README.md` in the Unreal repository has the full comparison and five engine faults found on the way.
+
 ## Things worth knowing before you touch anything
 
 - Picker income depends on map distances: pickers walk at 24 px/s between bush coordinates stored in `game-assets/sprites.json` (`tickFarm`, about line 2609). In the remake, walking time must become a data value.
