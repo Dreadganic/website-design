@@ -32,8 +32,60 @@
     "strawberry": {
       "name": "Sumatra Strawberry",
       "jp": "スマトラ ストロベリー",
-      "price": 3800,
+      "price": 3200,
       "weight": "200 g"
+    },
+    "tee-natural": {
+      "name": "Beju Passport Tee, Natural",
+      "jp": "ベージュ パスポートTシャツ(ナチュラル)",
+      "price": 5500,
+      "fulfil": {
+        "by": "printful",
+        "variants": {
+          "S": 14089,
+          "M": 14090,
+          "L": 14091,
+          "XL": 14092,
+          "2XL": 14093,
+          "3XL": 14094
+        },
+        "files": [
+          {
+            "type": "front",
+            "id": 1109986779
+          },
+          {
+            "type": "back",
+            "id": 1109986784
+          }
+        ]
+      }
+    },
+    "tee-charcoal": {
+      "name": "Beju Passport Tee, Charcoal",
+      "jp": "ベージュ パスポートTシャツ(チャコール)",
+      "price": 5500,
+      "fulfil": {
+        "by": "printful",
+        "variants": {
+          "S": 14047,
+          "M": 14048,
+          "L": 14049,
+          "XL": 14050,
+          "2XL": 14051,
+          "3XL": 14052
+        },
+        "files": [
+          {
+            "type": "front",
+            "id": 1109994793
+          },
+          {
+            "type": "back",
+            "id": 1109994797
+          }
+        ]
+      }
     }
   }
 }

@@ -3276,10 +3276,10 @@ const gateNote = (key) => unlockReq(key).why;
 /* Real Beju coffees: buying one gives cranes, its origin's passport stamp (one per order line; a blend stamps its next origin by share) and any process it unlocks */
 const COFFEES = {   /* real: the bag itself, from its page on bejucoffee.com/shop/<key>/ */
   casablanca: { name: 'Casablanca Blend', price: 3000, stamps: ['mogiana', 'huila', 'turrialba'], real: 'Beju\'s house blend, with a natural from Fazenda Terra Preta in Mogiana, a washed Excelso from Colombia and a washed lot from Aquiares Estate in Turrialba, Costa Rica.' },
-  pinkwhiskey: { name: 'Colombia Pink Whiskey', price: 3600, stamps: ['huila'], method: 'whiskey', real: 'Pink Bourbon and Caturra from Finca Monteblanco above Pitalito, Huila, dried whole and finished in whiskey barrels.' },
+  pinkwhiskey: { name: 'Colombia Pink Whiskey', price: 3600, stamps: ['huila'], method: 'whiskey', real: 'Pink Bourbon and Caturra from La Loma farm above Pitalito, Huila, dried whole and finished in whiskey barrels.' },
   rumbarrel: { name: 'Colombia Rum Barrel', price: 3600, stamps: ['huila'], method: 'rum', real: 'A washed Castillo from La Loma, a small family farm in Caldas, aged in rum barrels.' },
   yirgacheffe: { name: 'Ethiopia Yirgacheffe', price: 2800, stamps: ['gedeo'], real: 'A G1 washed coffee grown by smallholders around Worka village in Ethiopia\'s Gedeo zone, above 2,100 m.' },
-  strawberry: { name: 'Sumatra Strawberry', price: 3800, stamps: ['toba'], method: 'strawberry', real: 'A Catimor from Shimaren Farm by Lake Toba, semi-washed with a strawberry infused fermentation.' }
+  strawberry: { name: 'Sumatra Strawberry', price: 3200, stamps: ['toba'], method: 'strawberry', real: 'A Catimor from Shimaren Farm by Lake Toba, co-fermented with strawberry.' }
 };
 const FARM_BAG = { huila: 'pinkwhiskey', gedeo: 'yirgacheffe', toba: 'strawberry', turrialba: 'casablanca' };   /* the real bag grown on each farm that opens */
 /* farms open in order with points earned by playing; Osaka is cranes only */

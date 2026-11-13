@@ -1,5 +1,6 @@
 /* Stripe calls this when an order is paid. It checks the call really came from Stripe, then (optionally)
-   emails the order with each coffee's grind to ORDER_NOTIFY_URL (for example a Formspree form). */
+   emails the order with each coffee's grind to ORDER_NOTIFY_URL (for example a Formspree form).
+   Made-to-order merchandise in the order goes to Printful (../printful.js) when PRINTFUL_API_KEY is set; the same email says how that went. */
 const { stripe, verifySignature } = require("../stripe");
 
 exports.handler = async (event) => {
@@ -26,6 +27,9 @@ exports.handler = async (event) => {
         farm_sample: (s.metadata && s.metadata.farm_coffee) ? "Include a free 100 g " + s.metadata.farm_coffee + " sample (Beju Farm)" : ""
       };
       if (s.metadata && s.metadata.farm_sample) await farmSampleStatus(event, deps, s, "redeemed");
+      /* merchandise: null unless PRINTFUL_API_KEY is set and the order has some. It never throws, so a Printful problem can't hold up the order */
+      const merch = process.env.PRINTFUL_API_KEY ? await require("../printful").sendMerch(s, items.data, { env: process.env, fetch: deps && deps.fetch, catalog: (deps && deps.catalog) || require("../order").CATALOG, store: () => require("../game").stores(event, deps), now: deps && deps.now }) : null;
+      if (merch) { order.merchandise = merch.note; if (!merch.ok) order._subject += ": MERCHANDISE NOT SENT TO PRINTFUL"; }
       console.log("order paid", order.order, order.total);
       if (process.env.ORDER_NOTIFY_URL) await f(process.env.ORDER_NOTIFY_URL, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(order) });
     } catch (e) {

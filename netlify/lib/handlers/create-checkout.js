@@ -1,4 +1,4 @@
-/* POST /.netlify/functions/create-checkout  { lines: [{pid, grind, freq, qty}], lang }  ->  { url }
+/* POST /.netlify/functions/create-checkout  { lines: [{pid, grind, freq, qty}], lang }  ->  { url }   (a merchandise line: {pid, option, freq: "once", qty})
    Creates a Stripe Checkout page for the cart and returns its address. */
 const { stripe } = require("../stripe");
 const { checkCart, sessionParams } = require("../order");
@@ -18,7 +18,7 @@ async function farmSample(event, deps, farm, cart, params, lang) {
     if (!s || cart.subtotalOnce + cart.subtotalPerDelivery < G.SAMPLE_RULES.minOrder) return null;
     const label = (lang === "ja" ? "Beju Farmの無料サンプル100g: " : "Free 100 g Beju Farm sample: ") + s.coffee;
     params.metadata = Object.assign({}, params.metadata, { farm_player: me.id, farm_sample: s.id, farm_coffee: s.coffee, order: (params.metadata.order + " + " + label).slice(0, 490) });
-    params.custom_text = { submit: { message: lang === "ja" ? "Beju Farmで獲得した無料サンプル(" + s.coffee + " 100g)を同梱します。" : "Your free 100 g " + s.coffee + " sample from Beju Farm comes with this order." } };
+    params.custom_text = Object.assign({}, params.custom_text, { submit: { message: lang === "ja" ? "Beju Farmで獲得した無料サンプル(" + s.coffee + " 100g)を同梱します。" : "Your free 100 g " + s.coffee + " sample from Beju Farm comes with this order." } });
     return { reserve: async (session) => { s.status = "reserved"; s.session = session; s.reservedAt = now; await G.savePlayer(store, me); } };
   } catch (e) {
     console.error("farm sample", e.message);
@@ -32,7 +32,7 @@ exports.handler = async (event) => {
   let body;
   try { body = JSON.parse(event.isBase64Encoded ? Buffer.from(event.body || "", "base64").toString("utf8") : event.body || "{}"); }
   catch (e) { return json(400, { error: "bad_json" }); }
-  const cart = checkCart(body.lines);
+  const cart = checkCart(body.lines, deps && deps.catalog);
   if (cart.error) return json(400, cart);
   const site = process.env.SITE_URL || process.env.URL || "https://www.bejucoffee.com";
   const lang = body.lang === "ja" ? "ja" : "en", params = sessionParams(cart, { lang, site });
