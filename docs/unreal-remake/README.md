@@ -89,6 +89,8 @@ On the owner's Mac, Playwright is at `/Users/jordanhipkiss/beju/pw-env/node_modu
 - This covers the "one command builds the trial scene twice, with matching screenshots" part of the phase 0 gate, with the scene built by C++ at run time from text. The trial of scenes built by Unreal's Python into saved scene files has not been run; the run-time route may make it unnecessary.
 - **An earlier prototype exists outside both repositories**, at `~/Documents/BejuFarmHD2D` (made 12 November, not in git): about 3,100 lines of C++ that build a terraced diorama at run time with the web game's real sprites, a tilt-shift camera and touch controls, with a packaged Mac app. Nothing here uses or changes it. It is the natural starting point for the phase 1 look test; the owner has not yet said whether to bring it into the repository.
 
+**13 November: the owner supplied the look target.** Six Octopath Traveler screenshots, with notes on what to take from each, are in the private Unreal repository at `Reference/look/`. They are Square Enix's work, kept for reference only, and must not be copied into this public repository. The phase 1 look test is judged against them.
+
 ## Things worth knowing before you touch anything
 
 - Picker income depends on map distances: pickers walk at 24 px/s between bush coordinates stored in `game-assets/sprites.json` (`tickFarm`, about line 2609). In the remake, walking time must become a data value.
