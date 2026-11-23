@@ -15,3 +15,6 @@
 - Six agents for running the business are defined in `.claude/agents/`: `sales-scout`, `outreach-writer`, `product-rnd`, `numbers-analyst`, `web-shop` and `brand-content`. The main session is the lead: it hands out jobs, checks each report against its sources, and records the result.
 - Facts and lead records live in a private pipeline doc, and jobs in a private tracker; each agent file gives the pipeline link. This repository is public, so customer names, prices, margins, contacts and lead lists never go into it.
 - Agents draft and research only. Sending email, ordering, quoting and publishing the site happen from the main session, after the owner agrees.
+
+## The Unreal remake (planned, not started)
+- The plan, its research and a hand-off note are in `docs/unreal-remake/`; read `docs/unreal-remake/README.md` first.

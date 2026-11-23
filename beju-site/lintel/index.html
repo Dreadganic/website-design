@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Lintel — the macOS app starter kit that already takes money</title>
+<meta name="description" content="A native macOS app template with offline license keys, Sparkle updates, a real settings window and a one-command notarised release. Replace the demo, keep the plumbing.">
+<meta property="og:title" content="Lintel — the macOS app starter kit that already takes money">
+<meta property="og:description" content="Licensing, updates, settings, notarisation and DMG packaging, wired and tested. Ship a paid Mac app without rebuilding the boring parts.">
+<meta property="og:image" content="https://bejucoffee.com/lintel/img/og.png">
+<meta property="og:url" content="https://bejucoffee.com/lintel/">
+<link rel="icon" href="img/icon.png">
+<style>
+  :root {
+    --ink: #0A0908;
+    --surface: #121010;
+    --surface-2: #1A1615;
+    --surface-3: #221D1B;
+    --line: rgba(240, 232, 224, 0.10);
+    --line-strong: rgba(240, 232, 224, 0.18);
+    --text: #EFE9E2;
+    --muted: #A79C91;
+    --faint: #776D65;
+    --accent: #C87E48;
+    --accent-bright: #E09A63;
+    --accent-soft: rgba(200, 126, 72, 0.13);
+
+    --serif: ui-serif, "New York", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+
+    --step-0: clamp(1rem, 0.96rem + 0.2vw, 1.0625rem);
+    --step-1: clamp(1.15rem, 1.08rem + 0.35vw, 1.3rem);
+    --step-2: clamp(1.5rem, 1.35rem + 0.75vw, 1.9rem);
+    --step-3: clamp(2rem, 1.6rem + 2vw, 3rem);
+    --step-4: clamp(2.6rem, 1.7rem + 4.4vw, 4.6rem);
+
+    --gutter: clamp(1.25rem, 4vw, 3rem);
+    --radius: 14px;
+    --radius-lg: 20px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    * { animation: none !important; transition: none !important; }
+  }
+
+  body {
+    margin: 0;
+    background: var(--ink);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: var(--step-0);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* A very quiet warm light behind the top of the page. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0 0 auto 0;
+    height: 60vh;
+    background:
+      radial-gradient(60% 55% at 50% 0%, rgba(200, 126, 72, 0.10), transparent 70%),
+      radial-gradient(40% 40% at 85% 5%, rgba(200, 126, 72, 0.05), transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  ::selection { background: rgba(200, 126, 72, 0.32); color: #fff; }
+
+  a { color: inherit; }
+
+  .wrap {
+    position: relative;
+    z-index: 1;
+    width: min(1140px, 100% - var(--gutter) * 2);
+    margin-inline: auto;
+  }
+
+  /* ---------- type ---------- */
+
+  .display {
+    font-family: var(--serif);
+    font-weight: 600;
+    letter-spacing: -0.022em;
+    line-height: 1.06;
+    margin: 0;
+  }
+
+  h2.display { font-size: var(--step-3); letter-spacing: -0.025em; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .eyebrow::before {
+    content: "";
+    width: 1.75rem;
+    height: 1px;
+    background: var(--accent);
+    opacity: 0.6;
+  }
+
+  .lede {
+    font-size: var(--step-1);
+    color: var(--muted);
+    line-height: 1.62;
+    margin: 1.5rem 0 0;
+    max-width: 46ch;
+  }
+
+  p { margin: 0 0 1rem; }
+  .muted { color: var(--muted); }
+  .faint { color: var(--faint); }
+  code, kbd, .mono { font-family: var(--mono); font-size: 0.86em; }
+
+  .mono-label {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+
+  /* ---------- nav ---------- */
+
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    backdrop-filter: saturate(160%) blur(18px);
+    -webkit-backdrop-filter: saturate(160%) blur(18px);
+    background: rgba(10, 9, 8, 0.72);
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.25s ease;
+  }
+  .nav.scrolled { border-bottom-color: var(--line); }
+
+  .nav-inner {
+    display: flex;
+    align-items: center;
+    gap: 1.75rem;
+    height: 64px;
+  }
+
+  .wordmark {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    text-decoration: none;
+    font-family: var(--serif);
+    font-size: 1.22rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin-right: auto;
+  }
+
+  .glyph {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    background: linear-gradient(150deg, #3A312B, #211C19);
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--line-strong);
+  }
+  .glyph span {
+    display: block;
+    width: 11px;
+    height: 4px;
+    border-radius: 1px;
+    background: var(--accent);
+    box-shadow: 0 4px 0 -1px var(--accent), 0 4px 0 -1px var(--accent);
+    position: relative;
+  }
+  .glyph span::before, .glyph span::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    width: 2px;
+    height: 4px;
+    background: var(--accent);
+    opacity: 0.75;
+  }
+  .glyph span::before { left: 1px; }
+  .glyph span::after { right: 1px; }
+
+  .nav a.link {
+    text-decoration: none;
+    color: var(--muted);
+    font-size: 0.875rem;
+    transition: color 0.15s ease;
+  }
+  .nav a.link:hover { color: var(--text); }
+
+  @media (max-width: 720px) {
+    .nav a.link { display: none; }
+  }
+
+  /* ---------- buttons ---------- */
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.68rem 1.1rem;
+    border-radius: 9px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-decoration: none;
+    border: 1px solid transparent;
+    transition: transform 0.12s ease, background 0.16s ease, border-color 0.16s ease;
+    white-space: nowrap;
+  }
+  .btn:active { transform: translateY(1px); }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #1A0F07;
+    font-weight: 600;
+  }
+  .btn-primary:hover { background: var(--accent-bright); }
+
+  .btn-ghost {
+    border-color: var(--line-strong);
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.02);
+  }
+  .btn-ghost:hover { background: rgba(255, 255, 255, 0.05); border-color: rgba(240, 232, 224, 0.3); }
+
+  .btn-sm { padding: 0.45rem 0.8rem; font-size: 0.82rem; }
+
+  /* ---------- hero ---------- */
+
+  .hero {
+    padding: clamp(3rem, 9vw, 6.5rem) 0 clamp(2rem, 4vw, 3rem);
+  }
+
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: clamp(2rem, 5vw, 4.5rem);
+    align-items: center;
+  }
+
+  /* Grid children default to min-width:auto, which lets a <pre> push the whole
+     page wider than the viewport. Every flexible child needs to be allowed to
+     shrink. */
+  .hero-grid > *, .shots > *, .codewrap > *, .price-wrap > * { min-width: 0; }
+
+  .terminal, .codecard { max-width: 100%; min-width: 0; }
+  .terminal pre, .codecard pre { max-width: 100%; }
+
+  .hero h1 {
+    font-size: var(--step-4);
+    max-width: 15ch;
+  }
+
+  .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 2rem;
+  }
+
+  .hero-note {
+    margin-top: 1.25rem;
+    font-size: 0.8rem;
+    color: var(--faint);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.1rem;
+  }
+  .hero-note span { display: inline-flex; align-items: center; gap: 0.4rem; }
+  .hero-note span::before {
+    content: "";
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: var(--accent);
+    opacity: 0.7;
+  }
+
+  /* Terminal */
+
+  .terminal {
+    background: linear-gradient(180deg, #171413, #100E0D);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: 0 30px 80px -40px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+
+  .terminal-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.7rem 0.9rem;
+    border-bottom: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.015);
+  }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: #3A3330; }
+  .terminal-title {
+    margin-left: 0.6rem;
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    color: var(--faint);
+    letter-spacing: 0.04em;
+  }
+
+  .terminal pre {
+    margin: 0;
+    padding: 1.1rem 1.15rem 1.3rem;
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    line-height: 1.85;
+    overflow-x: auto;
+    color: #D8CFC6;
+  }
+  .terminal .c-dim { color: #6E645C; }
+  .terminal .c-accent { color: var(--accent-bright); }
+  .terminal .c-good { color: #7FA97A; }
+  .terminal .c-key { color: #C9B48F; word-break: break-all; }
+
+  /* ---------- problem strip ---------- */
+
+  .band {
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, rgba(255,255,255,0.015), transparent);
+  }
+
+  .band-inner {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--line);
+  }
+
+  .band-cell {
+    background: var(--ink);
+    padding: 1.5rem 1.35rem 1.6rem;
+  }
+  .band-cell .n {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    display: block;
+    margin-bottom: 0.75rem;
+  }
+  .band-cell h3 {
+    font-size: 0.95rem;
+    margin: 0 0 0.4rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .band-cell p {
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin: 0;
+    line-height: 1.55;
+  }
+
+  @media (max-width: 900px) {
+    .band-inner { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 520px) {
+    .band-inner { grid-template-columns: 1fr; }
+  }
+
+  /* ---------- sections ---------- */
+
+  section { padding: clamp(3.5rem, 8vw, 6rem) 0; }
+
+  .section-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 2rem;
+    margin-bottom: clamp(2rem, 4vw, 3rem);
+    flex-wrap: wrap;
+  }
+
+  .section-head p {
+    max-width: 40ch;
+    color: var(--muted);
+    font-size: 0.95rem;
+    margin: 0 0 0.35rem;
+  }
+
+  /* ---------- features ---------- */
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+  }
+
+  .card {
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 1.4rem 1.35rem;
+    background: linear-gradient(180deg, rgba(255,255,255,0.022), rgba(255,255,255,0));
+    transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+  }
+  .card:hover {
+    border-color: var(--line-strong);
+    transform: translateY(-2px);
+  }
+  .card h3 {
+    font-size: 0.98rem;
+    margin: 0 0 0.45rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .card p {
+    font-size: 0.82rem;
+    line-height: 1.6;
+    color: var(--muted);
+    margin: 0;
+  }
+  .card .tag {
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    opacity: 0.85;
+    display: block;
+    margin-bottom: 0.85rem;
+  }
+
+  .grid-4 { grid-template-columns: repeat(4, 1fr); }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+
+  @media (max-width: 980px) {
+    .grid-4 { grid-template-columns: repeat(2, 1fr); }
+    .grid-3 { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 540px) {
+    .grid-4 { grid-template-columns: 1fr; }
+  }
+
+  /* ---------- shots ---------- */
+
+  .shots {
+    display: grid;
+    grid-template-columns: 1.35fr 1fr;
+    gap: 1.25rem;
+    align-items: start;
+  }
+
+  figure { margin: 0; }
+
+  .shot {
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    box-shadow: 0 40px 90px -50px #000;
+  }
+  .shot img { display: block; width: 100%; height: auto; }
+
+  figcaption {
+    margin-top: 0.85rem;
+    font-size: 0.78rem;
+    color: var(--faint);
+    display: flex;
+    gap: 0.5rem;
+    align-items: baseline;
+  }
+  figcaption b { color: var(--muted); font-weight: 500; }
+
+  @media (max-width: 900px) {
+    .hero-grid, .shots { grid-template-columns: 1fr; }
+  }
+
+  /* ---------- code ---------- */
+
+  .codewrap {
+    display: grid;
+    grid-template-columns: 0.85fr 1.15fr;
+    gap: clamp(1.5rem, 4vw, 3rem);
+    align-items: center;
+  }
+
+  .codecard {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: linear-gradient(180deg, #161312, #0F0D0C);
+    overflow: hidden;
+    box-shadow: 0 30px 70px -45px #000;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 0.15rem;
+    padding: 0.45rem;
+    border-bottom: 1px solid var(--line);
+  }
+  .tab {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
+    color: var(--faint);
+    background: none;
+    border: 0;
+    padding: 0.4rem 0.7rem;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .tab[aria-selected="true"] {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .codecard pre {
+    margin: 0;
+    padding: 1.15rem 1.25rem 1.35rem;
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    line-height: 1.9;
+    overflow-x: auto;
+    color: #D5CCC3;
+  }
+  .codecard [hidden] { display: none; }
+
+  .tok-com { color: #6B6159; font-style: italic; }
+  .tok-key { color: #C79A6B; }
+  .tok-str { color: #A8BE8D; }
+  .tok-type { color: #D9B98C; }
+  .tok-fn { color: #E2C39A; }
+
+  /* ---------- pricing ---------- */
+
+  .price-wrap {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    align-items: start;
+  }
+
+  .price {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: clamp(1.5rem, 3vw, 2.25rem);
+    background: linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.004));
+    display: flex;
+    flex-direction: column;
+  }
+
+  .price.featured {
+    border-color: rgba(200, 126, 72, 0.42);
+    background:
+      radial-gradient(120% 90% at 100% 0%, rgba(200, 126, 72, 0.12), transparent 60%),
+      linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.004));
+  }
+
+  .price h3 {
+    font-family: var(--serif);
+    font-size: 1.35rem;
+    margin: 0 0 0.35rem;
+    letter-spacing: -0.01em;
+  }
+
+  .amount {
+    font-family: var(--serif);
+    font-size: clamp(2.6rem, 6vw, 3.6rem);
+    line-height: 1;
+    letter-spacing: -0.03em;
+    margin: 1rem 0 0.35rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+  }
+  .amount small {
+    font-family: var(--sans);
+    font-size: 0.8rem;
+    color: var(--faint);
+    letter-spacing: 0;
+  }
+
+  .feature-list {
+    list-style: none;
+    padding: 0;
+    margin: 1.5rem 0 0;
+    display: grid;
+    gap: 0.65rem;
+    font-size: 0.875rem;
+    color: var(--muted);
+  }
+  .feature-list li {
+    display: grid;
+    grid-template-columns: 1.1rem 1fr;
+    gap: 0.55rem;
+    align-items: start;
+  }
+  .feature-list li::before {
+    content: "✓";
+    color: var(--accent);
+    font-size: 0.8rem;
+    line-height: 1.7;
+  }
+
+  .price .btn { margin-top: auto; }
+  .price-actions { margin-top: 1.75rem; display: grid; gap: 0.6rem; }
+
+  .fine {
+    font-size: 0.75rem;
+    color: var(--faint);
+    text-align: center;
+    margin-top: 1.5rem;
+    line-height: 1.7;
+  }
+
+  @media (max-width: 820px) {
+    .price-wrap, .codewrap { grid-template-columns: 1fr; }
+  }
+
+  /* ---------- faq ---------- */
+
+  .faq { display: grid; gap: 0; border-top: 1px solid var(--line); }
+
+  details {
+    border-bottom: 1px solid var(--line);
+    padding: 1.1rem 0;
+  }
+  summary {
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text);
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary::after {
+    content: "+";
+    font-family: var(--mono);
+    color: var(--faint);
+    font-size: 1rem;
+    transition: transform 0.2s ease;
+  }
+  details[open] summary::after { content: "−"; }
+  details p {
+    margin: 0.75rem 0 0;
+    color: var(--muted);
+    font-size: 0.875rem;
+    max-width: 72ch;
+    line-height: 1.68;
+  }
+
+  /* ---------- cta ---------- */
+
+  .cta {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: clamp(2rem, 5vw, 3.5rem);
+    text-align: center;
+    background:
+      radial-gradient(90% 120% at 50% 0%, rgba(200, 126, 72, 0.14), transparent 65%),
+      linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
+  }
+  .cta h2 { font-size: var(--step-2); margin: 0 0 0.75rem; }
+  .cta p { color: var(--muted); margin: 0 auto 1.75rem; max-width: 46ch; font-size: 0.95rem; }
+  .cta .hero-actions { justify-content: center; margin-top: 0; }
+
+  /* ---------- footer ---------- */
+
+  footer {
+    border-top: 1px solid var(--line);
+    padding: 2.5rem 0 3rem;
+    margin-top: 2rem;
+  }
+  .foot-inner {
+    display: flex;
+    justify-content: space-between;
+    gap: 2rem;
+    flex-wrap: wrap;
+    font-size: 0.8rem;
+    color: var(--faint);
+  }
+  .foot-links { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+  .foot-links a { text-decoration: none; color: var(--muted); }
+  .foot-links a:hover { color: var(--text); }
+</style>
+</head>
+<body>
+
+<nav class="nav" id="nav">
+  <div class="wrap nav-inner">
+    <a class="wordmark" href="#top">
+      <span class="glyph"><span></span></span>
+      Lintel
+    </a>
+    <a class="link" href="#inside">What's inside</a>
+    <a class="link" href="#shots">Screens</a>
+    <a class="link" href="#pricing">Pricing</a>
+    <a class="link" href="#faq">FAQ</a>
+    <a class="btn btn-primary btn-sm" href="#pricing" data-checkout="solo">Buy — $99</a>
+  </div>
+</nav>
+
+<main id="top">
+
+  <!-- ============ HERO ============ -->
+  <header class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <p class="eyebrow">macOS starter kit · v1.0</p>
+        <h1 class="display">Everything your Mac app needs before it can charge money.</h1>
+        <p class="lede">
+          A native SwiftUI app with offline license keys, a real settings window,
+          Sparkle updates and a one-command notarised release. Already wired.
+          Already the shape of a shipped app.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#pricing" data-checkout="solo">Buy Lintel — $99</a>
+          <a class="btn btn-ghost" href="#inside">See what's inside</a>
+        </div>
+        <p class="hero-note">
+          <span>One-time payment</span>
+          <span>Unlimited apps</span>
+          <span>No license server</span>
+          <span>Full source</span>
+        </p>
+      </div>
+
+      <div class="terminal" role="img" aria-label="Terminal output from the licensing tool">
+        <div class="terminal-bar">
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          <span class="terminal-title">~/YourApp — keellicense</span>
+        </div>
+        <pre><span class="c-dim">$</span> swift run keellicense init
+<span class="c-good">  ✓</span> Keypair created
+<span class="c-dim">    public key   YLOixM5lRd7qwRF//yuaSRDb…</span>
+<span class="c-dim">    product id   com.yourname.app</span>
+
+<span class="c-dim">$</span> swift run keellicense issue --email you@example.com
+<span class="c-key">  L1.eyJ2IjoxLCJwIjoiY29tLnlvdXJuYW1l…9LADQ</span>
+<span class="c-good">  ✓</span> verified locally · order LT-B4969CDD
+
+<span class="c-dim">$</span> make release
+<span class="c-good">  archive ✓   notarise ✓   staple ✓</span>
+<span class="c-good">  dmg ✓   4.1 MB   appcast ✓   v1.0</span></pre>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ PROBLEM ============ -->
+  <div class="band">
+    <div class="wrap" style="padding-inline:0">
+      <div class="band-inner">
+        <div class="band-cell">
+          <span class="n">01 — DRM</span>
+          <h3>License keys</h3>
+          <p>A server, a database, an activation API and a support inbox full of "my key stopped working".</p>
+        </div>
+        <div class="band-cell">
+          <span class="n">02 — UPDATES</span>
+          <h3>Sparkle + appcast</h3>
+          <p>EdDSA keys, an XML feed, version numbers that must never repeat, and a signing tool in DerivedData.</p>
+        </div>
+        <div class="band-cell">
+          <span class="n">03 — DISTRIBUTION</span>
+          <h3>Notarisation</h3>
+          <p>Hardened runtime, entitlements, stapling, a DMG that looks intentional, and a Gatekeeper warning if you miss one step.</p>
+        </div>
+        <div class="band-cell">
+          <span class="n">04 — CHROME</span>
+          <h3>Settings that fit</h3>
+          <p>Three panes, the right window flags, ⌘, that actually opens, and glass that doesn't look like a form in a sheet.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ WHAT'S INSIDE ============ -->
+  <section id="inside">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Inside the kit</p>
+          <h2 class="display">The plumbing, done properly.</h2>
+        </div>
+        <p>
+          Eight things you would otherwise spend three weeks on — written the way
+          they should be, with the trade-offs documented instead of hidden.
+        </p>
+      </div>
+
+      <div class="grid grid-4">
+        <article class="card">
+          <span class="tag">Licensing</span>
+          <h3>Offline license keys</h3>
+          <p>Ed25519-signed keys, verified with arithmetic. No server, no database, no phone-home. Works on a plane.</p>
+        </article>
+        <article class="card">
+          <span class="tag">Trial</span>
+          <h3>14-day trial, in the Keychain</h3>
+          <p>Launch date, clock-rollback detection and a grace period. Deleting a preferences file doesn't restart anything.</p>
+        </article>
+        <article class="card">
+          <span class="tag">Issuing</span>
+          <h3>A CLI that mints keys</h3>
+          <p>Initialise a keypair, issue per order, verify before sending, emit JSON for a payment webhook.</p>
+        </article>
+        <article class="card">
+          <span class="tag">Paywall</span>
+          <h3>Activation that converts</h3>
+          <p>One activation form, used in Settings and in the paywall. Honest copy, no dark patterns, no nagging.</p>
+        </article>
+        <article class="card">
+          <span class="tag">Updates</span>
+          <h3>Sparkle 2, wired</h3>
+          <p>Updater lifecycle, debug-build guard, menu-bar activation fix, appcast template and EdDSA signing steps.</p>
+        </article>
+        <article class="card">
+          <span class="tag">Release</span>
+          <h3>One command to ship</h3>
+          <p><code>make release</code> archives, notarises, staples, builds the DMG, signs it, updates the appcast and cuts the GitHub release.</p>
+        </article>
+        <article class="card">
+          <span class="tag">Chromeless</span>
+          <h3>A settings window, not a form</h3>
+          <p>Sidebar + detail in an AppKit window with <code>.fullSizeContentView</code>, so macOS 26 draws real glass chrome.</p>
+        </article>
+        <article class="card">
+          <span class="tag">Foundation</span>
+          <h3>Shell, menus, menu bar</h3>
+          <p>Three-column layout, commands that work with no window open, a menu-bar menu and launch-at-login.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SHOTS ============ -->
+  <section id="shots" style="padding-top:0">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">The demo app</p>
+          <h2 class="display">It looks finished before you start.</h2>
+        </div>
+        <p>A notes app ships with the kit so every screen is real. Keep it, gut it, or replace it — the plumbing doesn't care.</p>
+      </div>
+
+      <div class="shots">
+        <figure>
+          <div class="shot"><img src="img/main-window.png" alt="The demo app's three-column window" width="2024" height="1368" loading="lazy"></div>
+          <figcaption><b>The shell.</b> Sidebar, list, editor — real persistence, search, pinning, archive.</figcaption>
+        </figure>
+        <figure>
+          <div class="shot"><img src="img/settings-license.png" alt="The License pane in the settings window" width="1532" height="1212" loading="lazy"></div>
+          <figcaption><b>Settings → License.</b> Status, activation, deactivation, and a receipt-shaped record.</figcaption>
+        </figure>
+      </div>
+
+      <div class="shots" style="grid-template-columns:1fr 1.1fr; margin-top:1.25rem; align-items:center">
+        <figure>
+          <div class="shot"><img src="img/paywall.png" alt="The paywall shown after the trial ends" width="2024" height="1368" loading="lazy"></div>
+          <figcaption><b>The paywall.</b> Shown once the trial ends.</figcaption>
+        </figure>
+        <div>
+          <p class="eyebrow" style="margin-bottom:1rem">Day 14</p>
+          <h3 class="display" style="font-size:1.6rem; margin-bottom:0.9rem">A gate, not a maze.</h3>
+          <p class="muted" style="font-size:0.9rem; margin-bottom:1.25rem">
+            When the trial ends the app stops being usable and says so plainly. No countdown
+            timers, no feature crippling, no modal that reappears every launch.
+          </p>
+          <ul class="feature-list" style="margin-top:0">
+            <li>Activation stays available in Settings, before and after purchase</li>
+            <li>Keys work offline, on any Mac, forever — no re-activation dance</li>
+            <li>Deactivating frees the seat without burning the key</li>
+            <li>Every failure message tells the customer what to actually do</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CODE ============ -->
+  <section id="code">
+    <div class="wrap codewrap">
+      <div>
+        <p class="eyebrow">Three lines, not three weeks</p>
+        <h2 class="display">You write the product.</h2>
+        <p class="lede" style="font-size:1rem">
+          Drop the public key in one file, apply the gate to your root view, and the
+          app knows whether it is paid for. Everything else is already there.
+        </p>
+        <p class="muted" style="font-size:0.875rem;margin-top:1.5rem">
+          Keys are bound to your bundle identifier, so one leaked key can't unlock
+          your other apps. Expiry travels inside the signature — the app enforces it
+          without ever asking a server.
+        </p>
+      </div>
+
+      <div class="codecard">
+        <div class="tabs" role="tablist">
+          <button class="tab" role="tab" aria-selected="true" aria-controls="panel-swift" id="tab-swift">App.swift</button>
+          <button class="tab" role="tab" aria-selected="false" aria-controls="panel-sh" id="tab-sh">Terminal</button>
+        </div>
+
+        <pre id="panel-swift" role="tabpanel" aria-labelledby="tab-swift"><span class="tok-com">// 1. Point at your checkout</span>
+<span class="tok-key">enum</span> <span class="tok-type">LicenseConfiguration</span> {
+    <span class="tok-key">static let</span> productID = <span class="tok-str">"com.yourname.app"</span>
+    <span class="tok-key">static let</span> publicKeyBase64 =
+        <span class="tok-str">"YLOixM5lRd7qwRF//…"</span>
+    <span class="tok-key">static let</span> trialDays = <span class="tok-str">14</span>
+}
+
+<span class="tok-com">// 2. Gate the app</span>
+<span class="tok-key">@main struct</span> <span class="tok-type">YourApp</span>: <span class="tok-type">App</span> {
+    <span class="tok-key">var</span> body: <span class="tok-key">some</span> <span class="tok-type">Scene</span> {
+        <span class="tok-type">Window</span>(<span class="tok-str">"YourApp"</span>, id: <span class="tok-str">"main"</span>) {
+            <span class="tok-type">RootView</span>()
+                .<span class="tok-fn">licenseGate</span>()      <span class="tok-com">// paywall when it expires</span>
+                .<span class="tok-fn">environment</span>(<span class="tok-type">LicenseStore</span>.shared)
+        }
+    }
+}</pre>
+
+        <pre id="panel-sh" role="tabpanel" aria-labelledby="tab-sh" hidden><span class="tok-com"># Mint a key for an order</span>
+$ swift run keellicense issue \
+    --email customer@example.com \
+    --edition pro --seats 2
+
+<span class="tok-com"># Machine-readable, for a Stripe or
+# Lemon Squeezy webhook</span>
+$ swift run keellicense issue \
+    --email a@b.com --json
+{<span class="tok-str">"key"</span>:<span class="tok-str">"L1…"</span>,<span class="tok-str">"order"</span>:<span class="tok-str">"LT-…"</span>}
+
+<span class="tok-com"># Ship it</span>
+$ make release</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PRICING ============ -->
+  <section id="pricing">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Pricing</p>
+          <h2 class="display">Pay once. Ship as much as you like.</h2>
+        </div>
+        <p>No subscription, no per-seat maths, no revenue share. Two prices, both final.</p>
+      </div>
+
+      <div class="price-wrap">
+        <div class="price featured">
+          <h3>Solo</h3>
+          <p class="muted" style="font-size:0.85rem;margin:0">For one developer shipping paid Mac apps.</p>
+          <div class="amount">$99 <small>one-time</small></div>
+          <ul class="feature-list">
+            <li>Full source, unlimited commercial apps</li>
+            <li>Offline licensing + trial + paywall</li>
+            <li>Sparkle updates and appcast template</li>
+            <li>Notarised release pipeline and DMG</li>
+            <li>Icon generator, design tokens, demo app</li>
+            <li>Launch playbook: pricing, channels, copy</li>
+            <li>Free updates to every 1.x release</li>
+          </ul>
+          <div class="price-actions">
+            <a class="btn btn-primary" href="#" data-checkout="solo">Buy Solo — $99</a>
+            <span class="fine" style="margin:0">Instant download. 14-day refund, no questions.</span>
+          </div>
+        </div>
+
+        <div class="price">
+          <h3>Studio</h3>
+          <p class="muted" style="font-size:0.85rem;margin:0">For a team that ships together.</p>
+          <div class="amount">$249 <small>one-time</small></div>
+          <ul class="feature-list">
+            <li>Everything in Solo</li>
+            <li>Five developers, one licence</li>
+            <li>Unlimited client work and handoffs</li>
+            <li>Priority email support for 12 months</li>
+            <li>Named in the changelog if you want</li>
+          </ul>
+          <div class="price-actions">
+            <a class="btn btn-ghost" href="#" data-checkout="studio">Buy Studio — $249</a>
+            <span class="fine" style="margin:0">Same source. Bigger team.</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="fine">
+        You still need an Apple Developer account ($99/year) to notarise and distribute outside the App Store.<br>
+        Recurring Apple fees are the only recurring cost of shipping a Mac app.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ FAQ ============ -->
+  <section id="faq" style="padding-top:0">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">Questions</p>
+          <h2 class="display">The things you'd ask before paying.</h2>
+        </div>
+      </div>
+
+      <div class="faq">
+        <details open>
+          <summary>Does this work with the Mac App Store?</summary>
+          <p>
+            The shell, settings window and design system do. The licensing layer is built for selling
+            directly — the App Store handles payment itself, so you'd disable the gate and keep everything else.
+            Both entitlement files ship: hardened runtime for direct distribution, sandbox for the store.
+          </p>
+        </details>
+        <details>
+          <summary>Do I need a server or a database?</summary>
+          <p>
+            No. Keys are signed with your private key and verified in the app with your public key, so
+            there is nothing to host and nothing to go down. You can optionally mint keys from a payment
+            webhook — the CLI emits JSON for that — but the app never talks to it.
+          </p>
+        </details>
+        <details>
+          <summary>What happens if someone shares a key?</summary>
+          <p>
+            Key sharing exists in every offline scheme, including the big ones. Lintel's answer is
+            proportionate: keys are bound to your bundle identifier, seat counts travel in the key, and
+            the docs include the two cheap mitigations that actually work (per-order keys and an optional
+            online check on high-value tiers). No scheme makes a Mac app uncrackable, and a paywall that
+            punishes paying customers costs more than piracy.
+          </p>
+        </details>
+        <details>
+          <summary>Which macOS versions are supported?</summary>
+          <p>
+            Deployment target is macOS 14 Sonoma. The kit is developed and tested on macOS 26 and 27, with
+            availability checks where newer APIs are used — the glass scroll-edge treatment and the
+            sidebar toggle removal are both guarded.
+          </p>
+        </details>
+        <details>
+          <summary>Can I use it for client work?</summary>
+          <p>
+            Yes. Ship it in as many apps as you like, including work you're paid to build for someone else.
+            The only restriction is redistributing the kit itself as a template or starter product.
+          </p>
+        </details>
+        <details>
+          <summary>What do I actually receive?</summary>
+          <p>
+            A git repository: the Xcode project and Swift sources, the licensing CLI, the release scripts,
+            the icon generator, the demo app, and the docs — including the launch playbook that covers
+            pricing, where to post, and what to write. Download link arrives immediately after payment.
+          </p>
+        </details>
+        <details>
+          <summary>Refunds?</summary>
+          <p>
+            Fourteen days, no questions, no support ticket maze. If it doesn't save you a week, it
+            shouldn't cost you $99.
+          </p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CTA ============ -->
+  <section style="padding-top:0">
+    <div class="wrap">
+      <div class="cta">
+        <p class="eyebrow" style="justify-content:center; display:inline-flex">Ready when you are</p>
+        <h2 class="display">Start at the part that's interesting.</h2>
+        <p>
+          The licensing, the updates and the release pipeline are done. You get to
+          spend your first week on the thing only you can build.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#" data-checkout="solo">Buy Lintel — $99</a>
+          <a class="btn btn-ghost" href="#inside">Read what's inside again</a>
+        </div>
+        <p class="fine">One-time. Unlimited apps. Full source. 14-day refund.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap foot-inner">
+    <div>
+      <a class="wordmark" href="#top" style="font-size:1rem">
+        <span class="glyph"><span></span></span>
+        Lintel
+      </a>
+      <p class="faint" style="margin:0.75rem 0 0; font-size:0.75rem">A macOS starter kit by a Mac developer who got tired of rebuilding this.</p>
+    </div>
+    <div class="foot-links">
+      <a href="#inside">What's inside</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+      <a href="mailto:hello@bejucoffee.com">Support</a>
+      <a href="https://bejucoffee.com">bejucoffee.com</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Nav border once the page moves.
+  const nav = document.getElementById('nav');
+  const onScroll = () => nav.classList.toggle('scrolled', window.scrollY > 8);
+  onScroll();
+  addEventListener('scroll', onScroll, { passive: true });
+
+  // Code tabs.
+  const tabs = [...document.querySelectorAll('.tab')];
+  for (const tab of tabs) {
+    tab.addEventListener('click', () => {
+      for (const other of tabs) {
+        const selected = other === tab;
+        other.setAttribute('aria-selected', String(selected));
+        document.getElementById(other.getAttribute('aria-controls')).hidden = !selected;
+      }
+    });
+  }
+
+  // Replace these with your real checkout links before shipping the page.
+  // Lemon Squeezy / Paddle / Gumroad all give you a hosted URL per product.
+  const CHECKOUT = {
+    solo:   'https://bejubrew.gumroad.com/l/lintel',
+    studio: ''   // Studio isn't listed yet — its button emails you instead
+  };
+  // Until a real store link is set, "Buy" opens an email instead of doing
+  // nothing — a page that can still take an order beats a page that can't.
+  const FALLBACK_EMAIL = 'hello@bejucoffee.com';
+  document.querySelectorAll('[data-checkout]').forEach((el) => {
+    const plan = el.dataset.checkout;
+    const href = CHECKOUT[plan] || '';
+    el.href = (!href || href.includes('XXXX'))
+      ? 'mailto:' + FALLBACK_EMAIL + '?subject=' + encodeURIComponent('Lintel — ' + plan + ' licence')
+      : href;
+  });
+</script>
+</body>
+</html>

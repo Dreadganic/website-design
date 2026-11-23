@@ -22,3 +22,6 @@
   X-Robots-Tag: noindex, nofollow
 /__forms
   X-Robots-Tag: noindex, nofollow
+
+/lintel/*
+  X-Robots-Tag: noindex, nofollow
