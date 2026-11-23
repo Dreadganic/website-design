@@ -72,8 +72,8 @@
      the cart line carries the size as "option". netlify/lib/catalog.json holds the same ids, prices and sizes, and charges from them. */
   var TEE_SIZES = ["S", "M", "L", "XL", "2XL", "3XL"];
   var MERCH = [
-    { id: "tee-natural", name: "Beju Passport Tee, Natural", jp: "ベージュ パスポートTシャツ(ナチュラル)", price: 5500, sizes: TEE_SIZES, colour: ["Crane-green print on a natural (cream) shirt.", "ナチュラル(生成り)のボディに、グリーンのプリント。"], img: { front: "/images/merch/passport-tee-natural-front.jpg?v=2121e7a7", back: "/images/merch/passport-tee-natural-back.jpg?v=3e0f749f" } },
-    { id: "tee-charcoal", name: "Beju Passport Tee, Charcoal", jp: "ベージュ パスポートTシャツ(チャコール)", price: 5500, sizes: TEE_SIZES, colour: ["Light-pink print on a charcoal (warm dark grey) shirt.", "チャコール(温かみのあるダークグレー)のボディに、ライトピンクのプリント。"], img: { front: "/images/merch/passport-tee-charcoal-front.jpg?v=724ee2fa", back: "/images/merch/passport-tee-charcoal-back.jpg?v=9c4f4beb" } }
+    { id: "tee-natural", name: "Beju Passport Tee, Natural", jp: "ベージュ パスポートTシャツ(ナチュラル)", price: 5500, sizes: TEE_SIZES, colour: ["Crane-green print on a natural (cream) shirt.", "ナチュラル(生成り)のボディに、グリーンのプリント。"], img: { front: "/images/merch/passport-tee-natural-front.jpg?v=2121e7a7", back: "/images/merch/passport-tee-natural-back.jpg?v=88962ae0" } },
+    { id: "tee-charcoal", name: "Beju Passport Tee, Charcoal", jp: "ベージュ パスポートTシャツ(チャコール)", price: 5500, sizes: TEE_SIZES, colour: ["Light-pink print on a charcoal (warm dark grey) shirt.", "チャコール(温かみのあるダークグレー)のボディに、ライトピンクのプリント。"], img: { front: "/images/merch/passport-tee-charcoal-front.jpg?v=724ee2fa", back: "/images/merch/passport-tee-charcoal-back.jpg?v=ab16e4bf" } }
   ];
   function lotFor(p, oid) { var lid = p.lots && p.lots[oid]; return lid ? lotById(lid) : ORIGINS[oid].lots[0]; }
   /* ---------- Language (English / 日本語) ---------- */
