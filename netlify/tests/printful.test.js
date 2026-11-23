@@ -70,8 +70,8 @@ test("the live catalogue's merchandise is the Passport Tee in two colourways: on
   const sizes = ["S", "M", "L", "XL", "2XL", "3XL"];
   assert.deepEqual(CATALOG.products["tee-natural"].fulfil.variants, { S: 14089, M: 14090, L: 14091, XL: 14092, "2XL": 14093, "3XL": 14094 });
   assert.deepEqual(CATALOG.products["tee-charcoal"].fulfil.variants, { S: 14047, M: 14048, L: 14049, XL: 14050, "2XL": 14051, "3XL": 14052 });
-  assert.deepEqual(CATALOG.products["tee-natural"].fulfil.files, [{ type: "front", id: 1109986779 }, { type: "back", id: 1109986784 }]);
-  assert.deepEqual(CATALOG.products["tee-charcoal"].fulfil.files, [{ type: "front", id: 1109994793 }, { type: "back", id: 1109994797 }]);
+  assert.deepEqual(CATALOG.products["tee-natural"].fulfil.files, [{ type: "front", id: 1109986779 }, { type: "back", id: 1119967926 }]);
+  assert.deepEqual(CATALOG.products["tee-charcoal"].fulfil.files, [{ type: "front", id: 1109994793 }, { type: "back", id: 1119967931 }]);
   for (const k of merch) {
     const p = CATALOG.products[k];
     assert.equal(p.price, 5500); assert.equal(p.fulfil.by, "printful"); assert.ok(p.name && p.jp); assert.ok(!("weight" in p));
@@ -89,8 +89,8 @@ test("a print file given by its Printful file-library id reaches the order body 
   assert.equal(await paid(), 200);
   const sent = toPrintful(); assert.equal(sent.length, 1);
   assert.deepEqual(JSON.parse(sent[0].body).items, [
-    { variant_id: 14092, quantity: 1, name: "Beju Passport Tee, Natural (XL)", files: [{ type: "front", id: 1109986779 }, { type: "back", id: 1109986784 }] },
-    { variant_id: 14052, quantity: 2, name: "Beju Passport Tee, Charcoal (3XL)", files: [{ type: "front", id: 1109994793 }, { type: "back", id: 1109994797 }] }]);
+    { variant_id: 14092, quantity: 1, name: "Beju Passport Tee, Natural (XL)", files: [{ type: "front", id: 1109986779 }, { type: "back", id: 1119967926 }] },
+    { variant_id: 14052, quantity: 2, name: "Beju Passport Tee, Charcoal (3XL)", files: [{ type: "front", id: 1109994793 }, { type: "back", id: 1119967931 }] }]);
   assert.ok(!/"url"/.test(sent[0].body), "no file address is made up for a library file");
 });
 
